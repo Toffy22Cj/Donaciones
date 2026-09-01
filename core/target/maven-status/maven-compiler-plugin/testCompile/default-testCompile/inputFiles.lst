@@ -1,0 +1,10 @@
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/projection/DonationAuditFactsIntegrationTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/projection/DonationProjectionIntegrationTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/saga/OutboxSagaCoordinatorTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/architecture/ArchitectureTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/event/EventStreamTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/fund/FundTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/physicalasset/PhysicalAssetTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/physicalasset/payloads/PayloadSerializationTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/shared/AggregateRootTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest.java

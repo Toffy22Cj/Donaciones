@@ -1,0 +1,10 @@
+{
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "chat.tools.terminal.autoApprove": {
+        "/^mvn -q -pl crypto -am test; echo EXIT:\\$\\?$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

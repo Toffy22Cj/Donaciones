@@ -1,0 +1,5 @@
+/home/carlos/Proyectos/Donaciones/ai/src/test/java/com/traceability/ai/application/service/DonorReportGeneratorTest.java
+/home/carlos/Proyectos/Donaciones/ai/src/test/java/com/traceability/ai/application/service/NarrativePromptSanitizerTest.java
+/home/carlos/Proyectos/Donaciones/ai/src/test/java/com/traceability/ai/architecture/ArchitectureTest.java
+/home/carlos/Proyectos/Donaciones/ai/src/test/java/com/traceability/ai/infrastructure/openai/SpringAiLlmAdapterTest.java
+/home/carlos/Proyectos/Donaciones/ai/src/test/java/com/traceability/ai/infrastructure/persistence/mongo/DonorReportMongoAdapterTest.java

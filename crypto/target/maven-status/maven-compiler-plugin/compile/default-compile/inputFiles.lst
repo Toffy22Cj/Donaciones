@@ -1,0 +1,12 @@
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/application/JcsHashAdapter.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/application/port/out/BlockchainAnchorRepositoryPort.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/application/port/out/MerkleBatchRepositoryPort.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/domain/AnchorStatus.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/domain/MerkleBatch.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/domain/MerkleTree.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/domain/Resolution.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/domain/exception/NoPendingBatchAvailableException.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchDocument.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchMongoAdapter.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/SpringDataMerkleBatchRepository.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/Web3NonceCounterDocument.java

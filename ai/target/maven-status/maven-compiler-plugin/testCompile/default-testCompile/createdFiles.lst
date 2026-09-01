@@ -1,0 +1,3 @@
+com/traceability/ai/architecture/ArchitectureTest.class
+com/traceability/ai/infrastructure/persistence/mongo/DonorReportMongoAdapterTest.class
+com/traceability/ai/infrastructure/persistence/mongo/DonorReportMongoAdapterTest$TestConfig.class

@@ -1,0 +1,5 @@
+com/traceability/contracts/AuditFactsDTO.class
+com/traceability/contracts/HashPort.class
+com/traceability/contracts/TransitionFactDTO.class
+com/traceability/contracts/AuditFactsPort.class
+com/traceability/contracts/FinancialFlagDTO.class

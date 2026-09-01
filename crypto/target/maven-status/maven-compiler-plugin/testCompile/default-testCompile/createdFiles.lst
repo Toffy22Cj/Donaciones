@@ -1,0 +1,3 @@
+com/traceability/crypto/domain/MerkleTreeTest.class
+com/traceability/crypto/application/JcsHashAdapterTest.class
+com/traceability/crypto/architecture/ArchitectureTest.class
