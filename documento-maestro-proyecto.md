@@ -1,6 +1,6 @@
 # Documento Maestro — Motor de Trazabilidad Verificable de Donaciones
 
-**Nombre comercial provisional (no usado en código):** el proyecto se ha referido a sí mismo informalmente como "Nexxus" en la conversación de diseño, pero esto es explícitamente **no vinculante** — puede cambiar sin afectar nada del dominio, la arquitectura ni el código.
+**Nombre comercial provisional (no usado en código):** el proyecto se ha referido a sí mismo informalmente como "PaxFide" en la conversación de diseño, pero esto es explícitamente **no vinculante** — puede cambiar sin afectar nada del dominio, la arquitectura ni el código.
 **Base package Java:** `com.traceability`
 **Fase actual:** Fase 2 — Implementación (la Fase 1, Domain Design, está formalmente cerrada)
 

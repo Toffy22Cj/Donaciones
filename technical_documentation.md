@@ -82,7 +82,7 @@ El sistema es un proyecto multi-módulo Maven:
 | `/core` | Módulo principal con la lógica de dominio, CQRS, proyecciones e infraestructura MongoDB. | Módulo Maven | Spring Boot, MongoDB, Jackson |
 | `/crypto` | Módulo aislado para hashing y Merkle Trees. | Módulo Maven | `java-json-canonicalization`, `web3j` |
 | `/contracts` | Definición de DTOs y Puertos para integración entre módulos aislados (Ej: IA). | Módulo Maven | Ninguna externa |
-| `/ai` | Módulo aislado (Aún en conceptualización/pruebas estructurales ArchUnit). | Módulo Maven | `spring-ai-bom` (Inferido) |
+| `/ai` | Módulo aislado. Generador de narrativas (`NarrativeGenerator`) consumiendo `AuditFactsPort`, con grounding determinista y fallback resiliente. Completamente implementado y probado. | Módulo Maven | `spring-ai` |
 
 **Flujo de navegación recomendado para Onboarding:**
 ```text
@@ -243,6 +243,11 @@ graph TD
 | **ADR-010** | Mecanismo común de Idempotencia, Orden y Cuarentena CQRS. | Múltiples referencias en Handlers CQRS |
 | **ADR-015** | Aislamiento del módulo AI consumiendo sólo DTOs deterministas. | `AuditFactsDTO.java`, `ai/` module |
 | **ADR-016** | Dual Genesis: Soporte para pledge financiero o liquidación directa como raíz. | `Fund.java:42` |
+| **ADR-017** | Framework de proyección genérico (`ProjectionEventHandler`), checkpoint de secuencia por handler. | `ProjectionEventSource.java`, `ProjectionRetryScheduler.java` |
+| **ADR-018** | Frontera determinista del generador de narrativas IA: grounding estructurado bloqueante, fallback con TTL, sin circuit breaker. | `GroundingValidatorImpl.java`, `SpringAiLlmAdapter.java` |
+| **ADR-019** | Anclaje blockchain determinista: nonce como fuente de verdad local, guardia de prioridad, `resolveStuckBatch` exclusivamente manual. | `BlockchainAnchorScheduler.java`, `AnchorConfirmationPoller.java` |
+
+*Nota: esta tabla es una muestra no exhaustiva de decisiones inferidas por auditoría automática. El catálogo completo y autoritativo de 19 ADRs vive en `documento-maestro-proyecto.md`, sección 5.*
 
 ---
 
@@ -306,7 +311,7 @@ sequenceDiagram
 
 | Severidad | Área | Problema | Evidencia | Impacto | Recomendación |
 | --------- | ---- | -------- | --------- | ------- | ------------- |
-| 🟡 Medio | **CQRS** | Acoplamiento del RetryScheduler | `ProjectionRetryScheduler` llama explícitamente a `DonationProjectionHandler` | Si se introducen nuevas proyecciones (Ej: `AuditFacts`), el scheduler no sabrá a cuál enrutar el reintento. | Agregar un campo `handlerName` al documento de cuarentena y extraer una interfaz común (ver Tarea 11 planeada). |
+| 🟢 Resuelto | **CQRS** | Acoplamiento del RetryScheduler | `ProjectionRetryScheduler` llamaba explícitamente a `DonationProjectionHandler` | *(Histórico)* Antes de la Tarea 11, introducir nuevas proyecciones habría requerido acoplar el scheduler a cada handler. | Resuelto en la Tarea 11 (ADR-017): se extrajo `ProjectionEventHandler` como interfaz común y el enrutamiento de reintentos usa el campo `handlerName`. |
 | 🔵 Mejora | **Crypto** | Algoritmo Hash quemado | `JcsHashAdapter` invoca directamente `MessageDigest.getInstance("SHA-256")` | Dificultad de rotar algoritmos criptográficos a futuro. | Inyectar la variante de digestión por configuración. |
 
 ---
@@ -335,13 +340,12 @@ sequenceDiagram
 | Blockchain | ✅ Confirmado | Alta | Motor Web3j robusto con separación de fallos, scheduler aislado y Poller de on-chain receipts en verde. |
 | CQRS | ✅ Confirmado | Alta | Refactorizado para ser genérico (`ProjectionEventHandler`), soportando proyecciones independientes (`DonationProjection` y `AuditFacts`). |
 | Testing (Testcontainers) | ✅ Confirmado | Alta | Las pruebas reales demostraron encontrar bugs genuinos, se cuenta con test End-to-End validado contra Ganache. |
-| AI | ✅ Confirmado | Alta | Integración con Spring AI probada con TTL y Circuit Breakers para aislamiento resiliente. |
+| AI | ✅ Confirmado | Alta | Integración con Spring AI probada. Resiliencia mediante timeout simple + fallback determinista con TTL (`nextRetryAt`) — **sin** circuit breaker ni Resilience4j; decisión explícita contra el overengineering (ADR-018). |
 
-## 17. Respuestas a Incógnitas (Información Faltante Original)
+## 17. Información Faltante
 
-Para dar respuesta a los puntos pendientes y hacer la documentación más robusta, a continuación se detalla el estado actual de los mismos:
-
-- **El `application.yml` o configuración base de propiedades**: Actualmente no existe un `application.yml` físico en el repositorio. La arquitectura utiliza anotaciones `@Value` con valores por defecto estables (ej. `@Value("${crypto.anchor.confirmations-required:12}")`). La consolidación de estas propiedades en un archivo de configuración real será responsabilidad de la Fase 3, al crear la clase de aplicación principal (`@SpringBootApplication`).
-- **Las implementaciones concretas de la capa de API (Adaptadores HTTP REST/GraphQL)**: No existen todavía. Este es precisamente el objetivo exclusivo de la **Fase 3** recién iniciada (ver `SUPER_PROMPT_FASE3.md`).
-- **Sistemas de autenticación, autorización o esquemas de firma digital (PKI)**: El Core actual no implementa PKI (RSA/ECC) para no repudio de los actores, priorizando la inmutabilidad de los datos (SHA-256 + Merkle). La seguridad, la autenticación y la autorización (RBAC) están delegadas a la capa de red (API Gateway) o a la futura capa REST (Fase 3). 
-- **El cuerpo interno del módulo SAGA y su transaccionalidad**: La transaccionalidad atómica se logra mediante el `TransactionalEventPublisher`, que anota con `@Transactional` la inserción simultánea en las colecciones `event_store` y `outbox_messages` en MongoDB. El `OutboxSagaCoordinator` funciona como un hilo asíncrono completamente desacoplado que lee de `outbox_messages` y ejecuta o compensa acciones apoyándose en interfaces genéricas `SagaPolicy<T>`, garantizando la consistencia eventual sin usar transacciones distribuidas.
+Para hacer este documento más robusto, se requeriría evidencia de:
+- El `application.yml` o configuración base de propiedades.
+- Las implementaciones concretas de la capa de API (Adaptadores HTTP REST/GraphQL).
+- Información sobre si existen sistemas de autenticación y autorización o esquemas de firma digital (PKI) de los orígenes de las transacciones.
+- El cuerpo interno del módulo SAGA (`OutboxSagaCoordinator.java`), que dicta la transaccionalidad entre el EventStore y Outbox.

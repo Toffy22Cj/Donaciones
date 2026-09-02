@@ -92,6 +92,37 @@ CATÁLOGO DE ADRs VIGENTE (fuente de verdad del dominio):
   FUNDS_CLEARED directo como primer evento del stream (camino sin promesa, ej. efectivo).
   pledgedAmount es opcional en el agregado. Prohibido insertar eventos sintéticos para
   forzar uniformidad.
+- ADR-017: ProjectionEventSource y ProjectionRetryScheduler son genéricos, no acoplados
+  a un handler específico. Todo proyector nuevo implementa ProjectionEventHandler
+  (handleEvent, getHandlerName) y se registra en la lista inyectada; el enrutamiento de
+  reintentos usa el campo handlerName. Cada handler mantiene su propio checkpoint de
+  secuencia por stream.
+- ADR-018: El módulo `ai` opera bajo confianza cero hacia el LLM. AuditFactsDTO nunca
+  contiene PII. Sanitización determinista de todo campo de texto libre antes del prompt.
+  Grounding estructurado y bloqueante: el LLM declara CitedFact tipados vía salida
+  estructurada; el GroundingValidator (código puro) valida cada uno por comparación
+  tipada según FactType contra el AuditFactsDTO real; un solo dato no verificable
+  invalida la respuesta completa. Fallback obligatorio y transparente (DonorReportDTO
+  declara source=LLM_GENERATED|FALLBACK_TEMPLATE, con modelIdentifier="FALLBACK" como
+  sentinel, nunca null), persistido con TTL (nextRetryAt), nunca reintentado en cada
+  consulta. Trazabilidad completa: modelIdentifier, promptTemplateVersion,
+  sourceFactsHash (vía HashPort con constante propia SNAPSHOT_HASH_V1, distinta de
+  GENESIS_HASH). Sin Resilience4j ni circuit breaker. Single-flight vía
+  ConcurrentHashMap<CacheKey, CompletableFuture<...>>, nunca trabajo bloqueante dentro
+  de computeIfAbsent.
+- ADR-019: El módulo `crypto.infrastructure.web3j` ancla el MerkleRoot de forma
+  secuencial (un solo hilo). Máquina de estados: PENDING -> SUBMITTING -> SUBMITTED ->
+  {ANCHORED | ANCHOR_MISMATCH | STUCK -> {RESUBMIT -> SUBMITTED | ABANDON -> FAILED} |
+  FAILED}. nonceUsed se reserva atómicamente en Mongo (contador propio, misma
+  transacción que el claim del batch) y nunca se recalcula consultando al nodo salvo en
+  reconciliación de arranque. Guardia de prioridad obligatoria: ningún PENDING se
+  reclama mientras exista un SUBMITTING sin txHash. Fallos deterministas (gas-cap,
+  error de comunicación pre-envío) reintentan directo con el mismo nonce; fallos
+  ambiguos (timeout durante el envío) exigen reconciliación contra el nodo antes de
+  reenviar. ANCHORED exige status==1 + N confirmaciones + coincidencia exacta de bytes
+  del root emitido contra merkleRoot (Numeric.hexStringToByteArray, nunca .getBytes()).
+  resolveStuckBatch(RESUBMIT|ABANDON, maxFeePerGas) es exclusivamente manual, sin RBF
+  automático, sin invocación desde ningún componente programado.
 
 ARQUITECTURA DE MÓDULOS (Maven, dependencias unidireccionales):
     contracts   <- (sin dependencias de infraestructura; solo interfaces + DTOs de puertos)
@@ -152,6 +183,9 @@ Toda tarea de este plan se considera terminada solo si cumple **las siete condic
 | 013 | `core.domain.event` |
 | 014 | `core.domain.physicalasset` (eventos `ASSET_DISPATCHED`, `ASSET_DELIVERED`) |
 | 015 | `core.infrastructure.projection`, `contracts` (AuditFactsPort), `ai` |
+| 017 | `core.infrastructure.projection` (framework genérico de handlers) |
+| 018 | `ai.*` (dominio, aplicación e infraestructura del generador de narrativas) |
+| 019 | `crypto.infrastructure.web3j`, `crypto.application.service`, `crypto.infrastructure.persistence.mongo` (extensión de `MerkleBatch`) |
 
 ---
 
@@ -583,17 +617,71 @@ DETALLES: Extraer interfaz `ProjectionEventHandler`. Implementar `AuditThreshold
 ### TAREA 12 — `ai`: `NarrativeGenerator` (consumo de `AuditFactsPort` + Spring AI)
 
 **Estado:** ✅ **COMPLETADA**
-**Nota:** esta tarea NO tiene contrato de agente todavía. Requiere una pasada de
-Modo de Arquitectura (responsabilidad, invariantes, manejo de fallback/timeout/costes,
-defensa contra prompt injection, versionado del modelo) antes de redactarse como
-prompt ejecutable. Ver sección 16 del Prompt Maestro original — esos principios
-siguen sin formalizarse como ADR.
+
+TAREA: Implementar el generador de narrativas del módulo `ai`, que consume
+`AuditFactsPort` y produce un `DonorReportDTO` verificado, con grounding
+determinista bloqueante, fallback obligatorio y protección de concurrencia.
+CONTEXTO / ADRs: ADR-015, ADR-018 (redactado tras una pasada completa de Modo de
+Arquitectura tomando las tres decisiones que quedaban abiertas: hashing del
+snapshot vía `HashPort`/`SNAPSHOT_HASH_V1`, política de fallback persistido con
+TTL, y single-flight con `CompletableFuture` dentro de `ConcurrentHashMap`).
+DETALLES: `NarrativePromptSanitizer` (truncado, remoción de caracteres de
+control, escape del delimitador real `"""` usado por `SpringAiLlmAdapter`);
+`SpringAiLlmAdapter` con salida estructurada real vía `BeanOutputConverter`
+(las citas las declara el LLM, nunca se fabrican en el adaptador);
+`GroundingValidatorImpl` con comparación tipada por `FactType` (fecha
+normalizada ISO-8601 con manejo explícito de `DateTimeParseException`, monto
+numérico exacto, resto normalizado — nunca `contains()`); `FallbackNarrativeTemplateService`
+con sentinel `modelIdentifier="FALLBACK"` y `nextRetryAt`; `NarrativeCacheCoordinator`
+single-flight; `AiNarrativeProperties` (`fallbackRetryInterval`, `sanitizer.max-length`)
+vía `@ConfigurationProperties`, nunca hardcoded. Requirió un parche retroactivo
+a `AuditFactsDTO`/`AuditFactsPortImpl` (Tarea 11) para exponer `auditFactsSequence`,
+verificado sin regresión.
+DEFINITION OF DONE: Testcontainers real (MongoDB) para persistencia append-only
+de `DonorReportDocument`; tests unitarios de timeout, error de proveedor,
+sanitización con inyección de prompt real (`"""`), aislamiento de caché por
+`promptTemplateVersion`, y camino completo de grounding fallido con verificación
+estructural real (mock de JSON con schema `LlmNarrativeResponse`).
 
 ---
 
 ### TAREA 13 — `crypto.infrastructure.web3j`: `BlockchainAnchorAdapter`
 
 **Estado:** ✅ **COMPLETADA**
+
+TAREA: Implementar el anclaje del `MerkleRoot` (Tarea 8) en una red EVM pública
+de forma determinista, segura frente a doble-gasto de nonce, y con máquina de
+estados verificable en cada transición.
+CONTEXTO / ADRs: ADR-019 completo, redactado tras resolver explícitamente cuatro
+invariantes operativos que el diseño inicial no cubría: semántica exacta de
+`nonceUsed`, atomicidad `reserva→envío→persistencia` (estado `SUBMITTING`),
+criterio verificable de `SUBMITTED→ANCHORED`, y criterio de `STUCK`.
+DETALLES (Paso 0 obligatorio: inspección real de `MerkleBatch` de la Tarea 8
+antes de extender — el modelo original tenía solo 7 campos y 2 estados;
+extendido a 14 campos y 7 estados). `Web3NonceCounterDocument` con `$inc`
+atómico en la misma transacción Mongo (`MongoTransactionManager`) que reclama
+el batch (`claimNextPendingBatchAndAssignNonceWithRetry`, con reintento
+explícito ante `TransientTransactionError`, que Spring Data envuelve como
+`DataIntegrityViolationException` — desenrollado explícitamente). `ExplicitNonceTransactionManager`
+(extiende `RawTransactionManager`, sobrescribe `getNonce()`) fuerza el nonce
+persistido, nunca delega en el autocálculo de Web3j — verificado con
+Testcontainers/Ganache confirmando el nonce real minado en la transacción.
+`BlockchainAnchorScheduler`: guardia de prioridad obligatoria
+(`findSubmittingWithoutTxHashAndNonce()` antes de cualquier claim de `PENDING`),
+bifurcación de reintentos deterministas (`GasCapExceededException`,
+`BlockchainNodeCommunicationException`) vs. ambiguos (`BlockchainAnchorTimeoutException`,
+que exige reconciliación contra el nodo antes de reenviar). `checkStuckSubmittingBatches()`
+como mecanismo de escalada separado, terminando únicamente en alerta operativa
+— nunca invoca `resolveStuckBatch` automáticamente. `AnchorConfirmationPoller`
+con separación estricta `status==0→FAILED` (nunca `STUCK`) vs. sin receipt tras
+timeout→`STUCK`, y comparación de bytes del root vía `Numeric.hexStringToByteArray`
+(no `.getBytes()`, que habría producido falsos `ANCHOR_MISMATCH`).
+DEFINITION OF DONE: 39 tests en el módulo `crypto` (persistencia, wrapper
+generado por `web3j-maven-plugin` contra el fixture de test `AnchorRegistry.sol`
+con función `anchorRoot(bytes32)`, adaptador, scheduler, poller), incluyendo
+integración end-to-end real contra Testcontainers/Ganache verificando el ciclo
+completo `PENDING→ANCHORED`. Contrato de producción pre-desplegado, fuera de
+alcance; fixture de test nunca toca la red real.
 
 ---
 

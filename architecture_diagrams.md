@@ -1,4 +1,4 @@
-# Diagramas de Arquitectura — Sistema "Nexxus" (Fase 2 Completada)
+# Diagramas de Arquitectura — Sistema "PaxFide" (Fase 2 Completada)
 
 A continuación, se presentan los diagramas que detallan la arquitectura implementada y verificada durante la Fase 2.
 

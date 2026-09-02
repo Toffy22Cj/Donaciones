@@ -34,7 +34,12 @@ public class AnchorConfirmationPollerIntegrationTest {
     private static GenericContainer<?> ganacheContainer;
     private static Web3j web3j;
     private static AnchorRegistry registry;
-    private static final String PRIVATE_KEY = "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d"; // Ganache predefined account 0
+    // =====================================================================
+    // WARNING: DO NOT USE IN PRODUCTION
+    // This is the predefined deterministic account #0 in Ganache.
+    // It is strictly for local testing and contains no real funds.
+    // =====================================================================
+    private static final String PRIVATE_KEY = "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d";
     private static final long CHAIN_ID = 1337;
 
     @BeforeAll

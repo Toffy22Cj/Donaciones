@@ -49,7 +49,11 @@ class Web3jBlockchainAnchorAdapterIntegrationTest {
     static void setup() throws Exception {
         String rpcUrl = "http://" + ganache.getHost() + ":" + ganache.getMappedPort(8545);
         web3j = Web3j.build(new HttpService(rpcUrl));
-        // Deterministic account #0 in Ganache
+        // =====================================================================
+        // WARNING: DO NOT USE IN PRODUCTION
+        // This is the predefined deterministic account #0 in Ganache.
+        // It is strictly for local testing and contains no real funds.
+        // =====================================================================
         credentials = Credentials.create("0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d");
 
         // 1. Deploy the contract using standard resolution (nonce 0)
