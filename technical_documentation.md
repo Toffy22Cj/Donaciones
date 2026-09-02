@@ -337,10 +337,11 @@ sequenceDiagram
 | Testing (Testcontainers) | ✅ Confirmado | Alta | Las pruebas reales demostraron encontrar bugs genuinos, se cuenta con test End-to-End validado contra Ganache. |
 | AI | ✅ Confirmado | Alta | Integración con Spring AI probada con TTL y Circuit Breakers para aislamiento resiliente. |
 
-## 17. Información Faltante
+## 17. Respuestas a Incógnitas (Información Faltante Original)
 
-Para hacer este documento más robusto, se requeriría evidencia de:
-- El `application.yml` o configuración base de propiedades.
-- Las implementaciones concretas de la capa de API (Adaptadores HTTP REST/GraphQL).
-- Información sobre si existen sistemas de autenticación y autorización o esquemas de firma digital (PKI) de los orígenes de las transacciones.
-- El cuerpo interno del módulo SAGA (`OutboxSagaCoordinator.java`), que dicta la transaccionalidad entre el EventStore y Outbox.
+Para dar respuesta a los puntos pendientes y hacer la documentación más robusta, a continuación se detalla el estado actual de los mismos:
+
+- **El `application.yml` o configuración base de propiedades**: Actualmente no existe un `application.yml` físico en el repositorio. La arquitectura utiliza anotaciones `@Value` con valores por defecto estables (ej. `@Value("${crypto.anchor.confirmations-required:12}")`). La consolidación de estas propiedades en un archivo de configuración real será responsabilidad de la Fase 3, al crear la clase de aplicación principal (`@SpringBootApplication`).
+- **Las implementaciones concretas de la capa de API (Adaptadores HTTP REST/GraphQL)**: No existen todavía. Este es precisamente el objetivo exclusivo de la **Fase 3** recién iniciada (ver `SUPER_PROMPT_FASE3.md`).
+- **Sistemas de autenticación, autorización o esquemas de firma digital (PKI)**: El Core actual no implementa PKI (RSA/ECC) para no repudio de los actores, priorizando la inmutabilidad de los datos (SHA-256 + Merkle). La seguridad, la autenticación y la autorización (RBAC) están delegadas a la capa de red (API Gateway) o a la futura capa REST (Fase 3). 
+- **El cuerpo interno del módulo SAGA y su transaccionalidad**: La transaccionalidad atómica se logra mediante el `TransactionalEventPublisher`, que anota con `@Transactional` la inserción simultánea en las colecciones `event_store` y `outbox_messages` en MongoDB. El `OutboxSagaCoordinator` funciona como un hilo asíncrono completamente desacoplado que lee de `outbox_messages` y ejecuta o compensa acciones apoyándose en interfaces genéricas `SagaPolicy<T>`, garantizando la consistencia eventual sin usar transacciones distribuidas.
