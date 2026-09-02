@@ -230,6 +230,7 @@ graph TD
 ### 8.4 Modelo de integridad
 - ✅ **Inmutabilidad de cadena de eventos** (vía hashes encadenados).
 - ✅ **Determinismo de Serialización** (vía RFC 8785).
+- ✅ **Anclaje Blockchain (Web3j)**: Los Merkle Roots se asientan de manera determinista y con resiliencia de red (Poller/Scheduler) en la red Polygon/Ganache, lo que provee inmutabilidad distribuida.
 - ❓ **No Repudio / Autenticidad**: No se evidencia uso de firmas asimétricas (RSA/ECC) para firmar criptográficamente el origen.
 
 ---
@@ -331,8 +332,10 @@ sequenceDiagram
 | Event Sourcing | ✅ Confirmado | Alta | Base sólida y probada, concurrencia manejada (secuencias). |
 | Trazabilidad | ✅ Confirmado | Alta | Árbol genealógico preservado en `rootAssetRef` y `parentAssetRef`. |
 | Criptografía | ✅ Confirmado | Alta | Implementación fiel a RFC 8785 con JCS y Árboles de Merkle. |
-| CQRS | ⚠️ Parcial | Media | Necesita refactorización para ser genérico y soportar múltiples manejadores independientes. |
-| Testing (Testcontainers) | ✅ Confirmado | Alta | Las pruebas reales demostraron encontrar bugs genuinos (Idempotencia en Change Streams). |
+| Blockchain | ✅ Confirmado | Alta | Motor Web3j robusto con separación de fallos, scheduler aislado y Poller de on-chain receipts en verde. |
+| CQRS | ✅ Confirmado | Alta | Refactorizado para ser genérico (`ProjectionEventHandler`), soportando proyecciones independientes (`DonationProjection` y `AuditFacts`). |
+| Testing (Testcontainers) | ✅ Confirmado | Alta | Las pruebas reales demostraron encontrar bugs genuinos, se cuenta con test End-to-End validado contra Ganache. |
+| AI | ✅ Confirmado | Alta | Integración con Spring AI probada con TTL y Circuit Breakers para aislamiento resiliente. |
 
 ## 17. Información Faltante
 

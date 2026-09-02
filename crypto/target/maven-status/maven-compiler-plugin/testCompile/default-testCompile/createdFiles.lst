@@ -1,3 +1,11 @@
-com/traceability/crypto/domain/MerkleTreeTest.class
-com/traceability/crypto/application/JcsHashAdapterTest.class
+com/traceability/crypto/application/service/BlockchainAnchorSchedulerTest.class
+com/traceability/crypto/application/service/AnchorConfirmationPollerTest.class
+com/traceability/crypto/infrastructure/web3j/AnchorRegistryIntegrationTest.class
+com/traceability/crypto/infrastructure/web3j/Web3jBlockchainAnchorAdapterIntegrationTest.class
 com/traceability/crypto/architecture/ArchitectureTest.class
+com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchMongoAdapterTest$TestConfig.class
+com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchMongoAdapterTest.class
+com/traceability/crypto/domain/MerkleTreeTest.class
+com/traceability/crypto/infrastructure/web3j/Web3jBlockchainAnchorAdapterTest.class
+com/traceability/crypto/application/JcsHashAdapterTest.class
+com/traceability/crypto/application/service/AnchorConfirmationPollerIntegrationTest.class

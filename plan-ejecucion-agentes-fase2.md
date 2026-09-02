@@ -572,7 +572,7 @@ DETALLES: `DonationProjectionHandler`, control de idempotencia real (`incomingSe
 
 ### TAREA 11 — Implementación de `DonationAuditFacts` y refactorización genérica de Proyecciones
 
-**Estado:** ⏳ **EN PROCESO** (Plan de implementación pendiente de aprobación humana)
+**Estado:** ✅ **COMPLETADA**
 
 TAREA: Refactorizar `ProjectionEventSource` y `ProjectionRetryScheduler` para soportar múltiples handlers genéricos, e implementar `DonationAuditFactsHandler`.
 CONTEXTO: ADR-015.
@@ -582,7 +582,7 @@ DETALLES: Extraer interfaz `ProjectionEventHandler`. Implementar `AuditThreshold
 
 ### TAREA 12 — `ai`: `NarrativeGenerator` (consumo de `AuditFactsPort` + Spring AI)
 
-**Estado:** 🔒 BLOQUEADA — depende de cierre formal de Tarea 11.
+**Estado:** ✅ **COMPLETADA**
 **Nota:** esta tarea NO tiene contrato de agente todavía. Requiere una pasada de
 Modo de Arquitectura (responsabilidad, invariantes, manejo de fallback/timeout/costes,
 defensa contra prompt injection, versionado del modelo) antes de redactarse como
@@ -593,7 +593,7 @@ siguen sin formalizarse como ADR.
 
 ### TAREA 13 — `crypto.infrastructure.web3j`: `BlockchainAnchorAdapter`
 
-**Estado:** 🔒 **BLOQUEADA** — depende de Tarea 8 aprobada.
+**Estado:** ✅ **COMPLETADA**
 
 ---
 

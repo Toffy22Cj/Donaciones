@@ -47,6 +47,12 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>1.19.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>1.19.3</version>
             <scope>test</scope>
@@ -93,14 +99,14 @@
                 <version>4.9.4</version>
                 <executions>
                     <execution>
-                        <id>generate-test-sources</id>
-                        <phase>generate-test-sources</phase>
+                        <id>generate-sources</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>generate-sources</goal>
                         </goals>
                         <configuration>
                             <packageName>com.traceability.crypto.infrastructure.web3j.generated</packageName>
-                            <sourceDestination>${project.build.directory}/generated-test-sources/web3j</sourceDestination>
+                            <sourceDestination>${project.build.directory}/generated-sources/web3j</sourceDestination>
                             <format>abi,bin</format>
                             <abiSourceFiles>
                                 <directory>${project.basedir}/src/test/resources/solidity/build</directory>
@@ -114,6 +120,25 @@
                                     <include>**/*.bin</include>
                                 </includes>
                             </binSourceFiles>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/web3j</source>
+                            </sources>
                         </configuration>
                     </execution>
                 </executions>

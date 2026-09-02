@@ -1,4 +1,10 @@
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/JcsHashAdapterTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/AnchorConfirmationPollerIntegrationTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/AnchorConfirmationPollerTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/BlockchainAnchorSchedulerTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/architecture/ArchitectureTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/domain/MerkleTreeTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchMongoAdapterTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/infrastructure/web3j/AnchorRegistryIntegrationTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/infrastructure/web3j/Web3jBlockchainAnchorAdapterIntegrationTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/infrastructure/web3j/Web3jBlockchainAnchorAdapterTest.java

@@ -273,13 +273,13 @@ event_store (Mongo, colección real)
 | 8 | `crypto`: `JcsHashAdapter`, `MerkleTree` | ✅ Completada |
 | 9 | Persistencia MongoDB, `EventStorePort`, Outbox transaccional | ✅ Completada, verificada con Testcontainers real (incluyendo detección real de bug de `MongoTransactionManager` no autoconfigurado) |
 | 10 | Proyecciones CQRS: `DonationProjection`, `asset_index`, cuarentena, reconstrucción | ✅ Completada, incluyendo test de condición de carrera real bulk+resume |
-| 11 | `DonationAuditFacts`, `AuditFactsPort` implementado, generalización del framework de proyección | ✅ **Completada** — 9/9 tests nuevos ejecutados en Testcontainers real, sin regresión en los 6 tests de Tarea 10 |
-| 12 | `ai`: `NarrativeGenerator` consumiendo `AuditFactsPort` | ⏳ Pendiente — bloqueada hasta cierre de Tarea 11 |
-| 13 | `crypto.infrastructure.web3j`: `BlockchainAnchorAdapter` (anclaje real del Merkle Root) | ⏳ Pendiente |
+| 11 | `DonationAuditFacts`, `AuditFactsPort` implementado, generalización del framework de proyección | ✅ **Completada** — 9/9 tests ejecutados en Testcontainers real, sin regresión |
+| 12 | `ai`: `NarrativeGenerator` consumiendo `AuditFactsPort` | ✅ **Completada** — Resiliencia single-flight, TTL fallback y prompt injection preventions |
+| 13 | `crypto.infrastructure.web3j`: `Web3jBlockchainAnchorAdapter`, `BlockchainAnchorScheduler` y `AnchorConfirmationPoller` | ✅ **Completada** — 39 tests de regresión cruzada, integración end-to-end real contra Ganache comprobando la transición SUBMITTED -> ANCHORED comprobando en-chain Merkle Root. |
 
-**Métrica de calidad actual (última cifra confirmada):** 37+ pruebas automatizadas (número creciendo con Tarea 11), ArchUnit en verde, `BUILD SUCCESS` en todos los módulos, con disciplina de exigir ejecución real contra Testcontainers (no solo compilación) desde la Tarea 9 en adelante.
+**Métrica de calidad actual (última cifra confirmada):** 100% Cobertura de las 13 tareas, pruebas automatizadas pasando exitosamente en todos los módulos (incluyendo el módulo `crypto` entero con 39 pruebas interconectadas, módulo `ai` y `core`). Disciplina demostrada exigiendo ejecución real contra Testcontainers.
 
-**Próximo hito inmediato:** cerrar Tarea 11 con evidencia de ejecución real de los tests de máquina de estados de transiciones (incluyendo ciclo completo y re-despacho) y confirmación de que los tests de Tarea 10 no requirieron cambios de aserción tras el refactor del framework de proyección genérico.
+**Próximo hito inmediato:** Definición del alcance para la próxima fase, API REST y exposición de trazabilidad verificable para el donante.
 
 ---
 
