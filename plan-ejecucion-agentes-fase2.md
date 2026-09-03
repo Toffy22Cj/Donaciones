@@ -685,6 +685,34 @@ alcance; fixture de test nunca toca la red real.
 
 ---
 
+### TAREA 14 — `app`: Ensamblaje del Módulo de Bootstrap (Cierre de Fase 2)
+
+**Estado:** ✅ **COMPLETADA** — `ApplicationContextLoadTest` en verde de punta a punta:
+`core`, `crypto` y `ai` ensamblados en un único `ApplicationContext` sin colisión
+de beans, `MongoTransactionManager` canónico declarado en `app` y verificado con
+un smoke test transaccional real (escritura dual Event Store + Outbox, releída
+vía `EventStorePort`/`OutboxPort` reales, confirmando tipo fuerte y contenido del
+payload). Dos hallazgos de infraestructura corregidos en el camino: `HashPort`
+(`JcsHashAdapter`) nunca tuvo `@Component` en producción — ningún ensamblaje real
+lo había ejercitado hasta esta tarea; y un bloqueador de negociación de versión
+de API de Docker específico de `app` (fallback a v1.32 vs. v1.40+ negociado
+correctamente en `crypto` bajo dependencias idénticas), resuelto como workaround
+documentado — sin causa raíz identificada tras investigación exhaustiva — en
+`app/src/test/resources/docker-java.properties`. Ver `documento-maestro-proyecto.md`
+sección 9.1 para el detalle completo de ambos hallazgos como deuda técnica.
+
+TAREA: Implementar el módulo `app` (`@SpringBootApplication`, sin
+`spring-boot-starter-web`), con auditoría previa de beans de infraestructura
+en `src/main` de los tres módulos, y un `ApplicationContextLoadTest`
+(`WebEnvironment.NONE`) contra un único `MongoDBContainer` y un contenedor
+Ganache, con mitigación explícita de la inicialización eager de Spring AI
+(API key dummy documentada).
+DEFINITION OF DONE: contexto completo arrancando en verde, evidencia real de
+Surefire, y regresión completa de cualquier módulo tocado durante la
+auditoría de beans.
+
+---
+
 ## 5. Orden de ejecución y puntos de aprobación humana obligatoria
 
 ```
@@ -708,14 +736,31 @@ Tarea 0 ──► [APROBACIÓN HUMANA] ──► Tarea 1 ──┐
                                                                        [APROBACIÓN]                [APROBACIÓN]
                                                                               ▼                           ▼
                                                                         Tarea 13 (Web3j)          Tarea 10 (Proyecciones)
-                                                                                                          │
-                                                                                                   [APROBACIÓN]
-                                                                                                          ▼
-                                                                                                    Tarea 11 (ai: AuditFacts)
-                                                                                                          │
-                                                                                                   [APROBACIÓN]
-                                                                                                          ▼
-                                                                                                    Tarea 12 (ai: NarrativeGenerator)
+                                                                              │                                 │
+                                                                              │                          [APROBACIÓN]
+                                                                              │                                 ▼
+                                                                              │                          Tarea 11 (ai: AuditFacts)
+                                                                              │                                 │
+                                                                              │                          [APROBACIÓN]
+                                                                              │                                 ▼
+                                                                              │                          Tarea 12 (ai: NarrativeGenerator)
+                                                                              │                                 │
+                                                                              └────────────────┬────────────────┘
+                                                                                          [APROBACIÓN]
+                                                                                                 ▼
+                                                                                          Tarea 14 (app: Bootstrap)
 ```
 
 Ningún agente debe saltarse una flecha de aprobación. Si un agente completa una tarea y, sin que un humano la haya revisado, intenta iniciar la siguiente, el humano supervisor debe detenerlo — esto reproduce en la ejecución la misma disciplina de "espera aprobación cuando la decisión sea arquitectónicamente significativa" que rigió todo el diseño de la Fase 1.
+
+---
+
+## 6. Fase 3 — sin definir todavía
+
+No existe todavía una definición formal de alcance para la Fase 3 (probablemente
+exposición HTTP/REST del sistema, pero esto no está aprobado). Un intento
+anterior de adelantarse a esta definición (`SUPER_PROMPT_FASE3.md`) fue
+descartado explícitamente por no haber pasado por Modo de Arquitectura ni
+aprobación humana — ver `reglas-equipo-y-agentes.md`, sección 2.1. La Fase 3
+se diseña en una conversación dedicada, después de que la Tarea 14 cierre con
+evidencia real, nunca por inferencia de "siguiente paso lógico".

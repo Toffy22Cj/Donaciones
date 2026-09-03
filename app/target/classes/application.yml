@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: traceability-engine
+
+  data:
+    mongodb:
+      auto-index-creation: true
+
+crypto:
+  anchor:
+    confirmations-required: 12
+    # Web3j Configuration for Fail-Fast
+    # MUST be overridden via environment variables in production
+    web3j:
+      private-key: ${WEB3_PRIVATE_KEY:}
+      node-url: ${WEB3_NODE_URL:}

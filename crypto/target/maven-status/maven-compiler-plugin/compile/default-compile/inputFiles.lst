@@ -19,6 +19,7 @@
 /home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/SpringDataMerkleBatchRepository.java
 /home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/Web3NonceCounterDocument.java
 /home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/web3j/ExplicitNonceTransactionManager.java
+/home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/web3j/Web3Configuration.java
 /home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/web3j/Web3jBlockchainAnchorAdapter.java
 /home/carlos/Proyectos/Donaciones/crypto/src/main/java/com/traceability/crypto/infrastructure/web3j/Web3jBlockchainTransactionReceiptAdapter.java
 /home/carlos/Proyectos/Donaciones/crypto/target/generated-sources/web3j/com/traceability/crypto/infrastructure/web3j/generated/AnchorRegistry.java

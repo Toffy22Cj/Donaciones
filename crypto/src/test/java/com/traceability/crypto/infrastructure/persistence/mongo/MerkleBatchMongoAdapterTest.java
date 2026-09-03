@@ -44,10 +44,6 @@ class MerkleBatchMongoAdapterTest {
 
     private static final Logger LOG = Logger.getLogger(MerkleBatchMongoAdapterTest.class.getName());
 
-    static {
-        System.setProperty("docker.api.version", "1.41");
-    }
-
     @Configuration
     @SpringBootApplication(scanBasePackages = "com.traceability.crypto.infrastructure.persistence.mongo")
     @EnableMongoRepositories(basePackages = "com.traceability.crypto.infrastructure.persistence.mongo")

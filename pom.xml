@@ -21,6 +21,7 @@
         <module>core</module>
         <module>crypto</module>
         <module>ai</module>
+        <module>app</module>
     </modules>
 
     <dependencyManagement>

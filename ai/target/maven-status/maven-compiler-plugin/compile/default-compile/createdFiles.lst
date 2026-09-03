@@ -19,5 +19,6 @@ com/traceability/ai/domain/narrative/LlmNarrativeResponse.class
 com/traceability/ai/domain/narrative/CacheKey.class
 com/traceability/ai/domain/narrative/DonorReportDTO.class
 com/traceability/ai/infrastructure/persistence/mongo/DonorReportMongoAdapter.class
+com/traceability/ai/application/service/GroundingValidatorImpl$1.class
 com/traceability/ai/domain/narrative/NarrativeConstants.class
 com/traceability/ai/application/config/AiNarrativeProperties.class

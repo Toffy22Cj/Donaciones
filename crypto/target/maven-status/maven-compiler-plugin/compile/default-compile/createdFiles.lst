@@ -12,6 +12,7 @@ com/traceability/crypto/domain/exception/BlockchainNodeCommunicationException.cl
 com/traceability/crypto/domain/exception/BlockchainAnchorTimeoutException.class
 com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchMongoAdapter.class
 com/traceability/crypto/domain/AnchorStatus.class
+com/traceability/crypto/infrastructure/web3j/Web3Configuration.class
 com/traceability/crypto/infrastructure/web3j/Web3jBlockchainTransactionReceiptAdapter.class
 com/traceability/crypto/infrastructure/web3j/ExplicitNonceTransactionManager.class
 com/traceability/crypto/infrastructure/web3j/generated/AnchorRegistry$1.class

@@ -42,10 +42,11 @@ Antes de dar por cumplido un invariante de seguridad, concurrencia o integridad:
 - Se actualiza únicamente leyendo el resultado directo de la ejecución de la sesión actual. Cero inferencia de estado por memoria de sesiones previas.
 - Antes de afirmar que un documento de estado "ya refleja" cierto trabajo, ábrelo y confírmalo — no asumas que una edición anterior se aplicó correctamente.
 - Si generas una síntesis de un diseño ya aprobado en una conversación anterior (por ejemplo, para retomar un documento largo), compárala explícitamente contra el texto exacto ya congelado, no la reconstruyas desde tu propio entendimiento del tema. Una síntesis "razonable" puede perder silenciosamente una decisión crítica que costó varias rondas de corrección.
+- **Nunca marques una tarea como completada en un documento de estado mientras el test que define su Definition of Done siga fallando o sin ejecutarse en verde.** Actualizar la documentación de un trabajo no resuelve el trabajo — y un documento que dice "completado" sobre algo que no lo está es, en sí mismo, el tipo de discrepancia que este documento existe para eliminar.
 
 ### 2.5 Verificación estructurada, no superficial
 
-- Un test que verifica que un mock fue *construido* con el valor correcto no es equivalente a un test que verifica que ese valor *se usó realmente* en la operación final (ej. construir un `TransactionManager` con el nonce correcto no prueba que la transacción minada realmente llevó ese nonce). Cuando el riesgo lo justifique, escribe el test que verifica el resultado final, no solo la intención declarada en el camino.
+- Un test que verifica que un mock fue *construido* con el valor correcto no es equivalente a un test que verifica que ese valor *se usó realmente* en la operación final (ej. construir un `TransactionManager` con the nonce correcto no prueba que la transacción minada realmente llevó ese nonce). Cuando el riesgo lo justifique, escribe el test que verifica el resultado final, no solo la intención declarada en el camino.
 - Las aserciones negativas (`verify(..., never())`) son obligatorias cuando existen varias ramas de comportamiento mutuamente excluyentes (ej. éxito vs. fallo determinista vs. fallo ambiguo). Verificar solo que la rama correcta se ejecutó, sin confirmar que las otras no se tocaron, deja huecos de cobertura reales.
 
 ### 2.6 Excepciones y estados: nombrados, específicos, con salida
@@ -88,7 +89,13 @@ Antes de aprobar cualquier PR, confirmar:
 6. Si el PR toca infraestructura sensible (persistencia con concurrencia, integraciones externas, claves/secretos): ¿hay un test que ejercite la condición de carrera o el escenario de fallo real, no solo el camino feliz?
 7. ¿La documentación de estado (`task.md`, `walkthrough.md`, `documento-maestro-proyecto.md`) quedó actualizada para reflejar exactamente lo que este PR agrega — ni más ni menos?
 
-### 3.4 Cuándo se requiere un ADR nuevo
+### 3.4 Coordinación entre agentes trabajando en la misma tarea
+
+- Todo agente debe esperar aprobación explícita del plan de implementación (`implementation_plan.md`) antes de escribir código — no antes de una tarea nueva solamente, sino en cada iteración de ese plan mientras siga bajo revisión.
+- En trabajo secuencial, no se solapa: un agente no continúa una tarea que otro agente dejó a mitad de camino sin que el punto de control anterior haya sido cerrado explícitamente.
+- Si más de un agente (o más de una réplica/sesión) trabaja dentro de la misma tarea, ninguno decide unilateralmente continuar si la ejecución anterior estaba esperando confirmación humana — se espera esa confirmación antes de que el siguiente agente retome el trabajo.
+
+### 3.5 Cuándo se requiere un ADR nuevo
 
 Antes de fusionar cualquier decisión que:
 - introduzca una dependencia o tecnología nueva,

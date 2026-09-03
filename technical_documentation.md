@@ -83,6 +83,7 @@ El sistema es un proyecto multi-módulo Maven:
 | `/crypto` | Módulo aislado para hashing y Merkle Trees. | Módulo Maven | `java-json-canonicalization`, `web3j` |
 | `/contracts` | Definición de DTOs y Puertos para integración entre módulos aislados (Ej: IA). | Módulo Maven | Ninguna externa |
 | `/ai` | Módulo aislado. Generador de narrativas (`NarrativeGenerator`) consumiendo `AuditFactsPort`, con grounding determinista y fallback resiliente. Completamente implementado y probado. | Módulo Maven | `spring-ai` |
+| `/app` | Módulo de ensamblaje/bootstrap. Único punto de entrada real (`@SpringBootApplication`), depende de `core`, `crypto` y `ai`. Provee `MongoTransactionManager` canónico compartido. Sin capa HTTP todavía. | Módulo Maven | Spring Boot (sin `spring-boot-starter-web`) |
 
 **Flujo de navegación recomendado para Onboarding:**
 ```text
@@ -341,6 +342,7 @@ sequenceDiagram
 | CQRS | ✅ Confirmado | Alta | Refactorizado para ser genérico (`ProjectionEventHandler`), soportando proyecciones independientes (`DonationProjection` y `AuditFacts`). |
 | Testing (Testcontainers) | ✅ Confirmado | Alta | Las pruebas reales demostraron encontrar bugs genuinos, se cuenta con test End-to-End validado contra Ganache. |
 | AI | ✅ Confirmado | Alta | Integración con Spring AI probada. Resiliencia mediante timeout simple + fallback determinista con TTL (`nextRetryAt`) — **sin** circuit breaker ni Resilience4j; decisión explícita contra el overengineering (ADR-018). |
+| Ensamblaje (`app`) | ✅ Confirmado | Alta | `ApplicationContextLoadTest` en verde: `core`+`crypto`+`ai` en un único `ApplicationContext`, `MongoTransactionManager` canónico, smoke test transaccional real (Event Store + Outbox). Aún sin capa HTTP — Fase 3 sin definir formalmente. |
 
 ## 17. Información Faltante
 

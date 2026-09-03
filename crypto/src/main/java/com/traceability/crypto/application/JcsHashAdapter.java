@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.traceability.contracts.HashPort;
 import org.erdtman.jcs.JsonCanonicalizer;
 
+import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class JcsHashAdapter implements HashPort {
 
     private final ObjectMapper mapper = new ObjectMapper();

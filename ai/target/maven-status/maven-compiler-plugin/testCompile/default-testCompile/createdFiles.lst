@@ -1,3 +1,6 @@
 com/traceability/ai/architecture/ArchitectureTest.class
+com/traceability/ai/application/service/NarrativePromptSanitizerTest.class
+com/traceability/ai/infrastructure/openai/SpringAiLlmAdapterTest.class
+com/traceability/ai/application/service/DonorReportGeneratorTest.class
 com/traceability/ai/infrastructure/persistence/mongo/DonorReportMongoAdapterTest.class
 com/traceability/ai/infrastructure/persistence/mongo/DonorReportMongoAdapterTest$TestConfig.class

@@ -15,14 +15,15 @@ Además, aseguramos que nadie pueda alterar la historia hasheando cada evento (S
 
 ## 2. Estado Actual de la Arquitectura (Monolito Modular)
 
-Actualmente, el backend está estructurado en 4 módulos independientes:
+Actualmente, el backend está estructurado en 5 módulos:
 
 1. **`core`**: El corazón del sistema. Contiene el Domain-Driven Design (DDD), las reglas de negocio (Fund, PhysicalAsset) y la persistencia de los eventos en MongoDB mediante Event Sourcing. También gestiona proyecciones CQRS.
 2. **`contracts`**: Contratos puros, DTOs e interfaces (Ports). Este módulo no tiene lógicas ni dependencias pesadas, y permite que los otros módulos se hablen entre sí de manera desacoplada.
 3. **`crypto`**: Encargado de la serialización criptográfica (RFC 8785), generación de árboles de Merkle y un motor tolerante a fallos para publicar hashes de forma asíncrona hacia una red EVM pública usando Web3j (Scheduler y Poller).
 4. **`ai`**: Módulo que consume la auditoría del sistema para usar un LLM (vía Spring AI) generando reportes de lenguaje natural verificables. Funciona bajo el principio de "Confianza Cero" hacia la IA (grounding determinista) y sin acceso a PII.
+5. **`app`**: Módulo de ensamblaje (Bootstrap). Es el único punto de entrada real (`@SpringBootApplication`) — depende de `core`, `crypto` y `ai`, y provee la infraestructura compartida (ej. `MongoTransactionManager` canónico, `application.yml` centralizado). No contiene lógica de dominio propia.
 
-> **Importante:** Aún no existe la capa de exposición (API REST) ni una aplicación Spring Boot unificada (`@SpringBootApplication`). Cada módulo funciona y se verifica en aislamiento mediante **Testcontainers**.
+> **Estado del ensamblaje:** el sistema ya arranca como un único proceso Spring Boot real — verificado con `ApplicationContextLoadTest` contra Testcontainers, incluyendo un smoke test transaccional de punta a punta. **Todavía no existe capa de exposición HTTP/REST** — `app` deliberadamente no incluye `spring-boot-starter-web` en esta fase; eso es alcance de la Fase 3, aún sin definir formalmente (ver `plan-ejecucion-agentes-fase2.md` sección 6).
 
 ---
 
@@ -51,3 +52,7 @@ Resumen rápido de ramas (la tabla completa y autoritativa está en ese document
 
 - `WEB3_PRIVATE_KEY` (módulo `crypto`) se inyecta exclusivamente vía variable de entorno — **nunca** en código, `application.yml`, ni Git.
 - Los tests de integración de `crypto` contra Testcontainers/Ganache usan la **cuenta determinista #0 de Ganache**, un valor público conocido, sin fondos reales, marcado explícitamente en el código con un comentario de advertencia. No es un secreto real y no debe confundirse con la clave de producción.
+
+## 6. Nota de entorno — módulo `app`
+
+Si `mvn test -pl app` falla con `client version 1.32 is too old`, **no borres** `app/src/test/resources/docker-java.properties` — contiene un workaround deliberado y documentado (ver `documento-maestro-proyecto.md` sección 9.1, ítem 3) para un problema de negociación de versión de API de Docker específico de ese módulo, sin causa raíz identificada tras investigación exhaustiva. Es intencional, no basura de configuración.

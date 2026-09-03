@@ -70,8 +70,11 @@ raíz/ (pom.xml, packaging=pom)
 │                  (application), adaptadores técnicos (infrastructure).
 ├── crypto/      → depende ÚNICAMENTE de contracts. Implementa HashPort.
 │                  NUNCA depende de core.
-└── ai/          → depende ÚNICAMENTE de contracts. Implementa/consume
-                   AuditFactsPort. NUNCA depende de core.
+├── ai/          → depende ÚNICAMENTE de contracts. Implementa/consume
+│                  AuditFactsPort. NUNCA depende de core.
+└── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai.
+                   Provee la configuración compartida (ej. MongoTransactionManager)
+                   y el punto de entrada (@SpringBootApplication). Cero lógica de dominio.
 ```
 
 Dependencias unidireccionales, verificadas por un test de ArchUnit dentro de `core` que rompe el build si:
@@ -276,10 +279,21 @@ event_store (Mongo, colección real)
 | 11 | `DonationAuditFacts`, `AuditFactsPort` implementado, generalización del framework de proyección | ✅ **Completada** — 9/9 tests ejecutados en Testcontainers real, sin regresión |
 | 12 | `ai`: `NarrativeGenerator` consumiendo `AuditFactsPort` | ✅ **Completada** — Resiliencia single-flight, TTL fallback y prompt injection preventions |
 | 13 | `crypto.infrastructure.web3j`: `Web3jBlockchainAnchorAdapter`, `BlockchainAnchorScheduler` y `AnchorConfirmationPoller` | ✅ **Completada** — 39 tests de regresión cruzada, integración end-to-end real contra Ganache comprobando la transición SUBMITTED -> ANCHORED comprobando en-chain Merkle Root. |
+| 14 | `app`: ensamblaje del módulo de bootstrap (`@SpringBootApplication`, sin capa HTTP) — cierre técnico de la Fase 2 | ✅ **Completada** — `ApplicationContextLoadTest` en verde: `core`, `crypto` y `ai` ensamblados en un único `ApplicationContext`, `MongoTransactionManager` canónico, smoke test transaccional real (Event Store + Outbox releídos vía puertos reales) |
 
-**Métrica de calidad actual (última cifra confirmada):** 100% Cobertura de las 13 tareas, pruebas automatizadas pasando exitosamente en todos los módulos (incluyendo el módulo `crypto` entero con 39 pruebas interconectadas, módulo `ai` y `core`). Disciplina demostrada exigiendo ejecución real contra Testcontainers.
+**Métrica de calidad actual (última cifra confirmada):** 100% Cobertura de las 14 tareas de la Fase 2, pruebas automatizadas pasando exitosamente en todos los módulos (incluyendo el módulo `crypto` entero con 39 pruebas interconectadas, módulo `ai`, `core`, y el ensamblaje completo en `app`). Disciplina demostrada exigiendo ejecución real contra Testcontainers.
 
-**Próximo hito inmediato:** Definición del alcance para la próxima fase, API REST y exposición de trazabilidad verificable para el donante.
+**Fase 2: cerrada.** El sistema completo arranca como un único proceso ensamblado, no solo como módulos verificados por separado.
+
+**Próximo hito inmediato:** definición formal del alcance de la Fase 3 (probablemente API REST y exposición de trazabilidad verificable para el donante) — pendiente de una sesión de Modo de Arquitectura dedicada. Ver `plan-ejecucion-agentes-fase2.md` sección 6.
+
+## 9.1 Deudas Técnicas Identificadas
+
+1. **`WebEnvironment` en Tests:** `MongoTransactionManager` usa `MongoDatabaseFactory` el cual en Spring requiere levantar un subconjunto mayor de beans al usar MongoDB Testcontainers si la configuración de auto-discovery de Spring choca. (Resuelto parcialmente; mantener bajo vigilancia si los tiempos de test suben).
+2. **Ubicación del Wrapper Web3j (`AnchorRegistry`):** El plugin web3j generó el wrapper de Java del smart contract en `crypto/target/generated-test-sources/web3j`, pero se está utilizando tanto para tests como para el código de producción. Compila correctamente porque Maven agrega la carpeta al classpath, pero semánticamente es un code smell que un artefacto de producción dependa de `generated-test-sources`. (Deuda técnica menor: corregir en el futuro reconfigurando `web3j-maven-plugin` para que genere en `generated-sources` o aislando el cliente de producción).
+3. **Workaround en `Testcontainers` (docker.api.version):** En el módulo `app`, `Testcontainers` falla consistentemente al inferir la versión del API de Docker y hace un fallback a la versión no soportada `1.32`, bloqueando el arranque del `ApplicationContextLoadTest`. Esto ocurre bajo condiciones idénticas al módulo `crypto`, el cual sí negocia exitosamente la versión `1.41`. Tras una exhaustiva revisión de árboles de dependencias y variables de entorno sin hallar diferencias causales, se estableció como workaround un archivo `docker-java.properties` en `app` con `api.version=1.41`. Si alguien "limpia" este archivo pensando que es basura, el test volverá a fallar silenciosamente en integración continua.
+
+4. **Snapshotting de Eventos:** Pendiente de optimización para streams de ciclo de vida largo (candidato principal: `Fund` de campañas activas), donde el replay completo penaliza el tiempo de recuperación en memoria del lado de escritura. No implementar preventivamente — instrumentar longitud de historial como métrica de observabilidad primero; evaluar snapshotting solo si un stream real se acerca a un umbral de referencia (~500 eventos) con latencia medible.
 
 ---
 

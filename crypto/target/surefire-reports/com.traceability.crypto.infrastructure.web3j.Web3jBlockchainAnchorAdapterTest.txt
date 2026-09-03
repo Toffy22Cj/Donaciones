@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.traceability.crypto.infrastructure.web3j.Web3jBlockchainAnchorAdapterTest
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.308 s -- in com.traceability.crypto.infrastructure.web3j.Web3jBlockchainAnchorAdapterTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.530 s -- in com.traceability.crypto.infrastructure.web3j.Web3jBlockchainAnchorAdapterTest
