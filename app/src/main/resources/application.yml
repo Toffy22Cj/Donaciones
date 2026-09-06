@@ -21,3 +21,6 @@ traceability:
       dispatched-to-received: 259200
       dispatched-to-delivered: 172800
       received-to-delivered: 172800
+  security:
+    tracking-code-secret: ${TRACKING_CODE_SECRET}
+    asset-ref-secret: ${ASSET_REF_SECRET}
