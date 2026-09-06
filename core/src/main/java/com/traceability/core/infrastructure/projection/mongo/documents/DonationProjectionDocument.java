@@ -6,7 +6,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.mapping.FieldType;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +24,9 @@ public class DonationProjectionDocument {
 
     @Id
     private String projectionId; // fundId
+    
+    private String currency;
+    private String campaignRef;
     
     @Builder.Default
     private FinancialSnapshot financialSnapshot = new FinancialSnapshot();
@@ -71,7 +77,8 @@ public class DonationProjectionDocument {
         private String sourceAllocationId; // Heredado de parent (para hijos de split)
         private String parentAssetRef;     // Para hijos de split
         private String rootAssetRef;       // Para identificar linaje
-        private long quantity;
+        @Field(targetType = FieldType.DECIMAL128)
+        private BigDecimal quantity;
         private String unitOfMeasure;
         private String assetType;
         private String currentLocation;

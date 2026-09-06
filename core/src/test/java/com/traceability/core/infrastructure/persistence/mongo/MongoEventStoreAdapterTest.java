@@ -34,6 +34,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.Instant;
 import java.util.List;
+import java.math.BigDecimal;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -92,7 +93,7 @@ class MongoEventStoreAdapterTest {
 
         @Transactional
         public void appendAndFail(String streamId, DomainEvent event, OutboxMessage msg) {
-            eventStorePort.append(streamId, "PhysicalAsset", 0, event, "actor");
+            eventStorePort.append(streamId, "PhysicalAsset", 0, List.of(event), "actor");
             
             outboxPort.save(msg); // Attempt write to outbox
             
@@ -126,10 +127,10 @@ class MongoEventStoreAdapterTest {
 
     @Test
     void testAppend_GenesisEvent_UsesGenesisHash() {
-        AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", 100, "DOSES", "loc-A", "cust-A", null, null, null, null);
+        AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event = new DomainEvent(() -> "ASSET_REGISTERED", payload, Instant.now());
 
-        eventStoreAdapter.append("stream-1", "PhysicalAsset", 0, event, "actor-1");
+        eventStoreAdapter.append("stream-1", "PhysicalAsset", 0, List.of(event), "actor-1");
 
         List<TraceabilityEventDocument> docs = mongoTemplate.findAll(TraceabilityEventDocument.class);
         assertEquals(1, docs.size());
@@ -139,13 +140,13 @@ class MongoEventStoreAdapterTest {
 
     @Test
     void testAppend_ChainedEvent_UsesPreviousHash() {
-        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", 100, "DOSES", "loc-A", "cust-A", null, null, null, null);
+        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
-        eventStoreAdapter.append("stream-2", "PhysicalAsset", 0, event1, "actor-1");
+        eventStoreAdapter.append("stream-2", "PhysicalAsset", 0, List.of(event1), "actor-1");
 
         AssetDispatchedPayload payload2 = new AssetDispatchedPayload("trans-A", "loc-A");
         DomainEvent event2 = new DomainEvent(() -> "ASSET_DISPATCHED", payload2, Instant.now());
-        eventStoreAdapter.append("stream-2", "PhysicalAsset", 1, event2, "actor-1");
+        eventStoreAdapter.append("stream-2", "PhysicalAsset", 1, List.of(event2), "actor-1");
 
         List<TraceabilityEventDocument> docs = mongoTemplate.findAll(TraceabilityEventDocument.class);
         assertEquals(2, docs.size());
@@ -158,9 +159,9 @@ class MongoEventStoreAdapterTest {
 
     @Test
     void testAppend_ConcurrencyConflict() throws InterruptedException {
-        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", 100, "DOSES", "loc-A", "cust-A", null, null, null, null);
+        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
-        eventStoreAdapter.append("stream-3", "PhysicalAsset", 0, event1, "actor-1");
+        eventStoreAdapter.append("stream-3", "PhysicalAsset", 0, List.of(event1), "actor-1");
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch latch = new CountDownLatch(2);
@@ -172,7 +173,7 @@ class MongoEventStoreAdapterTest {
             try {
                 AssetDispatchedPayload p = new AssetDispatchedPayload("trans", "dest");
                 DomainEvent e = new DomainEvent(() -> "ASSET_DISPATCHED", p, Instant.now());
-                eventStoreAdapter.append("stream-3", "PhysicalAsset", 1, e, "actor");
+                eventStoreAdapter.append("stream-3", "PhysicalAsset", 1, List.of(e), "actor");
                 successCount.incrementAndGet();
             } catch (ConcurrencyConflictException ex) {
                 conflictCount.incrementAndGet();
@@ -192,17 +193,17 @@ class MongoEventStoreAdapterTest {
 
     @Test
     void testAppend_SequenceGap() {
-        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", 100, "DOSES", "loc-A", "cust-A", null, null, null, null);
+        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
         
         assertThrows(SequenceGapException.class, () -> 
-            eventStoreAdapter.append("stream-4", "PhysicalAsset", 5, event1, "actor-1")
+            eventStoreAdapter.append("stream-4", "PhysicalAsset", 5, List.of(event1), "actor-1")
         );
     }
 
     @Test
     void testTransactionalRollback() {
-        AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", 100, "DOSES", "loc-A", "cust-A", null, null, null, null);
+        AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event = new DomainEvent(() -> "ASSET_REGISTERED", payload, Instant.now());
         OutboxMessage outboxMsg = new OutboxMessage("msg-1", "SAGA", "stream-rb", "corr-1", "{}", OutboxStatus.PENDING, 0, Instant.now(), Instant.now());
 
@@ -238,19 +239,19 @@ class MongoEventStoreAdapterTest {
     @Test
     void testReplayRealE2E() throws Exception {
         // 1. REGISTER
-        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-e2e", "VACCINE", 100, "DOSES", "loc-A", "cust-A", null, null, null, null);
+        AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-e2e", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
-        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 0, event1, "actor-1");
+        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 0, List.of(event1), "actor-1");
 
         // 2. DISPATCH
         AssetDispatchedPayload payload2 = new AssetDispatchedPayload("trans-1", "loc-A");
         DomainEvent event2 = new DomainEvent(() -> "ASSET_DISPATCHED", payload2, Instant.now());
-        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 1, event2, "actor-1");
+        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 1, List.of(event2), "actor-1");
 
         // 3. SPLIT
-        AssetSplitPayload payload3 = new AssetSplitPayload("asset-e2e-child", 20, "DOSES", 100, 80, "DISPATCHED", null, null, null);
+        AssetSplitPayload payload3 = new AssetSplitPayload("asset-e2e-child", new BigDecimal("20.0000"), "DOSES", new BigDecimal("100.0000"), new BigDecimal("80.0000"), "DISPATCHED", null, null, null);
         DomainEvent event3 = new DomainEvent(() -> "ASSET_SPLIT", payload3, Instant.now());
-        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 2, event3, "actor-1");
+        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 2, List.of(event3), "actor-1");
 
         // 4. Load Stream
         List<DomainEvent> events = eventStoreAdapter.loadStream("asset-e2e");
@@ -261,7 +262,7 @@ class MongoEventStoreAdapterTest {
 
         // 6. Verify State
         assertEquals("asset-e2e", aggregate.getAssetId());
-        assertEquals(80, aggregate.getQuantity()); 
+        assertEquals(0, new BigDecimal(String.valueOf(new BigDecimal("80.0000"))).compareTo(aggregate.getQuantity())); 
         assertEquals(AssetLifecycleStatus.DISPATCHED, aggregate.getLifecycleStatus());
         assertEquals("loc-A", aggregate.getLastKnownLocation()); 
         assertEquals("trans-1", aggregate.getCustodianRef());

@@ -9,23 +9,31 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
 /**
  * Generic Saga Coordinator using the Transactional Outbox pattern.
  * Ref: ADR-007, ADR-008, ADR-009, ADR-010
  */
+@Component
 public class OutboxSagaCoordinator {
 
     private final OutboxPort outboxPort;
     private final Map<String, SagaPolicy> policies;
     private final Duration quarantineWindow;
 
-    public OutboxSagaCoordinator(OutboxPort outboxPort, List<SagaPolicy> policyList, Duration quarantineWindow) {
+    public OutboxSagaCoordinator(OutboxPort outboxPort, 
+                                 List<SagaPolicy> policyList, 
+                                 @Value("${saga.quarantine.window:PT24H}") Duration quarantineWindow) {
         this.outboxPort = outboxPort;
         this.quarantineWindow = quarantineWindow;
         this.policies = policyList.stream()
             .collect(Collectors.toMap(SagaPolicy::getSagaType, Function.identity()));
     }
 
+    @Scheduled(fixedDelayString = "${saga.outbox.delay:500}")
     public void processPendingMessages() {
         Instant now = Instant.now();
         List<OutboxMessage> pendingMessages = outboxPort.fetchPendingMessages(now);

@@ -780,3 +780,33 @@ descartado explícitamente por no haber pasado por Modo de Arquitectura ni
 aprobación humana — ver `reglas-equipo-y-agentes.md`, sección 2.1. La Fase 3
 se diseña en una conversación dedicada, después de que la Tarea 14 cierre con
 evidencia real, nunca por inferencia de "siguiente paso lógico".
+---
+
+### TAREA 7.1 — Capa de Command Handlers + Activación de Sagas (Frente 4)
+
+**Estado:** ✅ **COMPLETADA**
+
+TAREA: Implementar los `CommandService` para procesar comandos de entrada, reintentar comandos vía `CommandRetryTemplate` ante fallos de concurrencia optimista, y registrar formalmente las `SagaPolicy` reales (`AssetRegisteredSagaPolicy`, `SplitPhysicalAssetSagaPolicy`, `FundAllocationSagaPolicy`).
+DETALLES: Se conectó la infraestructura construida en la Tarea 7 original (Outbox transaccional) con los controladores de dominio. Los eventos ahora se disparan y compensan correctamente en la base de datos real.
+
+---
+
+### TAREA 10.3 — Corrección de Defectos en Proyección CQRS de Fase 2 (Hallazgo #4)
+
+**Severidad:** 🔴 Alta (Omisión de metadatos críticos en el Aggregate `Fund`)
+**Estado:** ✅ **COMPLETADA**
+
+TAREA: Agregar los campos `currency`, `campaignRef`, `donorRef` y un derivado `status` al Aggregate `Fund` según lo especificado en la Fase 1.
+CONTEXTO: Auditoría Fase 2 detectó que el agregado `Fund` omitió propagar los campos de negocio reales requeridos, dejando solo `pledgedAmount` y `clearedAmount`.
+DETALLES: Se agregaron los campos opcionales (`Nullable`) en los constructores y payloads. La protección de PII se mantuvo, impidiendo que `donorRef` se persista en la proyección MongoDB (filtrado activo en el `DonationProjectionHandler`).
+
+---
+
+### TAREA 10.4 — Corrección de Defectos en Proyección CQRS de Fase 2 (Hallazgo #6)
+
+**Severidad:** 🔴 Alta (Inconsistencia de tipos matemáticos)
+**Estado:** ✅ **COMPLETADA**
+
+TAREA: Migrar la variable `quantity` de `PhysicalAsset` de tipo `Long` a `BigDecimal`.
+CONTEXTO: Auditoría Fase 2 evidenció uso de `Long` ignorando el ADR que pedía `BigDecimal` para soportar decimales (ej. Kg o L). Existía un riesgo de que el cambio modificara la canonicalización criptográfica de JCS.
+DETALLES: Se modificó toda la suite, propagando el cambio a la proyección usando el tipo nativo `Decimal128` de MongoDB. Se demostró mediante un test real que JCS canonicaliza de forma idéntica, manteniendo íntegro el Merkle Root previamente anclado.

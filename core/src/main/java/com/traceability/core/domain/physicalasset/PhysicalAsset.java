@@ -5,6 +5,8 @@ import com.traceability.core.domain.physicalasset.exceptions.*;
 import com.traceability.core.domain.physicalasset.payloads.*;
 import com.traceability.core.domain.shared.AggregateRoot;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,7 +20,7 @@ import java.util.Set;
 public class PhysicalAsset extends AggregateRoot {
     private String assetId;
     private String assetType;
-    private long quantity;
+    private BigDecimal quantity;
     private String unitOfMeasure;
     private AssetLifecycleStatus lifecycleStatus;
     private String currentLocation;
@@ -28,6 +30,10 @@ public class PhysicalAsset extends AggregateRoot {
     private String rootAssetRef;
     private String allocationId;
     private String sourceAllocationId;
+    
+    // final delivery metadata for idempotency checking
+    private String finalEvidenceRef;
+    private Instant finalDeliveredAt;
 
     private final Map<String, AssetLifecycleStatus> splitsBeforeCompensation = new HashMap<>();
     private final Set<String> compensatedSplits = new HashSet<>();
@@ -43,11 +49,15 @@ public class PhysicalAsset extends AggregateRoot {
     }
 
     public static PhysicalAsset register(
-            String assetId, String assetType, long quantity, String unitOfMeasure,
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId) {
         
-        if (quantity <= 0) {
+        if (quantity == null) {
+            throw new IllegalArgumentException("Quantity is required");
+        }
+        quantity = quantity.setScale(4, RoundingMode.HALF_UP);
+        if (quantity.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than 0");
         }
         if (unitOfMeasure == null || unitOfMeasure.isBlank()) {
@@ -104,31 +114,35 @@ public class PhysicalAsset extends AggregateRoot {
         ));
     }
 
-    public void split(String childAssetId, long extractedQuantity) {
+    public void split(String childAssetId, BigDecimal extractedQuantity) {
         if (lifecycleStatus != AssetLifecycleStatus.REGISTERED && lifecycleStatus != AssetLifecycleStatus.RECEIVED) {
             throw new InvalidAssetTransitionException("Cannot split asset in status " + lifecycleStatus);
         }
-        if (extractedQuantity <= 0 || extractedQuantity > this.quantity) {
+        if (extractedQuantity == null) {
+            throw new InsufficientQuantityException("Extracted quantity is required");
+        }
+        extractedQuantity = extractedQuantity.setScale(4, RoundingMode.HALF_UP);
+        if (extractedQuantity.compareTo(BigDecimal.ZERO) <= 0 || extractedQuantity.compareTo(this.quantity) > 0) {
             throw new InsufficientQuantityException("Invalid extracted quantity: " + extractedQuantity);
         }
         if (this.assetId.equals(childAssetId)) {
             throw new InvalidSplitTargetException("Child asset ID cannot be same as parent asset ID");
         }
         
-        long previousQ = this.quantity;
+        BigDecimal previousQ = this.quantity;
         
         raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitPayload(
             childAssetId, extractedQuantity, this.unitOfMeasure, previousQ,
-            previousQ - extractedQuantity, this.lifecycleStatus.name(),
+            previousQ.subtract(extractedQuantity), this.lifecycleStatus.name(),
             this.currentLocation, this.custodianRef, this.rootAssetRef
         ));
         
-        if (this.quantity == 0) {
+        if (this.quantity.compareTo(BigDecimal.ZERO) == 0) {
             raiseEvent(PhysicalAssetEventType.ASSET_DEPLETED, new AssetDepletedPayload(previousQ));
         }
     }
 
-    public void compensateSplit(String childAssetId, long reintegratedQuantity) {
+    public void compensateSplit(String childAssetId, BigDecimal reintegratedQuantity) {
         if (lifecycleStatus == AssetLifecycleStatus.DELIVERED) {
             throw new AssetTerminalStateException("Cannot compensate split for DELIVERED asset");
         }
@@ -139,12 +153,21 @@ public class PhysicalAsset extends AggregateRoot {
             throw new DuplicateCompensationException("Split " + childAssetId + " was already compensated");
         }
         
+        reintegratedQuantity = reintegratedQuantity.setScale(4, RoundingMode.HALF_UP);
         raiseEvent(PhysicalAssetEventType.ASSET_SPLIT_COMPENSATED, new AssetSplitCompensatedPayload(
             childAssetId, reintegratedQuantity
         ));
     }
 
     public void deliver(String finalCustodianRef, String beneficiaryRef, String locationRef, String evidenceRef, Instant deliveredAt) {
+        if (lifecycleStatus == AssetLifecycleStatus.DELIVERED) {
+            if (this.custodianRef.equals(finalCustodianRef) && this.currentLocation.equals(locationRef)
+                && this.finalEvidenceRef.equals(evidenceRef) && this.finalDeliveredAt.equals(deliveredAt)) {
+                throw new RedundantDeliveryException("Asset is already delivered with these exact parameters");
+            } else {
+                throw new InvalidAssetTransitionException("Asset already delivered with different parameters");
+            }
+        }
         if (lifecycleStatus != AssetLifecycleStatus.DISPATCHED && lifecycleStatus != AssetLifecycleStatus.RECEIVED) {
             throw new InvalidAssetTransitionException("Cannot deliver asset in status " + lifecycleStatus);
         }
@@ -160,7 +183,7 @@ public class PhysicalAsset extends AggregateRoot {
             case AssetRegisteredPayload p -> {
                 this.assetId = p.assetId();
                 this.assetType = p.assetType();
-                this.quantity = p.quantity();
+                this.quantity = p.quantity().setScale(4, RoundingMode.HALF_UP);
                 this.unitOfMeasure = p.unitOfMeasure();
                 this.lifecycleStatus = AssetLifecycleStatus.REGISTERED;
                 this.currentLocation = p.currentLocation();
@@ -188,14 +211,14 @@ public class PhysicalAsset extends AggregateRoot {
             }
             case AssetSplitPayload p -> {
                 this.splitsBeforeCompensation.put(p.childAssetId(), AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
-                this.quantity -= p.extractedQuantity();
+                this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetDepletedPayload p -> {
                 this.lifecycleStatus = AssetLifecycleStatus.DEPLETED;
             }
             case AssetSplitCompensatedPayload p -> {
                 this.compensatedSplits.add(p.childAssetId());
-                this.quantity += p.reintegratedQuantity();
+                this.quantity = this.quantity.add(p.reintegratedQuantity().setScale(4, RoundingMode.HALF_UP));
                 if (this.lifecycleStatus == AssetLifecycleStatus.DEPLETED) {
                     this.lifecycleStatus = this.splitsBeforeCompensation.get(p.childAssetId());
                 }
@@ -205,6 +228,8 @@ public class PhysicalAsset extends AggregateRoot {
                 this.currentLocation = p.locationRef();
                 this.lastKnownLocation = p.locationRef();
                 this.custodianRef = p.finalCustodianRef();
+                this.finalEvidenceRef = p.evidenceRef();
+                this.finalDeliveredAt = p.deliveredAt();
             }
             default -> throw new IllegalArgumentException("Unknown payload type: " + payload.getClass());
         }
@@ -213,7 +238,7 @@ public class PhysicalAsset extends AggregateRoot {
     // Getters for testing
     public String getAssetId() { return assetId; }
     public AssetLifecycleStatus getLifecycleStatus() { return lifecycleStatus; }
-    public long getQuantity() { return quantity; }
+    public BigDecimal getQuantity() { return quantity; }
     public String getCurrentLocation() { return currentLocation; }
     public String getLastKnownLocation() { return lastKnownLocation; }
     public String getCustodianRef() { return custodianRef; }

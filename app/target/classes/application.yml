@@ -14,3 +14,10 @@ crypto:
     web3j:
       private-key: ${WEB3_PRIVATE_KEY:}
       node-url: ${WEB3_NODE_URL:}
+
+traceability:
+  audit:
+    thresholds:
+      dispatched-to-received: 259200
+      dispatched-to-delivered: 172800
+      received-to-delivered: 172800

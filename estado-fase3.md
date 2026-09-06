@@ -78,7 +78,8 @@ public record PublicLogisticsItemDTO(
     String lifecycleStatus,
     String assetType,
     String unitOfMeasure,
-    long quantity,
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    BigDecimal quantity,
     String locationZone,
     PublicCustodianCategory custodianCategory
 ) {}

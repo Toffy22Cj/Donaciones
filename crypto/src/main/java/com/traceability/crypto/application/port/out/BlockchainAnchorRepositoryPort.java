@@ -4,7 +4,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import com.traceability.crypto.domain.Resolution;
 import com.traceability.crypto.domain.MerkleBatch;
+import java.math.BigInteger;
 
 public interface BlockchainAnchorRepositoryPort extends MerkleBatchRepositoryPort {
     /**
@@ -37,4 +39,6 @@ public interface BlockchainAnchorRepositoryPort extends MerkleBatchRepositoryPor
     void markAnchored(String batchId, Long confirmedBlockNumber, Instant anchoredAt);
 
     void markAnchorMismatch(String batchId);
+
+    void resolveStuckBatch(String batchId, Resolution resolution, BigInteger maxFeePerGas);
 }

@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +35,9 @@ public class MongoEventStoreAdapter implements EventStorePort {
     }
 
     @Override
-    public void append(String streamId, String aggregateType, long expectedVersion, DomainEvent event, String actorRef) {
+    public void append(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, String actorRef) {
+        if (events == null || events.isEmpty()) return;
+
         String previousHash;
 
         if (expectedVersion == 0) {
@@ -48,54 +51,65 @@ public class MongoEventStoreAdapter implements EventStorePort {
             previousHash = prevDoc.getEventHash();
         }
 
-        long newSequence = expectedVersion + 1;
-        String eventId = UUID.randomUUID().toString();
-        Instant recordedAt = Instant.now();
+        List<TraceabilityEventDocument> newDocs = new ArrayList<>();
+        long currentSequence = expectedVersion;
+        String currentHash = previousHash;
         String origin = "TRACEABILITY_CORE";
         String schemaVersion = "1.0";
 
-        // Assemble generic map
-        Map<String, Object> eventData = canonicalMapper.toCanonicalMap(
-                eventId,
-                streamId,
-                aggregateType,
-                newSequence,
-                event.eventType().name(),
-                schemaVersion,
-                event.occurredAt(),
-                recordedAt,
-                actorRef,
-                origin,
-                event.payload()
-        );
+        for (DomainEvent event : events) {
+            long newSequence = currentSequence + 1;
+            String eventId = UUID.randomUUID().toString();
+            Instant recordedAt = Instant.now();
 
-        // Generate hash
-        String eventHash = hashPort.canonicalizeAndHash(eventData, previousHash);
+            // Assemble generic map
+            Map<String, Object> eventData = canonicalMapper.toCanonicalMap(
+                    eventId,
+                    streamId,
+                    aggregateType,
+                    newSequence,
+                    event.eventType().name(),
+                    schemaVersion,
+                    event.occurredAt(),
+                    recordedAt,
+                    actorRef,
+                    origin,
+                    event.payload()
+            );
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> payloadMap = (Map<String, Object>) eventData.get("payload");
+            // Generate hash
+            String eventHash = hashPort.canonicalizeAndHash(eventData, currentHash);
 
-        // Build document
-        TraceabilityEventDocument newDoc = TraceabilityEventDocument.builder()
-                .eventId(eventId)
-                .streamId(streamId)
-                .aggregateType(aggregateType)
-                .sequence(newSequence)
-                .eventType(event.eventType().name())
-                .schemaVersion(schemaVersion)
-                .occurredAt(event.occurredAt() != null ? event.occurredAt().toString() : null)
-                .recordedAt(recordedAt.toString())
-                .actorRef(actorRef)
-                .origin(origin)
-                .payload(payloadMap)
-                .previousHash(previousHash)
-                .eventHash(eventHash)
-                .build();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payloadMap = (Map<String, Object>) eventData.get("payload");
+
+            // Build document
+            TraceabilityEventDocument newDoc = TraceabilityEventDocument.builder()
+                    .eventId(eventId)
+                    .streamId(streamId)
+                    .aggregateType(aggregateType)
+                    .sequence(newSequence)
+                    .eventType(event.eventType().name())
+                    .schemaVersion(schemaVersion)
+                    .occurredAt(event.occurredAt() != null ? event.occurredAt().toString() : null)
+                    .recordedAt(recordedAt.toString())
+                    .actorRef(actorRef)
+                    .origin(origin)
+                    .payload(payloadMap)
+                    .previousHash(currentHash)
+                    .eventHash(eventHash)
+                    .build();
+
+            newDocs.add(newDoc);
+            
+            currentSequence = newSequence;
+            currentHash = eventHash;
+        }
 
         try {
-            mongoTemplate.insert(newDoc);
+            mongoTemplate.insertAll(newDocs);
         } catch (DuplicateKeyException e) {
-            throw new ConcurrencyConflictException("Concurrency conflict appending to stream " + streamId + " at sequence " + newSequence, e);
+            throw new ConcurrencyConflictException("Concurrency conflict appending to stream " + streamId + " at sequence " + currentSequence, e);
         }
     }
 

@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.bson.types.Decimal128;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -102,11 +103,15 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
 
         if (payload instanceof FundRegisteredPayload p) {
             update.set("financialSnapshot.originalAmount", p.pledgedAmount() != null ? p.pledgedAmount() : 0);
+            if (p.currency() != null) update.set("currency", p.currency());
+            if (p.campaignRef() != null) update.set("campaignRef", p.campaignRef());
         } else if (payload instanceof FundsClearedPayload p) {
             update.inc("financialSnapshot.clearedAmount", p.clearedAmount());
             if (lastProcessed == -1) {
                 update.set("financialSnapshot.originalAmount", p.clearedAmount());
             }
+            if (p.currency() != null) update.set("currency", p.currency());
+            if (p.campaignRef() != null) update.set("campaignRef", p.campaignRef());
         } else if (payload instanceof AllocationRequestedPayload p) {
             update.inc("financialSnapshot.pendingAllocationAmount", p.requestedAmount());
             DonationProjectionDocument.AllocationProjection alloc = new DonationProjectionDocument.AllocationProjection(p.allocationId(), null, null, p.requestedAmount(), "PENDING");
@@ -200,7 +205,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (elem != null && elem.getStatusBeforeSplit() != null) {
                 update.set("logistics.$[elem].lifecycleStatus", elem.getStatusBeforeSplit());
             }
-            update.inc("logistics.$[elem].quantity", p.reintegratedQuantity());
+            update.inc("logistics.$[elem].quantity", new Decimal128(p.reintegratedQuantity()));
             update.set("logistics.$[elem].statusBeforeSplit", null);
         } else if (payload instanceof AssetDepletedPayload) {
             update.set("logistics.$[elem].lifecycleStatus", "DEPLETED");

@@ -1,6 +1,7 @@
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/JcsHashAdapterTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/AnchorConfirmationPollerIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/AnchorConfirmationPollerTest.java
+/home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/BlockchainAdminOperationsServiceIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/application/service/BlockchainAnchorSchedulerTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/architecture/ArchitectureTest.java
 /home/carlos/Proyectos/Donaciones/crypto/src/test/java/com/traceability/crypto/domain/MerkleTreeTest.java

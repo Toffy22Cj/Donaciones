@@ -200,8 +200,11 @@ availableAmount = clearedAmount - pendingAllocationAmount - allocatedAmount - re
 | — (compensación) | `ALLOCATION_REVERSED` | Devuelve a `availableAmount` |
 | `RefundFunds` | `FUNDS_REFUNDED` | `refundedAmount += monto`; `causedDeficit` si excede disponible |
 
-**Excepciones:** `InsufficientAvailableFundsException`, `ExceedsClearedFundsException`, `DuplicateAllocationException`.
-
+**Excepciones documentadas:** 
+- `InsufficientAvailableFundsException`: Cuando `requestedAmount > availableAmount`.
+- `ExceedsClearedFundsException`: Cuando `refundAmount + refundedAmount > clearedAmount`.
+- `DuplicateAllocationException`: Cuando una solicitud de allocation (`allocationId`) ya existe en los registros históricos.
+- `InvalidFundTransitionException`: Protege la invariante de que una allocation no puede ser confirmada ni reversada si no existe previamente como una solicitud pendiente (`activeAllocations`).
 ---
 
 ## 7. Capa de Aplicación: Sagas
@@ -272,14 +275,19 @@ event_store (Mongo, colección real)
 | 4 | Payloads formales de `PhysicalAsset` | ✅ Completada |
 | 5 | Aggregate `Fund` completo | ✅ Completada, con tabla de trazabilidad |
 | 6 | Payloads formales de `Fund` | ✅ Completada |
-| 7 | `OutboxSagaCoordinator` genérico | ✅ Completada |
+| 7 | `OutboxSagaCoordinator` genérico | ✅ Completada (Reabierta y corregida tras auditoría) |
+| 7.1 | Capa de Command Handlers + activación real de sagas | ✅ **Completada** — `CommandRetryTemplate`, policies y handlers implementados |
 | 8 | `crypto`: `JcsHashAdapter`, `MerkleTree` | ✅ Completada |
-| 9 | Persistencia MongoDB, `EventStorePort`, Outbox transaccional | ✅ Completada, verificada con Testcontainers real (incluyendo detección real de bug de `MongoTransactionManager` no autoconfigurado) |
-| 10 | Proyecciones CQRS: `DonationProjection`, `asset_index`, cuarentena, reconstrucción | ✅ Completada, incluyendo test de condición de carrera real bulk+resume |
-| 11 | `DonationAuditFacts`, `AuditFactsPort` implementado, generalización del framework de proyección | ✅ **Completada** — 9/9 tests ejecutados en Testcontainers real, sin regresión |
-| 12 | `ai`: `NarrativeGenerator` consumiendo `AuditFactsPort` | ✅ **Completada** — Resiliencia single-flight, TTL fallback y prompt injection preventions |
-| 13 | `crypto.infrastructure.web3j`: `Web3jBlockchainAnchorAdapter`, `BlockchainAnchorScheduler` y `AnchorConfirmationPoller` | ✅ **Completada** — 39 tests de regresión cruzada, integración end-to-end real contra Ganache comprobando la transición SUBMITTED -> ANCHORED comprobando en-chain Merkle Root. |
-| 14 | `app`: ensamblaje del módulo de bootstrap (`@SpringBootApplication`, sin capa HTTP) — cierre técnico de la Fase 2 | ✅ **Completada** — `ApplicationContextLoadTest` en verde: `core`, `crypto` y `ai` ensamblados en un único `ApplicationContext`, `MongoTransactionManager` canónico, smoke test transaccional real (Event Store + Outbox releídos vía puertos reales) |
+| 9 | Persistencia MongoDB, `EventStorePort`, Outbox transaccional | ✅ Completada, verificada con Testcontainers real |
+| 10 | Proyecciones CQRS: `DonationProjection`, cuarentena | ✅ Completada, incluyendo test de condición de carrera real bulk+resume |
+| 10.1 | Corrección de Defectos (monto de origen `FUNDS_CLEARED`) | ✅ Completada |
+| 10.2 | Corrección de Defectos (historial y logística en eventos) | ✅ Completada |
+| 10.3 | Corrección Hallazgo #4: Metadata de Fund en Eventos/Proyecciones | ✅ **Completada** — Inclusión de `currency`, `campaignRef`, `donorRef` (nullable) y estado derivado |
+| 10.4 | Corrección Hallazgo #6: Migración de quantity a BigDecimal | ✅ **Completada** — Refactorización estructural en todo el dominio y proyecciones usando `Decimal128` |
+| 11 | `DonationAuditFacts`, `AuditFactsPort` implementado | ✅ Completada |
+| 12 | `ai`: `NarrativeGenerator` consumiendo `AuditFactsPort` | ✅ Completada |
+| 13 | `crypto.infrastructure.web3j`: anclaje EVM | ✅ Completada |
+| 14 | `app`: ensamblaje del módulo de bootstrap (Cierre de Fase 2) | ✅ Completada |
 
 **Métrica de calidad actual (última cifra confirmada):** 100% Cobertura de las 14 tareas de la Fase 2, pruebas automatizadas pasando exitosamente en todos los módulos (incluyendo el módulo `crypto` entero con 39 pruebas interconectadas, módulo `ai`, `core`, y el ensamblaje completo en `app`). Disciplina demostrada exigiendo ejecución real contra Testcontainers.
 

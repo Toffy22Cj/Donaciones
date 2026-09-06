@@ -1,3 +1,4 @@
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/CommandRetryTemplateTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/projection/DonationAuditFactsIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/projection/DonationProjectionIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/saga/OutboxSagaCoordinatorTest.java

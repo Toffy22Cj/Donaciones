@@ -49,6 +49,7 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
         doc.setAnchoredAt(batch.anchoredAt());
         doc.setConfirmedBlockNumber(batch.confirmedBlockNumber());
         doc.setResolution(batch.resolution());
+        doc.setMaxFeePerGasOverride(batch.maxFeePerGasOverride());
         
         MerkleBatchDocument saved = repository.save(doc);
         return toDomain(saved);
@@ -255,6 +256,28 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
     }
 
     @Override
+    public void resolveStuckBatch(String batchId, com.traceability.crypto.domain.Resolution resolution, java.math.BigInteger maxFeePerGas) {
+        Query query = new Query(Criteria.where("batchId").is(batchId).and("status").is(AnchorStatus.STUCK));
+        
+        Update update = new Update().set("resolution", resolution);
+        
+        if (resolution == com.traceability.crypto.domain.Resolution.RESUBMIT) {
+            update.set("status", AnchorStatus.SUBMITTING);
+            if (maxFeePerGas != null) {
+                update.set("maxFeePerGasOverride", maxFeePerGas);
+            }
+        } else if (resolution == com.traceability.crypto.domain.Resolution.ABANDON) {
+            update.set("status", AnchorStatus.FAILED);
+        }
+
+        com.mongodb.client.result.UpdateResult result = mongoTemplate.updateFirst(query, update, MerkleBatchDocument.class);
+        
+        if (result.getMatchedCount() == 0) {
+            throw new IllegalStateException("Batch " + batchId + " not found or not in STUCK state.");
+        }
+    }
+
+    @Override
     public void seedNonceCounter(String network, String smartContractAddress, long startingNonce) {
         String counterId = network + "-" + smartContractAddress;
         
@@ -281,7 +304,8 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
                 doc.getSubmittedAt(),
                 doc.getAnchoredAt(),
                 doc.getConfirmedBlockNumber(),
-                doc.getResolution()
+                doc.getResolution(),
+                doc.getMaxFeePerGasOverride()
         );
     }
 }

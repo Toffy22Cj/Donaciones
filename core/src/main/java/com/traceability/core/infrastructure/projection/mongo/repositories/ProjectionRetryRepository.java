@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ProjectionRetryRepository extends MongoRepository<ProjectionRetryDocument, String> {
+public interface ProjectionRetryRepository extends MongoRepository<ProjectionRetryDocument, String>, ProjectionRetryRepositoryCustom {
     List<ProjectionRetryDocument> findByStatus(String status);
     List<ProjectionRetryDocument> findByProjectionIdAndStatusOrderBySequenceAsc(String projectionId, String status);
 }

@@ -30,11 +30,15 @@ import com.traceability.core.application.port.out.OutboxPort;
 
 import java.util.List;
 import java.util.Map;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "core.projection.retry.delay=100",
+    "core.projection.retry.timeout-minutes=5"
+})
 @Testcontainers
 class DonationProjectionIntegrationTest {
 
@@ -56,6 +60,7 @@ class DonationProjectionIntegrationTest {
     @Configuration
     @SpringBootApplication(scanBasePackages = "com.traceability.core")
     @org.springframework.data.mongodb.repository.config.EnableMongoRepositories(basePackages = "com.traceability.core")
+    @org.springframework.scheduling.annotation.EnableScheduling
     static class TestConfig {}
 
     @Autowired
@@ -135,11 +140,11 @@ class DonationProjectionIntegrationTest {
         assertEquals(2, proj.getLogistics().size());
         
         DonationProjectionDocument.LogisticsProjection rootLog = proj.getLogistics().stream().filter(l -> l.getAssetId().equals("asset-root")).findFirst().get();
-        assertEquals(80, rootLog.getQuantity());
+        assertEquals(0, new BigDecimal("80.0000").compareTo(rootLog.getQuantity()));
         assertEquals("alloc-1", rootLog.getAllocationId());
         
         DonationProjectionDocument.LogisticsProjection childLog = proj.getLogistics().stream().filter(l -> l.getAssetId().equals("asset-child")).findFirst().get();
-        assertEquals(20, childLog.getQuantity());
+        assertEquals(0, new BigDecimal("20.0000").compareTo(childLog.getQuantity()));
         assertEquals("asset-root", childLog.getParentAssetRef());
         assertEquals("asset-root", childLog.getRootAssetRef());
         assertEquals("alloc-1", childLog.getSourceAllocationId());
@@ -182,8 +187,9 @@ class DonationProjectionIntegrationTest {
         TraceabilityEventDocument ev1 = buildEvent("fund-3", "Fund", 1, "FUNDS_CLEARED", Map.of("clearedAmount", 500));
         projectionHandler.handleEvent(ev1);
         
-        // Process retries
-        retryScheduler.processRetries();
+        // Wait for scheduler to process retries automatically
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
+            .until(() -> retryRepository.findByStatus("PENDING").isEmpty());
         
         proj = projectionRepository.findById("fund-3").get();
         assertEquals(500, proj.getFinancialSnapshot().getClearedAmount());
@@ -191,6 +197,35 @@ class DonationProjectionIntegrationTest {
         assertEquals(2, proj.getAuditMetadata().getFundLastProcessedSequence());
         
         assertEquals(0, retryRepository.findByStatus("PENDING").size());
+    }
+
+    @Test
+    void testStuckProcessingRescue() {
+        // Make sure the prior event is there so it can succeed
+        projectionHandler.handleEvent(buildEvent("fund-stuck", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 1000L)));
+
+        // Insert a document in PROCESSING that started 10 minutes ago
+        ProjectionRetryDocument stuckDoc = new ProjectionRetryDocument();
+        stuckDoc.setId("event-stuck_DonationProjectionHandler");
+        stuckDoc.setHandlerName("DonationProjectionHandler");
+        stuckDoc.setEventId("event-stuck");
+        stuckDoc.setStreamId("fund-stuck");
+        stuckDoc.setSequence(1);
+        stuckDoc.setEventType("FUNDS_CLEARED");
+        stuckDoc.setPayload(Map.of("clearedAmount", 500L));
+        stuckDoc.setOccurredAt("2026-09-01T10:00:00Z");
+        stuckDoc.setFirstAttemptAt("2026-09-01T10:00:00Z");
+        stuckDoc.setLastAttemptAt("2026-09-01T10:00:00Z");
+        stuckDoc.setStatus("PROCESSING");
+        stuckDoc.setProcessingStartedAt(java.time.Instant.now().minus(10, java.time.temporal.ChronoUnit.MINUTES).toString());
+        retryRepository.save(stuckDoc);
+
+        // Await processing (scheduler should pick it up because it timed out)
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
+            .until(() -> retryRepository.findById("event-stuck_DonationProjectionHandler").isEmpty());
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-stuck").get();
+        assertEquals(500L, proj.getFinancialSnapshot().getClearedAmount());
     }
 
     @Autowired
@@ -541,7 +576,7 @@ class DonationProjectionIntegrationTest {
 
         DonationProjectionDocument proj = projectionRepository.findById("fund-102b1").get();
         DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
-        assertEquals(0L, log.getQuantity());
+        assertEquals(0, new BigDecimal("0.0000").compareTo(log.getQuantity()));
         assertEquals("DEPLETED", log.getLifecycleStatus());
     }
 
@@ -560,7 +595,7 @@ class DonationProjectionIntegrationTest {
         
         proj = projectionRepository.findById("fund-102b2").get();
         DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
-        assertEquals(100L, log.getQuantity());
+        assertEquals(0, new BigDecimal("100.0000").compareTo(log.getQuantity()));
         assertEquals("RECEIVED", log.getLifecycleStatus());
         assertNull(log.getStatusBeforeSplit());
     }
@@ -581,7 +616,7 @@ class DonationProjectionIntegrationTest {
 
         DonationProjectionDocument proj = projectionRepository.findById("fund-102c1").get();
         DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
-        assertEquals(100L, log.getQuantity());
+        assertEquals(0, new BigDecimal("100.0000").compareTo(log.getQuantity()));
         assertEquals("DELIVERED", log.getLifecycleStatus());
         assertEquals("LocFinal", log.getCurrentLocation());
         assertEquals("CustFinal", log.getCurrentCustodian());
@@ -643,5 +678,27 @@ class DonationProjectionIntegrationTest {
         assertEquals("DELIVERED", rebuiltLog.getLifecycleStatus());
         assertEquals("LocFinal", rebuiltLog.getCurrentLocation());
         assertEquals("CustFinal", rebuiltLog.getCurrentCustodian());
+    }
+
+    // --- Hallazgo #4 ---
+    @Test
+    void testHallazgo4_GenesisCompleteness_PropagatesCurrencyAndCampaign() {
+        projectionHandler.handleEvent(buildEvent("fund-h4-comp", "Fund", 0, "FUND_REGISTERED", 
+            Map.of("pledgedAmount", 5000L, "currency", "COP", "campaignRef", "CAMP-1")));
+            
+        DonationProjectionDocument proj = projectionRepository.findById("fund-h4-comp").get();
+        assertEquals("COP", proj.getCurrency());
+        assertEquals("CAMP-1", proj.getCampaignRef());
+    }
+
+    @Test
+    void testHallazgo4_Privacy_DonorRefIsNeverPersistedInRawMongo() {
+        projectionHandler.handleEvent(buildEvent("fund-h4-priv", "Fund", 0, "FUND_REGISTERED", 
+            Map.of("pledgedAmount", 5000L, "currency", "COP", "campaignRef", "CAMP-1", "donorRef", "DONOR-SECRET")));
+            
+        // Ensure donorRef is strictly absent in the raw MongoDB document
+        org.bson.Document rawDoc = mongoTemplate.findById("fund-h4-priv", org.bson.Document.class, "donation_projections");
+        assertNotNull(rawDoc, "The projection document must exist");
+        assertFalse(rawDoc.containsKey("donorRef"), "donorRef MUST NEVER be stored in the public projection document");
     }
 }

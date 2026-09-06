@@ -147,7 +147,7 @@ public class DonationAuditFactsIntegrationTest {
         assetIndexRepository.save(new AssetIndexDocument(assetId, fundId, assetId, 0));
         
         TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 0, "ASSET_SPLIT", 
-            new AssetSplitPayload("child", 10L, "kg", 20L, 10L, "REGISTERED", "loc", "cust", "root"), 
+            new AssetSplitPayload("child", new BigDecimal("10.0000"), "kg", new BigDecimal("20.0000"), new BigDecimal("10.0000"), "REGISTERED", "loc", "cust", "root"), 
             Instant.now(), "PhysicalAsset");
         
         auditFactsHandler.handleEvent(ev1);

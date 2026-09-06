@@ -14,15 +14,21 @@ public class TransactionalEventPublisher {
 
     private final EventStorePort eventStorePort;
     private final OutboxPort outboxPort;
+    private final com.traceability.core.application.port.out.ProcessedCommandRepositoryPort processedCommandRepositoryPort;
 
-    public TransactionalEventPublisher(EventStorePort eventStorePort, OutboxPort outboxPort) {
+    public TransactionalEventPublisher(EventStorePort eventStorePort, OutboxPort outboxPort, com.traceability.core.application.port.out.ProcessedCommandRepositoryPort processedCommandRepositoryPort) {
         this.eventStorePort = eventStorePort;
         this.outboxPort = outboxPort;
+        this.processedCommandRepositoryPort = processedCommandRepositoryPort;
     }
 
     @Transactional
-    public void appendAndOutbox(String streamId, String aggregateType, long expectedVersion, DomainEvent event, String actorRef, List<OutboxMessage> outboxMessages) {
-        eventStorePort.append(streamId, aggregateType, expectedVersion, event, actorRef);
+    public void appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, String actorRef, List<OutboxMessage> outboxMessages, String commandId) {
+        if (commandId != null) {
+            processedCommandRepositoryPort.save(commandId);
+        }
+        
+        eventStorePort.append(streamId, aggregateType, expectedVersion, events, actorRef);
         
         if (outboxMessages != null) {
             for (OutboxMessage msg : outboxMessages) {

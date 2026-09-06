@@ -60,8 +60,13 @@ public class Web3jBlockchainAnchorAdapter implements BlockchainAnchorSubmitterPo
                         "Failed to check gas price before transaction submission", e);
             }
                     
-            if (currentGasPrice.compareTo(maxFeePerGasCap) > 0) {
-                throw new GasCapExceededException("Current gas price " + currentGasPrice + " exceeds cap " + maxFeePerGasCap);
+            if (batch.maxFeePerGasOverride() != null) {
+                // If override is provided, use it directly (bypass dynamic estimation and cap check)
+                currentGasPrice = batch.maxFeePerGasOverride();
+            } else {
+                if (currentGasPrice.compareTo(maxFeePerGasCap) > 0) {
+                    throw new GasCapExceededException("Current gas price " + currentGasPrice + " exceeds cap " + maxFeePerGasCap);
+                }
             }
 
             // 2. Setup Explicit Nonce Transaction Manager

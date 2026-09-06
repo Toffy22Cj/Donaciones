@@ -10,7 +10,7 @@ class FundTest {
     @Test
     void testDualGenesis_RegisterThenClear() {
         // Genesis 1
-        Fund fund = Fund.registerFund("F1", 1000L);
+        Fund fund = Fund.registerFund("F1", 1000L, "COP", "CAMPAIGN-1", "DONOR-A");
         assertEquals("F1", fund.getFundId());
         assertEquals(1000L, fund.getPledgedAmount());
         assertEquals(0L, fund.getClearedAmount());
@@ -24,7 +24,7 @@ class FundTest {
     @Test
     void testDualGenesis_DirectClear() {
         // Genesis 2
-        Fund fund = Fund.clearFundsGenesis("F2", 800L, "TX-002");
+        Fund fund = Fund.clearFundsGenesis("F2", 800L, "TX-002", "COP", "CAMPAIGN-1", "DONOR-A");
         assertEquals("F2", fund.getFundId());
         assertNull(fund.getPledgedAmount());
         assertEquals(800L, fund.getClearedAmount());
@@ -33,7 +33,7 @@ class FundTest {
 
     @Test
     void testSagaHappyPath_RequestAndConfirm() {
-        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX");
+        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
         
         fund.requestAllocation("ALLOC-1", 400L);
         assertEquals(600L, fund.getAvailableAmount());
@@ -48,7 +48,7 @@ class FundTest {
 
     @Test
     void testSagaFallback_RequestAndReverse() {
-        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX");
+        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
         
         fund.requestAllocation("ALLOC-1", 300L);
         assertEquals(700L, fund.getAvailableAmount());
@@ -62,7 +62,7 @@ class FundTest {
 
     @Test
     void testOverdraftInvariant_ADR004() {
-        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX");
+        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
         
         // Allocate 800, so available is 200
         fund.requestAllocation("ALLOC-1", 800L);
@@ -81,7 +81,7 @@ class FundTest {
 
     @Test
     void testIdempotence_DuplicateAllocationAndRefund() {
-        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX");
+        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
         
         fund.requestAllocation("ALLOC-1", 100L);
         assertThrows(DuplicateAllocationException.class, () -> fund.requestAllocation("ALLOC-1", 100L));
@@ -92,14 +92,27 @@ class FundTest {
 
     @Test
     void testInsufficientFundsForAllocation() {
-        Fund fund = Fund.clearFundsGenesis("F1", 100L, "TX");
+        Fund fund = Fund.clearFundsGenesis("F1", 100L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
         assertThrows(InsufficientAvailableFundsException.class, () -> fund.requestAllocation("ALLOC-1", 150L));
     }
     
     @Test
     void testInvalidTransitions() {
-        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX");
+        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
         assertThrows(InvalidFundTransitionException.class, () -> fund.confirmAllocation("NON_EXISTENT"));
         assertThrows(InvalidFundTransitionException.class, () -> fund.reverseAllocation("NON_EXISTENT", "Reason"));
+    }
+
+    @Test
+    void testRedundantConfirmAndReverse() {
+        Fund fund = Fund.clearFundsGenesis("F1", 1000L, "TX", "COP", "CAMPAIGN-1", "DONOR-A");
+        
+        fund.requestAllocation("ALLOC-1", 100L);
+        fund.confirmAllocation("ALLOC-1");
+        assertThrows(RedundantAllocationConfirmationException.class, () -> fund.confirmAllocation("ALLOC-1"));
+        
+        fund.requestAllocation("ALLOC-2", 100L);
+        fund.reverseAllocation("ALLOC-2", "Cancelled");
+        assertThrows(RedundantAllocationReversalException.class, () -> fund.reverseAllocation("ALLOC-2", "Cancelled"));
     }
 }

@@ -55,4 +55,22 @@ class JcsHashAdapterTest {
 
         assertNotEquals(hash1, hash2, "Different previousHash must result in a completely different hash");
     }
+
+    @Test
+    void testNumberCanonicalization_JcsEs6Rules() throws Exception {
+        Map<String, Object> map1 = new HashMap<>(); map1.put("q", 100L);
+        Map<String, Object> map2 = new HashMap<>(); map2.put("q", new java.math.BigDecimal("100"));
+        Map<String, Object> map3 = new HashMap<>(); map3.put("q", new java.math.BigDecimal("100.0"));
+        Map<String, Object> map4 = new HashMap<>(); map4.put("q", new java.math.BigDecimal("100.00"));
+        
+        String hash1 = adapter.canonicalizeAndHash(map1, "prev");
+        String hash2 = adapter.canonicalizeAndHash(map2, "prev");
+        String hash3 = adapter.canonicalizeAndHash(map3, "prev");
+        String hash4 = adapter.canonicalizeAndHash(map4, "prev");
+
+        // The hash must be identical because JCS standardizes numbers via ES6 rules
+        assertEquals(hash1, hash2, "Long and BigDecimal without decimals must have identical JCS hash");
+        assertEquals(hash1, hash3, "BigDecimal with 1 decimal must have identical JCS hash to integer");
+        assertEquals(hash1, hash4, "BigDecimal with 2 decimals must have identical JCS hash to integer");
+    }
 }

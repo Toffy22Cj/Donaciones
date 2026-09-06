@@ -1,0 +1,7 @@
+
+# Agentes Scratch Files
+/fix_*.py
+/update_*.py
+/get_*.py
+/scratch.*
+/*_test_output.txt

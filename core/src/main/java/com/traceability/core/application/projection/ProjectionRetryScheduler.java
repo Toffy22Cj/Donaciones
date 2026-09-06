@@ -11,11 +11,18 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jmx.export.annotation.ManagedOperation;
+import org.springframework.jmx.export.annotation.ManagedOperationParameter;
+import org.springframework.jmx.export.annotation.ManagedResource;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
 
 @Service
+@ManagedResource(objectName = "com.traceability.core.application.projection:type=ProjectionRetryScheduler", description = "Scheduler for Projection Retries")
 public class ProjectionRetryScheduler {
 
     private final ProjectionRetryRepository retryRepository;
@@ -31,10 +38,18 @@ public class ProjectionRetryScheduler {
         this.projectionRepository = projectionRepository;
     }
 
+    @Value("${core.projection.retry.timeout-minutes:5}")
+    private int processingTimeoutMinutes;
+
+    @Scheduled(fixedDelayString = "${core.projection.retry.delay:60000}")
     public void processRetries() {
-        List<ProjectionRetryDocument> pending = retryRepository.findByStatus("PENDING");
-        
-        for (ProjectionRetryDocument retryDoc : pending) {
+        while (true) {
+            Optional<ProjectionRetryDocument> optRetryDoc = retryRepository.claimNextPendingRetry(processingTimeoutMinutes);
+            if (optRetryDoc.isEmpty()) {
+                break;
+            }
+            
+            ProjectionRetryDocument retryDoc = optRetryDoc.get();
             try {
                 TraceabilityEventDocument eventDoc = toEventDoc(retryDoc);
                 ProjectionEventHandler handler = handlers.get(retryDoc.getHandlerName());
@@ -44,7 +59,6 @@ public class ProjectionRetryScheduler {
                 } else {
                     // Unknown handler, quarantine immediately
                     quarantine(retryDoc);
-                    continue;
                 }
             } catch (DonationProjectionHandler.SequenceGapException | DonationProjectionHandler.MissingDependencyException e) {
                 // Still failing. Check if 4 hours have passed
@@ -54,6 +68,8 @@ public class ProjectionRetryScheduler {
                 } else {
                     retryDoc.setRetryCount(retryDoc.getRetryCount() + 1);
                     retryDoc.setLastAttemptAt(Instant.now().toString());
+                    retryDoc.setStatus("PENDING"); // Revert back to PENDING so it can be claimed again
+                    retryDoc.setProcessingStartedAt(null);
                     retryRepository.save(retryDoc);
                 }
             } catch (DonationProjectionHandler.ProjectionPausedException e) {
@@ -78,6 +94,8 @@ public class ProjectionRetryScheduler {
         }
     }
 
+    @ManagedOperation(description = "Resumes a paused projection by un-quarantining its pending events and changing status to ACTIVE")
+    @ManagedOperationParameter(name = "projectionId", description = "The ID of the projection to resume")
     public void resumeProjection(String projectionId) {
         // 1. Mark projection as ACTIVE
         DonationProjectionDocument proj = projectionRepository.findById(projectionId)

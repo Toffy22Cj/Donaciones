@@ -6,9 +6,9 @@ import java.util.List;
 
 public interface EventStorePort {
     /**
-     * Appends a new event to the stream, ensuring exact sequence matching for concurrency control.
+     * Appends new events to the stream, ensuring exact sequence matching for concurrency control.
      */
-    void append(String streamId, String aggregateType, long expectedVersion, DomainEvent event, String actorRef);
+    void append(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, String actorRef);
     
     /**
      * Loads the entire event stream sorted by sequence ascending.

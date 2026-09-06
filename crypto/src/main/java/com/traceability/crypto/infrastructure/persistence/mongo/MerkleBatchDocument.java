@@ -35,6 +35,7 @@ public class MerkleBatchDocument {
     private Instant anchoredAt;
     private Long confirmedBlockNumber;
     private Resolution resolution;
+    private java.math.BigInteger maxFeePerGasOverride;
 
     // Getters and Setters
 
@@ -156,5 +157,13 @@ public class MerkleBatchDocument {
 
     public void setResolution(Resolution resolution) {
         this.resolution = resolution;
+    }
+
+    public java.math.BigInteger getMaxFeePerGasOverride() {
+        return maxFeePerGasOverride;
+    }
+
+    public void setMaxFeePerGasOverride(java.math.BigInteger maxFeePerGasOverride) {
+        this.maxFeePerGasOverride = maxFeePerGasOverride;
     }
 }

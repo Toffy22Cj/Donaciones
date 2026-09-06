@@ -43,5 +43,7 @@ public class ProjectionRetryDocument {
     private String lastAttemptAt;
     
     @Builder.Default
-    private String status = "PENDING"; // PENDING, QUARANTINED
+    private String status = "PENDING"; // PENDING, PROCESSING, QUARANTINED
+    
+    private String processingStartedAt;
 }
