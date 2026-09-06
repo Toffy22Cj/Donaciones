@@ -1,0 +1,4 @@
+traceability:
+  security:
+    tracking-code-secret: dummy-tracking-code-secret-for-test
+    asset-ref-secret: dummy-asset-ref-secret-for-test
