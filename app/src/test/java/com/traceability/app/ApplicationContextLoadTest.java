@@ -71,7 +71,7 @@ class ApplicationContextLoadTest {
         
         com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload realPayload = 
                 new com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload(
-                        streamId, "FOOD_RATION", 100L, "KGS", "WH-01", "CUST-01", null, null, null, null
+                        streamId, "FOOD_RATION", java.math.BigDecimal.valueOf(100L), "KGS", "WH-01", "CUST-01", null, null, null, null
                 );
         EventType dummyEventType = () -> "ASSET_REGISTERED";
         
@@ -98,9 +98,10 @@ class ApplicationContextLoadTest {
                 streamId,
                 "PhysicalAsset",
                 0L, // expectedVersion
-                event,
+                List.of(event),
                 "system",
-                List.of(outboxMessage)
+                List.of(outboxMessage),
+                UUID.randomUUID().toString() // commandId
         );
         
         // 3. Aserciones de Lectura (Event Store)
