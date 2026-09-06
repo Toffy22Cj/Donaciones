@@ -256,17 +256,18 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
     }
 
     private void enqueueForRetry(TraceabilityEventDocument eventDoc) {
-        ProjectionRetryDocument retryDoc = new ProjectionRetryDocument();
-        retryDoc.setId(eventDoc.getEventId() + "_" + getHandlerName());
-        retryDoc.setHandlerName(getHandlerName());
-        retryDoc.setEventId(eventDoc.getEventId());
-        retryDoc.setStreamId(eventDoc.getStreamId());
-        retryDoc.setSequence(eventDoc.getSequence());
-        retryDoc.setEventType(eventDoc.getEventType());
-        retryDoc.setPayload(eventDoc.getPayload());
-        retryDoc.setOccurredAt(eventDoc.getOccurredAt());
-        retryDoc.setFirstAttemptAt(Instant.now().toString());
-        retryDoc.setLastAttemptAt(Instant.now().toString());
+        ProjectionRetryDocument retryDoc = ProjectionRetryDocument.builder()
+            .id(eventDoc.getEventId() + "_" + getHandlerName())
+            .handlerName(getHandlerName())
+            .eventId(eventDoc.getEventId())
+            .streamId(eventDoc.getStreamId())
+            .sequence(eventDoc.getSequence())
+            .eventType(eventDoc.getEventType())
+            .payload(eventDoc.getPayload())
+            .occurredAt(eventDoc.getOccurredAt())
+            .firstAttemptAt(Instant.now().toString())
+            .lastAttemptAt(Instant.now().toString())
+            .build();
         retryRepository.save(retryDoc);
     }
 }

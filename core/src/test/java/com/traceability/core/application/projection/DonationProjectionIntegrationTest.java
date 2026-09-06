@@ -205,18 +205,19 @@ class DonationProjectionIntegrationTest {
         projectionHandler.handleEvent(buildEvent("fund-stuck", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 1000L)));
 
         // Insert a document in PROCESSING that started 10 minutes ago
-        ProjectionRetryDocument stuckDoc = new ProjectionRetryDocument();
-        stuckDoc.setId("event-stuck_DonationProjectionHandler");
-        stuckDoc.setHandlerName("DonationProjectionHandler");
-        stuckDoc.setEventId("event-stuck");
-        stuckDoc.setStreamId("fund-stuck");
-        stuckDoc.setSequence(1);
-        stuckDoc.setEventType("FUNDS_CLEARED");
-        stuckDoc.setPayload(Map.of("clearedAmount", 500L));
-        stuckDoc.setOccurredAt("2026-09-01T10:00:00Z");
-        stuckDoc.setFirstAttemptAt("2026-09-01T10:00:00Z");
-        stuckDoc.setLastAttemptAt("2026-09-01T10:00:00Z");
-        stuckDoc.setStatus("PROCESSING");
+        ProjectionRetryDocument stuckDoc = ProjectionRetryDocument.builder()
+            .id("event-stuck_DonationProjectionHandler")
+            .handlerName("DonationProjectionHandler")
+            .eventId("event-stuck")
+            .streamId("fund-stuck")
+            .sequence(1)
+            .eventType("FUNDS_CLEARED")
+            .payload(Map.of("clearedAmount", 500L))
+            .occurredAt("2026-09-01T10:00:00Z")
+            .firstAttemptAt("2026-09-01T10:00:00Z")
+            .lastAttemptAt("2026-09-01T10:00:00Z")
+            .status("PROCESSING")
+            .build();
         stuckDoc.setProcessingStartedAt(java.time.Instant.now().minus(10, java.time.temporal.ChronoUnit.MINUTES).toString());
         retryRepository.save(stuckDoc);
 

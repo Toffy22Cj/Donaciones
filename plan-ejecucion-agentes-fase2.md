@@ -771,15 +771,10 @@ Ningún agente debe saltarse una flecha de aprobación. Si un agente completa un
 
 ---
 
-## 6. Fase 3 — sin definir todavía
+## 6. Fase 3 — Definida (API REST y Tracking)
 
-No existe todavía una definición formal de alcance para la Fase 3 (probablemente
-exposición HTTP/REST del sistema, pero esto no está aprobado). Un intento
-anterior de adelantarse a esta definición (`SUPER_PROMPT_FASE3.md`) fue
-descartado explícitamente por no haber pasado por Modo de Arquitectura ni
-aprobación humana — ver `reglas-equipo-y-agentes.md`, sección 2.1. La Fase 3
-se diseña en una conversación dedicada, después de que la Tarea 14 cierre con
-evidencia real, nunca por inferencia de "siguiente paso lógico".
+La Fase 3 tiene su alcance formalmente definido tras el cierre exitoso de la Fase 2, cristalizado en los nuevos registros de diseño ADR-020 (Exposición DTO Inmutable) y ADR-021 (REST HTTP Methods & Idempotency). El diseño técnico abarca el DTO consolidado de trazabilidad y dos endpoints de consulta, incluyendo el mecanismo del tracking code.
+Para el diseño, restricciones técnicas y matriz de deuda técnica vigente para esta fase, consultar el documento vivo `estado-fase3.md`.
 ---
 
 ### TAREA 7.1 — Capa de Command Handlers + Activación de Sagas (Frente 4)
@@ -810,3 +805,14 @@ DETALLES: Se agregaron los campos opcionales (`Nullable`) en los constructores y
 TAREA: Migrar la variable `quantity` de `PhysicalAsset` de tipo `Long` a `BigDecimal`.
 CONTEXTO: Auditoría Fase 2 evidenció uso de `Long` ignorando el ADR que pedía `BigDecimal` para soportar decimales (ej. Kg o L). Existía un riesgo de que el cambio modificara la canonicalización criptográfica de JCS.
 DETALLES: Se modificó toda la suite, propagando el cambio a la proyección usando el tipo nativo `Decimal128` de MongoDB. Se demostró mediante un test real que JCS canonicaliza de forma idéntica, manteniendo íntegro el Merkle Root previamente anclado.
+
+---
+
+### TAREA 10.5 — Corrección de Defectos en Proyección CQRS de Fase 2 (Hallazgo #13)
+
+**Severidad:** 🔴 Alta (Inconsistencia en scheduler de reintentos por inicialización de campo Lombok)
+**Estado:** ✅ **COMPLETADA**
+
+TAREA: Reemplazar instanciaciones manuales (`new ProjectionRetryDocument()`) por `.builder().build()` en los event handlers.
+CONTEXTO: Auditoría posterior evidenció que Lombok `@Builder.Default` para el estado `PENDING` solo se aplicaba al usar el builder generado. El uso del constructor estándar resultaba en el estado en `null`, lo que a su vez causaba que el `ProjectionRetryScheduler` no pudiera recuperar los documentos usando su filtro `status="PENDING"`, inhabilitando el rescate de eventos fuera de orden.
+DETALLES: Se actualizó `DonationProjectionHandler`, `DonationAuditFactsHandler` y `DonationProjectionIntegrationTest` para construir los documentos estrictamente a través del builder. La validación se garantizó mediante el test `testGapAndRetry` resolviendo las aserciones sobre `retryRepository.findByStatus("PENDING")` de manera exitosa.

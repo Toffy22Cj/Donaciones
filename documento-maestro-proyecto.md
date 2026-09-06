@@ -134,6 +134,9 @@ core/src/main/java/core/
 - **ADR-015 — Arquitectura Desacoplada de la Capa de Lectura.** Cuatro componentes con responsabilidades distintas: `DonationProjection` (vista de usuario), `AssetHistoryProjection` (historial detallado), `asset_index` (índice técnico), `DonationAuditFacts` (hechos deterministas, único documento que `ai` puede leer, vía `AuditFactsPort`). El LLM nunca es fuente de verdad y nunca accede directamente al Event Store ni a documentos internos de `core`.
 - **ADR-017 (implícito, emergente en Tarea 10/11) — Framework de Proyección Genérico.** `ProjectionEventSource` y `ProjectionRetryScheduler` son genéricos, no acoplados a un handler específico. Cualquier proyector nuevo implementa la interfaz común `ProjectionEventHandler` (`handleEvent`, `getHandlerName`) y se registra en la lista inyectada; el enrutamiento de reintentos usa el campo `handlerName` en el documento de retry. Cada handler mantiene su propio checkpoint de secuencia por stream, independiente de los demás.
 
+### V. Integración Externa y Operaciones
+- **ADR-022 — Resolución Manual de Lotes Atascados (JMX).** La resolución de lotes en estado `STUCK` durante el anclaje a blockchain (Web3j) se realiza exclusivamente de forma manual vía JMX (`BlockchainAdminOperationsService.resolveStuckBatch(ABANDON|RESUBMIT)`). No hay reintento automático (RBF) programado para evitar doble gasto accidental y mantener el control humano sobre los costos operativos de gas.
+
 ---
 
 ## 6. Modelo de Dominio
@@ -207,8 +210,13 @@ availableAmount = clearedAmount - pendingAllocationAmount - allocatedAmount - re
 - `InvalidFundTransitionException`: Protege la invariante de que una allocation no puede ser confirmada ni reversada si no existe previamente como una solicitud pendiente (`activeAllocations`).
 ---
 
-## 7. Capa de Aplicación: Sagas
+## 7. Capa de Aplicación: Sagas y Command Handlers
 
+### 7.1 Capa de Command Handlers (Procesamiento de Entrada)
+- **`CommandRetryTemplate`**: Orquesta el procesamiento seguro de comandos, capturando `ConcurrencyConflictException` para recargar el `AggregateRoot` actualizado y reevaluar las reglas de negocio, aplicando un backoff exponencial configurado (mitigando bloqueos bajo alta carga).
+- **Servicios de Dominio (`FundCommandService`, etc.)**: Coordinan la ejecución invocando el agregado, delegando en el `TransactionalEventPublisher` y formalizando el registro de las `SagaPolicy` concretas (`AssetRegisteredSagaPolicy`, `SplitPhysicalAssetSagaPolicy`, `FundAllocationSagaPolicy`).
+
+### 7.2 Orquestación Transaccional (Sagas)
 **`OutboxSagaCoordinator`** — motor genérico en Java puro (sin Spring, sin Mongo):
 - `processPendingMessages()`: primero verifica ventana de cuarentena (4h desde `createdAt`); si expiró, compensa y marca `QUARANTINED` (sin tocar `retryCount`); si no expiró, intenta `execute()` y aplica backoff exponencial (`2^retryCount × 15s`) ante fallo.
 - `compensate()` envuelto en su propio try-catch — un fallo de compensación no detiene el procesamiento del resto del lote.
@@ -293,7 +301,7 @@ event_store (Mongo, colección real)
 
 **Fase 2: cerrada.** El sistema completo arranca como un único proceso ensamblado, no solo como módulos verificados por separado.
 
-**Próximo hito inmediato:** definición formal del alcance de la Fase 3 (probablemente API REST y exposición de trazabilidad verificable para el donante) — pendiente de una sesión de Modo de Arquitectura dedicada. Ver `plan-ejecucion-agentes-fase2.md` sección 6.
+**Próximo hito inmediato:** Implementación de la Fase 3 (API REST HTTP y mecanismos de Tracking), cuyo alcance y diseño ya fueron formalizados mediante ADR-020 y ADR-021. Ver `estado-fase3.md`.
 
 ## 9.1 Deudas Técnicas Identificadas
 
@@ -303,6 +311,8 @@ event_store (Mongo, colección real)
 - **Negociación de versión de API de Docker (`docker-java.properties`)**: Testcontainers negocia correctamente la versión `v1.41` en el módulo `crypto`, pero por razones desconocidas falla al intentar un fallback a `v1.32` en los módulos `app` y `core` bajo condiciones idénticas. El workaround aplicado fue forzar `api.version=1.41` en `src/test/resources/docker-java.properties` (y copiar el archivo `testcontainers.properties`) tanto en `app` como en `core`. Esto requiere investigación futura para aislar la causa raíz en la resolución de dependencias o configuración del daemon.
 
 4. **Snapshotting de Eventos:** Pendiente de optimización para streams de ciclo de vida largo (candidato principal: `Fund` de campañas activas), donde el replay completo penaliza el tiempo de recuperación en memoria del lado de escritura. No implementar preventivamente — instrumentar longitud de historial como métrica de observabilidad primero; evaluar snapshotting solo si un stream real se acerca a un umbral de referencia (~500 eventos) con latencia medible.
+
+5. **Hallazgos de `ProjectionRetryScheduler` (Resuelto):** El problema sobre umbrales y manejo genérico de reintentos reportado tempranamente fue **completamente resuelto** mediante el rediseño genérico documentado en ADR-017 e implementado durante la Tarea 11. Se deja constancia explícita de su resolución aquí.
 
 ---
 
