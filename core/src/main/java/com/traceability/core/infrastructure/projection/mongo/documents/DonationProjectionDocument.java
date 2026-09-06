@@ -58,6 +58,7 @@ public class DonationProjectionDocument {
         private String vendorId;
         private String requirementId;
         private long amount;
+        private String status;
     }
 
     @Data
@@ -76,6 +77,7 @@ public class DonationProjectionDocument {
         private String currentLocation;
         private String currentCustodian;
         private String lifecycleStatus;
+        private String statusBeforeSplit;  // Uso interno para compensación de splits
     }
 
     @Data

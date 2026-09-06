@@ -16,9 +16,12 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.Optional;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class DonationProjectionHandler implements ProjectionEventHandler {
+    private static final Logger log = LoggerFactory.getLogger(DonationProjectionHandler.class);
 
     @Override
     public String getHandlerName() {
@@ -101,20 +104,34 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             update.set("financialSnapshot.originalAmount", p.pledgedAmount() != null ? p.pledgedAmount() : 0);
         } else if (payload instanceof FundsClearedPayload p) {
             update.inc("financialSnapshot.clearedAmount", p.clearedAmount());
+            if (lastProcessed == -1) {
+                update.set("financialSnapshot.originalAmount", p.clearedAmount());
+            }
         } else if (payload instanceof AllocationRequestedPayload p) {
             update.inc("financialSnapshot.pendingAllocationAmount", p.requestedAmount());
-            DonationProjectionDocument.AllocationProjection alloc = new DonationProjectionDocument.AllocationProjection(p.allocationId(), null, null, p.requestedAmount());
+            DonationProjectionDocument.AllocationProjection alloc = new DonationProjectionDocument.AllocationProjection(p.allocationId(), null, null, p.requestedAmount(), "PENDING");
             update.push("allocations", alloc);
         } else if (payload instanceof AllocationConfirmedPayload p) {
-            // Find allocation amount to move from pending to allocated
-            // We need to query the current allocation amount. It's complex in a single update.
-            // But we can just use the loaded projection to calculate amounts.
-            long allocAmt = projection.getAllocations().stream().filter(a -> a.getAllocationId().equals(p.allocationId())).findFirst().map(a -> a.getAmount()).orElse(0L);
-            update.inc("financialSnapshot.pendingAllocationAmount", -allocAmt);
+            Optional<DonationProjectionDocument.AllocationProjection> opt = projection.getAllocations().stream().filter(a -> a.getAllocationId().equals(p.allocationId())).findFirst();
+            if (opt.isEmpty()) {
+                log.warn("AllocationConfirmed for non-existent allocationId: {}", p.allocationId());
+            } else {
+                long allocAmt = opt.get().getAmount();
+                update.inc("financialSnapshot.pendingAllocationAmount", -allocAmt);
+                update.set("allocations.$[elem].status", "CONFIRMED");
+                update.filterArray(Criteria.where("elem.allocationId").is(p.allocationId()));
+            }
         } else if (payload instanceof AllocationReversedPayload p) {
-            long allocAmt = projection.getAllocations().stream().filter(a -> a.getAllocationId().equals(p.allocationId())).findFirst().map(a -> a.getAmount()).orElse(0L);
-            update.inc("financialSnapshot.pendingAllocationAmount", -allocAmt);
-            update.pull("allocations", new Query(Criteria.where("allocationId").is(p.allocationId())));
+            Optional<DonationProjectionDocument.AllocationProjection> opt = projection.getAllocations().stream().filter(a -> a.getAllocationId().equals(p.allocationId())).findFirst();
+            if (opt.isEmpty()) {
+                log.warn("AllocationReversed for non-existent allocationId: {}", p.allocationId());
+            } else {
+                if ("PENDING".equals(opt.get().getStatus())) {
+                    long allocAmt = opt.get().getAmount();
+                    update.inc("financialSnapshot.pendingAllocationAmount", -allocAmt);
+                }
+                update.pull("allocations", new Query(Criteria.where("allocationId").is(p.allocationId())));
+            }
         } else if (payload instanceof FundsRefundedPayload p) {
             update.inc("financialSnapshot.refundedAmount", p.refundAmount());
         }
@@ -159,7 +176,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         if (payload instanceof AssetRegisteredPayload p) {
             DonationProjectionDocument.LogisticsProjection log = new DonationProjectionDocument.LogisticsProjection(
                 assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(), 
-                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED"
+                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED", null
             );
             update.push("logistics", log);
         } else if (payload instanceof AssetDispatchedPayload p) {
@@ -168,9 +185,29 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         } else if (payload instanceof AssetReceivedPayload p) {
             update.set("logistics.$[elem].lifecycleStatus", "RECEIVED");
             update.set("logistics.$[elem].currentLocation", p.facilityLocation());
+            if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
+                update.set("logistics.$[elem].currentCustodian", p.receiverRef());
+            }
         } else if (payload instanceof AssetSplitPayload p) {
             update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
+            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
             // Child asset registration is handled by the ASSET_REGISTERED event of the child.
+        } else if (payload instanceof AssetCustodyTransferredPayload p) {
+            update.set("logistics.$[elem].currentCustodian", p.newCustodianRef());
+        } else if (payload instanceof AssetSplitCompensatedPayload p) {
+            DonationProjectionDocument.LogisticsProjection elem = projection.getLogistics().stream()
+                .filter(l -> l.getAssetId().equals(assetId)).findFirst().orElse(null);
+            if (elem != null && elem.getStatusBeforeSplit() != null) {
+                update.set("logistics.$[elem].lifecycleStatus", elem.getStatusBeforeSplit());
+            }
+            update.inc("logistics.$[elem].quantity", p.reintegratedQuantity());
+            update.set("logistics.$[elem].statusBeforeSplit", null);
+        } else if (payload instanceof AssetDepletedPayload) {
+            update.set("logistics.$[elem].lifecycleStatus", "DEPLETED");
+        } else if (payload instanceof AssetDeliveredPayload p) {
+            update.set("logistics.$[elem].currentLocation", p.locationRef());
+            update.set("logistics.$[elem].currentCustodian", p.finalCustodianRef());
+            update.set("logistics.$[elem].lifecycleStatus", "DELIVERED");
         }
 
         Query query = new Query(Criteria.where("_id").is(projectionId));
@@ -231,8 +268,22 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         } else if (payload instanceof AssetReceivedPayload p) {
             transition.setLocation(p.facilityLocation());
             transition.setStatus("RECEIVED");
+            if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
+                transition.setCustodian(p.receiverRef());
+            }
         } else if (payload instanceof AssetSplitPayload) {
             transition.setStatus("SPLIT");
+        } else if (payload instanceof AssetCustodyTransferredPayload p) {
+            transition.setCustodian(p.newCustodianRef());
+            transition.setStatus("CUSTODY_TRANSFERRED");
+        } else if (payload instanceof AssetSplitCompensatedPayload) {
+            transition.setStatus("SPLIT_COMPENSATED");
+        } else if (payload instanceof AssetDepletedPayload) {
+            transition.setStatus("DEPLETED");
+        } else if (payload instanceof AssetDeliveredPayload p) {
+            transition.setLocation(p.locationRef());
+            transition.setCustodian(p.finalCustodianRef());
+            transition.setStatus("DELIVERED");
         }
 
         Query q = new Query(Criteria.where("_id").is(assetId));

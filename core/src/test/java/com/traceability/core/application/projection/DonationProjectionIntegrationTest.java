@@ -293,4 +293,355 @@ class DonationProjectionIntegrationTest {
         assertEquals(3, proj.getAuditMetadata().getFundLastProcessedSequence());
         assertEquals(0, retryRepository.findAll().size());
     }
+
+    // --- Grupo A ---
+    @Test
+    void testA1_FundRegisteredOriginalAmount() {
+        projectionHandler.handleEvent(buildEvent("fund-a1", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-a1").get();
+        assertEquals(500000L, proj.getFinancialSnapshot().getOriginalAmount());
+    }
+
+    @Test
+    void testA2_FundsClearedGenesisOriginalAmount() {
+        projectionHandler.handleEvent(buildEvent("fund-a2", "Fund", 0, "FUNDS_CLEARED", Map.of("clearedAmount", 300000L)));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-a2").get();
+        assertEquals(300000L, proj.getFinancialSnapshot().getOriginalAmount());
+        assertEquals(300000L, proj.getFinancialSnapshot().getClearedAmount());
+    }
+
+    @Test
+    void testA3_FundRegisteredThenFundsClearedOriginalAmount() {
+        projectionHandler.handleEvent(buildEvent("fund-a3", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-a3", "Fund", 1, "FUNDS_CLEARED", Map.of("clearedAmount", 500000L)));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-a3").get();
+        assertEquals(500000L, proj.getFinancialSnapshot().getOriginalAmount());
+        assertEquals(500000L, proj.getFinancialSnapshot().getClearedAmount());
+    }
+
+    // --- Grupo B ---
+    @Test
+    void testB1_AllocationRequestedPendingStatus() {
+        projectionHandler.handleEvent(buildEvent("fund-b", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-b").get();
+        assertEquals(1, proj.getAllocations().size());
+        assertEquals("PENDING", proj.getAllocations().get(0).getStatus());
+        assertEquals(100000L, proj.getFinancialSnapshot().getPendingAllocationAmount());
+    }
+
+    @Test
+    void testB2_AllocationConfirmedStatus() {
+        projectionHandler.handleEvent(buildEvent("fund-b2", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b2", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b2", "Fund", 2, "ALLOCATION_CONFIRMED", Map.of("allocationId", "A1")));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-b2").get();
+        assertEquals(1, proj.getAllocations().size());
+        assertEquals("CONFIRMED", proj.getAllocations().get(0).getStatus());
+        assertEquals(0L, proj.getFinancialSnapshot().getPendingAllocationAmount());
+    }
+
+    @Test
+    void testB3_AllocationReversedFromPending() {
+        projectionHandler.handleEvent(buildEvent("fund-b3", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b3", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b3", "Fund", 2, "ALLOCATION_REVERSED", Map.of("allocationId", "A1")));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-b3").get();
+        assertEquals(0, proj.getAllocations().size());
+        assertEquals(0L, proj.getFinancialSnapshot().getPendingAllocationAmount());
+    }
+
+    @Test
+    void testB4_AllocationReversedFromConfirmed() {
+        projectionHandler.handleEvent(buildEvent("fund-b4", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b4", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b4", "Fund", 2, "ALLOCATION_CONFIRMED", Map.of("allocationId", "A1")));
+        projectionHandler.handleEvent(buildEvent("fund-b4", "Fund", 3, "ALLOCATION_REVERSED", Map.of("allocationId", "A1")));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-b4").get();
+        assertEquals(0, proj.getAllocations().size());
+        assertEquals(0L, proj.getFinancialSnapshot().getPendingAllocationAmount());
+    }
+
+    @Test
+    void testB5_AllocationActionOnNonExistent() {
+        projectionHandler.handleEvent(buildEvent("fund-b5", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-b5", "Fund", 1, "ALLOCATION_CONFIRMED", Map.of("allocationId", "A-INVALID")));
+        projectionHandler.handleEvent(buildEvent("fund-b5", "Fund", 2, "ALLOCATION_REVERSED", Map.of("allocationId", "A-INVALID")));
+        DonationProjectionDocument proj = projectionRepository.findById("fund-b5").get();
+        assertEquals(0, proj.getAllocations().size());
+        assertEquals(0L, proj.getFinancialSnapshot().getPendingAllocationAmount());
+    }
+
+    // --- Grupo C ---
+    @Test
+    void testC1_ConfirmedAmountCalculation() {
+        projectionHandler.handleEvent(buildEvent("fund-c1", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-c1", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        projectionHandler.handleEvent(buildEvent("fund-c1", "Fund", 2, "ALLOCATION_CONFIRMED", Map.of("allocationId", "A1")));
+        projectionHandler.handleEvent(buildEvent("fund-c1", "Fund", 3, "ALLOCATION_REQUESTED", Map.of("allocationId", "A2", "requestedAmount", 50000L)));
+        projectionHandler.handleEvent(buildEvent("fund-c1", "Fund", 4, "ALLOCATION_REQUESTED", Map.of("allocationId", "A3", "requestedAmount", 200000L)));
+        projectionHandler.handleEvent(buildEvent("fund-c1", "Fund", 5, "ALLOCATION_CONFIRMED", Map.of("allocationId", "A3")));
+        
+        DonationProjectionDocument proj = projectionRepository.findById("fund-c1").get();
+        
+        long confirmedAmount = proj.getAllocations().stream()
+                .filter(a -> "CONFIRMED".equals(a.getStatus()))
+                .mapToLong(a -> a.getAmount())
+                .sum();
+        
+        assertEquals(300000L, confirmedAmount);
+    }
+    
+    @Test
+    void testC2_NoPersistedAggregatedField() {
+        projectionHandler.handleEvent(buildEvent("fund-c2", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        projectionHandler.handleEvent(buildEvent("fund-c2", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        projectionHandler.handleEvent(buildEvent("fund-c2", "Fund", 2, "ALLOCATION_CONFIRMED", Map.of("allocationId", "A1")));
+        
+        org.bson.Document doc = mongoTemplate.findById("fund-c2", org.bson.Document.class, "donation_projections");
+        org.bson.Document financialSnapshot = doc.get("financialSnapshot", org.bson.Document.class);
+        
+        assertNull(financialSnapshot.get("allocatedAmount"));
+        assertNull(financialSnapshot.get("confirmedAllocationAmount"));
+        assertNull(doc.get("allocatedAmount"));
+        assertNull(doc.get("confirmedAllocationAmount"));
+    }
+
+    // --- Grupo D ---
+    @Test
+    void testD1_RebuildOriginalAmountFix() {
+        // Create corrupted genesis explicitly using MongoTemplate
+        DonationProjectionDocument doc = new DonationProjectionDocument();
+        doc.setProjectionId("fund-d1");
+        doc.getAuditMetadata().setFundLastProcessedSequence(0);
+        doc.getFinancialSnapshot().setClearedAmount(300000L);
+        // deliberately leaving originalAmount = 0
+        mongoTemplate.save(doc);
+        
+        mongoTemplate.insert(buildEvent("fund-d1", "Fund", 0, "FUNDS_CLEARED", Map.of("clearedAmount", 300000L)));
+        
+        rebuildService.rebuildAll();
+        
+        DonationProjectionDocument rebuilt = projectionRepository.findById("fund-d1").get();
+        assertEquals(300000L, rebuilt.getFinancialSnapshot().getOriginalAmount());
+    }
+
+    @Test
+    void testD2_RebuildAllocationStatusFix() {
+        // Create corrupted allocations (no status) explicitly using MongoTemplate
+        DonationProjectionDocument doc = new DonationProjectionDocument();
+        doc.setProjectionId("fund-d2");
+        doc.getAuditMetadata().setFundLastProcessedSequence(1);
+        DonationProjectionDocument.AllocationProjection alloc = new DonationProjectionDocument.AllocationProjection();
+        alloc.setAllocationId("A1");
+        alloc.setAmount(100000L);
+        // Deliberately not setting status
+        doc.getAllocations().add(alloc);
+        mongoTemplate.save(doc);
+        
+        mongoTemplate.insert(buildEvent("fund-d2", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        mongoTemplate.insert(buildEvent("fund-d2", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        
+        rebuildService.rebuildAll();
+        
+        DonationProjectionDocument rebuilt = projectionRepository.findById("fund-d2").get();
+        assertEquals(1, rebuilt.getAllocations().size());
+        assertEquals("PENDING", rebuilt.getAllocations().get(0).getStatus());
+    }
+
+    @Test
+    void testD3_RebuildIdempotency() {
+        mongoTemplate.insert(buildEvent("fund-d3", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 500000L)));
+        mongoTemplate.insert(buildEvent("fund-d3", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "A1", "requestedAmount", 100000L)));
+        
+        rebuildService.rebuildAll();
+        DonationProjectionDocument firstRebuild = projectionRepository.findById("fund-d3").get();
+        
+        rebuildService.rebuildAll();
+        DonationProjectionDocument secondRebuild = projectionRepository.findById("fund-d3").get();
+        
+        assertEquals(firstRebuild.getFinancialSnapshot().getOriginalAmount(), secondRebuild.getFinancialSnapshot().getOriginalAmount());
+        assertEquals(1, secondRebuild.getAllocations().size());
+        assertEquals("PENDING", secondRebuild.getAllocations().get(0).getStatus());
+    }
+
+    // --- Tarea 10.2 Grupo A ---
+    @Test
+    void testA1_AssetCustodyTransferred() {
+        projectionHandler.handleEvent(buildEvent("fund-102a1", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-102a1", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-102a1", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102a1", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-102a1", "PhysicalAsset", 1, "ASSET_CUSTODY_TRANSFERRED", Map.of("newCustodianRef", "CustB")));
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102a1").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals("CustB", log.getCurrentCustodian());
+        assertEquals("REGISTERED", log.getLifecycleStatus()); // Unchanged
+    }
+
+    @Test
+    void testA2_AssetDelivered() {
+        projectionHandler.handleEvent(buildEvent("fund-102a2", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-102a2", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-102a2", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102a2", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-102a2", "PhysicalAsset", 1, "ASSET_DELIVERED", Map.of("locationRef", "LocB", "finalCustodianRef", "CustFinal", "beneficiaryRef", "Ben1")));
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102a2").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals("LocB", log.getCurrentLocation());
+        assertEquals("CustFinal", log.getCurrentCustodian());
+        assertEquals("DELIVERED", log.getLifecycleStatus());
+
+        org.bson.Document rawDoc = mongoTemplate.findById("fund-102a2", org.bson.Document.class, "donation_projections");
+        java.util.List<org.bson.Document> logistics = rawDoc.getList("logistics", org.bson.Document.class);
+        assertFalse(logistics.get(0).containsKey("beneficiaryRef"));
+        
+        AssetHistoryProjectionDocument hist = historyRepository.findById("asset-102a2").get();
+        assertEquals("DELIVERED", hist.getTransitions().get(1).getStatus());
+        org.bson.Document rawHist = mongoTemplate.findById("asset-102a2", org.bson.Document.class, "asset_history");
+        java.util.List<org.bson.Document> trans = rawHist.getList("transitions", org.bson.Document.class);
+        assertFalse(trans.get(1).containsKey("beneficiaryRef"));
+    }
+
+    @Test
+    void testA3_AssetReceivedWithReceiverRef() {
+        projectionHandler.handleEvent(buildEvent("fund-102a3", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-102a3", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-102a3", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102a3", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-102a3", "PhysicalAsset", 1, "ASSET_RECEIVED", Map.of("facilityLocation", "LocC", "receiverRef", "CustC")));
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102a3").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals("LocC", log.getCurrentLocation());
+        assertEquals("CustC", log.getCurrentCustodian());
+        assertEquals("RECEIVED", log.getLifecycleStatus());
+    }
+
+    @Test
+    void testA4_AssetReceivedWithoutReceiverRef() {
+        projectionHandler.handleEvent(buildEvent("fund-102a4", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-102a4", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-102a4", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102a4", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-102a4", "PhysicalAsset", 1, "ASSET_RECEIVED", Map.of("facilityLocation", "LocD")));
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102a4").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals("CustA", log.getCurrentCustodian()); // Preserved
+        assertEquals("LocD", log.getCurrentLocation());
+    }
+
+    // --- Tarea 10.2 Grupo B ---
+    @Test
+    void testB1_AssetDepleted() {
+        projectionHandler.handleEvent(buildEvent("fund-102b1", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-102b1", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-102b1", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102b1", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-102b1", "PhysicalAsset", 1, "ASSET_SPLIT", Map.of("parentQuantityAfter", 0L, "statusBeforeSplit", "REGISTERED")));
+        projectionHandler.handleEvent(buildEvent("asset-102b1", "PhysicalAsset", 2, "ASSET_DEPLETED", Map.of()));
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102b1").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals(0L, log.getQuantity());
+        assertEquals("DEPLETED", log.getLifecycleStatus());
+    }
+
+    @Test
+    void testB2_AssetSplitCompensated() {
+        projectionHandler.handleEvent(buildEvent("fund-102b2", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-102b2", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102b2", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 1, "ASSET_RECEIVED", Map.of("facilityLocation", "LocC")));
+        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 2, "ASSET_SPLIT", Map.of("parentQuantityAfter", 80L, "statusBeforeSplit", "RECEIVED")));
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102b2").get();
+        assertEquals("RECEIVED", proj.getLogistics().get(0).getStatusBeforeSplit());
+
+        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 3, "ASSET_SPLIT_COMPENSATED", Map.of("reintegratedQuantity", 20L)));
+        
+        proj = projectionRepository.findById("fund-102b2").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals(100L, log.getQuantity());
+        assertEquals("RECEIVED", log.getLifecycleStatus());
+        assertNull(log.getStatusBeforeSplit());
+    }
+
+    // --- Tarea 10.2 Grupo C ---
+    @Test
+    void testC1_RebuildFromScratch() {
+        mongoTemplate.insert(buildEvent("fund-102c1", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        mongoTemplate.insert(buildEvent("fund-102c1", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        mongoTemplate.insert(buildEvent("asset-102c1", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102c1", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        mongoTemplate.insert(buildEvent("asset-102c1", "PhysicalAsset", 1, "ASSET_DISPATCHED", Map.of("carrierRef", "CustB")));
+        mongoTemplate.insert(buildEvent("asset-102c1", "PhysicalAsset", 2, "ASSET_RECEIVED", Map.of("facilityLocation", "LocC")));
+        mongoTemplate.insert(buildEvent("asset-102c1", "PhysicalAsset", 3, "ASSET_SPLIT", Map.of("parentQuantityAfter", 80L, "statusBeforeSplit", "RECEIVED")));
+        mongoTemplate.insert(buildEvent("asset-102c1", "PhysicalAsset", 4, "ASSET_SPLIT_COMPENSATED", Map.of("reintegratedQuantity", 20L)));
+        mongoTemplate.insert(buildEvent("asset-102c1", "PhysicalAsset", 5, "ASSET_DELIVERED", Map.of("locationRef", "LocFinal", "finalCustodianRef", "CustFinal")));
+
+        rebuildService.rebuildAll();
+
+        DonationProjectionDocument proj = projectionRepository.findById("fund-102c1").get();
+        DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
+        assertEquals(100L, log.getQuantity());
+        assertEquals("DELIVERED", log.getLifecycleStatus());
+        assertEquals("LocFinal", log.getCurrentLocation());
+        assertEquals("CustFinal", log.getCurrentCustodian());
+        assertNull(log.getStatusBeforeSplit());
+        
+        AssetHistoryProjectionDocument hist = historyRepository.findById("asset-102c1").get();
+        assertEquals(6, hist.getTransitions().size());
+        assertEquals("REGISTERED", hist.getTransitions().get(0).getStatus());
+        assertEquals("DISPATCHED", hist.getTransitions().get(1).getStatus());
+        assertEquals("RECEIVED", hist.getTransitions().get(2).getStatus());
+        assertEquals("SPLIT", hist.getTransitions().get(3).getStatus());
+        assertEquals("SPLIT_COMPENSATED", hist.getTransitions().get(4).getStatus());
+        assertEquals("DELIVERED", hist.getTransitions().get(5).getStatus());
+    }
+
+    @Test
+    void testC2_RebuildIdempotency() {
+        mongoTemplate.insert(buildEvent("fund-102c2", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        mongoTemplate.insert(buildEvent("fund-102c2", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        mongoTemplate.insert(buildEvent("asset-102c2", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102c2", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        mongoTemplate.insert(buildEvent("asset-102c2", "PhysicalAsset", 1, "ASSET_DELIVERED", Map.of("locationRef", "LocFinal", "finalCustodianRef", "CustFinal")));
+
+        rebuildService.rebuildAll();
+        DonationProjectionDocument firstRebuild = projectionRepository.findById("fund-102c2").get();
+        
+        rebuildService.rebuildAll();
+        DonationProjectionDocument secondRebuild = projectionRepository.findById("fund-102c2").get();
+        
+        assertEquals(firstRebuild.getLogistics().get(0).getLifecycleStatus(), secondRebuild.getLogistics().get(0).getLifecycleStatus());
+        assertEquals("DELIVERED", secondRebuild.getLogistics().get(0).getLifecycleStatus());
+    }
+
+    @Test
+    void testC3_RetroactiveReconstruction() {
+        // Create corrupted genesis explicitly using MongoTemplate (simulate bug before fix)
+        DonationProjectionDocument doc = new DonationProjectionDocument();
+        doc.setProjectionId("fund-102c3");
+        doc.getAuditMetadata().setFundLastProcessedSequence(0);
+        doc.getAuditMetadata().getAssetLastProcessedSequences().put("asset-102c3", 1L);
+        DonationProjectionDocument.LogisticsProjection log = new DonationProjectionDocument.LogisticsProjection();
+        log.setAssetId("asset-102c3");
+        log.setLifecycleStatus("RECEIVED"); // Stuck in RECEIVED
+        log.setCurrentLocation("LocC");
+        log.setCurrentCustodian("CustC");
+        doc.getLogistics().add(log);
+        mongoTemplate.save(doc);
+
+        mongoTemplate.insert(buildEvent("fund-102c3", "Fund", 0, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        mongoTemplate.insert(buildEvent("fund-102c3", "Fund", 1, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        mongoTemplate.insert(buildEvent("asset-102c3", "PhysicalAsset", 0, "ASSET_REGISTERED", Map.of("assetId", "asset-102c3", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        mongoTemplate.insert(buildEvent("asset-102c3", "PhysicalAsset", 1, "ASSET_DELIVERED", Map.of("locationRef", "LocFinal", "finalCustodianRef", "CustFinal")));
+
+        rebuildService.rebuildAll();
+
+        DonationProjectionDocument rebuilt = projectionRepository.findById("fund-102c3").get();
+        DonationProjectionDocument.LogisticsProjection rebuiltLog = rebuilt.getLogistics().get(0);
+        
+        // Assert state was fixed!
+        assertEquals("DELIVERED", rebuiltLog.getLifecycleStatus());
+        assertEquals("LocFinal", rebuiltLog.getCurrentLocation());
+        assertEquals("CustFinal", rebuiltLog.getCurrentCustodian());
+    }
 }

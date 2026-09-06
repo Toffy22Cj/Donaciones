@@ -604,6 +604,22 @@ DETALLES: `DonationProjectionHandler`, control de idempotencia real (`incomingSe
 
 ---
 
+### TAREAS 10.1 y 10.2 — Corrección de Defectos en Proyección CQRS de Fase 2
+
+**Severidad:** 🔴 Alta (Afecta la vista pública principal y la consistencia del historial)
+**Estado:** ✅ **COMPLETADA**
+
+TAREA: 
+- [x] **Tarea 10.1**: Corregir proyección de resúmenes (DonationProjectionDocument) para montos confirmados, pending amounts e importes de origen en `FUNDS_CLEARED`. -> ✅ Completada (18/18 tests verdes).
+- [x] **Tarea 10.2**: Corregir proyección de historial y logística para eventos faltantes (`CUSTODY_TRANSFERRED`, `DEPLETED`, `SPLIT_COMPENSATED`, `DELIVERED`). Vinculada a Tarea 10 original. -> ✅ Completada (27/27 tests verdes).
+
+CONTEXTO: 
+1. `financialSnapshot.originalAmount` quedaba en 0 para donaciones de efectivo (génesis `FUNDS_CLEARED` directo).
+2. `AllocationProjection` carecía de estado, causando errores sutiles al revertir (se descontaba el monto pendiente de asignaciones ya confirmadas).
+DETALLES: `originalAmount` actualizado a `clearedAmount` al detectar inicio con secuencia `lastProcessed == -1`. `AllocationProjection` modificado para almacenar campo `status` y transicionar (`PENDING` a `CONFIRMED`). Criterios de aceptación estrictos implementados en integración (grupos A a E) contra MongoDB real. Aclaración agregada sobre evitar exponer métodos de lectura antes de Fase 3 y sobre que la reconstrucción del evento en tests es segura.
+
+---
+
 ### TAREA 11 — Implementación de `DonationAuditFacts` y refactorización genérica de Proyecciones
 
 **Estado:** ✅ **COMPLETADA**
