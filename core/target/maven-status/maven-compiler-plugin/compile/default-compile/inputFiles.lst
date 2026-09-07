@@ -19,6 +19,9 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/OutboxSagaCoordinator.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/OutboxStatus.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/SagaPolicy.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/TrackingCodeService.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/TrackingCodeValidationResult.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/service/LocationReferenceService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/service/TransactionalEventPublisher.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/domain/event/DomainEvent.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/domain/event/DomainEventPayload.java
@@ -78,6 +81,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/AssetIndexDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/DonationAuditFactsDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/DonationProjectionDocument.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/LocationReferenceDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/ProjectionCheckpointDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/ProjectionRetryDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/properties/AuditThresholdProperties.java
@@ -85,7 +89,12 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/AssetIndexRepository.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/DonationAuditFactsRepository.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/DonationProjectionRepository.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/LocationReferenceRepository.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionCheckpointRepository.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepository.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepositoryCustom.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepositoryImpl.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/HmacTrackingCodeService.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeRepository.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/properties/TrackingSecurityProperties.java

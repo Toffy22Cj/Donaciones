@@ -2,4 +2,8 @@
 /home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/AuditFactsPort.java
 /home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/FinancialFlagDTO.java
 /home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/HashPort.java
+/home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/NarrativeReadModel.java
+/home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/NarrativeReadPort.java
+/home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/NarrativeSource.java
+/home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/NarrativeStatus.java
 /home/carlos/Proyectos/Donaciones/contracts/src/main/java/com/traceability/contracts/TransitionFactDTO.java

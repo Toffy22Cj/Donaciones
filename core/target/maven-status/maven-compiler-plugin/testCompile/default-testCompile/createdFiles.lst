@@ -1,15 +1,19 @@
 com/traceability/core/domain/event/EventStreamTest.class
 com/traceability/core/application/projection/DonationAuditFactsIntegrationTest$1.class
 com/traceability/core/architecture/ArchitectureTest.class
+com/traceability/core/infrastructure/security/TrackingCodeServiceIntegrationTest.class
 com/traceability/core/application/projection/DonationProjectionIntegrationTest$TestConfig.class
 com/traceability/core/domain/fund/FundTest.class
 com/traceability/core/application/saga/OutboxSagaCoordinatorTest$MockSagaPolicy.class
 com/traceability/core/application/command/CommandRetryTemplateTest$1TestRedundantException.class
 com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest$TestConfig.class
+com/traceability/core/infrastructure/security/TrackingCodeServiceIntegrationTest$TestApp.class
 com/traceability/core/domain/shared/AggregateRootTest$TestEventType.class
 com/traceability/core/domain/shared/AggregateRootTest$TestPayload.class
 com/traceability/core/domain/shared/AggregateRootTest$TestAggregate.class
+com/traceability/core/application/service/LocationReferenceServiceIntegrationTest$TestConfig.class
 com/traceability/core/domain/shared/AggregateRootTest.class
+com/traceability/core/infrastructure/security/HmacTrackingCodeServiceTest.class
 com/traceability/core/application/command/CommandRetryTemplateTest.class
 com/traceability/core/application/saga/OutboxSagaCoordinatorTest$MockOutboxPort.class
 com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest.class
@@ -20,4 +24,5 @@ com/traceability/core/domain/physicalasset/payloads/PayloadSerializationTest.cla
 com/traceability/core/application/projection/DonationAuditFactsIntegrationTest.class
 com/traceability/core/application/projection/DonationProjectionIntegrationTest.class
 com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest$TestConfig$1.class
+com/traceability/core/application/service/LocationReferenceServiceIntegrationTest.class
 com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest$TestRollbackService.class
