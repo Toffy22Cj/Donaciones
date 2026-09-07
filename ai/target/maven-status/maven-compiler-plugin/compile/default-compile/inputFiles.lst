@@ -1,4 +1,5 @@
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/config/AiNarrativeProperties.java
+/home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/port/in/AiNarrativeReadAdapter.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/port/out/DonorReportRepositoryPort.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/port/out/GroundingValidator.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/port/out/LlmClientPort.java
@@ -7,6 +8,7 @@
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/service/GroundingValidatorImpl.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/service/NarrativeCacheCoordinator.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/application/service/NarrativePromptSanitizer.java
+/home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/domain/exception/AuditFactsNotYetAvailableException.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/domain/exception/NarrativeGenerationTimeoutException.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/domain/exception/NarrativeGroundingFailedException.java
 /home/carlos/Proyectos/Donaciones/ai/src/main/java/com/traceability/ai/domain/exception/NarrativeProviderException.java

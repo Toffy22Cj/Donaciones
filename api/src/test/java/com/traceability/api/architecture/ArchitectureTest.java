@@ -5,7 +5,9 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
-@AnalyzeClasses(packages = "com.traceability.api")
+import com.tngtech.archunit.core.importer.ImportOption;
+
+@AnalyzeClasses(packages = "com.traceability.api", importOptions = ImportOption.DoNotIncludeTests.class)
 public class ArchitectureTest {
 
     @ArchTest
