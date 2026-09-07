@@ -27,6 +27,11 @@
             <artifactId>ai</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.traceability</groupId>
+            <artifactId>api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot Data MongoDB -->
         <dependency>

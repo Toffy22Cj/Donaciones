@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="21.434" tests="30" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="22.413" tests="30" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -13,8 +13,9 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="MX"/>
     <property name="sun.boot.library.path" value="/usr/lib/jvm/java-21-openjdk/lib"/>
-    <property name="sun.java.command" value="/home/carlos/Proyectos/Donaciones/core/target/surefire/surefirebooter-20260906190849130_3.jar /home/carlos/Proyectos/Donaciones/core/target/surefire 2026-09-06T19-08-49_033-jvmRun1 surefire-20260906190849130_1tmp surefire_0-20260906190849130_2tmp"/>
+    <property name="sun.java.command" value="/home/carlos/Proyectos/Donaciones/core/target/surefire/surefirebooter-20260906192106335_3.jar /home/carlos/Proyectos/Donaciones/core/target/surefire 2026-09-06T19-21-06_267-jvmRun1 surefire-20260906192106335_1tmp surefire_0-20260906192106335_2tmp"/>
     <property name="jdk.debug" value="release"/>
+    <property name="test" value="DonationProjectionIntegrationTest"/>
     <property name="surefire.test.class.path" value="/home/carlos/Proyectos/Donaciones/core/target/test-classes:/home/carlos/Proyectos/Donaciones/core/target/classes:/home/carlos/.m2/repository/com/traceability/contracts/1.0.0-SNAPSHOT/contracts-1.0.0-SNAPSHOT.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-starter/3.4.4/spring-boot-starter-3.4.4.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot/3.4.4/spring-boot-3.4.4.jar:/home/carlos/.m2/repository/org/springframework/spring-context/6.2.5/spring-context-6.2.5.jar:/home/carlos/.m2/repository/org/springframework/spring-aop/6.2.5/spring-aop-6.2.5.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.4.4/spring-boot-autoconfigure-3.4.4.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.4.4/spring-boot-starter-logging-3.4.4.jar:/home/carlos/.m2/repository/ch/qos/logback/logback-classic/1.5.18/logback-classic-1.5.18.jar:/home/carlos/.m2/repository/ch/qos/logback/logback-core/1.5.18/logback-core-1.5.18.jar:/home/carlos/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.24.3/log4j-to-slf4j-2.24.3.jar:/home/carlos/.m2/repository/org/apache/logging/log4j/log4j-api/2.24.3/log4j-api-2.24.3.jar:/home/carlos/.m2/repository/org/slf4j/jul-to-slf4j/2.0.17/jul-to-slf4j-2.0.17.jar:/home/carlos/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/home/carlos/.m2/repository/org/springframework/spring-core/6.2.5/spring-core-6.2.5.jar:/home/carlos/.m2/repository/org/springframework/spring-jcl/6.2.5/spring-jcl-6.2.5.jar:/home/carlos/.m2/repository/org/yaml/snakeyaml/2.3/snakeyaml-2.3.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-starter-data-mongodb/3.4.4/spring-boot-starter-data-mongodb-3.4.4.jar:/home/carlos/.m2/repository/org/mongodb/mongodb-driver-sync/5.2.1/mongodb-driver-sync-5.2.1.jar:/home/carlos/.m2/repository/org/mongodb/bson/5.2.1/bson-5.2.1.jar:/home/carlos/.m2/repository/org/mongodb/mongodb-driver-core/5.2.1/mongodb-driver-core-5.2.1.jar:/home/carlos/.m2/repository/org/mongodb/bson-record-codec/5.2.1/bson-record-codec-5.2.1.jar:/home/carlos/.m2/repository/org/springframework/data/spring-data-mongodb/4.4.4/spring-data-mongodb-4.4.4.jar:/home/carlos/.m2/repository/org/springframework/spring-tx/6.2.5/spring-tx-6.2.5.jar:/home/carlos/.m2/repository/org/springframework/spring-beans/6.2.5/spring-beans-6.2.5.jar:/home/carlos/.m2/repository/org/springframework/spring-expression/6.2.5/spring-expression-6.2.5.jar:/home/carlos/.m2/repository/org/springframework/data/spring-data-commons/3.4.4/spring-data-commons-3.4.4.jar:/home/carlos/.m2/repository/org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar:/home/carlos/.m2/repository/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.4.4/spring-boot-starter-test-3.4.4.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-test/3.4.4/spring-boot-test-3.4.4.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.4.4/spring-boot-test-autoconfigure-3.4.4.jar:/home/carlos/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/home/carlos/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/carlos/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/carlos/.m2/repository/net/minidev/json-smart/2.5.2/json-smart-2.5.2.jar:/home/carlos/.m2/repository/net/minidev/accessors-smart/2.5.2/accessors-smart-2.5.2.jar:/home/carlos/.m2/repository/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar:/home/carlos/.m2/repository/org/assertj/assertj-core/3.26.3/assertj-core-3.26.3.jar:/home/carlos/.m2/repository/net/bytebuddy/byte-buddy/1.15.11/byte-buddy-1.15.11.jar:/home/carlos/.m2/repository/org/awaitility/awaitility/4.2.2/awaitility-4.2.2.jar:/home/carlos/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/carlos/.m2/repository/org/junit/jupiter/junit-jupiter/5.11.4/junit-jupiter-5.11.4.jar:/home/carlos/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.11.4/junit-jupiter-api-5.11.4.jar:/home/carlos/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/carlos/.m2/repository/org/junit/platform/junit-platform-commons/1.11.4/junit-platform-commons-1.11.4.jar:/home/carlos/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/carlos/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.11.4/junit-jupiter-params-5.11.4.jar:/home/carlos/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.11.4/junit-jupiter-engine-5.11.4.jar:/home/carlos/.m2/repository/org/junit/platform/junit-platform-engine/1.11.4/junit-platform-engine-1.11.4.jar:/home/carlos/.m2/repository/org/mockito/mockito-core/5.14.2/mockito-core-5.14.2.jar:/home/carlos/.m2/repository/net/bytebuddy/byte-buddy-agent/1.15.11/byte-buddy-agent-1.15.11.jar:/home/carlos/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/carlos/.m2/repository/org/mockito/mockito-junit-jupiter/5.14.2/mockito-junit-jupiter-5.14.2.jar:/home/carlos/.m2/repository/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/home/carlos/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/home/carlos/.m2/repository/org/springframework/spring-test/6.2.5/spring-test-6.2.5.jar:/home/carlos/.m2/repository/org/xmlunit/xmlunit-core/2.10.0/xmlunit-core-2.10.0.jar:/home/carlos/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.4.4/spring-boot-starter-json-3.4.4.jar:/home/carlos/.m2/repository/org/springframework/spring-web/6.2.5/spring-web-6.2.5.jar:/home/carlos/.m2/repository/io/micrometer/micrometer-observation/1.14.5/micrometer-observation-1.14.5.jar:/home/carlos/.m2/repository/io/micrometer/micrometer-commons/1.14.5/micrometer-commons-1.14.5.jar:/home/carlos/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.18.3/jackson-databind-2.18.3.jar:/home/carlos/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.18.3/jackson-annotations-2.18.3.jar:/home/carlos/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.18.3/jackson-core-2.18.3.jar:/home/carlos/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.18.3/jackson-datatype-jdk8-2.18.3.jar:/home/carlos/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.18.3/jackson-datatype-jsr310-2.18.3.jar:/home/carlos/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.18.3/jackson-module-parameter-names-2.18.3.jar:/home/carlos/.m2/repository/org/testcontainers/mongodb/1.20.6/mongodb-1.20.6.jar:/home/carlos/.m2/repository/org/testcontainers/testcontainers/1.20.6/testcontainers-1.20.6.jar:/home/carlos/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/carlos/.m2/repository/org/hamcrest/hamcrest-core/2.2/hamcrest-core-2.2.jar:/home/carlos/.m2/repository/org/apache/commons/commons-compress/1.24.0/commons-compress-1.24.0.jar:/home/carlos/.m2/repository/org/rnorth/duct-tape/duct-tape/1.0.8/duct-tape-1.0.8.jar:/home/carlos/.m2/repository/org/jetbrains/annotations/17.0.0/annotations-17.0.0.jar:/home/carlos/.m2/repository/com/github/docker-java/docker-java-api/3.4.1/docker-java-api-3.4.1.jar:/home/carlos/.m2/repository/com/github/docker-java/docker-java-transport-zerodep/3.4.1/docker-java-transport-zerodep-3.4.1.jar:/home/carlos/.m2/repository/com/github/docker-java/docker-java-transport/3.4.1/docker-java-transport-3.4.1.jar:/home/carlos/.m2/repository/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar:/home/carlos/.m2/repository/org/testcontainers/junit-jupiter/1.20.6/junit-jupiter-1.20.6.jar:/home/carlos/.m2/repository/com/tngtech/archunit/archunit-junit5/1.3.0/archunit-junit5-1.3.0.jar:/home/carlos/.m2/repository/com/tngtech/archunit/archunit-junit5-api/1.3.0/archunit-junit5-api-1.3.0.jar:/home/carlos/.m2/repository/com/tngtech/archunit/archunit/1.3.0/archunit-1.3.0.jar:/home/carlos/.m2/repository/com/tngtech/archunit/archunit-junit5-engine/1.3.0/archunit-junit5-engine-1.3.0.jar:/home/carlos/.m2/repository/com/tngtech/archunit/archunit-junit5-engine-api/1.3.0/archunit-junit5-engine-api-1.3.0.jar:"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="/home/carlos"/>
@@ -26,11 +27,11 @@
     <property name="basedir" value="/home/carlos/Proyectos/Donaciones/core"/>
     <property name="java.vm.compressedOopsMode" value="Zero based"/>
     <property name="line.separator" value="&#10;"/>
-    <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="FILE_LOG_CHARSET" value="UTF-8"/>
     <property name="java.awt.headless" value="true"/>
-    <property name="surefire.real.class.path" value="/home/carlos/Proyectos/Donaciones/core/target/surefire/surefirebooter-20260906190849130_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/carlos/Proyectos/Donaciones/core/target/surefire/surefirebooter-20260906192106335_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="21.0.12+8"/>
     <property name="user.name" value="carlos"/>
@@ -47,7 +48,7 @@
     <property name="user.dir" value="/home/carlos/Proyectos/Donaciones/core"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="87941"/>
+    <property name="PID" value="103365"/>
     <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
     <property name="native.encoding" value="UTF-8"/>
     <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib64:/lib64:/lib:/usr/lib"/>
@@ -58,31 +59,28 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="testA3_FundRegisteredThenFundsClearedOriginalAmount" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.132">
-    <system-out><![CDATA[2026-09-06T19:08:58.670-05:00  INFO 87941 --- [           main] tc.mongo:6.0                             : Creating container for image: mongo:6.0
-2026-09-06T19:08:58.830-05:00  INFO 87941 --- [           main] tc.mongo:6.0                             : Container mongo:6.0 is starting: 0d5ed810458cd482c41c42728c0eb7bc424501d874570c258d44a047d438c94f
-2026-09-06T19:08:58.873-05:00  INFO 87941 --- [localhost:32882] org.mongodb.driver.cluster               : Exception in monitor thread while connecting to server localhost:32882
-
-com.mongodb.MongoSocketOpenException: Exception opening socket
-	at com.mongodb.internal.connection.SocketStream.lambda$open$0(SocketStream.java:85) ~[mongodb-driver-core-5.2.1.jar:na]
-	at java.base/java.util.Optional.orElseThrow(Optional.java:403) ~[na:na]
-	at com.mongodb.internal.connection.SocketStream.open(SocketStream.java:85) ~[mongodb-driver-core-5.2.1.jar:na]
-	at com.mongodb.internal.connection.InternalStreamConnection.open(InternalStreamConnection.java:233) ~[mongodb-driver-core-5.2.1.jar:na]
-	at com.mongodb.internal.connection.DefaultServerMonitor$ServerMonitor.lookupServerDescription(DefaultServerMonitor.java:219) ~[mongodb-driver-core-5.2.1.jar:na]
-	at com.mongodb.internal.connection.DefaultServerMonitor$ServerMonitor.run(DefaultServerMonitor.java:176) ~[mongodb-driver-core-5.2.1.jar:na]
-Caused by: java.net.ConnectException: Conexión rehusada
-	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
-	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:694) ~[na:na]
-	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:542) ~[na:na]
-	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:592) ~[na:na]
-	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327) ~[na:na]
-	at java.base/java.net.Socket.connect(Socket.java:751) ~[na:na]
-	at com.mongodb.internal.connection.SocketStreamHelper.initialize(SocketStreamHelper.java:76) ~[mongodb-driver-core-5.2.1.jar:na]
-	at com.mongodb.internal.connection.SocketStream.initializeSocket(SocketStream.java:104) ~[mongodb-driver-core-5.2.1.jar:na]
-	at com.mongodb.internal.connection.SocketStream.open(SocketStream.java:79) ~[mongodb-driver-core-5.2.1.jar:na]
-	... 3 common frames omitted
-
-2026-09-06T19:08:59.488-05:00  INFO 87941 --- [           main] tc.mongo:6.0                             : Container mongo:6.0 started in PT0.818149499S
+  <testcase name="testA3_FundRegisteredThenFundsClearedOriginalAmount" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.243">
+    <system-out><![CDATA[19:21:06.957 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+19:21:06.960 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+19:21:06.977 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+19:21:07.073 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.UnixSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+19:21:07.249 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Found Docker environment with local Unix socket (unix:///var/run/docker.sock)
+19:21:07.251 [main] INFO org.testcontainers.DockerClientFactory -- Docker host IP address is localhost
+19:21:07.264 [main] INFO org.testcontainers.DockerClientFactory -- Connected to docker: 
+  Server Version: 29.7.2
+  API Version: 1.55
+  Operating System: CachyOS
+  Total Memory: 15378 MB
+19:21:07.302 [main] INFO tc.testcontainers/ryuk:0.11.0 -- Creating container for image: testcontainers/ryuk:0.11.0
+19:21:07.306 [main] INFO org.testcontainers.utility.RegistryAuthLocator -- Failure when attempting to lookup auth config. Please ignore if you don't have images in an authenticated registry. Details: (dockerImageName: testcontainers/ryuk:0.11.0, configFile: /home/carlos/.docker/config.json, configEnv: DOCKER_AUTH_CONFIG). Falling back to docker-java default behaviour. Exception message: Status 404: No config supplied. Checked in order: /home/carlos/.docker/config.json (file not found), DOCKER_AUTH_CONFIG (not set)
+19:21:07.518 [main] INFO tc.testcontainers/ryuk:0.11.0 -- Container testcontainers/ryuk:0.11.0 is starting: aadfbe0d863f21cd036c29867b1b43129553282b6bca3315b64d17140a1ee710
+19:21:07.768 [main] INFO tc.testcontainers/ryuk:0.11.0 -- Container testcontainers/ryuk:0.11.0 started in PT0.465988482S
+19:21:07.771 [main] INFO org.testcontainers.utility.RyukResourceReaper -- Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+19:21:07.772 [main] INFO org.testcontainers.DockerClientFactory -- Checking the system...
+19:21:07.772 [main] INFO org.testcontainers.DockerClientFactory -- ✔︎ Docker server version should be at least 1.6.0
+19:21:07.772 [main] INFO tc.mongo:6.0 -- Creating container for image: mongo:6.0
+19:21:07.908 [main] INFO tc.mongo:6.0 -- Container mongo:6.0 is starting: eb96e30392de540978c42ec91d6a9944d23fbbcd4ab127e4423299b67585f01d
+19:21:08.431 [main] INFO tc.mongo:6.0 -- Container mongo:6.0 started in PT0.658695142S
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -93,46 +91,52 @@ Caused by: java.net.ConnectException: Conexión rehusada
 
  :: Spring Boot ::                (v3.4.4)
 
-2026-09-06T19:09:00.981-05:00  INFO 87941 --- [           main] .c.a.p.DonationProjectionIntegrationTest : Starting DonationProjectionIntegrationTest using Java 21.0.12 with PID 87941 (started by carlos in /home/carlos/Proyectos/Donaciones/core)
-2026-09-06T19:09:00.981-05:00  INFO 87941 --- [           main] .c.a.p.DonationProjectionIntegrationTest : No active profile set, falling back to 1 default profile: "default"
-2026-09-06T19:09:01.152-05:00  INFO 87941 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data MongoDB repositories in DEFAULT mode.
-2026-09-06T19:09:01.178-05:00  INFO 87941 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 23 ms. Found 8 MongoDB repository interfaces.
-2026-09-06T19:09:01.264-05:00  INFO 87941 --- [           main] org.mongodb.driver.client                : MongoClient with metadata {"driver": {"name": "mongo-java-driver|sync|spring-boot", "version": "5.2.1"}, "os": {"type": "Linux", "name": "Linux", "architecture": "amd64", "version": "7.2.2-1-cachyos"}, "platform": "Java/Arch Linux/21.0.12+8"} created with settings MongoClientSettings{readPreference=primary, writeConcern=WriteConcern{w=null, wTimeout=null ms, journal=null}, retryWrites=true, retryReads=true, readConcern=ReadConcern{level=null}, credential=null, transportSettings=null, commandListeners=[], codecRegistry=ProvidersCodecRegistry{codecProviders=[ValueCodecProvider{}, BsonValueCodecProvider{}, DBRefCodecProvider{}, DBObjectCodecProvider{}, DocumentCodecProvider{}, CollectionCodecProvider{}, IterableCodecProvider{}, MapCodecProvider{}, GeoJsonCodecProvider{}, GridFSFileCodecProvider{}, Jsr310CodecProvider{}, JsonObjectCodecProvider{}, BsonCodecProvider{}, EnumCodecProvider{}, com.mongodb.client.model.mql.ExpressionCodecProvider@3a0baec0, com.mongodb.Jep395RecordCodecProvider@50c2ef56, com.mongodb.KotlinCodecProvider@560d6d2]}, loggerSettings=LoggerSettings{maxDocumentLength=1000}, clusterSettings={hosts=[localhost:32883], srvServiceName=mongodb, mode=SINGLE, requiredClusterType=UNKNOWN, requiredReplicaSetName='null', serverSelector='null', clusterListeners='[]', serverSelectionTimeout='30000 ms', localThreshold='15 ms'}, socketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=0, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, heartbeatSocketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=10000, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, connectionPoolSettings=ConnectionPoolSettings{maxSize=100, minSize=0, maxWaitTimeMS=120000, maxConnectionLifeTimeMS=0, maxConnectionIdleTimeMS=0, maintenanceInitialDelayMS=0, maintenanceFrequencyMS=60000, connectionPoolListeners=[], maxConnecting=2}, serverSettings=ServerSettings{heartbeatFrequencyMS=10000, minHeartbeatFrequencyMS=500, serverMonitoringMode=AUTO, serverListeners='[]', serverMonitorListeners='[]'}, sslSettings=SslSettings{enabled=false, invalidHostNameAllowed=false, context=null}, applicationName='null', compressorList=[], uuidRepresentation=JAVA_LEGACY, serverApi=null, autoEncryptionSettings=null, dnsClient=null, inetAddressResolver=null, contextProvider=null, timeoutMS=null}
-2026-09-06T19:09:01.266-05:00  INFO 87941 --- [localhost:32883] org.mongodb.driver.cluster               : Monitor thread successfully connected to server with description ServerDescription{address=localhost:32883, type=REPLICA_SET_PRIMARY, cryptd=false, state=CONNECTED, ok=true, minWireVersion=0, maxWireVersion=17, maxDocumentSize=16777216, logicalSessionTimeoutMinutes=30, roundTripTimeNanos=2033722, minRoundTripTimeNanos=0, setName='rs0', canonicalAddress=0d5ed810458c:27017, hosts=[0d5ed810458c:27017], passives=[], arbiters=[], primary='0d5ed810458c:27017', tagSet=TagSet{[]}, electionId=7fffffff0000000000000001, setVersion=1, topologyVersion=TopologyVersion{processId=6a9e009be55369934214d9c5, counter=6}, lastWriteDate=Sun Sep 06 19:09:00 COT 2026, lastUpdateTimeNanos=7634807019985}
-2026-09-06T19:09:01.455-05:00  INFO 87941 --- [           main] .c.a.p.DonationProjectionIntegrationTest : Started DonationProjectionIntegrationTest in 0.508 seconds (process running for 12.254)
+2026-09-06T19:21:09.460-05:00  INFO 103365 --- [           main] .c.a.p.DonationProjectionIntegrationTest : Starting DonationProjectionIntegrationTest using Java 21.0.12 with PID 103365 (started by carlos in /home/carlos/Proyectos/Donaciones/core)
+2026-09-06T19:21:09.461-05:00  INFO 103365 --- [           main] .c.a.p.DonationProjectionIntegrationTest : No active profile set, falling back to 1 default profile: "default"
+2026-09-06T19:21:09.687-05:00  INFO 103365 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data MongoDB repositories in DEFAULT mode.
+2026-09-06T19:21:09.736-05:00  INFO 103365 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 45 ms. Found 8 MongoDB repository interfaces.
+2026-09-06T19:21:10.863-05:00  INFO 103365 --- [           main] org.mongodb.driver.client                : MongoClient with metadata {"driver": {"name": "mongo-java-driver|sync|spring-boot", "version": "5.2.1"}, "os": {"type": "Linux", "name": "Linux", "architecture": "amd64", "version": "7.2.2-1-cachyos"}, "platform": "Java/Arch Linux/21.0.12+8"} created with settings MongoClientSettings{readPreference=primary, writeConcern=WriteConcern{w=null, wTimeout=null ms, journal=null}, retryWrites=true, retryReads=true, readConcern=ReadConcern{level=null}, credential=null, transportSettings=null, commandListeners=[], codecRegistry=ProvidersCodecRegistry{codecProviders=[ValueCodecProvider{}, BsonValueCodecProvider{}, DBRefCodecProvider{}, DBObjectCodecProvider{}, DocumentCodecProvider{}, CollectionCodecProvider{}, IterableCodecProvider{}, MapCodecProvider{}, GeoJsonCodecProvider{}, GridFSFileCodecProvider{}, Jsr310CodecProvider{}, JsonObjectCodecProvider{}, BsonCodecProvider{}, EnumCodecProvider{}, com.mongodb.client.model.mql.ExpressionCodecProvider@484b5a21, com.mongodb.Jep395RecordCodecProvider@16e5344c, com.mongodb.KotlinCodecProvider@3ba5c4dd]}, loggerSettings=LoggerSettings{maxDocumentLength=1000}, clusterSettings={hosts=[localhost:32912], srvServiceName=mongodb, mode=SINGLE, requiredClusterType=UNKNOWN, requiredReplicaSetName='null', serverSelector='null', clusterListeners='[]', serverSelectionTimeout='30000 ms', localThreshold='15 ms'}, socketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=0, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, heartbeatSocketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=10000, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, connectionPoolSettings=ConnectionPoolSettings{maxSize=100, minSize=0, maxWaitTimeMS=120000, maxConnectionLifeTimeMS=0, maxConnectionIdleTimeMS=0, maintenanceInitialDelayMS=0, maintenanceFrequencyMS=60000, connectionPoolListeners=[], maxConnecting=2}, serverSettings=ServerSettings{heartbeatFrequencyMS=10000, minHeartbeatFrequencyMS=500, serverMonitoringMode=AUTO, serverListeners='[]', serverMonitorListeners='[]'}, sslSettings=SslSettings{enabled=false, invalidHostNameAllowed=false, context=null}, applicationName='null', compressorList=[], uuidRepresentation=JAVA_LEGACY, serverApi=null, autoEncryptionSettings=null, dnsClient=null, inetAddressResolver=null, contextProvider=null, timeoutMS=null}
+2026-09-06T19:21:10.895-05:00  INFO 103365 --- [localhost:32912] org.mongodb.driver.cluster               : Monitor thread successfully connected to server with description ServerDescription{address=localhost:32912, type=REPLICA_SET_PRIMARY, cryptd=false, state=CONNECTED, ok=true, minWireVersion=0, maxWireVersion=17, maxDocumentSize=16777216, logicalSessionTimeoutMinutes=30, roundTripTimeNanos=24076562, minRoundTripTimeNanos=0, setName='rs0', canonicalAddress=eb96e30392de:27017, hosts=[eb96e30392de:27017], passives=[], arbiters=[], primary='eb96e30392de:27017', tagSet=TagSet{[]}, electionId=7fffffff0000000000000001, setVersion=1, topologyVersion=TopologyVersion{processId=6a9e0374f3fb8347cab5973c, counter=6}, lastWriteDate=Sun Sep 06 19:21:09 COT 2026, lastUpdateTimeNanos=8364420270608}
+2026-09-06T19:21:11.608-05:00  INFO 103365 --- [           main] .c.a.p.DonationProjectionIntegrationTest : Started DonationProjectionIntegrationTest in 2.339 seconds (process running for 5.211)
+]]></system-out>
+    <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (/home/carlos/.m2/repository/net/bytebuddy/byte-buddy-agent/1.15.11/byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+  </testcase>
+  <testcase name="testA4_AssetReceivedWithoutReceiverRef" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.168"/>
+  <testcase name="testA1_AssetCustodyTransferred" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.078"/>
+  <testcase name="testB5_AllocationActionOnNonExistent" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.038">
+    <system-out><![CDATA[2026-09-06T19:21:12.130-05:00  WARN 103365 --- [           main] c.t.c.a.p.DonationProjectionHandler      : AllocationConfirmed for non-existent allocationId: A-INVALID
+2026-09-06T19:21:12.138-05:00  WARN 103365 --- [           main] c.t.c.a.p.DonationProjectionHandler      : AllocationReversed for non-existent allocationId: A-INVALID
 ]]></system-out>
   </testcase>
-  <testcase name="testA4_AssetReceivedWithoutReceiverRef" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.223"/>
-  <testcase name="testA1_AssetCustodyTransferred" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.114"/>
-  <testcase name="testB5_AllocationActionOnNonExistent" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.066">
-    <system-out><![CDATA[2026-09-06T19:09:01.966-05:00  WARN 87941 --- [           main] c.t.c.a.p.DonationProjectionHandler      : AllocationConfirmed for non-existent allocationId: A-INVALID
-2026-09-06T19:09:01.979-05:00  WARN 87941 --- [           main] c.t.c.a.p.DonationProjectionHandler      : AllocationReversed for non-existent allocationId: A-INVALID
-]]></system-out>
-  </testcase>
-  <testcase name="testC3_RetroactiveReconstruction" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.314"/>
-  <testcase name="testB2_AssetSplitCompensated" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.161"/>
-  <testcase name="testB1_AllocationRequestedPendingStatus" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.051"/>
-  <testcase name="testB1_AssetDepleted" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.143"/>
-  <testcase name="testRebuildWithConcurrentEvent" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="4.205"/>
-  <testcase name="testD2_RebuildAllocationStatusFix" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.162"/>
-  <testcase name="testC1_RebuildFromScratch" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.368"/>
-  <testcase name="testHallazgo4_GenesisCompleteness_PropagatesCurrencyAndCampaign" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.038"/>
-  <testcase name="testHallazgo4_Privacy_DonorRefIsNeverPersistedInRawMongo" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.039"/>
-  <testcase name="testGapAndRetry" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.193"/>
-  <testcase name="testStuckProcessingRescue" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.147"/>
-  <testcase name="testB2_AllocationConfirmedStatus" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.058"/>
-  <testcase name="testA3_AssetReceivedWithReceiverRef" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.107"/>
-  <testcase name="testB3_AllocationReversedFromPending" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.055"/>
-  <testcase name="testA2_FundsClearedGenesisOriginalAmount" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.037"/>
-  <testcase name="testD1_RebuildOriginalAmountFix" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.144"/>
-  <testcase name="testPauseAndResume" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.133"/>
-  <testcase name="testDuplicateEventIdempotency" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.047"/>
-  <testcase name="testA2_AssetDelivered" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.156"/>
-  <testcase name="testB4_AllocationReversedFromConfirmed" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.061"/>
-  <testcase name="testA1_FundRegisteredOriginalAmount" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.037"/>
-  <testcase name="testAssetSplit" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.133"/>
-  <testcase name="testC2_NoPersistedAggregatedField" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.053"/>
-  <testcase name="testD3_RebuildIdempotency" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="3.231"/>
-  <testcase name="testC2_RebuildIdempotency" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="3.445"/>
-  <testcase name="testC1_ConfirmedAmountCalculation" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.082"/>
+  <testcase name="testC3_RetroactiveReconstruction" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.237"/>
+  <testcase name="testB2_AssetSplitCompensated" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.108"/>
+  <testcase name="testB1_AllocationRequestedPendingStatus" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.033"/>
+  <testcase name="testB1_AssetDepleted" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.094"/>
+  <testcase name="testRebuildWithConcurrentEvent" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="4.297"/>
+  <testcase name="testD2_RebuildAllocationStatusFix" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.119"/>
+  <testcase name="testC1_RebuildFromScratch" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.269"/>
+  <testcase name="testHallazgo4_GenesisCompleteness_PropagatesCurrencyAndCampaign" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.022"/>
+  <testcase name="testHallazgo4_Privacy_DonorRefIsNeverPersistedInRawMongo" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.021"/>
+  <testcase name="testGapAndRetry" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.159"/>
+  <testcase name="testStuckProcessingRescue" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.132"/>
+  <testcase name="testB2_AllocationConfirmedStatus" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.035"/>
+  <testcase name="testA3_AssetReceivedWithReceiverRef" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.064"/>
+  <testcase name="testB3_AllocationReversedFromPending" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.033"/>
+  <testcase name="testA2_FundsClearedGenesisOriginalAmount" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.022"/>
+  <testcase name="testD1_RebuildOriginalAmountFix" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="1.102"/>
+  <testcase name="testPauseAndResume" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.079"/>
+  <testcase name="testDuplicateEventIdempotency" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.024"/>
+  <testcase name="testA2_AssetDelivered" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.113"/>
+  <testcase name="testB4_AllocationReversedFromConfirmed" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.041"/>
+  <testcase name="testA1_FundRegisteredOriginalAmount" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.023"/>
+  <testcase name="testAssetSplit" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.083"/>
+  <testcase name="testC2_NoPersistedAggregatedField" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.032"/>
+  <testcase name="testD3_RebuildIdempotency" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="3.17"/>
+  <testcase name="testC2_RebuildIdempotency" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="3.338"/>
+  <testcase name="testC1_ConfirmedAmountCalculation" classname="com.traceability.core.application.projection.DonationProjectionIntegrationTest" time="0.049"/>
 </testsuite>
