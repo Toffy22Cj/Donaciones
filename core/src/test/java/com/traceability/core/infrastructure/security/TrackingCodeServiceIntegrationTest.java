@@ -18,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.traceability.core.infrastructure.projection.mongo.repositories.AssetIndexRepository;
+
 @SpringBootTest(properties = {
     "traceability.security.tracking-code-secret=test-secret-key-12345678901234567890",
     "traceability.security.asset-ref-secret=test-secret-key-09876543210987654321"
@@ -45,6 +47,9 @@ public class TrackingCodeServiceIntegrationTest {
 
     @Autowired
     private TrackingSecurityProperties properties;
+
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private AssetIndexRepository assetIndexRepository;
 
     @Test
     void testRevocationIntegration() {

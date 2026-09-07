@@ -2,6 +2,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/projection/DonationAuditFactsIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/projection/DonationProjectionIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/saga/OutboxSagaCoordinatorTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/security/AssetAuthorizationServiceTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/service/LocationReferenceServiceIntegrationTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/architecture/ArchitectureTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/event/EventStreamTest.java

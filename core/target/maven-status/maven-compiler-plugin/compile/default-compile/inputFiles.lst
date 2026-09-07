@@ -6,6 +6,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/event/EventPayloadRegistry.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/exception/ConcurrencyConflictException.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/exception/SequenceGapException.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/AssetAuthorizationPort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/EventStorePort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/OutboxPort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/ProcessedCommandRepositoryPort.java
@@ -19,6 +20,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/OutboxSagaCoordinator.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/OutboxStatus.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/SagaPolicy.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/AssetAuthorizationService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/TrackingCodeService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/TrackingCodeValidationResult.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/service/LocationReferenceService.java
