@@ -7,7 +7,10 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/exception/ConcurrencyConflictException.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/exception/SequenceGapException.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/AssetAuthorizationPort.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/DonationReadModel.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/DonationReadPort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/EventStorePort.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/LogisticsReadItem.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/OutboxPort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/ProcessedCommandRepositoryPort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/projection/AuditFactsPortImpl.java
@@ -79,6 +82,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/ProjectionConfig.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/ProjectionEventHandler.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/ProjectionEventSource.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/DonationReadAdapter.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/AssetHistoryProjectionDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/AssetIndexDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/DonationAuditFactsDocument.java
