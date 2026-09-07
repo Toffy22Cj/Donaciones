@@ -94,7 +94,8 @@ class PublicDonationControllerIntegrationTest {
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.campaignRef").value("camp-1"))
-                .andExpect(jsonPath("$.status").value("ACTIVA"));
+                .andExpect(jsonPath("$.status").value("ACTIVA"))
+                .andExpect(jsonPath("$.financialSnapshot.currency").value("USD"));
     }
 
     @Test
@@ -110,9 +111,19 @@ class PublicDonationControllerIntegrationTest {
     }
 
     @Test
-    void shouldReturn401EndToEndWithInvalidToken() throws Exception {
+    void shouldReturn401EndToEndWithoutAuthorizationHeader() throws Exception {
+        mockMvc.perform(get("/api/v1/donations/tracking"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldReturn401EndToEndWithRevokedToken() throws Exception {
+        String fundId = "fund-revoked";
+        String revokedToken = trackingCodeService.generate(fundId, Instant.now().plus(1, ChronoUnit.HOURS));
+        trackingCodeService.revoke(revokedToken);
+
         mockMvc.perform(get("/api/v1/donations/tracking")
-                        .header("Authorization", "Bearer invalid-token"))
+                        .header("Authorization", "Bearer " + revokedToken))
                 .andExpect(status().isUnauthorized());
     }
 }
