@@ -148,7 +148,9 @@ Partir de `develop` actualizado -- confirmar antes de crear cualquier rama. Una 
 
 ### TAREA 3.0 -- Scaffolding del modulo `api`
 
-**Estado:** Pendiente | **Rama:** feat/api-module-scaffolding | **Depende de:** nada
+**Estado:** ✅ COMPLETADA | **Rama:** feat/api-module-scaffolding | **Depende de:** nada
+
+> Cerrada con evidencia: ArchitectureTest de `api` demostrado fallando con una violación deliberada (`DummyViolation.java`) y pasando limpio tras eliminarla — confirma que la regla detecta violaciones reales, no solo que nunca se activa. Reactor completo (6 módulos) en verde.
 
 ```
 TAREA: Crear el modulo Maven `api` segun ADR-020.
@@ -175,7 +177,9 @@ ArchUnit nuevo existe y pasa.
 
 ### TAREA 3.1 -- DonationReadPort + DonationReadModel
 
-**Estado:** Pendiente | **Rama:** feat/core-donation-read-port | **Depende de:** nada
+**Estado:** ✅ COMPLETADA | **Rama:** feat/core-donation-read-port | **Depende de:** nada
+
+> Cerrada con evidencia: `DonationReadModel`/`LogisticsReadItem` sin ningún campo excluido de ADR-021-D (sin `AllocationModel`, sin linaje). `confirmedAllocationAmount` calculado en el adaptador. 106 tests en `core`, reactor completo en verde.
 
 ```
 TAREA: Crear el puerto de lectura que expone core hacia api sin filtrar
@@ -287,7 +291,9 @@ mvn test -pl core completo.
 
 ### TAREA 3.4 -- OncePerRequestFilter de autorizacion
 
-**Estado:** Pendiente | **Rama:** feat/api-tracking-auth-filter | **Depende de:** 3.0, 3.3
+**Estado:** ✅ COMPLETADA | **Rama:** feat/api-tracking-auth-filter | **Depende de:** 3.0, 3.3
+
+> Cerrada con evidencia: 6 métodos `@Test` independientes (no un solo test monolítico), los 5 casos de fallo comparados contra un body 401 canónico único. Corregido en el camino: un falso positivo de ArchUnit causado por `scanBasePackages` con string en el test, resuelto con `@TestConfiguration` explícito.
 
 ```
 TAREA: Filtro de autorizacion HTTP del tracking code (ADR-021-A, ADR-023).
@@ -313,7 +319,9 @@ verificarlo con aserción explícita.
 
 ### TAREA 3.5 -- Verificacion de pertenencia via asset_index
 
-**Estado:** Pendiente | **Rama:** feat/core-asset-index-authorization | **Depende de:** nada
+**Estado:** ✅ COMPLETADA | **Rama:** feat/core-asset-index-authorization | **Depende de:** nada
+
+> Cerrada con evidencia: `AssetAuthorizationPort` (interfaz) + `AssetAuthorizationService`, 4 tests (incluye caso de parámetros nulos). 104 tests en `core`, reactor completo en verde.
 
 ```
 TAREA: Implementar verificacion de que un assetRef pertenece al fundId
@@ -335,7 +343,9 @@ Output literal de Surefire de mvn test -pl core completo.
 
 ### TAREA 3.6 -- Coleccion location_reference
 
-**Estado:** Pendiente | **Rama:** feat/core-location-reference | **Depende de:** nada
+**Estado:** ✅ COMPLETADA | **Rama:** feat/core-location-reference | **Depende de:** nada
+
+> Cerrada con evidencia: test de integración real con Testcontainers (no mock) confirmando consulta exacta y case-sensitive, sin heurística. `.gitignore` corregido de paso (hallazgo real, `target/` no estaba ignorado).
 
 ```
 TAREA: Tabla de referencia determinista de ubicaciones a zona/ciudad
@@ -369,7 +379,9 @@ Output literal de Surefire de mvn test -pl core completo.
 
 ### TAREA 3.7 -- Servicio de calculo de assetRef
 
-**Estado:** Pendiente | **Rama:** feat/core-asset-ref-service | **Depende de:** 3.2
+**Estado:** ✅ COMPLETADA | **Rama:** feat/core-asset-ref-service | **Depende de:** 3.2
+
+> Cerrada con evidencia: determinismo, ausencia de colisiones, resolución inversa correcta. Limitación conocida documentada (O(N) sobre candidatos de una donación, sin índice persistido). 110 tests en `core`.
 
 ```
 TAREA: Calculo determinista de assetRef desde assetId (ADR-021-D): HMAC-
@@ -398,7 +410,9 @@ Output literal de Surefire de mvn test -pl core completo.
 
 ### TAREA 3.8 -- Mapper (DonationReadModel -> PublicDonationTrackingDTO)
 
-**Estado:** Pendiente | **Rama:** feat/api-donation-mapper | **Depende de:** 3.1, 3.6, 3.7
+**Estado:** ✅ COMPLETADA | **Rama:** feat/api-donation-mapper | **Depende de:** 3.1, 3.6, 3.7
+
+> Cerrada con evidencia: `PublicDonationMapperTest` (7 tests) cubriendo las 5 categorías de custodio (incluye `UNCATEGORIZED` explícito, sin `null` silencioso), legacy null, ubicación conocida/desconocida. Decisión de mapeo de custodio resuelta por `lifecycleStatus`, no por coincidencia de string (que habría fallado contra datos reales).
 
 ```
 TAREA: Mapper de DonationReadModel a PublicDonationTrackingDTO aplicando
@@ -443,7 +457,9 @@ Output literal de Surefire de mvn test -pl core,api completo.
 
 ### TAREA 3.9 -- Primer controlador REST
 
-**Estado:** Pendiente | **Rama:** feat/api-donation-tracking-controller | **Depende de:** 3.0, 3.4, 3.8
+**Estado:** ✅ COMPLETADA | **Rama:** feat/api-donation-tracking-controller | **Depende de:** 3.0, 3.4, 3.8
+
+> Cerrada con evidencia: ruta corregida a `/api/v1/donations/tracking` (sin path param, token vía header). Test end-to-end añadido cubriendo filtro real + controlador real juntos (el `@WebMvcTest` inicial excluía el filtro, hueco detectado y cerrado). `Optional.empty()` → 404 (consistencia eventual, token ya garantizado válido).
 
 ```
 TAREA: GET /api/v1/donations/tracking/{trackingCode}.
@@ -467,7 +483,9 @@ mvn test -pl core,api completo.
 
 ### TAREA 3.10 -- Segundo endpoint (historial de activo)
 
-**Estado:** Pendiente | **Rama:** feat/api-asset-history-endpoint | **Depende de:** 3.5, 3.7, 3.9
+**Estado:** ✅ COMPLETADA | **Rama:** feat/api-asset-history-endpoint | **Depende de:** 3.5, 3.7, 3.9
+
+> Cerrada con evidencia: 401 uniforme (no 404) para "sin proyección" y "assetRef no pertenece", con justificación explícita de por qué difiere del 404 de Tarea 3.9 (aquí hay superficie de enumeración vía `assetRef`, ahí no). Read Model nuevo (`AssetHistoryReadModel`) evitó una violación real de ArchUnit (`api` dependiendo de `core.infrastructure` a través de `AssetHistoryProjectionDocument`).
 
 ```
 TAREA: GET /api/v1/donations/tracking/{trackingCode}/assets/{assetRef}/history.
@@ -495,7 +513,7 @@ assetRef valido pero de otro fondo -> 401 (mismo body); assetRef invalido
 
 ### TAREA 3.11 -- NarrativeReadPort en contracts
 
-**Estado:** COMPLETADA | **Rama:** feat/contracts-narrative-read-port
+**Estado:** ✅ COMPLETADA | **Rama:** feat/contracts-narrative-read-port
 
 ```
 TAREA: Contrato neutral NarrativeReadPort en contracts (ADR-024 enmendado).
@@ -526,7 +544,9 @@ comportamiento) -- confirmarlo explicitamente si es el caso.
 
 ### TAREA 3.12 -- Implementacion de NarrativeReadPort dentro de ai
 
-**Estado:** Pendiente | **Rama:** feat/ai-narrative-port-adapter | **Depende de:** 3.11 (mergeada a develop)
+**Estado:** ✅ COMPLETADA | **Rama:** feat/ai-narrative-port-adapter | **Depende de:** 3.11 (mergeada a develop)
+
+> Cerrada con evidencia: `AuditFactsNotYetAvailableException` nombrada en vez de reutilizar `IllegalArgumentException` genérica. Single-flight reutilizado sin `.join()`. 19 tests en `ai`, ninguna de las 9 llamadas legacy de `DonorReportGeneratorTest` rota.
 
 ```
 TAREA: Implementar NarrativeReadPort dentro de ai, adaptando
@@ -566,7 +586,9 @@ mvn test -pl ai completo.
 
 ### TAREA 3.13 -- Endpoint HTTP de narrativa
 
-**Estado:** Pendiente | **Rama:** feat/api-narrative-endpoint | **Depende de:** 3.0, 3.4, 3.12
+**Estado:** ✅ COMPLETADA | **Rama:** feat/api-narrative-endpoint | **Depende de:** 3.0, 3.4, 3.12
+
+> Cerrada con evidencia: `PublicNarrativeControllerIntegrationTest` (4 tests) y `PublicNarrativeMapperTest` (3 tests) citados por nombre. 202 PENDING / 200 AVAILABLE probados por separado del caso 404 (sin proyección). Corregido un problema de proceso: el commit/merge de Tarea 3.10 se había quedado pendiente mientras se avanzaba a 3.13 en la misma sesión — resuelto separando ambos en commits y merges independientes antes de cerrar.
 
 ```
 TAREA: GET /api/v1/donations/tracking/{trackingCode}/narrative.
@@ -595,34 +617,52 @@ arbitraje). Output literal de Surefire de mvn test -pl ai,api completo.
 
 ---
 
-## 5. Orden de ejecucion recomendado
+## 5. Orden de ejecucion — CIERRE COMPLETO (7 de septiembre de 2026)
+
+Las 14 tareas del backlog (3.0 a 3.13) estan **COMPLETADAS**, verificadas con evidencia literal (Surefire, reactor completo, `git status`) y mergeadas a `develop` en el orden correcto:
 
 ```
-BLOQUE 1 -- sin dependencias entre si, orden recomendado (menor a mayor riesgo):
+BLOQUE 1 (sin dependencias entre si):
+  3.2  (secretos)                    OK
+  3.11 (NarrativeReadPort/contracts) OK
+  3.3  (tracking code service)       OK
+  3.6  (location_reference)          OK
+  3.0  (api scaffolding)             OK
+  3.5  (asset_index auth)            OK
+  3.1  (DonationReadPort)            OK
 
-  1. Tarea 3.2  (secretos)                    COMPLETADA
-  2. Tarea 3.11 (NarrativeReadPort/contracts) COMPLETADA
-  3. Tarea 3.3  (tracking code service)       COMPLETADA (depende de 3.2)
-  4. Tarea 3.6  (location_reference)          SIGUIENTE
-  5. Tarea 3.0  (api scaffolding)
-  6. Tarea 3.5  (asset_index auth)
-  7. Tarea 3.1  (DonationReadPort)
-
-        [APROBACION de cada una antes de la siguiente]
-
-CADENA SECUENCIAL -- depende de piezas del Bloque 1:
-
-  Tarea 3.12 (ai implementa NarrativeReadPort) <- depende de 3.11 (mergeada)
-  Tarea 3.4  (filtro auth)   <- depende de 3.0, 3.3
-  Tarea 3.7  (assetRef service) <- depende de 3.2
-
-  Tarea 3.8  (mapper) <- depende de 3.1, 3.6, 3.7
-
-  Tarea 3.9  (primer controlador) <- depende de 3.0, 3.4, 3.8
-
-  Tarea 3.10 (segundo endpoint)     <- depende de 3.5, 3.7, 3.9
-  Tarea 3.13 (endpoint de narrativa) <- depende de 3.4, 3.12
-        (estas dos ultimas en cualquier orden entre si)
+CADENA SECUENCIAL:
+  3.12 (ai implementa NarrativeReadPort) OK
+  3.4  (filtro auth)                     OK
+  3.7  (assetRef service)                OK
+  3.8  (mapper)                          OK
+  3.9  (primer controlador)              OK
+  3.10 (segundo endpoint)                OK
+  3.13 (endpoint de narrativa)           OK
 ```
 
-Cada tarea del Bloque 1 se completa y mergea a `develop` con su propio PR antes de iniciar la siguiente -- no se abren varias ramas del Bloque 1 simultaneamente en la misma sesion de trabajo.
+**Los tres endpoints públicos de Fase 3 están completos y verificados end-to-end:**
+- `GET /api/v1/donations/tracking` — resumen de donación (200 / 401 / 404 consistencia eventual).
+- `GET /api/v1/donations/tracking/assets/{assetRef}/history` — historial de activo (200 / 401 uniforme).
+- `GET /api/v1/donations/tracking/narrative` — narrativa asíncrona (202 PENDING / 200 AVAILABLE / 401).
+
+**Verificación final de `git log --oneline` en `develop`** (orden de merges, confirmado):
+```
+35aebd5 Merge branch 'feat/api-narrative-endpoint' into develop (Task 3.13)
+208d590 feat(api): implement public narrative endpoint (Task 3.13)
+df4a307 Merge branch 'feat/api-asset-history-endpoint' into develop (Task 3.10)
+e4ebb8b feat(api): implement public asset history endpoint (Task 3.10)
+52fba42 test(api): update E2E integration test to cover all required cases for Task 3.9
+```
+(y los merges anteriores de 3.0–3.9, 3.11, 3.12 en la misma secuencia, cada uno con su propio commit y merge `--no-ff`).
+
+### Lección de proceso registrada durante esta fase
+
+Dos veces durante la ejecución (Tarea 3.5 y, más notablemente, Tarea 3.10/3.13) el **contenido** de una tarea fue aprobado en revisión pero el paso mecánico de `git commit`/`merge` a `develop` no se ejecutó de inmediato, permitiendo que el trabajo de la siguiente tarea se mezclara sin comitear en la misma rama. Ambos casos se detectaron por auditoría explícita del `git log`/`git status` antes de aceptar el cierre, nunca por confianza en el resumen narrativo. **Recomendación para fases futuras:** cada entrega de cierre de tarea debe incluir el `git log --oneline -3` posterior al merge como parte obligatoria de la evidencia, no solo cuando se solicita explícitamente.
+
+### Deuda técnica y decisiones abiertas heredadas a la siguiente fase
+
+- `PublicVendorCategory` definido pero nunca incluido en ningún DTO — sigue sin resolverse si se expone un resumen de `allocations[]`.
+- Población real de la colección `location_reference` con datos operativos — quedó vacía/con datos de prueba, es trabajo operativo posterior, no de diseño.
+- Rotación y gestión definitiva de los dos secretos HMAC (tracking code, assetRef) en un entorno de despliegue real — se definieron como variables de entorno, sin vault dedicado (decisión consciente, ver `estado-fase3.md`).
+- Endpoint/mecanismo administrativo para invocar `TrackingCodeService.revoke()` — el método existe y está probado, pero no hay ninguna vía operativa (JMX u otra) para invocarlo en producción, análogo a como se resolvió `resolveStuckBatch` en ADR-022.

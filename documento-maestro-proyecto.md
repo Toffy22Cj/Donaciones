@@ -2,7 +2,7 @@
 
 **Nombre comercial provisional (no usado en código):** el proyecto se ha referido a sí mismo informalmente como "PaxFide" en la conversación de diseño, pero esto es explícitamente **no vinculante** — puede cambiar sin afectar nada del dominio, la arquitectura ni el código.
 **Base package Java:** `com.traceability`
-**Fase actual:** Fase 2 — Implementación (la Fase 1, Domain Design, está formalmente cerrada)
+**Fase actual:** Fase 3 — Exposición REST de Lectura **completa** (Fase 1 y Fase 2 formalmente cerradas, incluyendo auditoría exhaustiva de Fase 2 con 13 hallazgos corregidos). Ver `estado-fase3.md` para el detalle completo de Fase 3.
 
 ---
 
@@ -72,14 +72,20 @@ raíz/ (pom.xml, packaging=pom)
 │                  NUNCA depende de core.
 ├── ai/          → depende ÚNICAMENTE de contracts. Implementa/consume
 │                  AuditFactsPort. NUNCA depende de core.
-└── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai.
+├── api/         → Módulo de presentación REST (Fase 3, ADR-020). Depende de
+│                  `core` (solo sus puertos de aplicación, `core.application.port.out`)
+│                  y de `contracts` (para `NarrativeReadPort`, único puerto que cruza
+│                  hacia `ai`). NUNCA importa `core.infrastructure.*` directamente —
+│                  verificado por su propio test de ArchUnit.
+└── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai, api.
                    Provee la configuración compartida (ej. MongoTransactionManager)
                    y el punto de entrada (@SpringBootApplication). Cero lógica de dominio.
 ```
 
-Dependencias unidireccionales, verificadas por un test de ArchUnit dentro de `core` que rompe el build si:
+Dependencias unidireccionales, verificadas por tests de ArchUnit que rompen el build si:
 - cualquier clase bajo `core.domain` importa Spring/MongoDB/BSON.
 - `ai` o `crypto` importan cualquier clase bajo `core.*`.
+- cualquier clase bajo `api.*` importa algo de `core.infrastructure.*` (regla propia de `api`, Tarea 3.0, demostrada activa — falla ante una violación deliberada de prueba, no solo "nunca se dispara").
 
 ### 4.1 Árbol interno de `core`
 
@@ -136,6 +142,16 @@ core/src/main/java/core/
 
 ### V. Integración Externa y Operaciones
 - **ADR-022 — Resolución Manual de Lotes Atascados (JMX).** La resolución de lotes en estado `STUCK` durante el anclaje a blockchain (Web3j) se realiza exclusivamente de forma manual vía JMX (`BlockchainAdminOperationsService.resolveStuckBatch(ABANDON|RESUBMIT)`). No hay reintento automático (RBF) programado para evitar doble gasto accidental y mantener el control humano sobre los costos operativos de gas.
+
+### VI. Exposición Pública de Lectura (Fase 3)
+- **ADR-020 — Ubicación y Dirección de Dependencia de la Capa API.** Módulo Maven nuevo `api`, separado de `app` (que permanece como bootstrap puro). Dependencia unidireccional `app → api → core` (solo puertos de `core.application.port.out`, nunca infraestructura interna). Excepción única: `api` también depende de `contracts` para `NarrativeReadPort`, porque ese puerto cruza hacia `ai`, que no puede depender de `core` ni de `api`.
+- **ADR-021-A — Mecanismo Primario de Autorización.** Tracking code (bearer credential) sin cuenta autenticada para el flujo público de consulta de donación. Cuenta autenticada descartada por fricción excesiva en contexto de donantes ocasionales; queda como necesidad separada para un futuro módulo de identidad (rol "Fundación").
+- **ADR-021-B — Naturaleza del Tracking Code.** Stateless, HMAC-SHA-256 completo (sin truncar), dominio versionado `"tracking:v1:" + fundId`, comparación vía `MessageDigest.isEqual()` (timing-safe), expiración embebida en el propio token (365 días por defecto), lista de revocación dispersa (`revoked_tracking_codes`, solo `tokenHash` + `revokedAt`, TTL de 365 días) — nunca un registro completo de cada token emitido.
+- **ADR-021-C — Generación del Tracking Code.** Ocurre fuera de Fase 3 (ningún endpoint público lo genera); Fase 3 solo valida. Es determinista y stateless, así que cualquier sistema que conozca el secreto y el `fundId` puede calcularlo de forma independiente.
+- **ADR-021-D — Perímetro de Exposición.** Clasificación campo por campo, verificada contra código real, de qué se excluye (`sourceTransactionId`, `allocationId`, `requirementId`, `sourceAllocationId`, `parentAssetRef`, `rootAssetRef`, `statusBeforeSplit`, `AuditMetadata`, `donorRef`), qué se enmascara (`currentCustodian`→categoría por `lifecycleStatus`, `vendorId`→categoría, `currentLocation`→`locationZone` vía tabla de referencia exacta), y qué se expone tal cual o transformado (`assetId`→`assetRef` vía HMAC, `quantity`, `lifecycleStatus`, montos financieros).
+- **ADR-022 — ver sección V** (Resolución manual de lotes atascados, sin cambios).
+- **ADR-023 — Sin Spring Security.** El mecanismo de autorización de Fase 3 (bearer token stateless con HMAC) no necesita sesiones, roles ni autenticación de usuario — se implementa con un `OncePerRequestFilter` propio (`TrackingCodeAuthFilter`). Spring Security habría sido sobre-ingeniería para este alcance.
+- **ADR-024 — Exposición Asíncrona de Narrativas (Approved with amendment).** `NarrativeReadPort` (en `contracts`, único puerto que cruza hacia `ai`) con estados `AVAILABLE`/`PENDING`, generación lazy asíncrona sin `.join()` bloqueante en el camino HTTP, reutilizando el single-flight ya existente de Tarea 12. **Enmienda aprobada tras arbitraje entre dos agentes:** la narrativa se expone como endpoint HTTP independiente (`GET /tracking/narrative`), nunca embebida en `PublicDonationTrackingDTO` — evita que el estado interno de un proceso asíncrono/eventualmente consistente (`ai`) determine el código HTTP del recurso principal, y aísla el radio de fallo entre `core` (determinista) y `ai` (con incertidumbre inherente por diseño, ADR-018).
 
 ---
 
@@ -296,12 +312,30 @@ event_store (Mongo, colección real)
 | 12 | `ai`: `NarrativeGenerator` consumiendo `AuditFactsPort` | ✅ Completada |
 | 13 | `crypto.infrastructure.web3j`: anclaje EVM | ✅ Completada |
 | 14 | `app`: ensamblaje del módulo de bootstrap (Cierre de Fase 2) | ✅ Completada |
+| 10.5 | Corrección Hallazgo #13: `ProjectionRetryDocument` vía `.builder()` (no `new()`) | ✅ **Completada** — restaura el rescate real de eventos en gap, que el propio `ProjectionRetryScheduler` (Frente 2) nunca habría podido reclamar |
+| **Fase 3** | **Exposición REST de Lectura — 14 tareas (3.0 a 3.13)** | ✅ **COMPLETADA** |
+| 3.0 | Scaffolding del módulo `api` (Maven, ArchUnit) | ✅ Completada |
+| 3.1 | `DonationReadPort` + `DonationReadModel` | ✅ Completada |
+| 3.2 | Infraestructura de secretos HMAC compartidos | ✅ Completada |
+| 3.3 | Servicio de tracking code (`TrackingCodeService`) | ✅ Completada |
+| 3.4 | `OncePerRequestFilter` de autorización | ✅ Completada |
+| 3.5 | Verificación de pertenencia vía `asset_index` | ✅ Completada |
+| 3.6 | Colección `location_reference` | ✅ Completada |
+| 3.7 | Servicio de cálculo de `assetRef` | ✅ Completada |
+| 3.8 | Mapper `DonationReadModel` → `PublicDonationTrackingDTO` | ✅ Completada |
+| 3.9 | Primer controlador REST (`GET /tracking`) | ✅ Completada |
+| 3.10 | Segundo endpoint (historial de activo) | ✅ Completada |
+| 3.11 | `NarrativeReadPort` en `contracts` (ADR-024) | ✅ Completada |
+| 3.12 | Implementación de `NarrativeReadPort` en `ai` | ✅ Completada |
+| 3.13 | Endpoint HTTP de narrativa (`GET /tracking/narrative`) | ✅ Completada |
 
-**Métrica de calidad actual (última cifra confirmada):** 100% Cobertura de las 14 tareas de la Fase 2, pruebas automatizadas pasando exitosamente en todos los módulos (incluyendo el módulo `crypto` entero con 39 pruebas interconectadas, módulo `ai`, `core`, y el ensamblaje completo en `app`). Disciplina demostrada exigiendo ejecución real contra Testcontainers.
+**Métrica de calidad — Fase 2:** 100% cobertura de las 14 tareas originales más 6 correcciones de auditoría (7.1, 10.1–10.5), pruebas pasando en todos los módulos contra Testcontainers real.
 
-**Fase 2: cerrada.** El sistema completo arranca como un único proceso ensamblado, no solo como módulos verificados por separado.
+**Métrica de calidad — Fase 3:** los tres endpoints públicos verificados end-to-end (filtro real + controlador real + puerto + mapper, no solo piezas certificadas por separado). Reactor completo de 6 módulos (`contracts`, `core`, `crypto`, `ai`, `api`, `app`) en verde.
 
-**Próximo hito inmediato:** Implementación de la Fase 3 (API REST HTTP y mecanismos de Tracking), cuyo alcance y diseño ya fueron formalizados mediante ADR-020 y ADR-021. Ver `estado-fase3.md`.
+**Fase 2: cerrada. Fase 3: cerrada.** El sistema expone tres endpoints públicos de lectura sobre el motor de trazabilidad completo, con autorización por tracking code, perímetro de privacidad verificado campo por campo, y narrativa de IA generada de forma asíncrona sin bloquear el camino HTTP.
+
+**Próximo hito inmediato:** sin definir formalmente todavía. Candidatos identificados: (a) Fase D de la auditoría de Fase 2 — Hallazgo #5 (forma de `AggregateRoot`), pospuesto por decisión consciente; (b) módulo de identidad/cuentas (rol "Fundación" obligatorio, donante individual opcional) — hilo completamente aparte, sin diseño iniciado; (c) deuda técnica menor de Fase 3 (ver sección 9.1, ítems 6-9). Ver `estado-fase3.md` sección 10 para el detalle.
 
 ## 9.1 Deudas Técnicas Identificadas
 
@@ -313,6 +347,14 @@ event_store (Mongo, colección real)
 4. **Snapshotting de Eventos:** Pendiente de optimización para streams de ciclo de vida largo (candidato principal: `Fund` de campañas activas), donde el replay completo penaliza el tiempo de recuperación en memoria del lado de escritura. No implementar preventivamente — instrumentar longitud de historial como métrica de observabilidad primero; evaluar snapshotting solo si un stream real se acerca a un umbral de referencia (~500 eventos) con latencia medible.
 
 5. **Hallazgos de `ProjectionRetryScheduler` (Resuelto):** El problema sobre umbrales y manejo genérico de reintentos reportado tempranamente fue **completamente resuelto** mediante el rediseño genérico documentado en ADR-017 e implementado durante la Tarea 11. Se deja constancia explícita de su resolución aquí.
+
+6. **`PublicVendorCategory` sin uso (Fase 3):** el enum se definió durante el diseño del perímetro de exposición pero nunca se incluyó en ningún DTO — `vendorId` vive en `allocations[]`, no en `logistics[]`, y no se decidió si Fase 3 debía exponer un resumen de asignaciones enmascarado. Pendiente de decisión de producto, no bloqueante.
+
+7. **Población de `location_reference` (Fase 3):** la colección de referencia de ubicaciones (Tarea 3.6) quedó vacía o con datos mínimos de prueba. Poblarla con ubicaciones operativas reales es trabajo posterior de operación, no de diseño — el mecanismo de consulta exacta ya está implementado y probado.
+
+8. **Sin mecanismo operativo para `TrackingCodeService.revoke()` (Fase 3):** el método de revocación de tracking codes existe y está probado (Tarea 3.3), pero no hay ningún endpoint administrativo ni exposición JMX para invocarlo en producción — a diferencia de `resolveStuckBatch` (ADR-022), que sí tiene su vía JMX. Candidato a una mini-tarea futura con el mismo patrón.
+
+9. **Gestión de secretos HMAC en producción (Fase 3):** los dos secretos (tracking code, `assetRef`) se gestionan como variables de entorno vía `@ConfigurationProperties`, sin vault dedicado — decisión consciente de no sobre-ingeniería dado el contexto del proyecto. Revisar si un despliegue en producción real exige un mecanismo más robusto de rotación.
 
 ---
 
@@ -328,6 +370,8 @@ event_store (Mongo, colección real)
 
 **Aggregate Boundary:** límite de consistencia transaccional de un Aggregate. Se decide por invariantes de negocio, nunca por conveniencia de modelado o relaciones "naturales" del dominio.
 
+**assetRef (Fase 3):** referencia pública y opaca de un `PhysicalAsset`, derivada por HMAC-SHA-256 completo (`"asset-ref:v1:" + assetId`), nunca el `assetId` interno crudo. No es invertible directamente — la resolución `assetRef → assetId` se hace recalculando el HMAC sobre un conjunto acotado de candidatos conocidos (los activos de una donación), nunca vía índice persistido.
+
 **causedDeficit:** flag booleano derivado, calculado por el dominio `Fund` cuando un reembolso excede el saldo disponible (no el histórico). Es un hecho, no una interpretación — nunca lo calcula el LLM.
 
 **childAssetId:** identificador del `PhysicalAsset` hijo nacido de una operación `ASSET_SPLIT`.
@@ -341,6 +385,8 @@ event_store (Mongo, colección real)
 **currentLocation / lastKnownLocation:** `currentLocation` es la ubicación confirmada actual (null solo durante `DISPATCHED`, antes de `RECEIVED`/`DELIVERED`). `lastKnownLocation` nunca es null tras el registro — preserva el último nodo confirmado incluso durante el tránsito, para que el sistema nunca "pierda de vista" la donación (ADR-014).
 
 **custodianRef vs. beneficiaryRef:** `custodianRef` es el responsable operativo actual (bodeguero, transportista). `beneficiaryRef` es el receptor final de la ayuda humanitaria. Nunca se confunden ni se sobrescriben entre sí (ADR-014).
+
+**DonationReadPort / DonationReadModel (Fase 3):** puerto de lectura en `core.application.port.out` que expone hacia `api` únicamente los campos que el perímetro de exposición (ADR-021-D) permite — nunca `DonationProjectionDocument` directamente. `confirmedAllocationAmount` se calcula aquí, en el adaptador, no en `api`.
 
 **DomainEvent / DomainEventPayload:** el hecho histórico inmutable emitido por un Aggregate. El payload contiene solo datos de negocio; el envoltorio completo (`eventId`, `sequence`, hashes) se ensambla después, fuera del dominio puro.
 
@@ -362,7 +408,11 @@ event_store (Mongo, colección real)
 
 **lifecycleStatus:** el estado actual de la máquina de estados de un Aggregate (ej. `REGISTERED`, `DISPATCHED`, `DELIVERED` para `PhysicalAsset`).
 
+**locationZone (Fase 3):** valor público derivado de `currentLocation` vía una tabla de referencia determinista (`location_reference`, consulta exacta, sin heurística de texto ni fuzzy matching). `null` si la ubicación no está registrada en la tabla — un dato ausente es preferible a uno inventado.
+
 **Merkle Tree / Merkle Root:** estructura que agrupa periódicamente los hashes de múltiples eventos en un único hash raíz, que es lo que efectivamente se ancla en blockchain (nunca los eventos individuales), por eficiencia y economía de costos de transacción.
+
+**NarrativeReadPort (Fase 3):** puerto neutral en `contracts` (ADR-024) mediante el cual `api` obtiene el estado de la narrativa de IA de una donación sin depender de `ai` directamente. Método `getOrTriggerGeneration(fundId)` — el nombre expone deliberadamente que invocarlo puede disparar generación asíncrona como efecto colateral, en vez de esconderlo detrás de un nombre que sugiera lectura pura.
 
 **Modular Monolith:** estilo arquitectónico de un solo despliegue con fronteras internas estrictas entre módulos (aquí, `contracts`, `core`, `crypto`, `ai`), sin la complejidad operativa de microservicios reales.
 
@@ -399,5 +449,7 @@ event_store (Mongo, colección real)
 **Stream (Event Stream):** la secuencia completa, ordenada, de eventos pertenecientes a un único Aggregate (identificado por `streamId`), que define el límite de orden y concurrencia.
 
 **TraceabilityEvent:** modelo conceptual del evento completo persistido, incluyendo metadata de infraestructura (eventId, sequence, hashes) además del payload de negocio.
+
+**Tracking Code (Fase 3):** credencial bearer stateless que autoriza la consulta pública de una donación sin necesidad de cuenta (ADR-021-A/B). Formato: `Base64URL(fundId + "|" + expiry) + "." + Base64URL(HMAC-SHA-256("tracking:v1:" + fundId + "|" + expiry))`. Generado fuera de Fase 3; Fase 3 solo valida.
 
 **Upcasting:** técnica de transformar un evento histórico de una versión de esquema antigua a la estructura esperada por el código actual, sin modificar el evento original almacenado.

@@ -1,6 +1,7 @@
 com/traceability/core/application/projection/DonationProjectionHandler$ProjectionPausedException.class
 com/traceability/core/infrastructure/projection/ProjectionEventHandler.class
 com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepositoryCustom.class
+com/traceability/core/application/port/out/AssetHistoryReadPort.class
 com/traceability/core/infrastructure/projection/mongo/documents/DonationProjectionDocument$LogisticsProjection.class
 com/traceability/core/application/projection/DonationAuditFactsHandler.class
 com/traceability/core/domain/physicalasset/payloads/AssetCustodyTransferredPayload.class
@@ -24,6 +25,7 @@ com/traceability/core/application/event/EventPayloadRegistry.class
 com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepository.class
 com/traceability/core/domain/fund/payloads/AllocationReversedPayload.class
 com/traceability/core/application/projection/ProjectionRetryScheduler.class
+com/traceability/core/application/port/out/AssetHistoryReadModel.class
 com/traceability/core/application/security/TrackingCodeValidationResult.class
 com/traceability/core/application/projection/DonationProjectionHandler$MissingDependencyException.class
 com/traceability/core/infrastructure/projection/mongo/documents/DonationProjectionDocument$LogisticsProjection$LogisticsProjectionBuilder.class
@@ -79,11 +81,13 @@ com/traceability/core/infrastructure/projection/mongo/documents/DonationProjecti
 com/traceability/core/infrastructure/projection/mongo/documents/AssetHistoryProjectionDocument$AssetTransition$AssetTransitionBuilder.class
 com/traceability/core/domain/physicalasset/payloads/AssetReceivedPayload.class
 com/traceability/core/infrastructure/projection/mongo/documents/ProjectionRetryDocument.class
+com/traceability/core/application/port/out/AssetTransitionReadModel.class
 com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapter.class
 com/traceability/core/infrastructure/persistence/mongo/TraceabilityEventDocument$TraceabilityEventDocumentBuilder.class
 com/traceability/core/domain/physicalasset/payloads/AssetRegisteredPayload.class
 com/traceability/core/application/security/TrackingCodeValidationResult$FailureReason.class
 com/traceability/core/application/command/FundCommandService.class
+com/traceability/core/application/security/AssetRefService.class
 com/traceability/core/domain/fund/payloads/FundsClearedPayload.class
 com/traceability/core/infrastructure/projection/mongo/documents/AssetIndexDocument.class
 com/traceability/core/infrastructure/persistence/mongo/MongoProcessedCommandAdapter.class
@@ -97,6 +101,7 @@ com/traceability/core/domain/physicalasset/exceptions/InvalidAssetTransitionExce
 com/traceability/core/application/port/out/OutboxPort.class
 com/traceability/core/application/saga/OutboxStatus.class
 com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepositoryImpl.class
+com/traceability/core/infrastructure/projection/mongo/MongoAssetHistoryReadAdapter.class
 com/traceability/core/domain/event/DomainEvent.class
 com/traceability/core/infrastructure/projection/mongo/documents/DonationAuditFactsDocument.class
 com/traceability/core/domain/event/TraceabilityEvent.class
@@ -111,6 +116,7 @@ com/traceability/core/application/port/out/ProcessedCommandRepositoryPort.class
 com/traceability/core/application/projection/ProjectionRebuildService.class
 com/traceability/core/infrastructure/projection/ProjectionEventSource.class
 com/traceability/core/domain/shared/exceptions/DomainInvariantViolationException.class
+com/traceability/core/infrastructure/security/HmacAssetRefService.class
 com/traceability/core/application/event/EventCanonicalMapper.class
 com/traceability/core/domain/event/EventType.class
 com/traceability/core/domain/physicalasset/payloads/AssetDeliveredPayload.class

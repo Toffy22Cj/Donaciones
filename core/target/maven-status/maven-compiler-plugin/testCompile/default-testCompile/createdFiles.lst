@@ -8,6 +8,7 @@ com/traceability/core/application/saga/OutboxSagaCoordinatorTest$MockSagaPolicy.
 com/traceability/core/application/command/CommandRetryTemplateTest$1TestRedundantException.class
 com/traceability/core/application/security/AssetAuthorizationServiceTest.class
 com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest$TestConfig.class
+com/traceability/core/infrastructure/security/HmacAssetRefServiceTest.class
 com/traceability/core/infrastructure/security/TrackingCodeServiceIntegrationTest$TestApp.class
 com/traceability/core/domain/shared/AggregateRootTest$TestEventType.class
 com/traceability/core/domain/shared/AggregateRootTest$TestPayload.class

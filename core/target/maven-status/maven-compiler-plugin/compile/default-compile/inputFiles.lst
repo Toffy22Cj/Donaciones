@@ -7,6 +7,9 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/exception/ConcurrencyConflictException.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/exception/SequenceGapException.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/AssetAuthorizationPort.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/AssetHistoryReadModel.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/AssetHistoryReadPort.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/AssetTransitionReadModel.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/DonationReadModel.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/DonationReadPort.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/port/out/EventStorePort.java
@@ -24,6 +27,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/OutboxStatus.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/saga/SagaPolicy.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/AssetAuthorizationService.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/AssetRefService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/TrackingCodeService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/security/TrackingCodeValidationResult.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/application/service/LocationReferenceService.java
@@ -83,6 +87,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/ProjectionEventHandler.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/ProjectionEventSource.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/DonationReadAdapter.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/MongoAssetHistoryReadAdapter.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/AssetHistoryProjectionDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/AssetIndexDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/documents/DonationAuditFactsDocument.java
@@ -100,6 +105,7 @@
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepository.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepositoryCustom.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/projection/mongo/repositories/ProjectionRetryRepositoryImpl.java
+/home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/HmacAssetRefService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/HmacTrackingCodeService.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java
 /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeRepository.java

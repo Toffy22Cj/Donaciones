@@ -71,7 +71,7 @@ public class PublicDonationMapper {
         );
     }
 
-    private PublicCustodianCategory mapCustodian(String lifecycleStatus) {
+    public PublicCustodianCategory mapCustodian(String lifecycleStatus) {
         if (lifecycleStatus == null) {
             throw new IllegalArgumentException("lifecycleStatus cannot be null");
         }

@@ -12,5 +12,6 @@
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/domain/shared/AggregateRootTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapterTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/infrastructure/projection/mongo/DonationReadAdapterTest.java
+/home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/infrastructure/security/HmacAssetRefServiceTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/infrastructure/security/HmacTrackingCodeServiceTest.java
 /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/infrastructure/security/TrackingCodeServiceIntegrationTest.java
