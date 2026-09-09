@@ -2,6 +2,10 @@ package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotMemberOfOrganizationException;
+import identity.domain.exception.AccountNotRepresentativeException;
+import identity.domain.exception.RepresentativeTransferRequiredException;
+import identity.domain.exception.SelfTransferNotAllowedException;
+import identity.domain.exception.TransferTargetNotMemberException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -99,5 +103,60 @@ public class Organization {
             .orElseThrow(() -> new AccountNotMemberOfOrganizationException("Account is not a member of this organization"));
 
         return membership.removeRole(Role.EMPLOYEE);
+    }
+
+    /**
+     * Removes an account from the organization entirely.
+     * @throws RepresentativeTransferRequiredException if the member is the REPRESENTATIVE.
+     */
+    public void removeMemberFromOrganization(AccountId accountId) {
+        if (accountId == null) {
+            throw new IllegalArgumentException("AccountId cannot be null");
+        }
+        Membership membership = findMembership(accountId)
+            .orElseThrow(() -> new AccountNotMemberOfOrganizationException("Account is not a member of this organization"));
+
+        if (membership.hasRole(Role.REPRESENTATIVE)) {
+            throw new RepresentativeTransferRequiredException("Cannot remove the representative without transferring the role first");
+        }
+
+        // Just remove the membership. Roles are never emptied.
+        members.remove(membership);
+    }
+
+    /**
+     * Atomically transfers the REPRESENTATIVE role to another member, and if the current
+     * representative is left without any roles, removes them from the organization entirely.
+     */
+    public void transferRepresentativeAndRemove(AccountId currentRepId, AccountId newRepId) {
+        if (currentRepId == null || newRepId == null) {
+            throw new IllegalArgumentException("Account IDs cannot be null");
+        }
+        if (currentRepId.equals(newRepId)) {
+            throw new SelfTransferNotAllowedException("Cannot transfer representative role to the same account");
+        }
+
+        Membership currentRepMembership = findMembership(currentRepId)
+            .orElseThrow(() -> new AccountNotMemberOfOrganizationException("Current representative is not a member of this organization"));
+        
+        if (!currentRepMembership.hasRole(Role.REPRESENTATIVE)) {
+            throw new AccountNotRepresentativeException("Current account does not hold the representative role");
+        }
+
+        Membership newRepMembership = findMembership(newRepId)
+            .orElseThrow(() -> new TransferTargetNotMemberException("Target account is not a member of this organization"));
+
+        // Assign REPRESENTATIVE to the new representative
+        newRepMembership.addRole(Role.REPRESENTATIVE);
+
+        // Handle the current representative
+        if (currentRepMembership.getRoles().size() == 1) {
+            // It only has REPRESENTATIVE. Removing it would leave roles empty.
+            // So we remove the membership entirely without modifying its roles.
+            members.remove(currentRepMembership);
+        } else {
+            // It has other roles, so we can safely remove REPRESENTATIVE
+            currentRepMembership.removeRole(Role.REPRESENTATIVE);
+        }
     }
 }

@@ -2,7 +2,11 @@ package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotMemberOfOrganizationException;
+import identity.domain.exception.AccountNotRepresentativeException;
 import identity.domain.exception.CannotRemoveLastRoleException;
+import identity.domain.exception.RepresentativeTransferRequiredException;
+import identity.domain.exception.SelfTransferNotAllowedException;
+import identity.domain.exception.TransferTargetNotMemberException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -155,8 +159,102 @@ class OrganizationTest {
                 .filter(m -> m.getAccountId().equals(employeeId))
                 .findFirst()
                 .orElseThrow();
-        
         assertFalse(membership.hasRole(Role.EMPLOYEE));
         assertTrue(membership.hasRole(Role.ADMINISTRATOR));
+    }
+
+    @Test
+    void testRemoveMemberFromOrganization() {
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        AccountId employeeId = AccountId.generate();
+        org.addEmployee(employeeId);
+
+        org.removeMemberFromOrganization(employeeId);
+
+        assertEquals(1, org.getMembers().size()); // Only representative left
+        assertFalse(org.getMembers().stream().anyMatch(m -> m.getAccountId().equals(employeeId)));
+    }
+
+    @Test
+    void testRemoveMemberFromOrganization_WhenRepresentative_ThrowsException() {
+        AccountId repId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, repId);
+
+        assertThrows(RepresentativeTransferRequiredException.class, () -> org.removeMemberFromOrganization(repId));
+    }
+
+    @Test
+    void testTransferRepresentativeAndRemove_WhenOnlyRepresentative_RemovesMembership() {
+        AccountId currentRepId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, currentRepId);
+        AccountId employeeId = AccountId.generate();
+        org.addEmployee(employeeId);
+
+        org.transferRepresentativeAndRemove(currentRepId, employeeId);
+
+        assertEquals(1, org.getMembers().size()); // currentRepId is completely removed
+
+        Membership newRepMembership = org.getMembers().get(0);
+        assertEquals(employeeId, newRepMembership.getAccountId());
+        assertTrue(newRepMembership.hasRole(Role.REPRESENTATIVE));
+        assertTrue(newRepMembership.hasRole(Role.EMPLOYEE));
+    }
+
+    @Test
+    void testTransferRepresentativeAndRemove_WhenHasOtherRoles_KeepsMembership() {
+        AccountId currentRepId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, currentRepId);
+        // Add ADMINISTRATOR so they have two roles
+        org.assignAdministrator(currentRepId);
+
+        AccountId employeeId = AccountId.generate();
+        org.addEmployee(employeeId);
+
+        org.transferRepresentativeAndRemove(currentRepId, employeeId);
+
+        assertEquals(2, org.getMembers().size()); // currentRepId is kept
+        
+        Membership oldRepMembership = org.getMembers().stream()
+                .filter(m -> m.getAccountId().equals(currentRepId))
+                .findFirst()
+                .orElseThrow();
+        assertFalse(oldRepMembership.hasRole(Role.REPRESENTATIVE));
+        assertTrue(oldRepMembership.hasRole(Role.ADMINISTRATOR));
+
+        Membership newRepMembership = org.getMembers().stream()
+                .filter(m -> m.getAccountId().equals(employeeId))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(newRepMembership.hasRole(Role.REPRESENTATIVE));
+    }
+
+    @Test
+    void testTransferRepresentativeAndRemove_WhenSameAccount_ThrowsException() {
+        AccountId currentRepId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, currentRepId);
+
+        assertThrows(SelfTransferNotAllowedException.class, () -> org.transferRepresentativeAndRemove(currentRepId, currentRepId));
+    }
+
+    @Test
+    void testTransferRepresentativeAndRemove_WhenCurrentRepNotRepresentative_ThrowsException() {
+        AccountId currentRepId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, currentRepId);
+        AccountId employeeId = AccountId.generate();
+        org.addEmployee(employeeId);
+        AccountId newRepId = AccountId.generate();
+        org.addEmployee(newRepId);
+
+        // employeeId is a member, but NOT the representative
+        assertThrows(AccountNotRepresentativeException.class, () -> org.transferRepresentativeAndRemove(employeeId, newRepId));
+    }
+
+    @Test
+    void testTransferRepresentativeAndRemove_WhenNewRepNotMember_ThrowsException() {
+        AccountId currentRepId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, currentRepId);
+        AccountId newRepId = AccountId.generate(); // Not added
+
+        assertThrows(TransferTargetNotMemberException.class, () -> org.transferRepresentativeAndRemove(currentRepId, newRepId));
     }
 }
