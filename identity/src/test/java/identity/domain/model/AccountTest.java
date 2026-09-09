@@ -101,4 +101,20 @@ class AccountTest {
 
         assertNull(account.getOrganizationId());
     }
+
+    @Test
+    void testReconstitute() {
+        AccountId id = AccountId.generate();
+        Email email = new Email("existing@example.com");
+        PasswordHash hash = new PasswordHash("existing-hash");
+        OrganizationId orgId = OrganizationId.generate();
+
+        Account account = Account.reconstitute(id, email, hash, AccountStatus.INACTIVE, orgId);
+
+        assertEquals(id, account.getAccountId());
+        assertEquals(email, account.getEmail());
+        assertEquals(hash, account.getPasswordHash());
+        assertEquals(AccountStatus.INACTIVE, account.getStatus());
+        assertEquals(orgId, account.getOrganizationId());
+    }
 }

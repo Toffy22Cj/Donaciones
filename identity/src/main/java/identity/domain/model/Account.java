@@ -20,6 +20,14 @@ public class Account {
         this.organizationId = organizationId;
     }
 
+    /**
+     * Uso exclusivo de adaptadores de persistencia — NUNCA invocar desde Application Services ni tests de dominio.
+     * No aplica ninguna regla de negocio de creación.
+     */
+    public static Account reconstitute(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status, OrganizationId organizationId) {
+        return new Account(accountId, email, passwordHash, status, organizationId);
+    }
+
     public static Account createAccount(Email email, PasswordHash passwordHash) {
         if (email == null) {
             throw new IllegalArgumentException("Email cannot be null");

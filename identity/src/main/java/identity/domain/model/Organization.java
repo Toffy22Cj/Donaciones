@@ -24,6 +24,14 @@ public class Organization {
         this.members = new ArrayList<>(initialMembers);
     }
 
+    /**
+     * Uso exclusivo de adaptadores de persistencia — NUNCA invocar desde Application Services ni tests de dominio.
+     * No aplica ninguna regla de negocio de creación.
+     */
+    public static Organization reconstitute(OrganizationId organizationId, OrganizationType type, List<Membership> members) {
+        return new Organization(organizationId, type, members);
+    }
+
     public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
         if (type == null) {
             throw new IllegalArgumentException("OrganizationType cannot be null");

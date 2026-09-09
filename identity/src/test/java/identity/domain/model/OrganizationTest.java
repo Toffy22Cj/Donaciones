@@ -269,4 +269,25 @@ class OrganizationTest {
         // nonMemberId is completely unknown to the organization
         assertThrows(AccountNotMemberOfOrganizationException.class, () -> org.transferRepresentativeAndRemove(nonMemberId, newRepId));
     }
+
+    @Test
+    void testReconstitute() {
+        OrganizationId orgId = OrganizationId.generate();
+        AccountId repId = AccountId.generate();
+        AccountId employeeId = AccountId.generate();
+        
+        Membership repMembership = new Membership(repId, java.util.Set.of(Role.REPRESENTATIVE, Role.ADMINISTRATOR));
+        Membership empMembership = new Membership(employeeId, java.util.Set.of(Role.EMPLOYEE));
+        
+        java.util.List<Membership> members = java.util.List.of(repMembership, empMembership);
+
+        Organization org = Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members);
+
+        assertEquals(orgId, org.getOrganizationId());
+        assertEquals(OrganizationType.FOUNDATION, org.getType());
+        assertEquals(2, org.getMembers().size());
+        
+        assertTrue(org.getMembers().contains(repMembership));
+        assertTrue(org.getMembers().contains(empMembership));
+    }
 }
