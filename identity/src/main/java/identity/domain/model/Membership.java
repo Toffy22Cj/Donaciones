@@ -37,7 +37,7 @@ public class Membership {
      * Adds a role to the membership.
      * @return true if the role was added, false if it already had it.
      */
-    public boolean addRole(Role role) {
+    boolean addRole(Role role) {
         if (role == null) {
             throw new IllegalArgumentException("Role cannot be null");
         }
@@ -49,7 +49,7 @@ public class Membership {
      * @return true if the role was removed, false if it didn't have it.
      * @throws CannotRemoveLastRoleException if it's the only role.
      */
-    public boolean removeRole(Role role) {
+    boolean removeRole(Role role) {
         if (role == null) {
             throw new IllegalArgumentException("Role cannot be null");
         }
