@@ -1,6 +1,7 @@
 package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
+import identity.domain.exception.InactiveAccountException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,7 +39,7 @@ class AccountTest {
 
         PasswordHash newHash = new PasswordHash("new-hash");
 
-        assertThrows(IllegalStateException.class, () -> account.changeCredentials(newHash));
+        assertThrows(InactiveAccountException.class, () -> account.changeCredentials(newHash));
     }
 
     @Test

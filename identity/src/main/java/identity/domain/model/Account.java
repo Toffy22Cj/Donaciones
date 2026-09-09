@@ -1,6 +1,7 @@
 package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
+import identity.domain.exception.InactiveAccountException;
 import lombok.Getter;
 
 @Getter
@@ -31,7 +32,7 @@ public class Account {
 
     public void changeCredentials(PasswordHash newPasswordHash) {
         if (this.status == AccountStatus.INACTIVE) {
-            throw new IllegalStateException("Cannot change credentials of an inactive account");
+            throw new InactiveAccountException("Cannot change credentials of an inactive account");
         }
         if (newPasswordHash == null) {
             throw new IllegalArgumentException("New PasswordHash cannot be null");
