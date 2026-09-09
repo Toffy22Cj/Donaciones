@@ -257,4 +257,16 @@ class OrganizationTest {
 
         assertThrows(TransferTargetNotMemberException.class, () -> org.transferRepresentativeAndRemove(currentRepId, newRepId));
     }
+
+    @Test
+    void testTransferRepresentativeAndRemove_WhenCurrentRepNotMember_ThrowsException() {
+        AccountId currentRepId = AccountId.generate();
+        Organization org = Organization.createOrganization(OrganizationType.COMPANY, currentRepId);
+        AccountId nonMemberId = AccountId.generate(); // Not added
+        AccountId newRepId = AccountId.generate();
+        org.addEmployee(newRepId);
+
+        // nonMemberId is completely unknown to the organization
+        assertThrows(AccountNotMemberOfOrganizationException.class, () -> org.transferRepresentativeAndRemove(nonMemberId, newRepId));
+    }
 }
