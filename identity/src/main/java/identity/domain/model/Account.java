@@ -48,16 +48,20 @@ public class Account {
         this.passwordHash = newPasswordHash;
     }
 
-    public void deactivate() {
+    public boolean deactivate() {
         if (this.status != AccountStatus.INACTIVE) {
             this.status = AccountStatus.INACTIVE;
+            return true;
         }
+        return false;
     }
 
-    public void reactivate() {
+    public boolean reactivate() {
         if (this.status != AccountStatus.ACTIVE) {
             this.status = AccountStatus.ACTIVE;
+            return true;
         }
+        return false;
     }
 
     public void joinOrganization(OrganizationId newOrganizationId) {
