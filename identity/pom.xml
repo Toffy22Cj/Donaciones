@@ -30,6 +30,13 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
+        <!-- ULID Creator -->
+        <dependency>
+            <groupId>com.github.f4b6a3</groupId>
+            <artifactId>ulid-creator</artifactId>
+            <version>5.2.3</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
