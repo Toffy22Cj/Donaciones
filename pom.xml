@@ -22,6 +22,7 @@
         <module>crypto</module>
         <module>ai</module>
         <module>api</module>
+        <module>identity</module>
         <module>app</module>
     </modules>
 
