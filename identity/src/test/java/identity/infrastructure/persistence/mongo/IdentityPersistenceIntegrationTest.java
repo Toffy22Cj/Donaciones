@@ -91,6 +91,9 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
         assertTrue(retrieved.getMembers().stream().anyMatch(m -> m.getAccountId().equals(empId) && m.hasRole(Role.EMPLOYEE) && m.hasRole(Role.ADMINISTRATOR)));
     }
 
+    @Autowired
+    private identity.infrastructure.persistence.mongo.repositories.spring.SpringDataAuditLogRepository springDataAuditLogRepository;
+
     @Test
     void testAuditLogRoundTrip() {
         AccountId actorId = AccountId.generate();
@@ -111,8 +114,16 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
 
         auditLogRepository.record(entry);
 
-        // We don't have a read method on the port since AuditLog is append-only, but we can verify it doesn't throw errors
-        // Verification of read is usually outside the scope of the port, but we could use the SpringData repo directly to verify if needed.
-        // For the sake of the test, saving without errors means mapping and insert works.
+        Optional<identity.infrastructure.persistence.mongo.documents.AuditLogEntryDocument> documentOptional = springDataAuditLogRepository.findById(entry.auditId());
+        assertTrue(documentOptional.isPresent(), "AuditLogEntryDocument should be persisted in MongoDB");
+        
+        identity.infrastructure.persistence.mongo.documents.AuditLogEntryDocument document = documentOptional.get();
+        assertEquals(entry.auditId(), document.getAuditId());
+        assertEquals(entry.occurredAt(), document.getOccurredAt());
+        assertEquals(entry.actorAccountId().value(), document.getActorAccountId());
+        assertNull(document.getTargetAccountId());
+        assertEquals(entry.targetOrganizationId().value(), document.getTargetOrganizationId());
+        assertEquals(entry.action(), document.getAction());
+        assertEquals(entry.changeSummary(), document.getChangeSummary());
     }
 }
