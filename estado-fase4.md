@@ -132,3 +132,7 @@ Ver el detalle completo en la sección "Guardas de ejecución con herramientas a
 Backlog de implementación listo en `plan-ejecucion-agentes-fase4.md` — 11 tareas (4.0 a 4.10), de dominio puro a integración end-to-end, cada una con su rama, su ADR de referencia y su Definition of Done. Ninguna tarea se abre sin que la anterior cierre con evidencia literal, según `reglas-equipo-y-agentes.md`.
 
 **Primera tarea a ejecutar:** 4.0 — Scaffolding del módulo Maven `identity`.
+
+## 7. Riesgos conocidos e higiene del repositorio
+
+- **Binarios de compilación trackeados por error en Tarea 4.0:** Durante el scaffolding inicial de la Fase 4 (Tarea 4.0), se trackearon indiscriminadamente los directorios `target/` de los módulos `core` y `crypto` en el repositorio, a pesar de que el `.gitignore` ya incluía la regla de exclusión genérica. Este hallazgo fue mitigado y corregido (vía `git rm -r --cached`) en un *chore* aislado entre las tareas 4.5 y 4.6. Sin embargo, cualquier rama que haya sido bifurcada antes de este *chore* seguirá experimentando contaminación de binarios modificados en cada compilación. Se debe tener cuidado al hacer merge desde ramas antiguas para no volver a inyectar estos directorios en el historial de Git.
