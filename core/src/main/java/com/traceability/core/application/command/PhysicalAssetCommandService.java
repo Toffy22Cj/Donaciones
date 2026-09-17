@@ -30,7 +30,7 @@ public class PhysicalAssetCommandService {
         this.eventPublisher = eventPublisher;
     }
 
-    public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef, String locationRef, String evidenceRef, Instant deliveredAt) {
+    public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef, String locationRef, String evidenceRef, Instant deliveredAt, com.traceability.core.domain.event.ActorRef actorRef) {
         if (processedCommandRepository.exists(commandId)) {
             return;
         }
@@ -45,7 +45,7 @@ public class PhysicalAssetCommandService {
             
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
-                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, newEvents, "SYSTEM", null, commandId);
+                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, newEvents, actorRef, null, commandId);
             }
             return null;
         });

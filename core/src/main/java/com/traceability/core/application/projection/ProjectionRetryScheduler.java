@@ -135,6 +135,7 @@ public class ProjectionRetryScheduler {
         eventDoc.setSequence(retryDoc.getSequence());
         eventDoc.setEventType(retryDoc.getEventType());
         eventDoc.setPayload(retryDoc.getPayload());
+        eventDoc.setSchemaVersion(retryDoc.getSchemaVersion());
         eventDoc.setOccurredAt(retryDoc.getOccurredAt());
         // For projection purposes, we don't need the exact original metadata except what affects logic.
         // We assume aggregateType can be inferred.

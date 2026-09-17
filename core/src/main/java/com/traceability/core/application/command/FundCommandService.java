@@ -6,6 +6,7 @@ import com.traceability.core.application.service.TransactionalEventPublisher;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.fund.Fund;
+import com.traceability.core.domain.fund.OrganizationRef;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,7 +30,35 @@ public class FundCommandService {
         this.eventPublisher = eventPublisher;
     }
 
-    public void confirmAllocation(String commandId, String fundId, String allocationId) {
+    public void registerFund(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, Long pledgedAmount, com.traceability.core.domain.event.ActorRef actorRef) {
+        if (processedCommandRepository.exists(commandId)) {
+            return;
+        }
+
+        retryTemplate.execute(() -> {
+            Fund fund = Fund.registerFund(fundId, organizationRef, pledgedAmount, currency, campaignRef, donorRef);
+            List<DomainEvent> newEvents = fund.getUncommittedEvents();
+            
+            eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
+            return null;
+        });
+    }
+
+    public void clearFundsGenesis(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        if (processedCommandRepository.exists(commandId)) {
+            return;
+        }
+
+        retryTemplate.execute(() -> {
+            Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
+            List<DomainEvent> newEvents = fund.getUncommittedEvents();
+            
+            eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
+            return null;
+        });
+    }
+
+    public void confirmAllocation(String commandId, String fundId, String allocationId, com.traceability.core.domain.event.ActorRef actorRef) {
         if (processedCommandRepository.exists(commandId)) {
             return;
         }
@@ -44,13 +73,13 @@ public class FundCommandService {
             
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
-                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, "SYSTEM", null, commandId);
+                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
             }
             return null;
         });
     }
 
-    public void reverseAllocation(String commandId, String fundId, String allocationId, String reason) {
+    public void reverseAllocation(String commandId, String fundId, String allocationId, String reason, com.traceability.core.domain.event.ActorRef actorRef) {
         if (processedCommandRepository.exists(commandId)) {
             return;
         }
@@ -65,7 +94,7 @@ public class FundCommandService {
             
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
-                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, "SYSTEM", null, commandId);
+                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
             }
             return null;
         });

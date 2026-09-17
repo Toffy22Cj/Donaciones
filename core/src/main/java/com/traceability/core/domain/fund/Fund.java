@@ -21,6 +21,7 @@ public class Fund extends AggregateRoot {
     private String currency;
     private String campaignRef;
     private String donorRef;
+    private OrganizationRef organizationRef;
     
     // Persisted state via replay
     private Long pledgedAmount;
@@ -74,40 +75,54 @@ public class Fund extends AggregateRoot {
 
     // --- Genesis Commands (ADR-016 Dual Genesis) ---
 
-    public static Fund registerFund(String fundId, Long pledgedAmount, String currency, String campaignRef, String donorRef) {
+    public static Fund registerFund(String fundId, OrganizationRef organizationRef, Long pledgedAmount, String currency, String campaignRef, String donorRef) {
+        if (organizationRef == null) {
+            throw new InvalidFundGenesisException("OrganizationRef is mandatory for fund genesis");
+        }
         if (pledgedAmount != null && pledgedAmount <= 0) {
-            throw new IllegalArgumentException("Pledged amount must be strictly positive if provided");
+            throw new InvalidFundGenesisException("Pledged amount must be strictly positive if provided");
         }
         Fund fund = new Fund();
         fund.fundId = fundId; // Temporary setup, replay normally handles identity but for new aggregates we set it here or in apply.
         // Wait, normally `apply` should set the fundId. The payload doesn't contain fundId but usually the stream does.
         // I will set it here just in case, but rely on apply for the rest.
         
-        fund.raiseEvent(FundEventType.FUND_REGISTERED, new FundRegisteredPayload(pledgedAmount, currency, campaignRef, donorRef));
+        fund.raiseEvent(FundEventType.FUND_REGISTERED, new FundRegisteredV2Payload(organizationRef.value(), pledgedAmount, currency, campaignRef, donorRef));
         return fund;
     }
 
-    public static Fund clearFundsGenesis(String fundId, long amount, String sourceRef, String currency, String campaignRef, String donorRef) {
+    public static Fund clearFundsGenesis(String fundId, OrganizationRef organizationRef, long amount, String sourceRef, String currency, String campaignRef, String donorRef) {
+        if (organizationRef == null) {
+            throw new InvalidFundGenesisException("OrganizationRef is mandatory for fund genesis");
+        }
         if (amount <= 0) {
-            throw new IllegalArgumentException("Cleared amount must be strictly positive");
+            throw new InvalidFundGenesisException("Cleared amount must be strictly positive");
         }
         Fund fund = new Fund();
         fund.fundId = fundId;
-        fund.raiseEvent(FundEventType.FUNDS_CLEARED, new FundsClearedPayload(amount, sourceRef, currency, campaignRef, donorRef));
+        fund.raiseEvent(FundEventType.FUNDS_CLEARED, new FundsClearedV2Payload(organizationRef.value(), amount, sourceRef, currency, campaignRef, donorRef));
         return fund;
     }
 
     // --- Regular Commands ---
 
+    private void checkOrganizationAssigned() {
+        if (this.organizationRef == null) {
+            throw new FundNotAssociatedToOrganizationException("Fund " + fundId + " is not associated to any organization");
+        }
+    }
+
     public void clearFunds(long amount, String sourceRef) {
+        checkOrganizationAssigned();
         if (amount <= 0) {
             throw new IllegalArgumentException("Cleared amount must be strictly positive");
         }
         // Retain existing genesis attributes when clearing more funds
-        raiseEvent(FundEventType.FUNDS_CLEARED, new FundsClearedPayload(amount, sourceRef, this.currency, this.campaignRef, this.donorRef));
+        raiseEvent(FundEventType.FUNDS_CLEARED, new FundsClearedV2Payload(this.organizationRef.value(), amount, sourceRef, this.currency, this.campaignRef, this.donorRef));
     }
 
     public void requestAllocation(String allocationId, long amount) {
+        checkOrganizationAssigned();
         if (amount <= 0) {
             throw new IllegalArgumentException("Requested allocation amount must be strictly positive");
         }
@@ -124,6 +139,7 @@ public class Fund extends AggregateRoot {
     }
 
     public void confirmAllocation(String allocationId) {
+        checkOrganizationAssigned();
         if (allocationStatus.get(allocationId) == AllocationStatus.CONFIRMED) {
             throw new RedundantAllocationConfirmationException("Allocation " + allocationId + " is already confirmed");
         }
@@ -134,6 +150,7 @@ public class Fund extends AggregateRoot {
     }
 
     public void reverseAllocation(String allocationId, String reason) {
+        checkOrganizationAssigned();
         if (allocationStatus.get(allocationId) == AllocationStatus.REVERSED) {
             throw new RedundantAllocationReversalException("Allocation " + allocationId + " is already reversed");
         }
@@ -144,6 +161,7 @@ public class Fund extends AggregateRoot {
     }
 
     public void refund(String refundId, long refundAmount, String reason) {
+        checkOrganizationAssigned();
         if (refundAmount <= 0) {
             throw new IllegalArgumentException("Refund amount must be strictly positive");
         }
@@ -169,6 +187,20 @@ public class Fund extends AggregateRoot {
     @Override
     protected void apply(DomainEventPayload payload) {
         switch (payload) {
+            case FundRegisteredV2Payload p -> {
+                if (p.organizationRef() != null) this.organizationRef = new OrganizationRef(p.organizationRef());
+                this.pledgedAmount = p.pledgedAmount();
+                if (p.currency() != null) this.currency = p.currency();
+                if (p.campaignRef() != null) this.campaignRef = p.campaignRef();
+                if (p.donorRef() != null) this.donorRef = p.donorRef();
+            }
+            case FundsClearedV2Payload p -> {
+                if (p.organizationRef() != null && this.organizationRef == null) this.organizationRef = new OrganizationRef(p.organizationRef());
+                this.clearedAmount += p.clearedAmount();
+                if (p.currency() != null && this.currency == null) this.currency = p.currency();
+                if (p.campaignRef() != null && this.campaignRef == null) this.campaignRef = p.campaignRef();
+                if (p.donorRef() != null && this.donorRef == null) this.donorRef = p.donorRef();
+            }
             case FundRegisteredPayload p -> {
                 this.pledgedAmount = p.pledgedAmount();
                 if (p.currency() != null) this.currency = p.currency();
@@ -210,6 +242,7 @@ public class Fund extends AggregateRoot {
     public String getCurrency() { return currency; }
     public String getCampaignRef() { return campaignRef; }
     public String getDonorRef() { return donorRef; }
+    public OrganizationRef getOrganizationRef() { return organizationRef; }
     public Long getPledgedAmount() { return pledgedAmount; }
     public long getClearedAmount() { return clearedAmount; }
     public long getPendingAllocationAmount() { return pendingAllocationAmount; }

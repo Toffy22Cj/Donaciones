@@ -113,6 +113,7 @@ class DonationProjectionIntegrationTest {
         doc.setSequence(seq);
         doc.setEventType(type);
         doc.setPayload(payload);
+        doc.setSchemaVersion("1.0");
         doc.setOccurredAt("2026-09-01T10:00:00Z");
         return doc;
     }
@@ -212,6 +213,7 @@ class DonationProjectionIntegrationTest {
             .streamId("fund-stuck")
             .sequence(1)
             .eventType("FUNDS_CLEARED")
+            .schemaVersion("1.0")
             .payload(Map.of("clearedAmount", 500L))
             .occurredAt("2026-09-01T10:00:00Z")
             .firstAttemptAt("2026-09-01T10:00:00Z")

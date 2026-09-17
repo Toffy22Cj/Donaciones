@@ -2,7 +2,7 @@
 
 **Nombre comercial provisional (no usado en código):** el proyecto se ha referido a sí mismo informalmente como "PaxFide" en la conversación de diseño, pero esto es explícitamente **no vinculante** — puede cambiar sin afectar nada del dominio, la arquitectura ni el código.
 **Base package Java:** `com.traceability`
-**Fase actual:** Fase 3 — Exposición REST de Lectura **completa** (Fase 1 y Fase 2 formalmente cerradas, incluyendo auditoría exhaustiva de Fase 2 con 13 hallazgos corregidos). Ver `estado-fase3.md` para el detalle completo de Fase 3.
+**Fase actual:** Fase 4 — Módulo de Identidad y Cuentas **completa** (diseño y las 11 tareas de implementación, 4.0 a 4.10). Fases 1, 2 y 3 formalmente cerradas (Fase 2 con auditoría exhaustiva de 13 hallazgos corregidos). Ver `estado-fase3.md` para el detalle de Fase 3 y `estado-fase4.md` para el detalle completo de Fase 4.
 
 ---
 
@@ -77,8 +77,15 @@ raíz/ (pom.xml, packaging=pom)
 │                  y de `contracts` (para `NarrativeReadPort`, único puerto que cruza
 │                  hacia `ai`). NUNCA importa `core.infrastructure.*` directamente —
 │                  verificado por su propio test de ArchUnit.
-└── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai, api.
-                   Provee la configuración compartida (ej. MongoTransactionManager)
+├── identity/    → Módulo de Identidad y Cuentas (Fase 4, ADR-027). Depende ÚNICAMENTE
+│                  de spring-boot-starter, spring-data-mongodb y spring-security-crypto
+│                  (JAR aislado de hashing, NUNCA spring-boot-starter-security). NUNCA
+│                  depende de `core` ni de su infraestructura. No depende de `contracts`
+│                  (sin necesidad real de comunicación cruzada todavía). Aggregates
+│                  `Account` y `Organization` sin Event Sourcing (CRUD + Audit Log
+│                  append-only, ADR-025). Estructura hexagonal equivalente a `core`.
+└── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai, api,
+                   identity. Provee la configuración compartida (ej. MongoTransactionManager)
                    y el punto de entrada (@SpringBootApplication). Cero lógica de dominio.
 ```
 
@@ -86,6 +93,7 @@ Dependencias unidireccionales, verificadas por tests de ArchUnit que rompen el b
 - cualquier clase bajo `core.domain` importa Spring/MongoDB/BSON.
 - `ai` o `crypto` importan cualquier clase bajo `core.*`.
 - cualquier clase bajo `api.*` importa algo de `core.infrastructure.*` (regla propia de `api`, Tarea 3.0, demostrada activa — falla ante una violación deliberada de prueba, no solo "nunca se dispara").
+- cualquier clase bajo `identity.domain` importa `org.springframework.*` o `com.mongodb.*`; cualquier clase bajo `identity.*` importa `core.infrastructure.*` (regla propia de `identity`, Tarea 4.0, mismo criterio de demostración activa).
 
 ### 4.1 Árbol interno de `core`
 
@@ -152,6 +160,11 @@ core/src/main/java/core/
 - **ADR-022 — ver sección V** (Resolución manual de lotes atascados, sin cambios).
 - **ADR-023 — Sin Spring Security.** El mecanismo de autorización de Fase 3 (bearer token stateless con HMAC) no necesita sesiones, roles ni autenticación de usuario — se implementa con un `OncePerRequestFilter` propio (`TrackingCodeAuthFilter`). Spring Security habría sido sobre-ingeniería para este alcance.
 - **ADR-024 — Exposición Asíncrona de Narrativas (Approved with amendment).** `NarrativeReadPort` (en `contracts`, único puerto que cruza hacia `ai`) con estados `AVAILABLE`/`PENDING`, generación lazy asíncrona sin `.join()` bloqueante en el camino HTTP, reutilizando el single-flight ya existente de Tarea 12. **Enmienda aprobada tras arbitraje entre dos agentes:** la narrativa se expone como endpoint HTTP independiente (`GET /tracking/narrative`), nunca embebida en `PublicDonationTrackingDTO` — evita que el estado interno de un proceso asíncrono/eventualmente consistente (`ai`) determine el código HTTP del recurso principal, y aísla el radio de fallo entre `core` (determinista) y `ai` (con incertidumbre inherente por diseño, ADR-018).
+
+### VII. Módulo de Identidad y Cuentas (Fase 4)
+- **ADR-025 — Persistencia de Identidad y Cuentas.** Sin Event Sourcing: CRUD convencional sobre MongoDB para `Account`/`Organization`, con Audit Log append-only separado (sin cadena criptográfica — no es Event Store ni participa en reconstrucción de estado). Operaciones cross-aggregate en transacción ACID de MongoDB (`TransactionTemplate` programático, no `@Transactional` declarativo, para evitar el problema de auto-invocación de Spring AOP dentro del bucle de reintento). Reintento acotado (2–3 intentos) solo ante `TransientTransactionError` (detectado vía `MongoException.hasErrorLabel()`, inspeccionando la cadena de causas); los fallos deterministas de dominio nunca se reintentan y se propagan de inmediato.
+- **ADR-026 — Modelo de Dominio de Identidad.** Dos Aggregate Roots: `Account` (email, passwordHash, status, organizationId nullable) y `Organization` (type, members: List\<Membership\>). `Membership.roles: Set<Role>` nunca vacío — invariante protegido exclusivamente por el Aggregate, sin constraint de esquema MongoDB (riesgo aceptado). Roles: `REPRESENTATIVE` (exactamente uno por Organization en todo momento), `ADMINISTRATOR` (0..N, opcional), `EMPLOYEE` (rol base de incorporación). Pertenencia única: una Account pertenece a cero o una Organization (multi-tenancy descartado por falta de evidencia de negocio). Transferencia de representación mediante un único comando atómico `TransferRepresentativeAndRemove` — sin comando `TransferRepresentative` separado, sin `JoinOrganization` separado (la incorporación es `AddEmployee`). `RemoveMemberFromOrganization` nunca puede expulsar directamente a un Representative (exige pasar por la transferencia). `GOVERNMENT`/entidad pública queda fuera de alcance — requeriría análisis de invariantes propio.
+- **ADR-027 — Módulo Maven independiente `identity`.** Bounded context distinto de `core` (identidad vs. trazabilidad); mezclarlos contaminaría ciclo de vida y modelo de dominio. *Scope boundary* explícito: no modifica, reemplaza ni centraliza `donorRef`, `custodianRef`, `beneficiaryRef` ni `assetRef` — esos permanecen bajo ADR-014 y ADR-021-D, intactos. `AccountId` es un identificador opaco propio de Identidad, no sustituto de las referencias de `core`. Hashing de contraseñas: BCrypt vía `spring-security-crypto` (JAR aislado, sin `spring-boot-starter-security`, no contradice ADR-023), factor de costo 12 — decisión técnica documentada en `plan-ejecucion-agentes-fase4.md`, no amerita ADR propio.
 
 ---
 
@@ -328,14 +341,28 @@ event_store (Mongo, colección real)
 | 3.11 | `NarrativeReadPort` en `contracts` (ADR-024) | ✅ Completada |
 | 3.12 | Implementación de `NarrativeReadPort` en `ai` | ✅ Completada |
 | 3.13 | Endpoint HTTP de narrativa (`GET /tracking/narrative`) | ✅ Completada |
+| **Fase 4** | **Módulo de Identidad y Cuentas — 11 tareas (4.0 a 4.10)** | ✅ **COMPLETADA** |
+| 4.0 | Scaffolding del módulo Maven `identity` (ADR-027), ArchUnit, verificación de Replica Set | ✅ Completada |
+| 4.1 | Value Objects (`AccountId`, `Email`, `PasswordHash`, `AccountStatus`, `OrganizationType`, `Role`) y excepciones nombradas | ✅ Completada |
+| 4.2 | Aggregate `Account` (comandos, invariantes, `InactiveAccountException`) | ✅ Completada |
+| 4.3 | Aggregate `Organization`/`Membership` — creación, incorporación, roles simples (`assignAdministrator`/`removeAdministrator`/`removeEmployee`, mutadores de `Membership` package-private) | ✅ Completada |
+| 4.4 | `Organization` — transferencia de Representative y expulsión (`transferRepresentativeAndRemove`, `removeMemberFromOrganization`, `AccountNotRepresentativeException`) | ✅ Completada |
+| 4.5 | Puertos de salida (`AccountRepositoryPort`, `OrganizationRepositoryPort`, `AuditLogPort`, `PasswordHasherPort`) | ✅ Completada |
+| 4.6 | Documentos MongoDB, mappers manuales, adaptadores de repositorio, `Account.reconstitute()`/`Organization.reconstitute()` | ✅ Completada |
+| 4.7 | Adaptador de hashing `BCryptPasswordHasherAdapter` (factor de costo 12, verificado sin dependencia transitiva de `spring-boot-starter-security`) | ✅ Completada |
+| 4.8 | Application Services de `Account` (transacción simple, mecanismo booleano de mutación/no-op) | ✅ Completada |
+| 4.9 | Application Services de `Organization` (transacción cross-aggregate, `MongoTransactionRetryHelper` con `TransactionTemplate` programático, reintento verificado con concurrencia real forzada por `CyclicBarrier`) | ✅ Completada |
+| 4.10 | Suite de integración end-to-end (escenario de negocio completo, verificación exacta de secuencia de Audit Log, reactor completo de 7 módulos en verde) | ✅ Completada |
 
 **Métrica de calidad — Fase 2:** 100% cobertura de las 14 tareas originales más 6 correcciones de auditoría (7.1, 10.1–10.5), pruebas pasando en todos los módulos contra Testcontainers real.
 
 **Métrica de calidad — Fase 3:** los tres endpoints públicos verificados end-to-end (filtro real + controlador real + puerto + mapper, no solo piezas certificadas por separado). Reactor completo de 6 módulos (`contracts`, `core`, `crypto`, `ai`, `api`, `app`) en verde.
 
-**Fase 2: cerrada. Fase 3: cerrada.** El sistema expone tres endpoints públicos de lectura sobre el motor de trazabilidad completo, con autorización por tracking code, perímetro de privacidad verificado campo por campo, y narrativa de IA generada de forma asíncrona sin bloquear el camino HTTP.
+**Métrica de calidad — Fase 4:** 66 tests del módulo `identity` en verde (dominio puro, persistencia, adaptador de hashing, Application Services), más el escenario end-to-end de la Tarea 4.10 con verificación exacta de orden y conteo del Audit Log. Reactor completo de 7 módulos (`contracts`, `core`, `crypto`, `ai`, `api`, `identity`, `app`) en verde desde la raíz — primera verificación de que `identity` se integra sin romper nada de lo existente. Mecanismo de reintento transaccional verificado con concurrencia real forzada, no simulada.
 
-**Próximo hito inmediato:** sin definir formalmente todavía. Candidatos identificados: (a) Fase D de la auditoría de Fase 2 — Hallazgo #5 (forma de `AggregateRoot`), pospuesto por decisión consciente; (b) módulo de identidad/cuentas (rol "Fundación" obligatorio, donante individual opcional) — hilo completamente aparte, sin diseño iniciado; (c) deuda técnica menor de Fase 3 (ver sección 9.1, ítems 6-9). Ver `estado-fase3.md` sección 10 para el detalle.
+**Fase 2: cerrada. Fase 3: cerrada. Fase 4: cerrada.** El sistema expone tres endpoints públicos de lectura sobre el motor de trazabilidad completo, y ahora además gestiona cuentas de usuario y organizaciones (Fundación/Empresa) con roles, membresías y transferencia de representación, como un bounded context aislado que no toca el perímetro de privacidad ni las referencias opacas ya establecidas en Fases 1-3.
+
+**Próximo hito inmediato:** sin definir formalmente todavía. Candidatos identificados: (a) Fase D de la auditoría de Fase 2 — Hallazgo #5 (forma de `AggregateRoot`), pospuesto por decisión consciente; (b) donaciones físicas (en especie) con trazabilidad directa al donante — identificado durante Fase 4 como fuera de su alcance porque `PhysicalAsset` no tiene campo `donorRef`; requeriría abrir `core` y se trataría como una fase propia con su propio análisis de impacto; (c) integración HTTP/autenticación sobre el módulo `identity` (endpoints REST, login, Spring Security) — explícitamente fuera de alcance de ADR-027; (d) deuda técnica menor de Fase 3 (ver sección 9.1, ítems 6-9). Ver `estado-fase3.md` sección 10 y `estado-fase4.md` sección 6 para el detalle.
 
 ## 9.1 Deudas Técnicas Identificadas
 
@@ -355,6 +382,10 @@ event_store (Mongo, colección real)
 8. **Sin mecanismo operativo para `TrackingCodeService.revoke()` (Fase 3):** el método de revocación de tracking codes existe y está probado (Tarea 3.3), pero no hay ningún endpoint administrativo ni exposición JMX para invocarlo en producción — a diferencia de `resolveStuckBatch` (ADR-022), que sí tiene su vía JMX. Candidato a una mini-tarea futura con el mismo patrón.
 
 9. **Gestión de secretos HMAC en producción (Fase 3):** los dos secretos (tracking code, `assetRef`) se gestionan como variables de entorno vía `@ConfigurationProperties`, sin vault dedicado — decisión consciente de no sobre-ingeniería dado el contexto del proyecto. Revisar si un despliegue en producción real exige un mecanismo más robusto de rotación.
+
+10. **Binarios de compilación trackeados por error (Fase 4 — Resuelto en dos rondas).** Durante el scaffolding de la Tarea 4.0 se trackearon indiscriminadamente los directorios `target/` de `core` y `crypto`, pese a que el `.gitignore` ya incluía la regla de exclusión — el problema no era la regla, sino que estos archivos ya estaban en el índice desde antes de que se respetara. Corregido en `chore/purge-tracked-build-artifacts` (entre 4.5 y 4.6). Un segundo diagnóstico, ejecutado al cierre de la Tarea 4.10 con `git ls-files | grep -E '(^|/)target/'` sobre el árbol **completo** del repositorio (el primer chore solo había verificado los dos módulos ya conocidos), encontró que `ai/target/`, `app/target/` y `contracts/target/` seguían trackeados — 46 archivos adicionales. Corregido en `chore/purge-tracked-build-artifacts-round-2`, con la misma verificación exhaustiva confirmando salida vacía tras la purga. **Lección de proceso incorporada a `reglas-equipo-y-agentes.md`/`plan-ejecucion-agentes-fase4.md`:** cualquier diagnóstico de higiene de repositorio debe correrse sobre el árbol completo desde el inicio, nunca acotado a los módulos donde ya se sospecha el problema.
+
+11. **Integración de Identidad con `core` (Fase 4/5).** `identity.Account` y `identity.Organization` no tienen ningún vínculo funcional todavía con `Fund.donorRef` ni con la generación de referencias opacas de `core` — es una decisión deliberada de alcance (ADR-027), no un olvido. Si en una fase futura se decide que un `accountId` de Identidad deba poblar `donorRef` en el momento de crear un `Fund` (por ejemplo, para que un donante con cuenta vea su historial sin depender solo del tracking code), esa integración requiere su propio ADR y su propio análisis de impacto sobre `core` — no se hace por inferencia ni se cuela dentro de un cambio de Identidad.
 
 ---
 

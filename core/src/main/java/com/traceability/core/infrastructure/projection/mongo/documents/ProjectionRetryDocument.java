@@ -31,6 +31,8 @@ public class ProjectionRetryDocument {
     
     private String eventType;
     
+    private String schemaVersion;
+    
     private Map<String, Object> payload;
     
     private String occurredAt;

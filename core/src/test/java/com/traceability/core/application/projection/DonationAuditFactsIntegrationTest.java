@@ -93,6 +93,7 @@ public class DonationAuditFactsIntegrationTest {
         doc.setPayload(objectMapper.convertValue(payload, new TypeReference<Map<String, Object>>() {}));
         doc.setOccurredAt(occurredAt.toString());
         doc.setAggregateType(aggType);
+        doc.setSchemaVersion("1.0");
         return doc;
     }
 

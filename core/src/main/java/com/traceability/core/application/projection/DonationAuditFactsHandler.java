@@ -98,7 +98,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             doc.setGeneratedAt(Instant.now());
         }
 
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
         Update update = new Update();
         update.set("auditMetadata.fundLastProcessedSequence", incomingSequence);
         update.set("generatedAt", Instant.now());
@@ -125,7 +125,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
     }
 
     private void processPhysicalAssetEvent(TraceabilityEventDocument eventDoc, String assetId, long incomingSequence) {
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
         
         String fundId = resolveFundId(assetId, payload);
         if (fundId == null) {
@@ -263,6 +263,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             .streamId(eventDoc.getStreamId())
             .sequence(eventDoc.getSequence())
             .eventType(eventDoc.getEventType())
+            .schemaVersion(eventDoc.getSchemaVersion())
             .payload(eventDoc.getPayload())
             .occurredAt(eventDoc.getOccurredAt())
             .firstAttemptAt(Instant.now().toString())

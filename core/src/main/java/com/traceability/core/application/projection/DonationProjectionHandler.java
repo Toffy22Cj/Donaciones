@@ -90,7 +90,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             throw new ProjectionPausedException("Projection is PAUSED");
         }
 
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
 
         // Update Snapshot and Allocations using MongoTemplate update for efficiency if exists, 
         // but for Fund it's easier to modify the object and save it since it's a single document
@@ -152,7 +152,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     }
 
     private void processPhysicalAssetEvent(TraceabilityEventDocument eventDoc, String assetId, long incomingSequence) {
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
         
         String projectionId = resolveProjectionId(assetId, payload);
         if (projectionId == null) {
@@ -310,6 +310,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             .streamId(eventDoc.getStreamId())
             .sequence(eventDoc.getSequence())
             .eventType(eventDoc.getEventType())
+            .schemaVersion(eventDoc.getSchemaVersion())
             .payload(eventDoc.getPayload())
             .occurredAt(eventDoc.getOccurredAt())
             .firstAttemptAt(Instant.now().toString())
@@ -322,7 +323,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             projectionId = eventDoc.getStreamId();
         } else {
             try {
-                DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+                DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
                 projectionId = resolveProjectionId(eventDoc.getStreamId(), payload);
             } catch (Exception ignored) {}
         }

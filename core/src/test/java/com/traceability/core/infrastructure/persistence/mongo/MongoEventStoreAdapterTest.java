@@ -93,7 +93,7 @@ class MongoEventStoreAdapterTest {
 
         @Transactional
         public void appendAndFail(String streamId, DomainEvent event, OutboxMessage msg) {
-            eventStorePort.append(streamId, "PhysicalAsset", 0, List.of(event), "actor");
+            eventStorePort.append(streamId, "PhysicalAsset", 0, List.of(event), new com.traceability.core.domain.event.SystemActor("test-harness"));
             
             outboxPort.save(msg); // Attempt write to outbox
             
@@ -130,7 +130,7 @@ class MongoEventStoreAdapterTest {
         AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event = new DomainEvent(() -> "ASSET_REGISTERED", payload, Instant.now());
 
-        eventStoreAdapter.append("stream-1", "PhysicalAsset", 0, List.of(event), "actor-1");
+        eventStoreAdapter.append("stream-1", "PhysicalAsset", 0, List.of(event), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         List<TraceabilityEventDocument> docs = mongoTemplate.findAll(TraceabilityEventDocument.class);
         assertEquals(1, docs.size());
@@ -142,11 +142,11 @@ class MongoEventStoreAdapterTest {
     void testAppend_ChainedEvent_UsesPreviousHash() {
         AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
-        eventStoreAdapter.append("stream-2", "PhysicalAsset", 0, List.of(event1), "actor-1");
+        eventStoreAdapter.append("stream-2", "PhysicalAsset", 0, List.of(event1), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         AssetDispatchedPayload payload2 = new AssetDispatchedPayload("trans-A", "loc-A");
         DomainEvent event2 = new DomainEvent(() -> "ASSET_DISPATCHED", payload2, Instant.now());
-        eventStoreAdapter.append("stream-2", "PhysicalAsset", 1, List.of(event2), "actor-1");
+        eventStoreAdapter.append("stream-2", "PhysicalAsset", 1, List.of(event2), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         List<TraceabilityEventDocument> docs = mongoTemplate.findAll(TraceabilityEventDocument.class);
         assertEquals(2, docs.size());
@@ -161,7 +161,7 @@ class MongoEventStoreAdapterTest {
     void testAppend_ConcurrencyConflict() throws InterruptedException {
         AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
-        eventStoreAdapter.append("stream-3", "PhysicalAsset", 0, List.of(event1), "actor-1");
+        eventStoreAdapter.append("stream-3", "PhysicalAsset", 0, List.of(event1), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch latch = new CountDownLatch(2);
@@ -173,7 +173,7 @@ class MongoEventStoreAdapterTest {
             try {
                 AssetDispatchedPayload p = new AssetDispatchedPayload("trans", "dest");
                 DomainEvent e = new DomainEvent(() -> "ASSET_DISPATCHED", p, Instant.now());
-                eventStoreAdapter.append("stream-3", "PhysicalAsset", 1, List.of(e), "actor");
+                eventStoreAdapter.append("stream-3", "PhysicalAsset", 1, List.of(e), new com.traceability.core.domain.event.SystemActor("test-harness"));
                 successCount.incrementAndGet();
             } catch (ConcurrencyConflictException ex) {
                 conflictCount.incrementAndGet();
@@ -197,7 +197,7 @@ class MongoEventStoreAdapterTest {
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
         
         assertThrows(SequenceGapException.class, () -> 
-            eventStoreAdapter.append("stream-4", "PhysicalAsset", 5, List.of(event1), "actor-1")
+            eventStoreAdapter.append("stream-4", "PhysicalAsset", 5, List.of(event1), new com.traceability.core.domain.event.SystemActor("test-harness"))
         );
     }
 
@@ -219,12 +219,12 @@ class MongoEventStoreAdapterTest {
     void testLoadStream_Ordering() {
         TraceabilityEventDocument doc2 = TraceabilityEventDocument.builder()
             .eventId("id2").streamId("stream-ord").aggregateType("T").sequence(2)
-            .eventType("ASSET_DISPATCHED").payload(Map.of("carrierRef", "t", "previousLocation", "d"))
+            .eventType("ASSET_DISPATCHED").schemaVersion("1.0").payload(Map.of("carrierRef", "t", "previousLocation", "d"))
             .previousHash("h1").eventHash("h2").build();
             
         TraceabilityEventDocument doc1 = TraceabilityEventDocument.builder()
             .eventId("id1").streamId("stream-ord").aggregateType("T").sequence(1)
-            .eventType("ASSET_REGISTERED").payload(Map.of("assetId", "1", "assetType", "T", "quantity", 100, "unitOfMeasure", "DOSES", "currentLocation", "l", "custodianRef", "c"))
+            .eventType("ASSET_REGISTERED").schemaVersion("1.0").payload(Map.of("assetId", "1", "assetType", "T", "quantity", 100, "unitOfMeasure", "DOSES", "currentLocation", "l", "custodianRef", "c"))
             .previousHash(DomainEvent.GENESIS_HASH).eventHash("h1").build();
 
         mongoTemplate.insert(doc2);
@@ -241,17 +241,17 @@ class MongoEventStoreAdapterTest {
         // 1. REGISTER
         AssetRegisteredPayload payload1 = new AssetRegisteredPayload("asset-e2e", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
         DomainEvent event1 = new DomainEvent(() -> "ASSET_REGISTERED", payload1, Instant.now());
-        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 0, List.of(event1), "actor-1");
+        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 0, List.of(event1), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         // 2. DISPATCH
         AssetDispatchedPayload payload2 = new AssetDispatchedPayload("trans-1", "loc-A");
         DomainEvent event2 = new DomainEvent(() -> "ASSET_DISPATCHED", payload2, Instant.now());
-        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 1, List.of(event2), "actor-1");
+        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 1, List.of(event2), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         // 3. SPLIT
         AssetSplitPayload payload3 = new AssetSplitPayload("asset-e2e-child", new BigDecimal("20.0000"), "DOSES", new BigDecimal("100.0000"), new BigDecimal("80.0000"), "DISPATCHED", null, null, null);
         DomainEvent event3 = new DomainEvent(() -> "ASSET_SPLIT", payload3, Instant.now());
-        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 2, List.of(event3), "actor-1");
+        eventStoreAdapter.append("asset-e2e", "PhysicalAsset", 2, List.of(event3), new com.traceability.core.domain.event.SystemActor("test-harness"));
 
         // 4. Load Stream
         List<DomainEvent> events = eventStoreAdapter.loadStream("asset-e2e");
@@ -267,5 +267,23 @@ class MongoEventStoreAdapterTest {
         assertEquals("loc-A", aggregate.getLastKnownLocation()); 
         assertEquals("trans-1", aggregate.getCustodianRef());
         assertEquals(3, aggregate.getVersion());
+    }
+    @Test
+    void testAppend_PersistsActorRefPolymorphically() {
+        AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-actor-test", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
+        DomainEvent event = new DomainEvent(() -> "ASSET_REGISTERED", payload, Instant.now());
+
+        eventStoreAdapter.append("stream-actor-test", "PhysicalAsset", 0, List.of(event), new com.traceability.core.domain.event.SystemActor("my-test-policy"));
+
+        List<TraceabilityEventDocument> docs = mongoTemplate.find(
+                new org.springframework.data.mongodb.core.query.Query(org.springframework.data.mongodb.core.query.Criteria.where("streamId").is("stream-actor-test")),
+                TraceabilityEventDocument.class
+        );
+
+        assertEquals(1, docs.size());
+        com.traceability.core.domain.event.ActorRef persistedActor = docs.get(0).getActorRef();
+        assertNotNull(persistedActor);
+        assertTrue(persistedActor instanceof com.traceability.core.domain.event.SystemActor);
+        assertEquals("my-test-policy", ((com.traceability.core.domain.event.SystemActor) persistedActor).policyName());
     }
 }
