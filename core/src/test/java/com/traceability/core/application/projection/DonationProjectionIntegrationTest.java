@@ -36,11 +36,15 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = {
-    "core.projection.retry.delay=100",
+    DonationProjectionIntegrationTest.DISABLE_SCHEDULER_PROP,
     "core.projection.retry.timeout-minutes=5"
 })
 @Testcontainers
 class DonationProjectionIntegrationTest {
+
+    // Spring ScheduledThreadPoolExecutor rejects delay <= 0 with IllegalArgumentException. 
+    // We use a large magic number (99999999 ms, ~115 days) to effectively disable the background scheduler during tests.
+    static final String DISABLE_SCHEDULER_PROP = "core.projection.retry.delay=99999999";
 
     @MockBean
     private HashPort hashPort;
@@ -188,16 +192,16 @@ class DonationProjectionIntegrationTest {
         TraceabilityEventDocument ev1 = buildEvent("fund-3", "Fund", 1, "FUNDS_CLEARED", Map.of("clearedAmount", 500));
         projectionHandler.handleEvent(ev1);
         
-        // Wait for scheduler to process retries automatically
-        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
-            .until(() -> retryRepository.findByStatus("PENDING").isEmpty());
+        // Execute synchronously exactly once
+        retryScheduler.processRetries();
         
         proj = projectionRepository.findById("fund-3").get();
         assertEquals(500, proj.getFinancialSnapshot().getClearedAmount());
         assertEquals(1, proj.getAllocations().size());
         assertEquals(2, proj.getAuditMetadata().getFundLastProcessedSequence());
         
-        assertEquals(0, retryRepository.findByStatus("PENDING").size());
+        // Verify completely empty table (not just non-PENDING)
+        assertTrue(retryRepository.findAll().isEmpty(), "Retry table should be completely empty");
     }
 
     @Test
@@ -223,9 +227,10 @@ class DonationProjectionIntegrationTest {
         stuckDoc.setProcessingStartedAt(java.time.Instant.now().minus(10, java.time.temporal.ChronoUnit.MINUTES).toString());
         retryRepository.save(stuckDoc);
 
-        // Await processing (scheduler should pick it up because it timed out)
-        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
-            .until(() -> retryRepository.findById("event-stuck_DonationProjectionHandler").isEmpty());
+        // Execute synchronously exactly once
+        retryScheduler.processRetries();
+
+        assertTrue(retryRepository.findById("event-stuck_DonationProjectionHandler").isEmpty(), "Document should be fully processed and deleted");
 
         DonationProjectionDocument proj = projectionRepository.findById("fund-stuck").get();
         assertEquals(500L, proj.getFinancialSnapshot().getClearedAmount());
