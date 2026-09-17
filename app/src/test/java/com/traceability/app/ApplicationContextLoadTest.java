@@ -99,7 +99,7 @@ class ApplicationContextLoadTest {
                 "PhysicalAsset",
                 0L, // expectedVersion
                 List.of(event),
-                "system",
+                new com.traceability.core.domain.event.SystemActor("system"),
                 List.of(outboxMessage),
                 UUID.randomUUID().toString() // commandId
         );
