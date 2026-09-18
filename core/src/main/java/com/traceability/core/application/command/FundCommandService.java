@@ -59,9 +59,6 @@ public class FundCommandService {
     }
 
     public void confirmAllocation(String commandId, String fundId, String allocationId, com.traceability.core.domain.event.ActorRef actorRef) {
-        if (processedCommandRepository.exists(commandId)) {
-            return;
-        }
 
         retryTemplate.execute(() -> {
             List<DomainEvent> events = eventStore.loadStream(fundId);
@@ -74,15 +71,16 @@ public class FundCommandService {
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
                 eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
+            } else {
+                // If there are no new events, we still need to claim the command to prevent infinite retries from saga.
+                // We do this by calling appendAndOutbox with empty events list.
+                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, java.util.Collections.emptyList(), actorRef, null, commandId);
             }
             return null;
         });
     }
 
     public void reverseAllocation(String commandId, String fundId, String allocationId, String reason, com.traceability.core.domain.event.ActorRef actorRef) {
-        if (processedCommandRepository.exists(commandId)) {
-            return;
-        }
 
         retryTemplate.execute(() -> {
             List<DomainEvent> events = eventStore.loadStream(fundId);
@@ -95,6 +93,8 @@ public class FundCommandService {
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
                 eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
+            } else {
+                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, java.util.Collections.emptyList(), actorRef, null, commandId);
             }
             return null;
         });

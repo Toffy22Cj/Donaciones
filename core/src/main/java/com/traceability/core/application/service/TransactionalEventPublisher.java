@@ -25,7 +25,9 @@ public class TransactionalEventPublisher {
     @Transactional
     public void appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId) {
         if (commandId != null) {
-            processedCommandRepositoryPort.save(commandId);
+            if (!processedCommandRepositoryPort.tryClaim(commandId)) {
+                return;
+            }
         }
         
         eventStorePort.append(streamId, aggregateType, expectedVersion, events, actorRef);
