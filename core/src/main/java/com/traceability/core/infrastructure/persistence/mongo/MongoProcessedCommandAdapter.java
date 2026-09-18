@@ -28,11 +28,14 @@ public class MongoProcessedCommandAdapter implements ProcessedCommandRepositoryP
 
     @Override
     public boolean tryClaim(String commandId) {
-        System.out.println("IS TRANSACTION ACTIVE IN TRYCLAIM? " + org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
-        org.springframework.data.mongodb.core.query.Query query = new org.springframework.data.mongodb.core.query.Query(org.springframework.data.mongodb.core.query.Criteria.where("_id").is(commandId));
-        org.springframework.data.mongodb.core.query.Update update = new org.springframework.data.mongodb.core.query.Update().setOnInsert("processedAt", Instant.now());
-        org.springframework.data.mongodb.core.FindAndModifyOptions options = new org.springframework.data.mongodb.core.FindAndModifyOptions().upsert(true).returnNew(false);
-        ProcessedCommandDocument prev = mongoTemplate.findAndModify(query, update, options, ProcessedCommandDocument.class);
-        return prev == null;
+        try {
+            org.springframework.data.mongodb.core.query.Query query = new org.springframework.data.mongodb.core.query.Query(org.springframework.data.mongodb.core.query.Criteria.where("_id").is(commandId));
+            org.springframework.data.mongodb.core.query.Update update = new org.springframework.data.mongodb.core.query.Update().setOnInsert("processedAt", Instant.now());
+            org.springframework.data.mongodb.core.FindAndModifyOptions options = new org.springframework.data.mongodb.core.FindAndModifyOptions().upsert(true).returnNew(false);
+            ProcessedCommandDocument prev = mongoTemplate.findAndModify(query, update, options, ProcessedCommandDocument.class);
+            return prev == null;
+        } catch (org.springframework.dao.DataIntegrityViolationException | org.springframework.dao.ConcurrencyFailureException e) {
+            throw new com.traceability.core.application.exception.ConcurrencyConflictException("Write conflict claiming command " + commandId, e);
+        }
     }
 }
