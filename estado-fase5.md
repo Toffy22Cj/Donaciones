@@ -295,8 +295,18 @@ NUEVA-3  feat/core-physicalasset-application-commands (registerPhysicalAsset, sp
 NUEVA-4  feat/core-fund-allocation-saga-policy        (FundAllocationSagaPolicy) — depende de NUEVA-2, NUEVA-3
 ```
 
+**Aclaración sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existe con un commit que preserva el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 8 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1 — no representa implementación en curso. El método `FundCommandService.requestAllocation()` todavía NO existe. Estado real: sin iniciar.
+
 **Tareas 5.3, 5.4, 5.5: PAUSADAS**, dependencia actualizada a NUEVA-1/NUEVA-3/NUEVA-4 en `plan-ejecucion-agentes-fase5.md`.
 
 **Acción de seguimiento fuera de esta conversación** (no se ejecuta aquí, los documentos del proyecto son de solo lectura en este contexto): corregir `documento-maestro-proyecto.md` §7.1 para que no afirme en tiempo presente la existencia de `FundAllocationSagaPolicy`/`SplitPhysicalAssetSagaPolicy` ni de los comandos de aplicación no implementados — debe distinguir explícitamente diseño/intención de Fase 1-4 de lo efectivamente construido y probado.
 
 **No se investigó** (queda fuera de esta auditoría, explícitamente no determinado): si `SplitPhysicalAssetSagaPolicy` tiene alguna responsabilidad real distinta al split en sí (¿actualización de índice? ¿alguna compensación posterior?) que sí necesite implementarse — NUEVA-3/NUEVA-4 no la incluyen por falta de evidencia de qué haría, no porque se haya confirmado innecesaria.
+
+---
+
+## 11. Estado de Bug Sagas
+
+**Bug Saga 1** (`fix/core-saga-outbox-idempotency-guard`) — Approved, mergeado a develop en el commit `1b3930a` (PR #3). `tryClaim()` vía `findAndModify`+`upsert`+`setOnInsert` dentro de `TransactionalEventPublisher.appendAndOutbox()`, migrados `confirmAllocation`/`reverseAllocation`.
+
+**Bug Saga 2 y Bug Saga 3:** sin iniciar, confirmado sin código ni ramas activas.
