@@ -58,6 +58,25 @@ public class FundCommandService {
         });
     }
 
+    public void requestAllocation(String commandId, String fundId, String allocationId, long amount, com.traceability.core.domain.event.ActorRef actorRef) {
+        if (processedCommandRepository.exists(commandId)) {
+            return;
+        }
+
+        retryTemplate.execute(() -> {
+            List<DomainEvent> events = eventStore.loadStream(fundId);
+            List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
+            Fund fund = Fund.rehydrate(fundId, payloads, events.size());
+            long expectedVersion = fund.getVersion();
+            
+            fund.requestAllocation(allocationId, amount);
+            
+            List<DomainEvent> newEvents = fund.getUncommittedEvents();
+            eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
+            return null;
+        });
+    }
+
     public void confirmAllocation(String commandId, String fundId, String allocationId, com.traceability.core.domain.event.ActorRef actorRef) {
 
         retryTemplate.execute(() -> {
