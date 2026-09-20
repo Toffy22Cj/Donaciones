@@ -38,7 +38,7 @@ public class FundCommandService {
         retryTemplate.execute(() -> {
             Fund fund = Fund.registerFund(fundId, organizationRef, pledgedAmount, currency, campaignRef, donorRef);
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
-            
+
             eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
             return null;
         });
@@ -52,8 +52,27 @@ public class FundCommandService {
         retryTemplate.execute(() -> {
             Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
-            
+
             eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
+            return null;
+        });
+    }
+
+    public void clearFundsForPledge(String commandId, String fundId, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        if (processedCommandRepository.exists(commandId)) {
+            return;
+        }
+
+        retryTemplate.execute(() -> {
+            List<DomainEvent> events = eventStore.loadStream(fundId);
+            List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
+            Fund fund = Fund.rehydrate(fundId, payloads, events.size());
+            long expectedVersion = fund.getVersion();
+
+            fund.clearFunds(amount, sourceRef);
+
+            List<DomainEvent> newEvents = fund.getUncommittedEvents();
+            eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
             return null;
         });
     }
@@ -68,9 +87,9 @@ public class FundCommandService {
             List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
-            
+
             fund.requestAllocation(allocationId, amount);
-            
+
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
             return null;
@@ -84,9 +103,9 @@ public class FundCommandService {
             List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
-            
+
             fund.confirmAllocation(allocationId);
-            
+
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
                 eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
@@ -106,9 +125,9 @@ public class FundCommandService {
             List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
-            
+
             fund.reverseAllocation(allocationId, reason);
-            
+
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
                 eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
