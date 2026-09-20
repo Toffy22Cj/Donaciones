@@ -12,6 +12,12 @@
     <artifactId>identity</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>com.traceability</groupId>
+            <artifactId>contracts</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot Starter (for @Transactional and context) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
