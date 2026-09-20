@@ -292,7 +292,7 @@ Durante la implementación de la Tarea 5.3 se descubrió, con evidencia literal 
 NUEVA-1  feat/core-fund-genesis-commands              (registerFund, clearFundsGenesis)
 NUEVA-2  feat/core-fund-request-allocation-command    (requestAllocation) — depende de NUEVA-1
 NUEVA-3  feat/core-physicalasset-application-commands (registerPhysicalAsset, splitPhysicalAsset)
-NUEVA-4  feat/core-fund-allocation-saga-policy        (FundAllocationSagaPolicy) — depende de NUEVA-2, NUEVA-3
+NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabilidad manual de PENDING_ALLOCATION”) — PARTE A desbloqueada, PARTE B bloqueada
 ```
 
 **Aclaración histórica sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existía inicialmente con un commit que preservaba el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 7 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1, y no representaba implementación en curso. Esto ha sido resuelto en la implementación posterior.
@@ -303,7 +303,11 @@ NUEVA-4  feat/core-fund-allocation-saga-policy        (FundAllocationSagaPolicy)
 - **NUEVA-1** (core-fund-genesis-commands): COMPLETADA (Implementación introducida en el commit `0579f41`, integrado directamente en el historial base de develop anterior al branch actual).
 - **NUEVA-2** (core-fund-request-allocation-command): COMPLETADA (Implementación en 299f04b, mergeada vía PR #6 en 927eefa).
 - **NUEVA-3** (core-physicalasset-application-commands): COMPLETADA (Implementación en 0568325, mergeada vía PR #4 en 66fc813).
-- **NUEVA-4** (core-fund-allocation-saga-policy): NO INICIADA
+- **NUEVA-4** (core-pending-allocation-read-model): NO INICIADA.
+  - **Redefinida:** “Visibilidad y operabilidad manual de PENDING_ALLOCATION”
+  - **PARTE A:** Read model/proyección de allocations pendientes → DESBLOQUEADA.
+  - **PARTE B:** Resolución administrativa de `reverseAllocation` → BLOQUEADA hasta implementación real de Bloque C/D.
+  - *Descartados:* `FundAllocationSagaPolicy`, TTL/expiración automática, `reason` en compensación. `PhysicalAsset` queda fuera de NUEVA-4.
 - **5.2** (fund-clearfunds-split): NO INICIADA
 - **5.3** (physicalasset-organization-donor-ref): NO INICIADA
 - **5.4** (physicalasset-donation-genesis-domain): NO INICIADA
