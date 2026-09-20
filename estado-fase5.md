@@ -303,9 +303,9 @@ NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabil
 - **NUEVA-1** (core-fund-genesis-commands): COMPLETADA (Implementación introducida en el commit `0579f41`, integrado directamente en el historial base de develop anterior al branch actual).
 - **NUEVA-2** (core-fund-request-allocation-command): COMPLETADA (Implementación en 299f04b, mergeada vía PR #6 en 927eefa).
 - **NUEVA-3** (core-physicalasset-application-commands): COMPLETADA (Implementación en 0568325, mergeada vía PR #4 en 66fc813).
-- **NUEVA-4** (core-pending-allocation-read-model): NO INICIADA.
+- **NUEVA-4** (core-pending-allocation-read-model): PARCIAL (Parte A pendiente de PR).
   - **Redefinida:** “Visibilidad y operabilidad manual de PENDING_ALLOCATION”
-  - **PARTE A:** Read model/proyección de allocations pendientes → DESBLOQUEADA.
+  - **PARTE A:** Read model/proyección de allocations pendientes → IMPLEMENTACIÓN LOCAL COMPLETA, tests verdes, pendiente de PR.
   - **PARTE B:** Resolución administrativa de `reverseAllocation` → BLOQUEADA hasta implementación real de Bloque C/D.
   - *Descartados:* `FundAllocationSagaPolicy`, TTL/expiración automática, `reason` en compensación. `PhysicalAsset` queda fuera de NUEVA-4.
 - **5.2** (fund-clearfunds-split): NO INICIADA
@@ -337,3 +337,9 @@ Se confirma un hallazgo preexistente (pendiente de decisión y sin corrección i
 - No fue introducido por Bug Saga 1.
 - No fue introducido por NUEVA-2.
 - Genera un falso positivo si dos comandos con **distinto** `commandId` (por ejemplo, repetición maliciosa o nuevo intento genuino sin correlación adecuada) alcanzan el mismo estado redundante en el agregado.
+
+**Hallazgo Transversal (Projection Retry Framework):**
+Se detectó un defecto preexistente en el mecanismo compartido de reintento de proyecciones (CQRS). Ver `hallazgo-framework-retry-projections.md` para el detalle técnico.
+- Consiste en un riesgo de pérdida silenciosa de eventos cuando fallan durante el reprocesamiento del `ProjectionRetryScheduler`.
+- **Estado:** ABIERTO.
+- **Alcance:** FUERA DE NUEVA-4.
