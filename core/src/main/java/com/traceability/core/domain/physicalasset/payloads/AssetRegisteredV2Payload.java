@@ -20,5 +20,6 @@ public record AssetRegisteredV2Payload(
     String allocationId,
     String sourceAllocationId,
     String organizationRef,
-    String donorRef
+    String donorRef,
+    String donationRef
 ) implements DomainEventPayload {}

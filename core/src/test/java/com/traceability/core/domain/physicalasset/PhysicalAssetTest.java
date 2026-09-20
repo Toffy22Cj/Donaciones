@@ -175,7 +175,7 @@ class PhysicalAssetTest {
         PhysicalAsset asset = new PhysicalAsset();
         
         List<DomainEventPayload> historicalPayloads = List.of(
-            new AssetRegisteredV2Payload("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null),
+            new AssetRegisteredV2Payload("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null, null),
             new AssetDispatchedPayload("CARRIER_1", "LOC_A"),
             new AssetReceivedPayload("LOC_B", "CUST_B"),
             // Split 1 (extract 40)
@@ -197,5 +197,80 @@ class PhysicalAssetTest {
         
         // Cannot compensate again
         assertThrows(DuplicateCompensationException.class, () -> asset.compensateSplit("A3", new java.math.BigDecimal("60.0000")));
+    }
+
+    // -- Camino B (In-Kind Donation Genesis) Tests --
+
+    @Test
+    void testCreateAssetFromDonation_Success() {
+        PhysicalAsset asset = PhysicalAsset.create(
+            "A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "WAREHOUSE_1", "CUST_1", null, "A1", null, null, "ORG_1", "DONOR_1", "DONATION_100"
+        );
+
+        assertEquals("A1", asset.getAssetId());
+        assertEquals(new java.math.BigDecimal("50.0000"), asset.getQuantity());
+        assertEquals(AssetLifecycleStatus.REGISTERED, asset.getLifecycleStatus());
+        assertEquals("ORG_1", asset.getOrganizationRef());
+        assertEquals("DONOR_1", asset.getDonorRef());
+        assertEquals("DONATION_100", asset.getDonationRef());
+
+        assertEquals(1, asset.getUncommittedEvents().size());
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV2Payload);
+        AssetRegisteredV2Payload payload = (AssetRegisteredV2Payload) asset.getUncommittedEvents().get(0).payload();
+        assertEquals("MEDICINE", payload.assetType());
+        assertEquals("ORG_1", payload.organizationRef());
+        assertEquals("DONOR_1", payload.donorRef());
+        assertEquals("DONATION_100", payload.donationRef());
+    }
+
+    @Test
+    void testCreateAssetFromDonation_MissingRequiredFields_ThrowsException() {
+        // Missing organizationRef
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, null, "DONOR_1", "DONATION_100")
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "  ", "DONOR_1", "DONATION_100")
+        );
+
+        // Missing donorRef
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", null, "DONATION_100")
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", "  ", "DONATION_100")
+        );
+
+        // Missing donationRef
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", "DONOR_1", null)
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", "DONOR_1", "  ")
+        );
+    }
+
+    @Test
+    void testSharedSchema_CaminoAAndCaminoBShareSameSchemaVersion() {
+        PhysicalAsset assetCaminoA = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", "DONOR_1"
+        );
+        PhysicalAsset assetCaminoB = PhysicalAsset.create(
+            "A2", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "LOC_B", "CUST_B", null, "A2", null, null, "ORG_1", "DONOR_1", "DONATION_100"
+        );
+
+        DomainEventPayload payloadA = assetCaminoA.getUncommittedEvents().get(0).payload();
+        DomainEventPayload payloadB = assetCaminoB.getUncommittedEvents().get(0).payload();
+
+        // Same record class schema
+        assertEquals(AssetRegisteredV2Payload.class, payloadA.getClass());
+        assertEquals(AssetRegisteredV2Payload.class, payloadB.getClass());
+
+        AssetRegisteredV2Payload pA = (AssetRegisteredV2Payload) payloadA;
+        AssetRegisteredV2Payload pB = (AssetRegisteredV2Payload) payloadB;
+
+        // Structural equality of components count/types, differing only in value for donationRef
+        assertNull(pA.donationRef());
+        assertEquals("DONATION_100", pB.donationRef());
     }
 }
