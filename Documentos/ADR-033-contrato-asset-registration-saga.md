@@ -9,6 +9,8 @@ Para confirmar la asignación financiera en `Fund` tras la materialización fís
 
 Existía una inconsistencia en la política consumidora (`AssetRegisteredSagaPolicy`), la cual intentaba leer la identificación de la asignación usando el campo heredado `sourceAllocationId` para activos físicos recién creados (raíz), en lugar de la asignación directa. Esto impedía la confirmación y reversión correcta de los fondos en el caso de creación directa.
 
+**Estado de validación end-to-end**: Aunque el contrato y sus invariantes han sido verificados contra el código consumidor y contra el comportamiento de `OutboxSagaCoordinator`, el envelope de `ASSET_REGISTRATION_SAGA` todavía no ha sido ejercitado end-to-end por un productor real de `OutboxMessage` en producción. No existe actualmente un productor implementado que emita este `sagaType`. Por tanto, este ADR formaliza un contrato verificado estructuralmente, pero su flujo productor→Outbox→Policy aún no cuenta con validación de integración end-to-end.
+
 ## Decisiones
 
 ### 1. Resolución Semántica (Aprobada)
