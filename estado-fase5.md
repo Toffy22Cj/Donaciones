@@ -322,7 +322,7 @@ NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabil
   - actorRef propagado
   - idempotencia garantizada por el mecanismo existente de TransactionalEventPublisher / tryClaim
   - test de integración con 5 casos
-  - suite core validada: 143 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS
+  - suite core validada: 145 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS
 - **5.3** (physicalasset-organization-donor-ref): NO INICIADA
 - **5.4** (physicalasset-donation-genesis-domain): NO INICIADA
 - **5.5** (physicalasset-split-inheritance): NO INICIADA

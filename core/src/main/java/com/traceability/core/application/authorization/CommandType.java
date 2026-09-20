@@ -1,0 +1,10 @@
+package com.traceability.core.application.authorization;
+
+public enum CommandType {
+    REGISTER_FUND,
+    CLEAR_FUNDS_AS_GENESIS,
+    CLEAR_FUNDS_FOR_PLEDGE,
+    REGISTER_PHYSICAL_ASSET,
+    REGISTER_PHYSICAL_ASSET_FROM_DONATION,
+    SPLIT_PHYSICAL_ASSET
+}
