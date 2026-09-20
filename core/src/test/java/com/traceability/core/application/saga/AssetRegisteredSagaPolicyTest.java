@@ -31,7 +31,7 @@ class AssetRegisteredSagaPolicyTest {
         String payloadJson = "{" +
                 "\"assetId\": \"ASSET-1\"," +
                 "\"allocationId\": \"ALLOC-ROOT\"," +
-                "\"sourceAllocationId\": null," +
+                "\"sourceAllocationId\": \"ALLOC-CHILD-DECOY\"," +
                 "\"fundId\": \"FUND-1\"" +
                 "}";
 
@@ -65,7 +65,7 @@ class AssetRegisteredSagaPolicyTest {
         String payloadJson = "{" +
                 "\"assetId\": \"ASSET-1\"," +
                 "\"allocationId\": \"ALLOC-ROOT\"," +
-                "\"sourceAllocationId\": null," +
+                "\"sourceAllocationId\": \"ALLOC-CHILD-DECOY\"," +
                 "\"fundId\": \"FUND-1\"" +
                 "}";
 
