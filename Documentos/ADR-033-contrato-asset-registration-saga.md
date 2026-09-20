@@ -1,4 +1,4 @@
-# ADR-028 — Contrato y Envelope de Asset Registration Saga
+# ADR-033 — Contrato y Envelope de Asset Registration Saga
 
 ## Estado
 Aprobado parcialmente. (Se aprueba la desambiguación semántica. El resto del contrato de envelope se formaliza según el comportamiento empírico actual, a la espera de estandarización futura según ADR-013).
@@ -27,10 +27,12 @@ Se formaliza el contrato del payload de la saga `ASSET_REGISTRATION_SAGA` eviden
 Las siguientes decisiones representan el estado *táctico* y comprobado del sistema actual. No se declaran como estándares globales definitivos hasta reconciliarlos formalmente con **ADR-009** y **ADR-013**:
 
 - **`sagaType`**: Debe ser exactamente `"ASSET_REGISTRATION_SAGA"`.
-- **Estabilidad y uso de `messageId`**: Se verificó empíricamente que `OutboxSagaCoordinator` preserva el `messageId` original y lo copia idéntico en cada nuevo intento o puesta en cuarentena. Dado que es estable, la política emplea el `messageId` directamente como `commandId` de intención contra `FundCommandService` para asegurar idempotencia.
-- **Uso de `correlationId`**: Se verificó que el sistema actual no utiliza `correlationId` en ningún otro lugar para correlación distribuida ni existe acoplamiento con `allocationId`. Únicamente se usa dentro de `AssetRegisteredSagaPolicy` como un fallback empírico para deducir el `fundId` si este falta en el payload JSON.
-- **Convención `-comp`**: Al revertir operaciones (`compensate`), la política anexa el sufijo `"-comp"` al `messageId` para formar el commandId de compensación. Esto se declara estrictamente como una convención *aislada y local* de esta política. La idempotencia real de la reversión financiera ya está amparada en **ADR-009** (que garantiza rechazo por operación subyacente usando el `allocationId`), no dependemos de este string táctico para la seguridad del Aggregate.
+- **Estabilidad y uso de `messageId`**: Se verificó empíricamente que `OutboxSagaCoordinator` preserva el `messageId` original y lo copia idéntico en cada nuevo intento de reconstrucción del `OutboxMessage` durante un retry o puesta en cuarentena (el coordinador no genera un nuevo `messageId` en ese proceso). Dado que es estable frente a retries, la política emplea el `messageId` directamente como `commandId` de intención contra `FundCommandService` para asegurar idempotencia (`commandId := messageId`).
+- **Uso de `correlationId`**: El uso vigente documentado es estrictamente como fallback empírico de `fundId` dentro de `AssetRegisteredSagaPolicy` si este falta en el payload JSON. No existe actualmente un uso productivo que lo trate como `allocationId` ni como un identificador de correlación distribuida. La propuesta histórica de igualar `correlationId=allocationId` (asociada a una idea anterior de `FundAllocationSagaPolicy`) no fue implementada y no forma parte de esta decisión vigente.
+- **Convención `-comp`**: Al revertir operaciones (`compensate`), la política anexa el sufijo `"-comp"` al `messageId` para formar el commandId de compensación. Esto se mantiene explícitamente como una convención táctica *local* de `AssetRegisteredSagaPolicy`, NO como un estándar global. La distinción funcional opera en dos capas diferentes:
+  - **ADR-009**: Protege los invariantes de negocio del agregado `Fund`, rechazando una segunda compensación de la misma operación (basado en el identificador único de la operación, ej. `allocationId`).
+  - **`messageId + "-comp"`**: Provee protección de infraestructura y deduplicación mediante `commandId` (ej. a través de `PROCESSED_COMMAND_DOCUMENT`). No debe afirmarse que `-comp` sea el mecanismo exclusivo que "cumple" ADR-009, sino una capa complementaria.
 
 ## Consecuencias
 - Queda resuelto el diseño del payload para confirmación de asignaciones de activos raíz.
-- El territorio de la taxonomía de identificadores (ADR-013) y compensación (ADR-009) queda protegido: no se ratifica `-comp` ni el fallback de `correlationId` como patrones arquitectónicos globales, identificándolos correctamente como artefactos locales funcionales y transitorios.
+- El territorio de la taxonomía de identificadores definido en **ADR-013** queda protegido: la regla `commandId := messageId` es una derivación específica de esta saga; `messageId` sigue siendo un identificador distinto y no se convierte arbitrariamente en `allocationId`, `externalEventId` ni en otro identificador definido por ADR-013. No se ratifica `-comp` ni el fallback de `correlationId` como patrones arquitectónicos globales.
