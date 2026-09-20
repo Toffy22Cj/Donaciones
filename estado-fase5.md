@@ -20,8 +20,10 @@ Este documento registra decisiones de Modo de Arquitectura y estado real de impl
 | ADR-030 | `actorRef` — ubicación y persistencia | **Approved** |
 | ADR-031 | Taxonomía de `ActorRef` | **Approved** |
 | ADR-032 | Autorización de comandos en `core`: puerto Identity↔Core, guardas de pertenencia y rol, matriz de autorización | **Approved** |
+| ADR-033 | Contrato del payload de la saga `ASSET_REGISTRATION_SAGA` | **Approved** |
+| ADR-034 | Visibilidad y Operabilidad de Pending Allocation (NUEVA-4 redefinida) | **Approved** |
 
-Catálogo del proyecto pasa de ADR-001..027 a **ADR-001..032** (más la enmienda a ADR-016). Pendiente: incorporar estos cinco ADRs y la enmienda a `documento-maestro-proyecto.md` en el repositorio real — esta sesión solo tuvo copias de lectura de los documentos del proyecto.
+Catálogo del proyecto actual llega hasta **ADR-034** (más la enmienda a ADR-016). ADR-033 y ADR-034 ya forman parte del historial integrado en `develop`. Pendiente: incorporar los ADRs 028-032 y la enmienda a `documento-maestro-proyecto.md` en el repositorio real.
 
 ---
 
@@ -269,7 +271,7 @@ Al abrir Fase 5 se fijaron 12 preguntas de arquitectura como punto de partida. C
 
 ## 8. Siguiente paso
 
-El diseño de Fase 5 (bloque de dominio + Bloque C/D) está completo y formalizado — cuatro ADRs de dominio (028-031), más la enmienda a ADR-016, y ADR-032 de autorización. Quedan dos acciones, en este orden:
+El diseño de Fase 5 (bloque de dominio + Bloque C/D) está completo y formalizado — cuatro ADRs de dominio (028-031), más la enmienda a ADR-016, ADR-032 de autorización, ADR-033 sobre la saga de registro de activos, y ADR-034 sobre la visibilidad de allocations pendientes. Quedan dos acciones, en este orden:
 
 1. **Iniciar implementación** — orden de diseño: P11 (puerto) → P9 (`OrganizationBoundaryPolicy`) → P7 (`CommandType`/`RoleAuthorizationPolicy`/ArchUnit) → P10 (wiring en los `*CommandService` existentes).
 2. Dos pendientes explícitos que **no bloquean lo anterior** pero sí bloquean funcionalidad específica: `HumanAccount` (bloquea `RegisterPhysicalAssetFromDonation`, §5) y la derivación de `organizationRef` para `ExternalActor` (bloquean que el webhook de pago pueda construir y disparar `CLEAR_FUNDS_*` con un `organizationRef` confiable; mientras ese mecanismo no exista, la ruta humana es la única ruta actualmente diseñada de forma completa para esos comandos — no porque el webhook sea conceptualmente imposible, sino porque su mecanismo de derivación no se ha diseñado todavía).
@@ -297,15 +299,15 @@ NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabil
 
 **Aclaración histórica sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existía inicialmente con un commit que preservaba el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 7 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1, y no representaba implementación en curso. Esto ha sido resuelto en la implementación posterior.
 
-**Estado actual de las Tareas (Verificado contra develop 927eefa):**
+**Estado actual de las Tareas (Verificado contra develop 16a3c36):**
 - **5.0** (actorref-mechanism): COMPLETADA
 - **5.1** (fund-organization-ref): COMPLETADA
 - **NUEVA-1** (core-fund-genesis-commands): COMPLETADA (Implementación introducida en el commit `0579f41`, integrado directamente en el historial base de develop anterior al branch actual).
 - **NUEVA-2** (core-fund-request-allocation-command): COMPLETADA (Implementación en 299f04b, mergeada vía PR #6 en 927eefa).
 - **NUEVA-3** (core-physicalasset-application-commands): COMPLETADA (Implementación en 0568325, mergeada vía PR #4 en 66fc813).
-- **NUEVA-4** (core-pending-allocation-read-model): NO INICIADA.
+- **NUEVA-4** (core-pending-allocation-read-model): PARCIAL (Parte A pendiente de PR).
   - **Redefinida:** “Visibilidad y operabilidad manual de PENDING_ALLOCATION”
-  - **PARTE A:** Read model/proyección de allocations pendientes → DESBLOQUEADA.
+  - **PARTE A:** Read model/proyección de allocations pendientes → IMPLEMENTACIÓN LOCAL COMPLETA, tests verdes, pendiente de PR.
   - **PARTE B:** Resolución administrativa de `reverseAllocation` → BLOQUEADA hasta implementación real de Bloque C/D.
   - *Descartados:* `FundAllocationSagaPolicy`, TTL/expiración automática, `reason` en compensación. `PhysicalAsset` queda fuera de NUEVA-4.
 - **5.2** (fund-clearfunds-split): NO INICIADA
@@ -337,3 +339,9 @@ Se confirma un hallazgo preexistente (pendiente de decisión y sin corrección i
 - No fue introducido por Bug Saga 1.
 - No fue introducido por NUEVA-2.
 - Genera un falso positivo si dos comandos con **distinto** `commandId` (por ejemplo, repetición maliciosa o nuevo intento genuino sin correlación adecuada) alcanzan el mismo estado redundante en el agregado.
+
+**Hallazgo Transversal (Projection Retry Framework):**
+Se detectó un defecto preexistente en el mecanismo compartido de reintento de proyecciones (CQRS). Ver `hallazgo-framework-retry-projections.md` para el detalle técnico.
+- Consiste en un riesgo de pérdida silenciosa de eventos cuando fallan durante el reprocesamiento del `ProjectionRetryScheduler`.
+- **Estado:** ABIERTO.
+- **Alcance:** FUERA DE NUEVA-4.
