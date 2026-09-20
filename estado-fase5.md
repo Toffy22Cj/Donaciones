@@ -325,7 +325,7 @@ NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabil
   - suite core validada: 143 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS
 - **5.3** (physicalasset-organization-donor-ref): NO INICIADA
 - **5.4** (physicalasset-donation-genesis-domain): NO INICIADA
-- **5.5** (physicalasset-split-inheritance): NO INICIADA
+- **5.5** (physicalasset-split-inheritance): **Approved** (Herencia de `organizationRef`, `donorRef` y `donationRef` en `ASSET_SPLIT` con versionado v1/v2 explícito (`AssetSplitV2Payload`), replay histórico seguro sin retro-mutación de v1, fix de regresión en `DonationProjectionHandler`, suite `core` en verde con 151 tests pasados).
 - **5.6** (contracts-identity-principal-port): NO INICIADA
 - **5.7** (organization-boundary-policy): NO INICIADA
 - **5.8** (role-authorization-policy): NO INICIADA

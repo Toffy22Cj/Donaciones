@@ -193,6 +193,10 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
+        } else if (payload instanceof AssetSplitV2Payload p) {
+            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
+            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
+            // Child asset registration is handled by the ASSET_REGISTERED event of the child.
         } else if (payload instanceof AssetSplitPayload p) {
             update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
             update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
@@ -276,7 +280,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 transition.setCustodian(p.receiverRef());
             }
-        } else if (payload instanceof AssetSplitPayload) {
+        } else if (payload instanceof AssetSplitV2Payload || payload instanceof AssetSplitPayload) {
             transition.setStatus("SPLIT");
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             transition.setCustodian(p.newCustodianRef());
