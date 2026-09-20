@@ -23,6 +23,7 @@ Se re-define el alcance de NUEVA-4 como "Visibilidad y operabilidad manual de PE
 **PARTE B (Bloqueada): Resolución administrativa**
 - La resolución manual administrativa de `reverseAllocation` queda explícitamente fuera de la implementación inicial (Parte A).
 - Queda bloqueada hasta que el Bloque C/D tenga un mecanismo real de escritura autenticada y genere un `actorRef` legítimo.
+- La Parte B tendrá su propio ADR cuando el Bloque C/D disponga de un mecanismo real de escritura autenticada y `actorRef` legítimo. Este ADR no decide todavía el transporte (HTTP/JMX) ni el mecanismo concreto de exposición administrativa.
 
 ## Razón
 - La lectura (Parte A) no requiere `actorRef` validado de la misma forma que una mutación de estado.
@@ -34,12 +35,11 @@ Se re-define el alcance de NUEVA-4 como "Visibilidad y operabilidad manual de PE
 - `PENDING_ALLOCATION` será observable externamente mediante el nuevo read model.
 - No cambia el estado de negocio ni la consistencia del agregado financiero.
 - Sigue siendo posible que una allocation permanezca pendiente de forma indefinida.
-- La resolución manual sigue pendiente de la implementación de Bloque C/D.
+- La resolución manual sigue pendiente de la implementación de Bloque C/D y no se implementa `reverseAllocation` administrativo en esta fase.
 
 ## Referencias
 - **ADR-001** y **ADR-012**: Separación e independencia entre `Fund` y `PhysicalAsset`.
 - **ADR-015** y **ADR-017**: Arquitectura Desacoplada de la Capa de Lectura y Framework de Proyección Genérico (patrón de proyecciones reutilizado).
-- **ADR-019**: Desacoplamiento de Proyecciones.
-- **ADR-022**: Resolución Manual de Lotes Atascados (se alinea con la decisión Opción A de operar manualmente los recursos atascados en lugar de automatizarlos).
+- **ADR-022 — Resolución Manual de Lotes Atascados (JMX)**: Sienta el precedente de operar manualmente los recursos atascados en lugar de automatizarlos (alineado con Opción A).
 - **ADR-031**: Taxonomía de `ActorRef` y aplazamiento de cuentas humanas (sustenta la autorización/actorRef diferida y el bloqueo de la Parte B).
 - **ADR-032**: Autorización de comandos en `core`.
