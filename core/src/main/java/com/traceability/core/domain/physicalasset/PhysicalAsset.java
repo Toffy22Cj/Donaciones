@@ -182,10 +182,11 @@ public class PhysicalAsset extends AggregateRoot {
 
         BigDecimal previousQ = this.quantity;
 
-        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitPayload(
+        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV2Payload(
                 childAssetId, extractedQuantity, this.unitOfMeasure, previousQ,
                 previousQ.subtract(extractedQuantity), this.lifecycleStatus.name(),
-                this.currentLocation, this.custodianRef, this.rootAssetRef));
+                this.currentLocation, this.custodianRef, this.rootAssetRef,
+                this.organizationRef, this.donorRef, this.donationRef));
 
         if (this.quantity.compareTo(BigDecimal.ZERO) == 0) {
             raiseEvent(PhysicalAssetEventType.ASSET_DEPLETED, new AssetDepletedPayload(previousQ));
@@ -276,6 +277,11 @@ public class PhysicalAsset extends AggregateRoot {
             }
             case AssetCustodyTransferredPayload p -> {
                 this.custodianRef = p.newCustodianRef();
+            }
+            case AssetSplitV2Payload p -> {
+                this.splitsBeforeCompensation.put(p.childAssetId(),
+                        AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
+                this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetSplitPayload p -> {
                 this.splitsBeforeCompensation.put(p.childAssetId(),

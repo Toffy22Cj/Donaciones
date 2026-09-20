@@ -273,4 +273,76 @@ class PhysicalAssetTest {
         assertNull(pA.donationRef());
         assertEquals("DONATION_100", pB.donationRef());
     }
+
+    // -- Tarea 5.5: Split Inheritance Tests --
+
+    @Test
+    void testSplit_CaminoA_InheritsOrganizationAndNullDonorAndDonationRefs() {
+        PhysicalAsset parent = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null
+        );
+        parent.clearUncommittedEvents();
+
+        parent.split("A2", new java.math.BigDecimal("40.0000"));
+
+        assertEquals(1, parent.getUncommittedEvents().size());
+        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV2Payload);
+        AssetSplitV2Payload payload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+
+        assertEquals("A2", payload.childAssetId());
+        assertEquals(new java.math.BigDecimal("40.0000"), payload.extractedQuantity());
+        assertEquals("ORG_1", payload.organizationRef());
+        assertNull(payload.donorRef());
+        assertNull(payload.donationRef());
+    }
+
+    @Test
+    void testSplit_CaminoB_InheritsOrganizationDonorAndDonationRefs() {
+        PhysicalAsset parent = PhysicalAsset.create(
+            "A1", "MEDICINE", new java.math.BigDecimal("100.0000"), "Box", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", "DONOR_1", "DONATION_100"
+        );
+        parent.clearUncommittedEvents();
+
+        parent.split("A2", new java.math.BigDecimal("40.0000"));
+
+        assertEquals(1, parent.getUncommittedEvents().size());
+        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV2Payload);
+        AssetSplitV2Payload payload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+
+        assertEquals("A2", payload.childAssetId());
+        assertEquals(new java.math.BigDecimal("40.0000"), payload.extractedQuantity());
+        assertEquals("ORG_1", payload.organizationRef());
+        assertEquals("DONOR_1", payload.donorRef());
+        assertEquals("DONATION_100", payload.donationRef());
+    }
+
+    // Valida que el evento AssetSplitV2Payload transporta organizationRef, donorRef y donationRef heredados
+    // y que un activo hijo puede instanciarse recibiendo esos metadatos de procedencia.
+    // (Nota: La creación automática/orquestada del stream del activo hijo está pendiente de diseño e implementación).
+    @Test
+    void testSplit_ChildAssetCreation_InheritsAllRefsFromParent() {
+        // Given a parent asset created via Camino B
+        PhysicalAsset parent = PhysicalAsset.create(
+            "PARENT_1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "PARENT_1", null, null, "ORG_100", "DONOR_200", "DONATION_300"
+        );
+        parent.clearUncommittedEvents();
+
+        // When parent is split
+        parent.split("CHILD_1", new java.math.BigDecimal("30.0000"));
+        AssetSplitV2Payload splitPayload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+
+        // And child aggregate is created using split event payload references
+        PhysicalAsset child = PhysicalAsset.create(
+            splitPayload.childAssetId(), "VACCINE", splitPayload.extractedQuantity(), splitPayload.unitOfMeasure(),
+            splitPayload.childLocation(), splitPayload.childCustodianRef(), parent.getAssetId(), splitPayload.rootAssetRef(),
+            null, null, splitPayload.organizationRef(), splitPayload.donorRef(), splitPayload.donationRef()
+        );
+
+        // Then child aggregate holds exact inherited state
+        assertEquals("CHILD_1", child.getAssetId());
+        assertEquals(new java.math.BigDecimal("30.0000"), child.getQuantity());
+        assertEquals("ORG_100", child.getOrganizationRef());
+        assertEquals("DONOR_200", child.getDonorRef());
+        assertEquals("DONATION_300", child.getDonationRef());
+    }
 }

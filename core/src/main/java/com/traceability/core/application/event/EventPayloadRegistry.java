@@ -33,6 +33,7 @@ public class EventPayloadRegistry {
         register("ASSET_RECEIVED", "1.0", AssetReceivedPayload.class);
         register("ASSET_CUSTODY_TRANSFERRED", "1.0", AssetCustodyTransferredPayload.class);
         register("ASSET_SPLIT", "1.0", AssetSplitPayload.class);
+        register("ASSET_SPLIT", "2.0", AssetSplitV2Payload.class);
         register("ASSET_DEPLETED", "1.0", AssetDepletedPayload.class);
         register("ASSET_SPLIT_COMPENSATED", "1.0", AssetSplitCompensatedPayload.class);
         register("ASSET_DELIVERED", "1.0", AssetDeliveredPayload.class);
