@@ -23,9 +23,9 @@ public class PhysicalAssetCommandService {
     private final TransactionalEventPublisher eventPublisher;
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
-                                       ProcessedCommandRepositoryPort processedCommandRepository,
-                                       EventStorePort eventStore,
-                                       TransactionalEventPublisher eventPublisher) {
+            ProcessedCommandRepositoryPort processedCommandRepository,
+            EventStorePort eventStore,
+            TransactionalEventPublisher eventPublisher) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
@@ -33,8 +33,8 @@ public class PhysicalAssetCommandService {
     }
 
     public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef,
-                             String locationRef, String evidenceRef, Instant deliveredAt,
-                             com.traceability.core.domain.event.ActorRef actorRef) {
+            String locationRef, String evidenceRef, Instant deliveredAt,
+            com.traceability.core.domain.event.ActorRef actorRef) {
         if (processedCommandRepository.exists(commandId)) {
             return;
         }
@@ -49,7 +49,8 @@ public class PhysicalAssetCommandService {
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
             if (!newEvents.isEmpty()) {
-                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, newEvents, actorRef, null, commandId);
+                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, newEvents, actorRef, null,
+                        commandId);
             }
             return null;
         });
@@ -61,15 +62,15 @@ public class PhysicalAssetCommandService {
      * pero todavía no se usa en el Aggregate (eso llega en la tarea 5.3).
      */
     public void registerPhysicalAsset(String commandId,
-                                      String organizationRef,
-                                      String assetType,
-                                      BigDecimal quantity,
-                                      String unitOfMeasure,
-                                      String custodianRef,
-                                      String currentLocation,
-                                      String allocationId,
-                                      String sourceAllocationId,
-                                      com.traceability.core.domain.event.ActorRef actorRef) {
+            String organizationRef,
+            String assetType,
+            BigDecimal quantity,
+            String unitOfMeasure,
+            String custodianRef,
+            String currentLocation,
+            String allocationId,
+            String sourceAllocationId,
+            com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
             return;
@@ -85,10 +86,12 @@ public class PhysicalAssetCommandService {
                     unitOfMeasure,
                     currentLocation,
                     custodianRef,
-                    null,       // parentAssetRef
-                    assetId,    // rootAssetRef (él mismo al nacer)
+                    null, // parentAssetRef
+                    assetId, // rootAssetRef (él mismo al nacer)
                     allocationId,
-                    sourceAllocationId
+                    sourceAllocationId,
+                    organizationRef,
+                    null // donorRef: null en Camino A
             );
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
@@ -96,12 +99,11 @@ public class PhysicalAssetCommandService {
             eventPublisher.appendAndOutbox(
                     assetId,
                     "PhysicalAsset",
-                    0,              // génesis → expectedVersion = 0
+                    0, // génesis → expectedVersion = 0
                     newEvents,
                     actorRef,
                     List.of(),
-                    commandId
-            );
+                    commandId);
             return null;
         });
     }
@@ -110,9 +112,9 @@ public class PhysicalAssetCommandService {
      * NUEVA-3 — Divide un PhysicalAsset existente.
      */
     public void splitPhysicalAsset(String commandId,
-                                   String assetId,
-                                   BigDecimal splitQuantity,
-                                   com.traceability.core.domain.event.ActorRef actorRef) {
+            String assetId,
+            BigDecimal splitQuantity,
+            com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
             return;
@@ -140,8 +142,7 @@ public class PhysicalAssetCommandService {
                         newEvents,
                         actorRef,
                         null,
-                        commandId
-                );
+                        commandId);
             }
             return null;
         });

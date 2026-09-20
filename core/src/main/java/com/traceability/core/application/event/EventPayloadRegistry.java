@@ -8,12 +8,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Registry mapping event type strings to their concrete DomainEventPayload classes.
- * Required for polymorphic deserialization when reloading events from the Event Store.
+ * Registry mapping event type strings to their concrete DomainEventPayload
+ * classes.
+ * Required for polymorphic deserialization when reloading events from the Event
+ * Store.
  */
 public class EventPayloadRegistry {
-    public record EventKey(String eventType, String schemaVersion) {}
-    
+    public record EventKey(String eventType, String schemaVersion) {
+    }
+
     private static final Map<EventKey, Class<? extends DomainEventPayload>> registry = new HashMap<>();
     private static final Map<Class<? extends DomainEventPayload>, String> versionByClass = new HashMap<>();
 
@@ -25,6 +28,7 @@ public class EventPayloadRegistry {
     static {
         // PhysicalAsset Events
         register("ASSET_REGISTERED", "1.0", AssetRegisteredPayload.class);
+        register("ASSET_REGISTERED", "2.0", AssetRegisteredV2Payload.class);
         register("ASSET_DISPATCHED", "1.0", AssetDispatchedPayload.class);
         register("ASSET_RECEIVED", "1.0", AssetReceivedPayload.class);
         register("ASSET_CUSTODY_TRANSFERRED", "1.0", AssetCustodyTransferredPayload.class);
@@ -50,11 +54,12 @@ public class EventPayloadRegistry {
     public static Class<? extends DomainEventPayload> getClassForType(String eventType, String schemaVersion) {
         Class<? extends DomainEventPayload> clazz = registry.get(new EventKey(eventType, schemaVersion));
         if (clazz == null) {
-            throw new IllegalArgumentException("Unknown eventType: " + eventType + " with schemaVersion: " + schemaVersion);
+            throw new IllegalArgumentException(
+                    "Unknown eventType: " + eventType + " with schemaVersion: " + schemaVersion);
         }
         return clazz;
     }
-    
+
     /**
      * Gets the schema version associated with the given payload class.
      */
