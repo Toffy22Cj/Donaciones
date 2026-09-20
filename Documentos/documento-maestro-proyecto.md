@@ -243,7 +243,7 @@ availableAmount = clearedAmount - pendingAllocationAmount - allocatedAmount - re
 
 ### 7.1 Capa de Command Handlers (Procesamiento de Entrada)
 - **`CommandRetryTemplate`**: Orquesta el procesamiento seguro de comandos, capturando `ConcurrencyConflictException` para recargar el `AggregateRoot` actualizado y reevaluar las reglas de negocio, aplicando un backoff exponencial configurado (mitigando bloqueos bajo alta carga).
-- **Servicios de Dominio (`FundCommandService`, etc.)**: Coordinan la ejecución invocando el agregado, delegando en el `TransactionalEventPublisher` y formalizando el registro de las `SagaPolicy` concretas (`AssetRegisteredSagaPolicy`, `SplitPhysicalAssetSagaPolicy`, `FundAllocationSagaPolicy`).
+- **Servicios de Dominio (`FundCommandService`, `PhysicalAssetCommandService`)**: Coordinan la ejecución invocando el agregado y delegando en el `TransactionalEventPublisher`. **Estado actual (develop):** implementados los comandos de aplicación iniciales (`registerFund`, `clearFundsGenesis`, `requestAllocation`, `confirmAllocation`, `reverseAllocation`, `registerPhysicalAsset`, `splitPhysicalAsset`, `deliverAsset`). Formalizan el registro de las `SagaPolicy` concretas: actualmente solo `AssetRegisteredSagaPolicy` está implementada; `FundAllocationSagaPolicy` y `SplitPhysicalAssetSagaPolicy` están documentadas como diseño esperado (Fases 1-4) pero permanecen pendientes de implementación en la base de código real.
 
 ### 7.2 Orquestación Transaccional (Sagas)
 **`OutboxSagaCoordinator`** — motor genérico en Java puro (sin Spring, sin Mongo):
