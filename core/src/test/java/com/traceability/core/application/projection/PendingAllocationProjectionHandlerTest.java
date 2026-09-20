@@ -58,14 +58,22 @@ class PendingAllocationProjectionHandlerTest {
     @Autowired
     private PendingAllocationRepository repository;
 
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
     @BeforeEach
     void setup() {
-        repository.deleteAll();
+        cleanDb();
     }
 
     @AfterEach
     void clean() {
+        cleanDb();
+    }
+
+    private void cleanDb() {
         repository.deleteAll();
+        mongoTemplate.dropCollection(TraceabilityEventDocument.class);
     }
 
     private TraceabilityEventDocument buildEvent(String streamId, String aggType, long seq, String type, Map<String, Object> payload) {
@@ -147,5 +155,51 @@ class PendingAllocationProjectionHandlerTest {
         Optional<PendingAllocationDocument> docOpt = repository.findById("alloc-1");
         assertTrue(docOpt.isPresent());
         assertEquals(AllocationStatus.CONFIRMED, docOpt.get().getStatus());
+    }
+
+    @Test
+    void test5_OrphanConfirmed_ThrowsException() {
+        TraceabilityEventDocument event = buildEvent("fund-1", "Fund", 1, "ALLOCATION_CONFIRMED",
+            Map.of("allocationId", "alloc-orphan"));
+
+        assertThrows(DonationProjectionHandler.MissingDependencyException.class, () -> {
+            projectionHandler.processEvent(event);
+        });
+    }
+
+    @Test
+    void test6_OrphanReversed_ThrowsException() {
+        TraceabilityEventDocument event = buildEvent("fund-1", "Fund", 1, "ALLOCATION_REVERSED",
+            Map.of("allocationId", "alloc-orphan"));
+
+        assertThrows(DonationProjectionHandler.MissingDependencyException.class, () -> {
+            projectionHandler.processEvent(event);
+        });
+    }
+
+    @Test
+    void test7_RealIntegration_EventSource() throws InterruptedException {
+        // seq 1: REQUESTED(A)
+        mongoTemplate.insert(buildEvent("fund-int", "Fund", 1, "ALLOCATION_REQUESTED",
+            Map.of("allocationId", "alloc-int", "requestedAmount", 500)), "event_store");
+
+        // seq 2: evento no relacionado
+        mongoTemplate.insert(buildEvent("fund-int", "Fund", 2, "ALLOCATION_REQUESTED",
+            Map.of("allocationId", "alloc-int-2", "requestedAmount", 300)), "event_store");
+
+        // seq 3: CONFIRMED(A)
+        mongoTemplate.insert(buildEvent("fund-int", "Fund", 3, "ALLOCATION_CONFIRMED",
+            Map.of("allocationId", "alloc-int")), "event_store");
+
+        // Esperar a que el motor real de Change Streams procese asincronamente
+        Thread.sleep(3000);
+
+        Optional<PendingAllocationDocument> docOptA = repository.findById("alloc-int");
+        assertTrue(docOptA.isPresent(), "El documento alloc-int debio crearse a traves de Change Streams");
+        assertEquals(AllocationStatus.CONFIRMED, docOptA.get().getStatus());
+
+        Optional<PendingAllocationDocument> docOptB = repository.findById("alloc-int-2");
+        assertTrue(docOptB.isPresent());
+        assertEquals(AllocationStatus.REQUESTED, docOptB.get().getStatus());
     }
 }
