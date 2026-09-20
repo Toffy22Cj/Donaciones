@@ -32,6 +32,7 @@ public class PhysicalAsset extends AggregateRoot {
     private String sourceAllocationId;
     private String organizationRef;
     private String donorRef;
+    private String donationRef;
 
     // final delivery metadata for idempotency checking
     private String finalEvidenceRef;
@@ -77,7 +78,43 @@ public class PhysicalAsset extends AggregateRoot {
         PhysicalAsset asset = new PhysicalAsset();
         asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV2Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
-                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef));
+                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null));
+        return asset;
+    }
+
+    public static PhysicalAsset create(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String donationRef) {
+
+        if (organizationRef == null || organizationRef.isBlank()) {
+            throw new IllegalArgumentException("OrganizationRef is required");
+        }
+        if (donorRef == null || donorRef.isBlank()) {
+            throw new IllegalArgumentException("DonorRef is required");
+        }
+        if (donationRef == null || donationRef.isBlank()) {
+            throw new IllegalArgumentException("DonationRef is required");
+        }
+        if (quantity == null) {
+            throw new IllegalArgumentException("Quantity is required");
+        }
+        quantity = quantity.setScale(4, RoundingMode.HALF_UP);
+        if (quantity.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
+        if (unitOfMeasure == null || unitOfMeasure.isBlank()) {
+            throw new IllegalArgumentException("Unit of measure is required");
+        }
+        if (currentLocation == null) {
+            throw new IllegalArgumentException("Initial current location is required");
+        }
+
+        PhysicalAsset asset = new PhysicalAsset();
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV2Payload(
+                assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
+                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef));
         return asset;
     }
 
@@ -209,6 +246,7 @@ public class PhysicalAsset extends AggregateRoot {
                 this.sourceAllocationId = p.sourceAllocationId();
                 this.organizationRef = p.organizationRef();
                 this.donorRef = p.donorRef();
+                this.donationRef = p.donationRef();
             }
             case AssetRegisteredPayload p -> {
                 this.assetId = p.assetId();
@@ -297,5 +335,9 @@ public class PhysicalAsset extends AggregateRoot {
 
     public String getDonorRef() {
         return donorRef;
+    }
+
+    public String getDonationRef() {
+        return donationRef;
     }
 }
