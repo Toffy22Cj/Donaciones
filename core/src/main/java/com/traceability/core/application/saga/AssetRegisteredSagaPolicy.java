@@ -25,7 +25,7 @@ public class AssetRegisteredSagaPolicy implements SagaPolicy {
     public void execute(OutboxMessage message) {
         try {
             JsonNode payload = objectMapper.readTree(message.payload());
-            String allocationId = payload.path("sourceAllocationId").asText(null);
+            String allocationId = payload.path("allocationId").asText(null);
             String fundId = payload.path("fundId").asText(null); // Assuming fundId is known or correlationId is the fundId
             
             // For simplicity, we might assume the correlationId contains the fundId, or it's in the payload.
@@ -47,7 +47,7 @@ public class AssetRegisteredSagaPolicy implements SagaPolicy {
     public void compensate(OutboxMessage message) {
         try {
             JsonNode payload = objectMapper.readTree(message.payload());
-            String allocationId = payload.path("sourceAllocationId").asText(null);
+            String allocationId = payload.path("allocationId").asText(null);
             String fundId = payload.path("fundId").asText(null);
             
             if (fundId == null || fundId.isEmpty() || fundId.equals("null")) {
