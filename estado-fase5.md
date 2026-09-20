@@ -278,13 +278,13 @@ El diseño de Fase 5 (bloque de dominio + Bloque C/D) está completo y formaliza
 
 ## 10. Hallazgo de implementación — auditoría de preexistencia (Tareas 5.0, 5.1, 5.3)
 
-Durante la implementación de la Tarea 5.3 se descubrió, con evidencia literal (`grep`/`find` contra el repositorio real, documentado en `auditoria-preexistencias-fase5.md`), que `documento-maestro-proyecto.md` §7.1 describe una capa de aplicación sustancialmente más completa de lo que existe en código. Tres afirmaciones del documento maestro (o de prompts de tarea basados en él) resultaron falsas al verificarlas:
+Durante la implementación de la Tarea 5.3 se descubrió, con evidencia literal (`grep`/`find` contra el repositorio real, documentado en `auditoria-preexistencias-fase5.md`), que `documento-maestro-proyecto.md` §7.1 describía una capa de aplicación sustancialmente más completa de lo que existía en código. Tres afirmaciones del documento maestro (o de prompts de tarea basados en él) resultaron falsas al verificarlas:
 
 1. `EventEnvelopeFactory` no existe (Tarea 5.0) — el ensamblado del envoltorio ocurre en `MongoEventStoreAdapter.append()`. Sin impacto en el diseño, solo cambió el punto de implementación de `actorRef`.
-2. `FundAllocationSagaPolicy` no existe — solo `AssetRegisteredSagaPolicy` es real. `SplitPhysicalAssetSagaPolicy`, también citada por el maestro, tampoco existe.
-3. Los comandos de aplicación `registerFund`, `clearFunds`/`clearFundsGenesis`, `requestAllocation`, `registerPhysicalAsset`, `splitPhysicalAsset` no existen en `FundCommandService`/`PhysicalAssetCommandService`. Solo existen `confirmAllocation`, `reverseAllocation` (`FundCommandService`) y `deliverAsset` (`PhysicalAssetCommandService`) — exactamente los métodos que `AssetRegisteredSagaPolicy` ya necesitaba.
+2. `FundAllocationSagaPolicy` no existía — solo `AssetRegisteredSagaPolicy` era real. `SplitPhysicalAssetSagaPolicy`, también citada por el maestro, tampoco existía.
+3. Los comandos de aplicación `registerFund`, `clearFunds`/`clearFundsGenesis`, `requestAllocation`, `registerPhysicalAsset`, `splitPhysicalAsset` no existían en `FundCommandService`/`PhysicalAssetCommandService`. Solo existían `confirmAllocation`, `reverseAllocation` (`FundCommandService`) y `deliverAsset` (`PhysicalAssetCommandService`) — exactamente los métodos que `AssetRegisteredSagaPolicy` ya necesitaba.
 
-**Conclusión de la auditoría:** el flujo de asignación `Fund → PhysicalAsset` de ADR-012 está parcialmente implementado — los payloads y la lógica de dominio existen (`Fund.requestAllocation()`/`confirmAllocation()`/`reverseAllocation()` producen eventos reales), pero no existe ningún punto de entrada de aplicación para génesis de `Fund`, ni la saga que conecta la solicitud de asignación con el registro del activo, ni los comandos de aplicación de `PhysicalAsset` más allá de la entrega.
+**Conclusión de la auditoría original:** el flujo de asignación `Fund → PhysicalAsset` de ADR-012 estaba parcialmente implementado — los payloads y la lógica de dominio existían (`Fund.requestAllocation()`/`confirmAllocation()`/`reverseAllocation()` producen eventos reales), pero no existía ningún punto de entrada de aplicación para génesis de `Fund`, ni la saga que conecta la solicitud de asignación con el registro del activo, ni los comandos de aplicación de `PhysicalAsset` más allá de la entrega.
 
 **Decisión:** detener el backlog (Opción A, no acumular deuda técnica) e insertar el **Bloque 2bis** en `plan-ejecucion-agentes-fase5.md`, con cuatro tareas nuevas como prerrequisito de 5.3/5.4/5.5:
 
@@ -295,18 +295,41 @@ NUEVA-3  feat/core-physicalasset-application-commands (registerPhysicalAsset, sp
 NUEVA-4  feat/core-fund-allocation-saga-policy        (FundAllocationSagaPolicy) — depende de NUEVA-2, NUEVA-3
 ```
 
-**Aclaración sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existe con un commit que preserva el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 8 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1 — no representa implementación en curso. El método `FundCommandService.requestAllocation()` todavía NO existe. Estado real: sin iniciar.
+**Aclaración histórica sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existía inicialmente con un commit que preservaba el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 7 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1, y no representaba implementación en curso. Esto ha sido resuelto en la implementación posterior.
 
-**Tareas 5.3, 5.4, 5.5: PAUSADAS**, dependencia actualizada a NUEVA-1/NUEVA-3/NUEVA-4 en `plan-ejecucion-agentes-fase5.md`.
+**Estado actual de las Tareas (Verificado contra develop 927eefa):**
+- **5.0** (actorref-mechanism): COMPLETADA
+- **5.1** (fund-organization-ref): COMPLETADA
+- **NUEVA-1** (core-fund-genesis-commands): COMPLETADA (Implementación introducida en el commit `0579f41`, integrado directamente en el historial base de develop anterior al branch actual).
+- **NUEVA-2** (core-fund-request-allocation-command): COMPLETADA (Implementación en 299f04b, mergeada vía PR #6 en 927eefa).
+- **NUEVA-3** (core-physicalasset-application-commands): COMPLETADA (Implementación en 0568325, mergeada vía PR #4 en 66fc813).
+- **NUEVA-4** (core-fund-allocation-saga-policy): NO INICIADA
+- **5.2** (fund-clearfunds-split): NO INICIADA
+- **5.3** (physicalasset-organization-donor-ref): NO INICIADA
+- **5.4** (physicalasset-donation-genesis-domain): NO INICIADA
+- **5.5** (physicalasset-split-inheritance): NO INICIADA
+- **5.6** (contracts-identity-principal-port): NO INICIADA
+- **5.7** (organization-boundary-policy): NO INICIADA
+- **5.8** (role-authorization-policy): NO INICIADA
+- **5.9** (authorization-wiring): NO INICIADA
+- **5.10** (fase5-integration-tests): NO INICIADA
 
-**Acción de seguimiento fuera de esta conversación** (no se ejecuta aquí, los documentos del proyecto son de solo lectura en este contexto): corregir `documento-maestro-proyecto.md` §7.1 para que no afirme en tiempo presente la existencia de `FundAllocationSagaPolicy`/`SplitPhysicalAssetSagaPolicy` ni de los comandos de aplicación no implementados — debe distinguir explícitamente diseño/intención de Fase 1-4 de lo efectivamente construido y probado.
-
-**No se investigó** (queda fuera de esta auditoría, explícitamente no determinado): si `SplitPhysicalAssetSagaPolicy` tiene alguna responsabilidad real distinta al split en sí (¿actualización de índice? ¿alguna compensación posterior?) que sí necesite implementarse — NUEVA-3/NUEVA-4 no la incluyen por falta de evidencia de qué haría, no porque se haya confirmado innecesaria.
+**Aclaración sobre Asimetría de NUEVA-2 (`requestAllocation`):**
+El método `requestAllocation()` de `FundCommandService` incluye la guarda explícita `exists(commandId)` para prevenir repeticiones del mismo comando. A diferencia de este, `confirmAllocation()` y `reverseAllocation()` NO usan esa guarda. La justificación de esta asimetría es:
+- `requestAllocation()` dispara `DuplicateAllocationException` a nivel de dominio para una asignación ya existente. Esta excepción NO hereda de `RedundantDomainActionException`. Por lo tanto, `CommandRetryTemplate` NO la absorbe, y un reintento secuencial del mismo comando fallaría sin la guarda `exists(commandId)`.
+- `confirmAllocation()` y `reverseAllocation()` tienen otra ruta histórica donde el dominio sí lanza excepciones que heredan de `RedundantDomainActionException` al repetir la operación. El template intercepta y absorbe estas excepciones, por lo que no requieren la guarda secuencial adicional.
 
 ---
 
-## 11. Estado de Bug Sagas
+## 11. Estado de Bug Sagas y Hallazgos Transversales
 
-**Bug Saga 1** (`fix/core-saga-outbox-idempotency-guard`) — Approved, mergeado a develop en el commit `1b3930a` (PR #3). `tryClaim()` vía `findAndModify`+`upsert`+`setOnInsert` dentro de `TransactionalEventPublisher.appendAndOutbox()`, migrados `confirmAllocation`/`reverseAllocation`.
+**Bug Saga 1** (`fix/core-saga-outbox-idempotency-guard`) — CERRADO, mergeado a develop en el commit `1b3930a` (PR #3). `tryClaim()` vía `findAndModify`+`upsert`+`setOnInsert` dentro de `TransactionalEventPublisher.appendAndOutbox()`, migrados `confirmAllocation`/`reverseAllocation`.
 
-**Bug Saga 2 y Bug Saga 3:** sin iniciar, confirmado sin código ni ramas activas.
+**Bug Saga 2 y Bug Saga 3:** SIN INICIAR, confirmado sin código ni ramas activas.
+
+**Hallazgo Transversal (CommandRetryTemplate):**
+Se confirma un hallazgo preexistente (pendiente de decisión y sin corrección implementada aún): `CommandRetryTemplate` absorbe `RedundantDomainActionException` (retornando `null` como "éxito" aparente) INDEPENDIENTEMENTE del `commandId`.
+- Es comportamiento preexistente en la base de código.
+- No fue introducido por Bug Saga 1.
+- No fue introducido por NUEVA-2.
+- Genera un falso positivo si dos comandos con **distinto** `commandId` (por ejemplo, repetición maliciosa o nuevo intento genuino sin correlación adecuada) alcanzan el mismo estado redundante en el agregado.
