@@ -1,5 +1,6 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.ProcessedCommandRepositoryPort;
 import com.traceability.core.application.service.TransactionalEventPublisher;
@@ -21,15 +22,18 @@ public class PhysicalAssetCommandService {
     private final ProcessedCommandRepositoryPort processedCommandRepository;
     private final EventStorePort eventStore;
     private final TransactionalEventPublisher eventPublisher;
+    private final RoleAuthorizationPolicy roleAuthorizationPolicy;
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
             ProcessedCommandRepositoryPort processedCommandRepository,
             EventStorePort eventStore,
-            TransactionalEventPublisher eventPublisher) {
+            TransactionalEventPublisher eventPublisher,
+            RoleAuthorizationPolicy roleAuthorizationPolicy) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
         this.eventPublisher = eventPublisher;
+        this.roleAuthorizationPolicy = roleAuthorizationPolicy;
     }
 
     public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef,

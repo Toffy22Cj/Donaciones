@@ -1,5 +1,6 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.ProcessedCommandRepositoryPort;
 import com.traceability.core.application.service.TransactionalEventPublisher;
@@ -19,15 +20,18 @@ public class FundCommandService {
     private final ProcessedCommandRepositoryPort processedCommandRepository;
     private final EventStorePort eventStore;
     private final TransactionalEventPublisher eventPublisher;
+    private final RoleAuthorizationPolicy roleAuthorizationPolicy;
 
     public FundCommandService(CommandRetryTemplate retryTemplate,
                               ProcessedCommandRepositoryPort processedCommandRepository,
                               EventStorePort eventStore,
-                              TransactionalEventPublisher eventPublisher) {
+                              TransactionalEventPublisher eventPublisher,
+                              RoleAuthorizationPolicy roleAuthorizationPolicy) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
         this.eventPublisher = eventPublisher;
+        this.roleAuthorizationPolicy = roleAuthorizationPolicy;
     }
 
     public void registerFund(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, Long pledgedAmount, com.traceability.core.domain.event.ActorRef actorRef) {
