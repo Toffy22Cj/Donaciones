@@ -2,18 +2,43 @@ spring:
   application:
     name: traceability-engine
 
+  ai:
+    openai:
+      api-key: ${SPRING_AI_OPENAI_API_KEY:dummy}
+      base-url: https://api.groq.com/openai
+      chat:
+        options:
+          model: llama3-8b-8192
+
   data:
     mongodb:
       auto-index-creation: true
 
 crypto:
+  # ── Node connection & wallet credentials ─────────────────────────────────────
+  # Consumed by Web3Configuration (@ConfigurationProperties prefix = "crypto.web3j")
+  # MUST be overridden via environment variables — never commit real values here
+  web3j:
+    private-key: ${WEB3_PRIVATE_KEY:}
+    node-url: ${WEB3_NODE_URL:}
+
+  # ── Operational anchor settings ──────────────────────────────────────────────
   anchor:
-    confirmations-required: 12
-    # Web3j Configuration for Fail-Fast
-    # MUST be overridden via environment variables in production
-    web3j:
-      private-key: ${WEB3_PRIVATE_KEY:}
-      node-url: ${WEB3_NODE_URL:}
+    network: ${CRYPTO_ANCHOR_NETWORK:sepolia}
+    smart-contract: ${CRYPTO_ANCHOR_SMART_CONTRACT:0x0000000000000000000000000000000000000000}
+    chain-id: ${CRYPTO_ANCHOR_CHAIN_ID:11155111}
+    confirmations-required: ${CRYPTO_ANCHOR_CONFIRMATIONS_REQUIRED:12}
+    stuck-timeout-seconds: 3600
+    receipt-timeout-seconds: 3600
+    submit:
+      delay: 30000
+      timeout-seconds: 15
+    poll:
+      delay: 15000
+    stuck-monitor:
+      delay: 300000
+    gas:
+      max-fee-per-gas-cap: 100000000000
 
 traceability:
   audit:

@@ -98,7 +98,7 @@ public class AnchorConfirmationPollerIntegrationTest {
         ReflectionTestUtils.setField(poller, "receiptTimeoutSeconds", 3600L);
         
         // 3. Mock the repository to return the batch in SUBMITTED state
-        MerkleBatch batch = new MerkleBatch("batch-ganache", 1, 10, expectedRootHex, Instant.now(), AnchorStatus.SUBMITTED,
+        MerkleBatch batch = new MerkleBatch("batch-ganache", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), expectedRootHex, Instant.now(), AnchorStatus.SUBMITTED,
                 "test-network", registry.getContractAddress(), 1L, txHash, Instant.now().minusSeconds(10), null, null, null);
         
         when(repositoryPort.findSubmittedOlderFirst()).thenReturn(List.of(batch));

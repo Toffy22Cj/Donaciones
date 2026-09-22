@@ -33,6 +33,8 @@ public class TraceabilityEventDocument {
     
     private Map<String, Object> payload;
     
+    private String merkleBatchId;
+    
     private String previousHash;
     private String eventHash;
 }

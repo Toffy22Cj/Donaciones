@@ -13,6 +13,15 @@ public interface MerkleBatchRepositoryPort {
     
     List<MerkleBatch> findByStatus(AnchorStatus status);
     
+    java.util.stream.Stream<MerkleBatch> streamByStatus(AnchorStatus status);
+    
+    /**
+     * Atomically transitions a batch from COLLECTING to PENDING and sets its merkleRoot.
+     * Uses a conditional update (status = COLLECTING) to guarantee exactly-once transition.
+     * @return true if transitioned, false if batch not found or not in COLLECTING state
+     */
+    boolean transitionCollectingToPending(String batchId, String merkleRoot, List<String> leafHashes);
+
     /**
      * Atomically claims the next PENDING batch by generating a nonce from the counter
      * and setting its status to SUBMITTING inside a single MongoDB transaction.

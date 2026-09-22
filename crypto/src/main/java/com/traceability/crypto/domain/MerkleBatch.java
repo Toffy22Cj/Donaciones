@@ -7,9 +7,9 @@ import java.time.Instant;
  */
 public record MerkleBatch(
     String batchId,
-    long sequenceRangeStart,
-    long sequenceRangeEnd,
+    java.util.Map<String, com.traceability.contracts.SequenceRange> coverage,
     String merkleRoot,
+    java.util.List<String> leafHashes,
     Instant createdAt,
     AnchorStatus status,
     String network,
@@ -22,7 +22,11 @@ public record MerkleBatch(
     Resolution resolution,
     java.math.BigInteger maxFeePerGasOverride
 ) {
-    public MerkleBatch(String batchId, long sequenceRangeStart, long sequenceRangeEnd, String merkleRoot, Instant createdAt, AnchorStatus status, String network, String smartContractAddress, Long nonceUsed, String transactionHash, Instant submittedAt, Instant anchoredAt, Long confirmedBlockNumber, Resolution resolution) {
-        this(batchId, sequenceRangeStart, sequenceRangeEnd, merkleRoot, createdAt, status, network, smartContractAddress, nonceUsed, transactionHash, submittedAt, anchoredAt, confirmedBlockNumber, resolution, null);
+    public MerkleBatch(String batchId, java.util.Map<String, com.traceability.contracts.SequenceRange> coverage, String merkleRoot, Instant createdAt, AnchorStatus status, String network, String smartContractAddress, Long nonceUsed, String transactionHash, Instant submittedAt, Instant anchoredAt, Long confirmedBlockNumber, Resolution resolution) {
+        this(batchId, coverage, merkleRoot, null, createdAt, status, network, smartContractAddress, nonceUsed, transactionHash, submittedAt, anchoredAt, confirmedBlockNumber, resolution, null);
+    }
+
+    public MerkleBatch(String batchId, java.util.Map<String, com.traceability.contracts.SequenceRange> coverage, String merkleRoot, java.util.List<String> leafHashes, Instant createdAt, AnchorStatus status, String network, String smartContractAddress, Long nonceUsed, String transactionHash, Instant submittedAt, Instant anchoredAt, Long confirmedBlockNumber, Resolution resolution) {
+        this(batchId, coverage, merkleRoot, leafHashes, createdAt, status, network, smartContractAddress, nonceUsed, transactionHash, submittedAt, anchoredAt, confirmedBlockNumber, resolution, null);
     }
 }

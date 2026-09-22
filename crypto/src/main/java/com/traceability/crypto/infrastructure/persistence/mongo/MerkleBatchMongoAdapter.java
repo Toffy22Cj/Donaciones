@@ -36,9 +36,9 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
                 .orElseGet(MerkleBatchDocument::new);
                 
         doc.setBatchId(batch.batchId());
-        doc.setSequenceRangeStart(batch.sequenceRangeStart());
-        doc.setSequenceRangeEnd(batch.sequenceRangeEnd());
+        doc.setCoverage(batch.coverage());
         doc.setMerkleRoot(batch.merkleRoot());
+        doc.setLeafHashes(batch.leafHashes());
         doc.setCreatedAt(batch.createdAt());
         doc.setStatus(batch.status());
         doc.setNetwork(batch.network());
@@ -68,6 +68,20 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
     }
 
     @Override
+    public java.util.stream.Stream<MerkleBatch> streamByStatus(AnchorStatus status) {
+        java.util.stream.Stream<MerkleBatchDocument> sourceStream = repository.streamByStatus(status);
+        return sourceStream.map(this::toDomain).onClose(sourceStream::close);
+    }
+
+    @Override
+    public boolean transitionCollectingToPending(String batchId, String merkleRoot, java.util.List<String> leafHashes) {
+        Query query = new Query(Criteria.where("batchId").is(batchId).and("status").is(AnchorStatus.COLLECTING));
+        Update update = new Update().set("status", AnchorStatus.PENDING).set("merkleRoot", merkleRoot).set("leafHashes", leafHashes);
+        com.mongodb.client.result.UpdateResult result = mongoTemplate.updateFirst(query, update, MerkleBatchDocument.class);
+        return result.getModifiedCount() > 0;
+    }
+
+    @Override
     public Optional<MerkleBatch> claimNextPendingBatchAndAssignNonceWithRetry(String network, String smartContractAddress) {
         int maxRetries = 3;
         int retries = 0;
@@ -75,6 +89,9 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
         while (true) {
             try {
                 return claimNextPendingBatchAndAssignNonce(network, smartContractAddress);
+            } catch (com.traceability.crypto.domain.exception.NoPendingBatchAvailableException e) {
+                // Transaction already rolled back the nonce increment — nothing to anchor yet.
+                return Optional.empty();
             } catch (RuntimeException e) {
                 if (e instanceof org.springframework.dao.TransientDataAccessException) {
                     handleTransientError(e, retries, maxRetries);
@@ -290,11 +307,19 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
     }
 
     private MerkleBatch toDomain(MerkleBatchDocument doc) {
+        java.util.Map<String, com.traceability.contracts.SequenceRange> coverage = doc.getCoverage();
+        if (coverage == null || coverage.isEmpty()) {
+            throw new com.traceability.crypto.domain.exception.LegacyBatchCoverageUnavailableException(
+                    "Batch " + doc.getBatchId() + " is a legacy batch missing 'coverage' data. " +
+                    "Cannot safely reconstruct stream sequences without historical migration."
+            );
+        }
+
         return new MerkleBatch(
                 doc.getBatchId(),
-                doc.getSequenceRangeStart(),
-                doc.getSequenceRangeEnd(),
+                coverage,
                 doc.getMerkleRoot(),
+                doc.getLeafHashes(),
                 doc.getCreatedAt(),
                 doc.getStatus(),
                 doc.getNetwork(),

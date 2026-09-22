@@ -42,7 +42,7 @@ class AnchorConfirmationPollerTest {
     void shouldTransitionToAnchoredWhenReceiptIsSuccessfulWithEnoughConfirmationsAndExactRootMatch() {
         // Arrange
         String validRootHex = "0x1111111111111111111111111111111111111111111111111111111111111111";
-        MerkleBatch batch = new MerkleBatch("batch-1", 1, 10, validRootHex, Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
+        MerkleBatch batch = new MerkleBatch("batch-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), validRootHex, Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
                 "network", "0xContract", 1L, "0xHash", Instant.now().minusSeconds(60), null, null, null);
         
         when(repositoryPort.findSubmittedOlderFirst()).thenReturn(List.of(batch));
@@ -69,7 +69,7 @@ class AnchorConfirmationPollerTest {
     void shouldTransitionToAnchorMismatchWhenRootBytesDiffer() {
         // Arrange
         String validRootHex = "0x1111111111111111111111111111111111111111111111111111111111111111";
-        MerkleBatch batch = new MerkleBatch("batch-2", 1, 10, validRootHex, Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
+        MerkleBatch batch = new MerkleBatch("batch-2", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), validRootHex, Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
                 "network", "0xContract", 1L, "0xHash", Instant.now().minusSeconds(60), null, null, null);
         
         when(repositoryPort.findSubmittedOlderFirst()).thenReturn(List.of(batch));
@@ -93,7 +93,7 @@ class AnchorConfirmationPollerTest {
     @Test
     void shouldTransitionToFailedWhenReceiptStatusIsReverted() {
         // Arrange
-        MerkleBatch batch = new MerkleBatch("batch-3", 1, 10, "0x123", Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
+        MerkleBatch batch = new MerkleBatch("batch-3", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x123", Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
                 "network", "0xContract", 1L, "0xHash", Instant.now().minusSeconds(60), null, null, null);
         
         when(repositoryPort.findSubmittedOlderFirst()).thenReturn(List.of(batch));
@@ -119,7 +119,7 @@ class AnchorConfirmationPollerTest {
         // Arrange
         // Submitted 2 hours ago (timeout is 1 hour)
         Instant submittedAt = Instant.now().minusSeconds(7200);
-        MerkleBatch batch = new MerkleBatch("batch-4", 1, 10, "0x123", Instant.now().minusSeconds(8000), AnchorStatus.SUBMITTED,
+        MerkleBatch batch = new MerkleBatch("batch-4", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x123", Instant.now().minusSeconds(8000), AnchorStatus.SUBMITTED,
                 "network", "0xContract", 1L, "0xHash", submittedAt, null, null, null);
         
         when(repositoryPort.findSubmittedOlderFirst()).thenReturn(List.of(batch));
@@ -142,7 +142,7 @@ class AnchorConfirmationPollerTest {
     void shouldDoNothingWhenReceiptExistsButConfirmationsAreInsufficient() {
         // Arrange
         String validRootHex = "0x1111111111111111111111111111111111111111111111111111111111111111";
-        MerkleBatch batch = new MerkleBatch("batch-5", 1, 10, validRootHex, Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
+        MerkleBatch batch = new MerkleBatch("batch-5", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), validRootHex, Instant.now().minusSeconds(100), AnchorStatus.SUBMITTED,
                 "network", "0xContract", 1L, "0xHash", Instant.now().minusSeconds(60), null, null, null);
         
         when(repositoryPort.findSubmittedOlderFirst()).thenReturn(List.of(batch));

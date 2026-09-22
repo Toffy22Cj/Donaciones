@@ -41,7 +41,7 @@ class BlockchainAnchorSchedulerTest {
         // Arrange
         // Batch A is stuck in SUBMITTING without a txHash
         MerkleBatch stuckBatchA = new MerkleBatch(
-                "batch-A", 1, 10, "0x123", Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-A", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x123", Instant.now(), AnchorStatus.SUBMITTING,
                 "test-network", "0xabc", 42L, null, null, null, null, null
         );
         
@@ -67,7 +67,7 @@ class BlockchainAnchorSchedulerTest {
                 .thenReturn(Optional.empty());
 
         MerkleBatch newBatchB = new MerkleBatch(
-                "batch-B", 11, 20, "0x456", Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-B", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x456", Instant.now(), AnchorStatus.SUBMITTING,
                 "test-network", "0xabc", 43L, null, null, null, null, null
         );
 
@@ -89,7 +89,7 @@ class BlockchainAnchorSchedulerTest {
     @Test
     void shouldUpdateToSubmittedOnSuccessfulSubmit() {
         // Arrange
-        MerkleBatch batch = new MerkleBatch("batch-C", 1, 10, "0x123", Instant.now(), AnchorStatus.SUBMITTING, "test-network", "0xabc", 1L, null, null, null, null, null);
+        MerkleBatch batch = new MerkleBatch("batch-C", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x123", Instant.now(), AnchorStatus.SUBMITTING, "test-network", "0xabc", 1L, null, null, null, null, null);
         when(repositoryPort.findSubmittingWithoutTxHashAndNonce()).thenReturn(Optional.of(batch));
         when(submitterPort.submitBatch(batch)).thenReturn("0xtxhash123");
 
@@ -105,7 +105,7 @@ class BlockchainAnchorSchedulerTest {
     @Test
     void shouldKeepSubmittingWithSameNonceOnDeterministicFailure() {
         // Arrange
-        MerkleBatch batch = new MerkleBatch("batch-D", 1, 10, "0x123", Instant.now(), AnchorStatus.SUBMITTING, "test-network", "0xabc", 2L, null, null, null, null, null);
+        MerkleBatch batch = new MerkleBatch("batch-D", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x123", Instant.now(), AnchorStatus.SUBMITTING, "test-network", "0xabc", 2L, null, null, null, null, null);
         when(repositoryPort.findSubmittingWithoutTxHashAndNonce()).thenReturn(Optional.of(batch));
         when(submitterPort.submitBatch(batch)).thenThrow(new BlockchainNodeCommunicationException("Deterministic Node Check Failed", new RuntimeException()));
 
@@ -121,7 +121,7 @@ class BlockchainAnchorSchedulerTest {
     @Test
     void shouldReconcileSubmittingTimeoutOnAmbiguousFailure() {
         // Arrange
-        MerkleBatch batch = new MerkleBatch("batch-E", 1, 10, "0x123", Instant.now(), AnchorStatus.SUBMITTING, "test-network", "0xabc", 3L, null, null, null, null, null);
+        MerkleBatch batch = new MerkleBatch("batch-E", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0x123", Instant.now(), AnchorStatus.SUBMITTING, "test-network", "0xabc", 3L, null, null, null, null, null);
         when(repositoryPort.findSubmittingWithoutTxHashAndNonce()).thenReturn(Optional.of(batch));
         when(submitterPort.submitBatch(batch)).thenThrow(new com.traceability.crypto.domain.exception.BlockchainAnchorTimeoutException("Ambiguous Timeout", new RuntimeException()));
 

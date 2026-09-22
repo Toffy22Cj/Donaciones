@@ -17,11 +17,15 @@ public class MerkleBatchDocument {
     @Indexed(unique = true)
     private String batchId;
     
+    @Deprecated(forRemoval = false)
     @Indexed
     private long sequenceRangeStart;
     
+    @Deprecated(forRemoval = false)
     private long sequenceRangeEnd;
+    private java.util.Map<String, com.traceability.contracts.SequenceRange> coverage;
     private String merkleRoot;
+    private java.util.List<String> leafHashes;
     private Instant createdAt;
     
     @Indexed
@@ -71,12 +75,28 @@ public class MerkleBatchDocument {
         this.sequenceRangeEnd = sequenceRangeEnd;
     }
 
+    public java.util.Map<String, com.traceability.contracts.SequenceRange> getCoverage() {
+        return coverage;
+    }
+
+    public void setCoverage(java.util.Map<String, com.traceability.contracts.SequenceRange> coverage) {
+        this.coverage = coverage;
+    }
+
     public String getMerkleRoot() {
         return merkleRoot;
     }
 
     public void setMerkleRoot(String merkleRoot) {
         this.merkleRoot = merkleRoot;
+    }
+
+    public java.util.List<String> getLeafHashes() {
+        return leafHashes;
+    }
+
+    public void setLeafHashes(java.util.List<String> leafHashes) {
+        this.leafHashes = leafHashes;
     }
 
     public Instant getCreatedAt() {
