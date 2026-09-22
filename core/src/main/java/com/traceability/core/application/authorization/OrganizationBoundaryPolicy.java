@@ -1,5 +1,8 @@
 package com.traceability.core.application.authorization;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class OrganizationBoundaryPolicy {
 
     public void assertBelongs(String principalOrganizationId, String resourceOrganizationRef) {
