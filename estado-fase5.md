@@ -22,8 +22,9 @@ Este documento registra decisiones de Modo de Arquitectura y estado real de impl
 | ADR-032 | Autorización de comandos en `core`: puerto Identity↔Core, guardas de pertenencia y rol, matriz de autorización | **Approved** |
 | ADR-033 | Contrato del payload de la saga `ASSET_REGISTRATION_SAGA` | **Approved** |
 | ADR-034 | Visibilidad y Operabilidad de Pending Allocation (NUEVA-4 redefinida) | **Approved** |
+| ADR-035 | HumanActor como variante de ActorRef y puente de autorización humana | **Proposed** |
 
-Catálogo del proyecto actual llega hasta **ADR-034** (más la enmienda a ADR-016). ADR-033 y ADR-034 ya forman parte del historial integrado en `develop`. Pendiente: incorporar los ADRs 028-032 y la enmienda a `documento-maestro-proyecto.md` en el repositorio real.
+Catálogo del proyecto actual llega hasta **ADR-035** (más la enmienda a ADR-016). ADR-033 y ADR-034 ya forman parte del historial integrado en `develop`. Pendiente: incorporar los ADRs 028-032 y la enmienda a `documento-maestro-proyecto.md` en el repositorio real.
 
 ---
 
@@ -295,6 +296,7 @@ NUEVA-1  feat/core-fund-genesis-commands              (registerFund, clearFundsG
 NUEVA-2  feat/core-fund-request-allocation-command    (requestAllocation) — depende de NUEVA-1
 NUEVA-3  feat/core-physicalasset-application-commands (registerPhysicalAsset, splitPhysicalAsset)
 NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabilidad manual de PENDING_ALLOCATION”) — PARTE A desbloqueada, PARTE B bloqueada
+NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante de ActorRef) — DISEÑO APROBADO / IMPLEMENTACIÓN PENDIENTE
 ```
 
 **Aclaración histórica sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existía inicialmente con un commit que preservaba el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 7 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1, y no representaba implementación en curso. Esto ha sido resuelto en la implementación posterior.
@@ -310,6 +312,7 @@ NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabil
   - **PARTE A:** Read model/proyección de allocations pendientes → IMPLEMENTACIÓN LOCAL COMPLETA, tests verdes, pendiente de PR.
   - **PARTE B:** Resolución administrativa de `reverseAllocation` → BLOQUEADA hasta implementación real de Bloque C/D.
   - *Descartados:* `FundAllocationSagaPolicy`, TTL/expiración automática, `reason` en compensación. `PhysicalAsset` queda fuera de NUEVA-4.
+- **NUEVA-5** (core-human-actor-authorization): DISEÑO APROBADO / IMPLEMENTACIÓN PENDIENTE (HumanActor y wiring).
 - **5.2** (fund-clearfunds-split): COMPLETADA
   - comando agregado en FundCommandService
   - recibe commandId, fundId, amount, sourceRef y actorRef

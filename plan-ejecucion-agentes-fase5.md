@@ -273,6 +273,24 @@ completo, dado que se integra con AssetRegisteredSagaPolicy existente.
 
 ---
 
+### TAREA NUEVA-5 — `HumanActor` como variante de `ActorRef` y wiring de autorización
+
+**Rama:** `feat/core-human-actor-authorization` | **Depende de:** 5.0, 5.6, 5.7, 5.8, 5.9 | **ADR:** ADR-031, ADR-032, ADR-035
+
+```
+TAREA: Implementar `HumanActor(String accountId)` como la tercera variante de `ActorRef` y cablear los servicios de dominio (FundCommandService, PhysicalAssetCommandService) para invocar al `IdentityPrincipalPort` y validar políticas `OrganizationBoundaryPolicy` y `RoleAuthorizationPolicy` cuando el ActorRef sea HumanActor. Mantener bypass para SystemActor y ExternalActor. Actualizar los MongoDB converters.
+
+ENTREGABLES:
+1. HumanActor implementando ActorRef.
+2. Inyección de IdentityPrincipalPort en los *CommandServices.
+3. Wiring completo en método authorize() de los servicios.
+4. Actualización de ActorRefWriteConverter (con fallback restrictivo) y ActorRefReadConverter (con fallback tolerante).
+
+QUÉ NO HACER: no inventar autenticación, endpoints HTTP, ni modificar Identity.
+```
+
+---
+
 ## Bloque 3 — `PhysicalAsset` (ADR-029) — ⏸ PAUSADO, depende del Bloque 2bis
 
 ### TAREA 5.3 — `PhysicalAsset.organizationRef`/`donorRef` (Camino A) y tratamiento v1
@@ -594,6 +612,7 @@ el backlog entregado para revisión humana.
 | **NUEVA-2** | **feat/core-fund-request-allocation-command** | NUEVA-1 |
 | **NUEVA-3** | **feat/core-physicalasset-application-commands** | — |
 | **NUEVA-4** | **feat/core-fund-allocation-saga-policy** | NUEVA-2, NUEVA-3 |
+| **NUEVA-5** | **feat/core-human-actor-authorization** | 5.0, 5.6, 5.7, 5.8, 5.9 |
 | 5.3 | feat/core-physicalasset-organization-donor-ref | NUEVA-1, NUEVA-3, NUEVA-4 |
 | 5.4 | feat/core-physicalasset-donation-genesis-domain | 5.3 |
 | 5.5 | feat/core-physicalasset-split-inheritance | 5.3 |
