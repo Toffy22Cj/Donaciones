@@ -559,15 +559,17 @@ Output literal de Surefire de `mvn test -pl core` — módulo completo.
 TAREA: Cerrar Fase 5 con una suite de integración que ejercite el
 dominio y la autorización juntos, contra Testcontainers real.
 
-ENTREGABLES: tests de extremo a extremo por escenario de negocio
-completo, por ejemplo: "una Organization registra un Fund
-(ADMINISTRATOR autorizado), lo confirma con ClearFundsForPledge, la
-asignación genera un PhysicalAsset por Camino A con organizationRef
-heredado y donorRef null, un EMPLOYEE lo divide con SplitPhysicalAsset
-heredando la genealogía completa, y un actor de otra Organization es
-rechazado en cada paso con CrossOrganizationAccessException". Incluir
-al menos un escenario donde un EMPLOYEE intenta ejecutar
-REGISTER_FUND y es rechazado con InsufficientRoleException.
+ENTREGABLES: Incluir escenarios de negocio completos de extremo a extremo ejecutados por los ActorRef disponibles hoy (SystemActor, ExternalActor), cubriendo:
+
+- registro de Fund;
+- ClearFundsAsGenesis;
+- ClearFundsForPledge;
+- asignación con generación de PhysicalAsset por Camino A con organizationRef heredado y donorRef null;
+- SplitPhysicalAsset con genealogía heredada.
+
+En cada escenario debe verificarse explícitamente que OrganizationBoundaryPolicy (P9) y RoleAuthorizationPolicy (P7) son bypasseadas para SystemActor/ExternalActor mediante aserciones negativas (verify(..., never())), consistente con ADR-032/D6.
+
+Los escenarios de rechazo por rol insuficiente (InsufficientRoleException) y por límite organizacional (CrossOrganizationAccessException) dependen de HumanAccount, que ADR-031 difiere explícitamente y prohíbe sustituir con un actor provisional, accountId ficticio o mecanismo equivalente, incluso en contexto de test. Por tanto, estos escenarios quedan fuera del alcance de 5.10 y pendientes hasta que HumanAccount exista. Esto no es un defecto de la suite, sino el estado arquitectónico esperado, igual que REGISTER_PHYSICAL_ASSET_FROM_DONATION.
 
 DEFINITION OF DONE: reactor completo (7 módulos) en verde. Output
 literal de Surefire de `mvn clean test` desde la raíz. `git status`
