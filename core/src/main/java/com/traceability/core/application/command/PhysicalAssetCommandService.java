@@ -155,8 +155,6 @@ public class PhysicalAssetCommandService {
             String unitOfMeasure,
             String custodianRef,
             String currentLocation,
-            String allocationId,
-            String sourceAllocationId,
             com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
@@ -179,8 +177,8 @@ public class PhysicalAssetCommandService {
                     custodianRef,
                     null, // parentAssetRef
                     assetId, // rootAssetRef (él mismo al nacer)
-                    allocationId,
-                    sourceAllocationId,
+                    null,
+                    null,
                     organizationRef,
                     donorRef,
                     donationRef

@@ -127,8 +127,6 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                 "Units",
                 "CUST-1",
                 "LOC-1",
-                "ALLOC-1",
-                "S-ALLOC-1",
                 actor
         );
 
@@ -148,6 +146,8 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
         assertEquals("DONOR-ABC", payload.donorRef());
         assertNotNull(payload.donationRef());
         assertFalse(payload.donationRef().isBlank());
+        assertNull(payload.allocationId());
+        assertNull(payload.sourceAllocationId());
 
         InOrder inOrder = Mockito.inOrder(identityPrincipalPort, organizationBoundaryPolicy, roleAuthorizationPolicy);
         inOrder.verify(identityPrincipalPort).resolvePrincipal(accountId);
@@ -174,8 +174,6 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                         "Units",
                         "CUST-1",
                         "LOC-1",
-                        "ALLOC-1",
-                        "S-ALLOC-1",
                         actor
                 )
         );
@@ -203,8 +201,6 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                         "Units",
                         "CUST-1",
                         "LOC-1",
-                        "ALLOC-1",
-                        "S-ALLOC-1",
                         actor
                 )
         );
@@ -228,8 +224,6 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                         "Units",
                         "CUST-1",
                         "LOC-1",
-                        "ALLOC-1",
-                        "S-ALLOC-1",
                         actor
                 )
         );
@@ -247,12 +241,12 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
 
         physicalAssetCommandService.registerPhysicalAssetFromDonation(
                 commandId, "ORG-456", "DONOR-ABC", "Tents", new BigDecimal("100"),
-                "Units", "CUST-1", "LOC-1", "ALLOC-1", "S-ALLOC-1", actor
+                "Units", "CUST-1", "LOC-1", actor
         );
 
         physicalAssetCommandService.registerPhysicalAssetFromDonation(
                 commandId, "ORG-456", "DONOR-ABC", "Tents", new BigDecimal("100"),
-                "Units", "CUST-1", "LOC-1", "ALLOC-1", "S-ALLOC-1", actor
+                "Units", "CUST-1", "LOC-1", actor
         );
 
         // Only one event should be present
