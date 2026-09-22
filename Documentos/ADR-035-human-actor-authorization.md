@@ -1,7 +1,7 @@
 # ADR-035 — HumanActor como variante de ActorRef y puente de autorización humana
 
 ## Status
-Proposed
+Approved
 
 ## Contexto
 El sistema requiere establecer la representación de la identidad de un operador humano dentro del Core para posibilitar operaciones restringidas, como la donación en especie (Camino B, Tarea 5.4). Actualmente, el ADR-031 define la taxonomía de `ActorRef` y bloqueó explícitamente la creación de una cuenta humana provisional. En la actualidad, el sistema solamente despacha autorización de comandos empleando los actores `SystemActor` y `ExternalActor`, los cuales efectúan *bypass* de políticas.
