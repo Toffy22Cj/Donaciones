@@ -536,31 +536,31 @@ literal de Surefire de `mvn test -pl core`.
 **Rama:** `feat/core-authorization-wiring` | **Depende de:** 5.7, 5.8 | **ADR:** ADR-032/D3
 
 ```
-TAREA: Integrar el mecanismo de bypass de SystemActor y ExternalActor 
-en los Application Services ya existentes que tienen contraparte 
+TAREA: Integrar el mecanismo de bypass de SystemActor y ExternalActor
+en los Application Services ya existentes que tienen contraparte
 en la matriz (FundCommandService, PhysicalAssetCommandService o equivalentes).
 
 ENTREGABLES:
 1. Cada método de *CommandService correspondiente a uno de los cinco
    CommandType implementables hoy (todo salvo
-   REGISTER_PHYSICAL_ASSET_FROM_DONATION) implementa un switch 
+   REGISTER_PHYSICAL_ASSET_FROM_DONATION) implementa un switch
    exhaustivo sobre ActorRef.
 2. Confirmar (§9.6, ADR-032/D6) que los caminos disparados por
-   SagaPolicy (AssetRegisteredSagaPolicy) NO pasan por esta guarda — 
-   el actor en esos casos es SystemActor, fuera del alcance de P7/P9 
-   por diseño. Verificar explícitamente que el wiring no se aplicó por 
+   SagaPolicy (AssetRegisteredSagaPolicy) NO pasan por esta guarda —
+   el actor en esos casos es SystemActor, fuera del alcance de P7/P9
+   por diseño. Verificar explícitamente que el wiring no se aplicó por
    error a esos caminos internos.
 
-QUÉ NO HACER: no inventar HumanAccount ni accountId falsos. 
+QUÉ NO HACER: no inventar HumanAccount ni accountId falsos.
 No llamar a IdentityPrincipalPort porque no existe una fuente real de accountId hoy.
 
-NOTA ARQUITECTÓNICA: Con el modelo ActorRef vigente, SystemActor y ExternalActor 
-omiten P7/P9 por diseño. HumanAccount fue diferido por ADR-031. Por tanto, 
-la secuencia Boundary -> Role -> Aggregate no tiene actualmente un camino E2E 
-ejecutable dentro de CommandService. La incorporación futura de HumanAccount 
+NOTA ARQUITECTÓNICA: Con el modelo ActorRef vigente, SystemActor y ExternalActor
+omiten P7/P9 por diseño. HumanAccount fue diferido por ADR-031. Por tanto,
+la secuencia Boundary -> Role -> Aggregate no tiene actualmente un camino E2E
+ejecutable dentro de CommandService. La incorporación futura de HumanAccount
 deberá implementar y probar dicha secuencia.
 
-DEFINITION OF DONE: test que confirma que un comando disparado por 
+DEFINITION OF DONE: test que confirma que un comando disparado por
 SagaPolicy (SystemActor) o ExternalActor continúa normalmente (bypass)
 y que el switch sobre ActorRef es exhaustivo en los comandos actuales.
 Output literal de Surefire de `mvn test -pl core` — módulo completo.
@@ -609,20 +609,35 @@ el backlog entregado para revisión humana.
 | 5.0 | feat/core-actorref-mechanism | — |
 | 5.1 | feat/core-fund-organization-ref | — |
 | 5.2 | feat/core-fund-clearfunds-split | 5.1 |
-| **NUEVA-1** | **feat/core-fund-genesis-commands** | — |
-| **NUEVA-2** | **feat/core-fund-request-allocation-command** | NUEVA-1 |
-| **NUEVA-3** | **feat/core-physicalasset-application-commands** | — |
-| **NUEVA-4** | **feat/core-fund-allocation-saga-policy** | NUEVA-2, NUEVA-3 |
-| **NUEVA-5** | **feat/core-human-actor-authorization** | 5.0, 5.6, 5.7, 5.8, 5.9 |
-| 5.3 | feat/core-physicalasset-organization-donor-ref | NUEVA-1, NUEVA-3, NUEVA-4 |
-| 5.4 | feat/core-physicalasset-donation-genesis-domain | 5.3 |
-| 5.5 | feat/core-physicalasset-split-inheritance | 5.3 |
-| 5.6 | feat/contracts-identity-principal-port | — |
-| 5.7 | feat/core-organization-boundary-policy | 5.1, 5.3, 5.6 |
-| 5.8 | feat/core-role-authorization-policy | 5.6 |
-| 5.9 | feat/core-authorization-wiring | 5.7, 5.8 |
-| 5.10 | feat/fase5-integration-tests | 5.0, 5.2, 5.4, 5.5, 5.9 |
+| **NUEVA-1** | **feat/core-fund-genesis-commands** | COMPLETADA |
+| **NUEVA-2** | **feat/core-fund-request-allocation-command** | COMPLETADA |
+| **NUEVA-3** | **feat/core-physicalasset-application-commands** | COMPLETADA |
+| **NUEVA-4 / 4B** | **feat/core-pending-allocation-read-model / core-nueva-4b-reverse-allocation** | COMPLETADA |
+| **NUEVA-5** | **feat/core-human-actor-authorization** | COMPLETADA |
+| 5.3 | feat/core-physicalasset-organization-donor-ref | COMPLETADA |
+| 5.4 | feat/core-physicalasset-donation-genesis-domain / in-kind-donation | COMPLETADA |
+| 5.5 | feat/core-physicalasset-split-inheritance | COMPLETADA |
+| 5.6 | feat/contracts-identity-principal-port | COMPLETADA |
+| 5.7 | feat/core-organization-boundary-policy | COMPLETADA |
+| 5.8 | feat/core-role-authorization-policy | COMPLETADA |
+| 5.9 | feat/core-authorization-wiring | COMPLETADA |
+| 5.10 | feat/fase5-integration-tests | COMPLETADA |
+| 5.11 | feat/fase5-cierre-documental | COMPLETADA |
 
 **Nota:** NUEVA-1 y NUEVA-3 no dependen entre sí y pueden ejecutarse en paralelo. NUEVA-2 depende solo de NUEVA-1. NUEVA-4 es el punto de convergencia — depende de NUEVA-2 y NUEVA-3 juntas.
 
 **Nota sobre paralelización:** 5.0, 5.1/5.2, 5.3/5.4/5.5, y 5.6 no tienen dependencias cruzadas entre sí y podrían ejecutarse en ramas paralelas por distintos agentes/personas — pero `reglas-equipo-y-agentes.md` §3.4 exige que, si más de un agente trabaja en la misma tarea o en tareas que tocan el mismo módulo (`core` en este caso: 5.0, 5.1-5.5 y 5.7-5.9 todas lo tocan), no se solape trabajo sin que el punto de control anterior haya cerrado explícitamente. Recomendación: no paralelizar dentro de `core` sin coordinación explícita del equipo humano, aunque el grafo de dependencias formal lo permitiría.
+
+---
+
+## Cierre de Fase 5
+
+Concluida la Tarea 5.11, la Fase 5 queda formalmente cerrada.
+
+- **Trabajo terminado:** Todas las tareas 5.0-5.11, además de NUEVA-1 a NUEVA-5 (incluyendo NUEVA-4B) están completamente integradas, probadas y documentadas en `develop`.
+- **Deudas técnicas diferidas:**
+  - La orquestación completa E2E de la creación del stream del agregado hijo al ejecutar Split.
+  - Generación de `OutboxMessage` para el Camino A en `registerPhysicalAsset`.
+  - Derivación real del `organizationRef` para `ExternalActor` en los pagos externos.
+- **Trabajo perteneciente a fases posteriores:** Autenticación, endpoints HTTP, despliegues, integración directa con Identity externa/bases de datos humanas.
+No quedan tareas de implementación pendientes para Fase 5.

@@ -1,10 +1,10 @@
 # Estado — Fase 5: Bloque de Dominio (cerrado) + Bloque C/D — Autorización (mecanismo y matriz cerrados) + Implementación (EN CURSO, PAUSADA)
 
 **Proyecto:** Motor de Trazabilidad Verificable de Donaciones (`com.traceability`)
-**Fase actual:** Fase 5.
-- **Bloque de dominio** (`Organization↔Fund`, `Organization↔PhysicalAsset`, donación en especie, `actorRef`) — **DISEÑO CERRADO (ADR-028 a ADR-031). IMPLEMENTACIÓN: Tareas 5.0 y 5.1 cerradas (Approved). Tareas 5.3/5.4/5.5 PAUSADAS — ver §10.**
-- **Bloque C/D** (autorización, puerto Identity↔Core) — **DISEÑO CERRADO Y FORMALIZADO (ADR-032 — Approved). IMPLEMENTACIÓN NO INICIADA.**
-Este documento registra decisiones de Modo de Arquitectura y estado real de implementación verificado con evidencia — nada aquí debe leerse como "completado" sin la evidencia correspondiente (output de Surefire, o hallazgo de auditoría con comando/salida literal).
+**Fase actual:** Fase 5 — **CERRADA**
+- **Bloque de dominio** (`Organization↔Fund`, `Organization↔PhysicalAsset`, donación en especie, `actorRef`) — **DISEÑO Y IMPLEMENTACIÓN CERRADOS**
+- **Bloque C/D** (autorización, puerto Identity↔Core) — **DISEÑO E IMPLEMENTACIÓN CERRADOS (ADR-032, ADR-035).**
+Este documento registra el cierre formal de la Fase 5 verificado con evidencia.
 **Fases previas:** 1, 2, 3 y 4 formalmente cerradas (ver `documento-maestro-proyecto.md`, `estado-fase4.md`).
 **Alcance del bloque de dominio, fijado desde el primer intercambio de esta fase:** dominio de negocio únicamente. Autorización, autenticación y escritura HTTP quedaron explícitamente pospuestas a un bloque separado (Bloque C/D) desde antes de abrir la primera pregunta de arquitectura — esa frontera se mantuvo sin excepción durante todo el bloque de dominio, y Bloque C/D, ya abierto, respeta la misma disciplina de no inventar política de negocio sin evidencia documental (ver §9).
 
@@ -22,7 +22,8 @@ Este documento registra decisiones de Modo de Arquitectura y estado real de impl
 | ADR-032 | Autorización de comandos en `core`: puerto Identity↔Core, guardas de pertenencia y rol, matriz de autorización | **Approved** |
 | ADR-033 | Contrato del payload de la saga `ASSET_REGISTRATION_SAGA` | **Approved** |
 | ADR-034 | Visibilidad y Operabilidad de Pending Allocation (NUEVA-4 redefinida) | **Approved** |
-| ADR-035 | HumanActor como variante de ActorRef y puente de autorización humana | **Proposed** |
+| ADR-035 | HumanActor como variante de ActorRef y puente de autorización humana | **Approved** |
+| ADR-036 | Reversión Administrativa de Asignación (NUEVA-4B) | **Approved** |
 
 Catálogo del proyecto actual llega hasta **ADR-035** (más la enmienda a ADR-016). ADR-033 y ADR-034 ya forman parte del historial integrado en `develop`. Pendiente: incorporar los ADRs 028-032 y la enmienda a `documento-maestro-proyecto.md` en el repositorio real.
 
@@ -129,7 +130,7 @@ graph TB
 Por diseño de negocio, es el único comando de génesis del sistema sin `SagaPolicy` que lo dispare automáticamente ni webhook externo asociado — solo puede ser ejecutado por un operador humano. La taxonomía de `ActorRef` cerrada en ADR-031 no tiene hoy ninguna variante legítima para representar esa atribución (`SystemActor`/`ExternalActor` no aplican; `HumanAccount` está diferido). ADR-031 prohíbe explícitamente sustituir esa ausencia con `null`, texto libre o un actor provisional.
 
 ```text
-ADR-031 → HumanAccount diferido → autenticación pendiente → Camino B → implementación bloqueada
+ADR-031 → HumanActor implementado vía ADR-035 → autenticación en contracts lista → Camino B → **implementación completada y mergeada (Tarea 5.4)**
 ```
 
 Esto es una restricción **arquitectónica y normativa**, no una nota de planificación — no depende de en qué orden se ejecute el backlog, depende de que exista una variante formal de `ActorRef` para identidad humana.
@@ -142,7 +143,6 @@ Esto es una restricción **arquitectónica y normativa**, no una nota de planifi
 
 Actualizado tras el diseño completo de Bloque C/D (§9) — el diseño y la política de negocio conocida están cerrados; lo que sigue pendiente son huecos genuinos descubiertos durante el diseño, no partes del mecanismo sin resolver:
 
-- **`HumanAccount`** como variante de `ActorRef` — su forma exacta (¿solo `accountId`? ¿incluye `organizationId`/rol activo de contexto?) se define junto con el mecanismo de escritura autenticada, no antes. Sigue siendo el bloqueador directo de `RegisterPhysicalAssetFromDonation` (§5), independientemente del rol ya asignado en la matriz (§9.5).
 - **Derivación de `organizationRef` para `ExternalActor`** (§9.6) — el webhook de la pasarela de pago puede disparar `CLEAR_FUNDS_AS_GENESIS`/`CLEAR_FUNDS_FOR_PLEDGE`, pero no existe mecanismo diseñado para mapear el contexto del pago externo (campaña, comercio) a un `organizationRef` concreto. Sin este mecanismo, ese camino automatizado no puede construir el comando correctamente — solo queda clara la ruta humana (P7.1-P7.3).
 - **Escritura HTTP** — ningún endpoint se diseñó todavía. El mecanismo de autorización (§9) está listo para ser invocado desde un futuro controller, pero ningún endpoint, DTO de request/response, ni framework de exposición (Spring Security o equivalente) se decidió en esta fase.
 - **Implementación real** de todo lo diseñado en §9 (P7, P9, P10, P11) — hasta ahora, solo diseño de Modo de Arquitectura, sin código ni tests.
@@ -307,12 +307,12 @@ NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante 
 - **NUEVA-1** (core-fund-genesis-commands): COMPLETADA (Implementación introducida en el commit `0579f41`, integrado directamente en el historial base de develop anterior al branch actual).
 - **NUEVA-2** (core-fund-request-allocation-command): COMPLETADA (Implementación en 299f04b, mergeada vía PR #6 en 927eefa).
 - **NUEVA-3** (core-physicalasset-application-commands): COMPLETADA (Implementación en 0568325, mergeada vía PR #4 en 66fc813).
-- **NUEVA-4** (core-pending-allocation-read-model): PARCIAL (Parte A pendiente de PR).
+- **NUEVA-4** (core-pending-allocation-read-model / core-nueva-4b-reverse-allocation): **COMPLETADA**
   - **Redefinida:** “Visibilidad y operabilidad manual de PENDING_ALLOCATION”
-  - **PARTE A:** Read model/proyección de allocations pendientes → IMPLEMENTACIÓN LOCAL COMPLETA, tests verdes, pendiente de PR.
-  - **PARTE B:** Resolución administrativa de `reverseAllocation` → BLOQUEADA hasta implementación real de Bloque C/D.
+  - **PARTE A:** Read model/proyección de allocations pendientes → **COMPLETADA**
+  - **PARTE B:** Resolución administrativa de `reverseAllocation` (NUEVA-4B) → **COMPLETADA Y MERGEADA** (PR #25)
   - *Descartados:* `FundAllocationSagaPolicy`, TTL/expiración automática, `reason` en compensación. `PhysicalAsset` queda fuera de NUEVA-4.
-- **NUEVA-5** (core-human-actor-authorization): DISEÑO APROBADO / IMPLEMENTACIÓN PENDIENTE (HumanActor y wiring).
+- **NUEVA-5** (core-human-actor-authorization): **COMPLETADA** (HumanActor, ADR-035 y wiring implementados y mergeados en PR #23, #24).
 - **5.2** (fund-clearfunds-split): COMPLETADA
   - comando agregado en FundCommandService
   - recibe commandId, fundId, amount, sourceRef y actorRef
@@ -326,14 +326,15 @@ NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante 
   - idempotencia garantizada por el mecanismo existente de TransactionalEventPublisher / tryClaim
   - test de integración con 5 casos
   - suite core validada: 145 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS
-- **5.3** (physicalasset-organization-donor-ref): NO INICIADA
-- **5.4** (physicalasset-donation-genesis-domain): NO INICIADA
-- **5.5** (physicalasset-split-inheritance): **PARCIAL — DOMINIO COMPLETADO; ORQUESTACIÓN DE APLICACIÓN PENDIENTE**. (La parte de dominio está implementada: herencia de `organizationRef`, `donorRef` y `donationRef` en `ASSET_SPLIT` con versionado v1/v2 explícito `AssetSplitV2Payload`, replay histórico seguro sin retro-mutación de v1, fix de regresión en `DonationProjectionHandler`. Sin embargo, la orquestación de creación y persistencia del stream del activo hijo está explícitamente pendiente. Trabajo posterior requerido: `feat/core-physicalasset-split-orchestration`).
-- **5.6** (contracts-identity-principal-port): NO INICIADA
-- **5.7** (organization-boundary-policy): NO INICIADA
-- **5.8** (role-authorization-policy): NO INICIADA
-- **5.9** (authorization-wiring): NO INICIADA
-- **5.10** (fase5-integration-tests): **EN PROCESO (CON OBSERVACIONES)**. Todavía no está completada. Se separó la verificación de integración productiva de la verificación del coordinador de Sagas, dado que la implementación actual (ver hallazgo de Outbox) requiere pruebas aisladas. Adicionalmente, el test de split sólo verifica el decremento de cantidad del padre (alcance reducido).
+- **5.3** (physicalasset-organization-donor-ref): **COMPLETADA** (Camino A, PR #13)
+- **5.4** (physicalasset-donation-genesis-domain / in-kind-donation): **COMPLETADA** (Soporte de dominio PR #15 y capa de aplicación PR #26)
+- **5.5** (physicalasset-split-inheritance): **COMPLETADA** (Herencia de dominio y aplicación mergeadas en PR #19). La orquestación de creación y persistencia del stream del activo hijo está explícitamente pendiente como deuda técnica.
+- **5.6** (contracts-identity-principal-port): **COMPLETADA** (PR #14)
+- **5.7** (organization-boundary-policy): **COMPLETADA** (PR #20)
+- **5.8** (role-authorization-policy): **COMPLETADA** (PR #16)
+- **5.9** (authorization-wiring): **COMPLETADA** (PR #21)
+- **5.10** (fase5-integration-tests): **COMPLETADA**. Reactor en verde. Test de extremo a extremo completado.
+- **5.11** (cierre documental y formal): **COMPLETADA**
 
 **Aclaración sobre Asimetría de NUEVA-2 (`requestAllocation`):**
 El método `requestAllocation()` de `FundCommandService` incluye la guarda explícita `exists(commandId)` para prevenir repeticiones del mismo comando. A diferencia de este, `confirmAllocation()` y `reverseAllocation()` NO usan esa guarda. La justificación de esta asimetría es:
@@ -367,5 +368,26 @@ BACKLOG NUEVO IDENTIFICADO: `registerPhysicalAsset()` (Application Service) no g
 
 **Hallazgo Transversal (Alcance Limitado de Split - 5.5):**
 Se identificó que la verificación de *Split* implementada en 5.10 tiene **alcance reducido**. Únicamente demuestra el decremento de cantidad en el agregado padre. La creación, reconstitución del agregado hijo y sus invariantes genealógicas en Event Sourcing quedan pendientes de auditoría de la Tarea 5.5.
-- No se puede afirmar que el proceso de *split* está completamente verificado.
-- **Auditoría de 5.5:** PENDIENTE.
+- No se puede afirmar que el proceso de *split* está completamente verificado end-to-end.
+- **Auditoría de 5.5 E2E:** Diferido a futuras fases.
+
+---
+
+## 12. Cierre de Fase 5
+
+Con la ejecución de la Tarea 5.11, la Fase 5 queda formal y técnicamente **CERRADA**.
+
+**Estado final real:**
+- **Commit de cierre técnico:** `a6c9ebd` (`HEAD == origin/develop`)
+- **Resultado final de tests:** `BUILD SUCCESS` (191 tests en módulo `core`, 0 failures/errors; reactor completo exitoso).
+- **Estado de Git:** Working tree limpio (`git diff --check` limpio).
+- **Tareas completadas:** Todas las definidas para Fase 5, incluyendo Bloque de Dominio (5.0 a 5.5), Bloque C/D Autorización (5.6 a 5.9), Integración E2E (5.10) y Nuevas tareas integradas (NUEVA-1 a NUEVA-5 y NUEVA-4B).
+- **Deudas técnicas explícitamente diferidas:**
+  - *Outbox Camino A:* Generación del OutboxMessage para `registerPhysicalAsset` (Hallazgo 5.10).
+  - *Orquestación de Split:* Creación del stream de Aggregate hijo durante el split (Hallazgo 5.5).
+  - *Derivación de organizationRef para ExternalActor:* No hay mecanismo para webhook de pago para derivarlo aún.
+  - *Identidad:* La implementación real del account (escritura HTTP/Endpoints y endpoints de auth no fueron parte del scope de Fase 5).
+- **ADRs relevantes consolidados:** ADR-028, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036. Todos **Approved**. ADR-033 aprobado parcialmente a la espera de estandarización futura según ADR-013.
+
+**Conclusión:**
+La arquitectura transaccional, de identidades y dominio base ha quedado firmemente conectada e integrada con las reglas de negocio de autorización en capa de aplicación. El sistema base se encuentra validado y listo para abordar las implementaciones de endpoints y capas de infraestructura externa en la próxima fase.
