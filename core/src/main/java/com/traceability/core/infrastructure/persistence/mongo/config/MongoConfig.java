@@ -3,6 +3,8 @@ package com.traceability.core.infrastructure.persistence.mongo.config;
 import com.traceability.core.domain.event.ActorRef;
 import com.traceability.core.domain.event.ExternalActor;
 import com.traceability.core.domain.event.SystemActor;
+import com.traceability.core.domain.event.HumanActor;
+import com.traceability.core.infrastructure.persistence.mongo.exceptions.UnknownActorRefTypeException;
 import org.bson.Document;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +38,11 @@ public class MongoConfig {
                 doc.put("_class", "ExternalActor");
                 doc.put("sourceSystem", ext.sourceSystem());
                 doc.put("externalEventId", ext.externalEventId());
+            } else if (source instanceof HumanActor ha) {
+                doc.put("_class", "HumanActor");
+                doc.put("accountId", ha.accountId());
+            } else {
+                throw new UnknownActorRefTypeException("Unsupported ActorRef type: " + source.getClass().getName());
             }
             return doc;
         }
@@ -53,6 +60,8 @@ public class MongoConfig {
                         source.getString("sourceSystem"),
                         source.getString("externalEventId")
                 );
+            } else if ("HumanActor".equals(type)) {
+                return new HumanActor(source.getString("accountId"));
             }
             // fallback if it's somehow missing or different
             return null;

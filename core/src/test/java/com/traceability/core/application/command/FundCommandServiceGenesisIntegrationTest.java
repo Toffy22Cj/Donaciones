@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +37,11 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 @Testcontainers
 class FundCommandServiceGenesisIntegrationTest {
+
+    @MockBean
+    private IdentityPrincipalPort identityPrincipalPort;
+
+
 
     @MockBean
     private HashPort hashPort;
@@ -105,6 +112,9 @@ class FundCommandServiceGenesisIntegrationTest {
         Fund reconstituted = Fund.rehydrate(fundId, stream.stream().map(DomainEvent::payload).toList(), stream.size());
         assertEquals("ORG-123", reconstituted.getOrganizationRef().value());
         assertEquals(1000L, reconstituted.getPledgedAmount());
+
+        // Verify bypass
+        org.mockito.Mockito.verify(identityPrincipalPort, org.mockito.Mockito.never()).resolvePrincipal(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

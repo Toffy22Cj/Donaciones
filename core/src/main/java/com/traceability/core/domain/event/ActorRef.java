@@ -1,4 +1,4 @@
 package com.traceability.core.domain.event;
 
-public sealed interface ActorRef permits SystemActor, ExternalActor {
+public sealed interface ActorRef permits SystemActor, ExternalActor, HumanActor {
 }
