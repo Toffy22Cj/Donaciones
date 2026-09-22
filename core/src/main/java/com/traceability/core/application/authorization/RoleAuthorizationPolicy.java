@@ -17,7 +17,7 @@ public class RoleAuthorizationPolicy {
         }
 
         AuthorizationRole requiredRole = switch (commandType) {
-            case REGISTER_FUND, CLEAR_FUNDS_AS_GENESIS, CLEAR_FUNDS_FOR_PLEDGE -> AuthorizationRole.ADMINISTRATOR;
+            case REGISTER_FUND, CLEAR_FUNDS_AS_GENESIS, CLEAR_FUNDS_FOR_PLEDGE, REVERSE_ALLOCATION_ADMINISTRATIVELY -> AuthorizationRole.ADMINISTRATOR;
             case REGISTER_PHYSICAL_ASSET, REGISTER_PHYSICAL_ASSET_FROM_DONATION, SPLIT_PHYSICAL_ASSET -> AuthorizationRole.EMPLOYEE;
         };
 

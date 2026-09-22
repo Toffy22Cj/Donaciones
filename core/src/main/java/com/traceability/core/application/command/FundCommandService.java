@@ -177,4 +177,29 @@ public class FundCommandService {
             return null;
         });
     }
+
+    public void reverseAllocationAdministratively(String commandId, String fundId, String allocationId, String reason, com.traceability.core.domain.event.ActorRef actorRef) {
+        if (processedCommandRepository.exists(commandId)) {
+            return;
+        }
+
+        retryTemplate.execute(() -> {
+            List<DomainEvent> events = eventStore.loadStream(fundId);
+            List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
+            Fund fund = Fund.rehydrate(fundId, payloads, events.size());
+            long expectedVersion = fund.getVersion();
+
+            authorize(actorRef, fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null, CommandType.REVERSE_ALLOCATION_ADMINISTRATIVELY);
+
+            fund.reverseAllocation(allocationId, reason);
+
+            List<DomainEvent> newEvents = fund.getUncommittedEvents();
+            if (!newEvents.isEmpty()) {
+                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
+            } else {
+                eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, java.util.Collections.emptyList(), actorRef, null, commandId);
+            }
+            return null;
+        });
+    }
 }
