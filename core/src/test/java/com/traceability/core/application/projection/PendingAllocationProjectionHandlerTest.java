@@ -11,8 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -34,6 +35,9 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 @Testcontainers
 class PendingAllocationProjectionHandlerTest {
+
+    @MockBean
+    private IdentityPrincipalPort identityPrincipalPort;
 
     static final String DISABLE_SCHEDULER_PROP = "core.projection.retry.delay=99999999";
 

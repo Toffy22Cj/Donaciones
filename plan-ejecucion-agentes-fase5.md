@@ -284,7 +284,8 @@ ENTREGABLES:
 1. HumanActor implementando ActorRef.
 2. Inyección de IdentityPrincipalPort en los *CommandServices.
 3. Wiring completo en método authorize() de los servicios.
-4. Actualización de ActorRefWriteConverter (con fallback restrictivo) y ActorRefReadConverter (con fallback tolerante).
+4. Actualización de ActorRefWriteConverter y ActorRefReadConverter.
+5. (Nota sobre unknown write): La rama defensiva del ActorRefWriteConverter para un tipo no reconocido se verifica por inspección del código y queda documentada como no-ejercitable mientras ActorRef mantenga exclusivamente las variantes selladas actuales. Si en el futuro aparece una nueva variante no reconocida por el converter, deberá añadirse la prueba ejecutable correspondiente antes de cerrar ese cambio.
 
 QUÉ NO HACER: no inventar autenticación, endpoints HTTP, ni modificar Identity.
 ```

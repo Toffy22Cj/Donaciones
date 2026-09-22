@@ -5,6 +5,7 @@ import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.ProcessedCommandRepositoryPort;
 import com.traceability.core.application.service.TransactionalEventPublisher;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.core.domain.event.ExternalActor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,13 +30,16 @@ class ExternalActorBypassTest {
         RoleAuthorizationPolicy roleAuthorizationPolicy = Mockito.mock(RoleAuthorizationPolicy.class);
         OrganizationBoundaryPolicy organizationBoundaryPolicy = Mockito.mock(OrganizationBoundaryPolicy.class);
 
+        IdentityPrincipalPort identityPrincipalPort = Mockito.mock(IdentityPrincipalPort.class);
+
         service = new PhysicalAssetCommandService(
                 retryTemplate,
                 processedCommandRepository,
                 eventStore,
                 eventPublisher,
                 roleAuthorizationPolicy,
-                organizationBoundaryPolicy
+                organizationBoundaryPolicy,
+                identityPrincipalPort
         );
     }
 

@@ -5,6 +5,8 @@ import com.traceability.core.application.security.TrackingCodeValidationResult;
 import com.traceability.core.infrastructure.security.properties.TrackingSecurityProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -26,6 +28,9 @@ import com.traceability.core.infrastructure.projection.mongo.repositories.AssetI
 })
 @Testcontainers
 public class TrackingCodeServiceIntegrationTest {
+
+    @MockBean
+    private IdentityPrincipalPort identityPrincipalPort;
 
     @org.springframework.context.annotation.Configuration
     @org.springframework.boot.autoconfigure.SpringBootApplication(scanBasePackages = {

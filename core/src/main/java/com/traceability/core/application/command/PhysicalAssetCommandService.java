@@ -11,6 +11,10 @@ import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.event.ExternalActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
+import com.traceability.contracts.authorization.AuthorizationPrincipal;
+import com.traceability.core.application.authorization.CommandType;
+import com.traceability.core.domain.event.HumanActor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -28,22 +32,25 @@ public class PhysicalAssetCommandService {
     private final TransactionalEventPublisher eventPublisher;
     private final RoleAuthorizationPolicy roleAuthorizationPolicy;
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
+    private final IdentityPrincipalPort identityPrincipalPort;
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
             ProcessedCommandRepositoryPort processedCommandRepository,
             EventStorePort eventStore,
             TransactionalEventPublisher eventPublisher,
             RoleAuthorizationPolicy roleAuthorizationPolicy,
-            OrganizationBoundaryPolicy organizationBoundaryPolicy) {
+            OrganizationBoundaryPolicy organizationBoundaryPolicy,
+            IdentityPrincipalPort identityPrincipalPort) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
         this.eventPublisher = eventPublisher;
         this.roleAuthorizationPolicy = roleAuthorizationPolicy;
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
+        this.identityPrincipalPort = identityPrincipalPort;
     }
 
-    private void authorize(ActorRef actorRef, String organizationRef) {
+    private void authorize(ActorRef actorRef, String organizationRef, CommandType commandType) {
         switch (actorRef) {
             case SystemActor sa -> {
                 // bypass P7/P9
@@ -51,7 +58,11 @@ public class PhysicalAssetCommandService {
             case ExternalActor ea -> {
                 // bypass P7/P9
             }
-            // NO default branch. When HumanAccount is introduced, compiler will enforce revisiting this switch.
+            case HumanActor ha -> {
+                AuthorizationPrincipal principal = identityPrincipalPort.resolvePrincipal(ha.accountId());
+                organizationBoundaryPolicy.assertBelongs(principal.organizationId(), organizationRef);
+                roleAuthorizationPolicy.authorize(principal, commandType);
+            }
         }
     }
 
@@ -100,7 +111,7 @@ public class PhysicalAssetCommandService {
         }
 
         retryTemplate.execute(() -> {
-            authorize(actorRef, organizationRef);
+            authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET);
 
             String assetId = UUID.randomUUID().toString();
 
@@ -154,7 +165,7 @@ public class PhysicalAssetCommandService {
             PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, payloads, events.size());
             long expectedVersion = asset.getVersion();
 
-            authorize(actorRef, asset.getOrganizationRef());
+            authorize(actorRef, asset.getOrganizationRef(), CommandType.SPLIT_PHYSICAL_ASSET);
 
             String childAssetId = UUID.randomUUID().toString();
 

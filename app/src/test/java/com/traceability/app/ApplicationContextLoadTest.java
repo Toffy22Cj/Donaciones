@@ -59,6 +59,9 @@ class ApplicationContextLoadTest {
     @Autowired
     private com.traceability.core.application.port.out.OutboxPort outboxPort;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.traceability.contracts.authorization.IdentityPrincipalPort identityPrincipalPort;
+
     @Test
     void contextLoadsAndTransactionSmokeTestPasses() {
         // 1. Verificar la existencia del TransactionManager en el contexto

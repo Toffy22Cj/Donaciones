@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -24,7 +26,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import org.springframework.boot.test.mock.mockito.MockBean;
 import com.traceability.contracts.HashPort;
 import com.traceability.core.application.port.out.OutboxPort;
 
@@ -41,6 +42,9 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 @Testcontainers
 class DonationProjectionIntegrationTest {
+
+    @MockBean
+    private IdentityPrincipalPort identityPrincipalPort;
 
     // Spring ScheduledThreadPoolExecutor rejects delay <= 0 with IllegalArgumentException. 
     // We use a large magic number (99999999 ms, ~115 days) to effectively disable the background scheduler during tests.
