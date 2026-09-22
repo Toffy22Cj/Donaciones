@@ -117,7 +117,7 @@ public class ReverseAllocationAdministrativelyIntegrationTest {
         SystemActor systemActor = new SystemActor("Setup");
         fundCommandService.clearFundsGenesis(UUID.randomUUID().toString(), fundId, new OrganizationRef(organizationId), "camp1", "donor1", "USD", 1000L, "src1", systemActor);
         fundCommandService.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 100L, systemActor);
-        
+
         // Assert allocation requested
         List<DomainEvent> events = eventStorePort.loadStream(fundId);
         assertTrue(events.stream().anyMatch(e -> e.eventType().name().equals("ALLOCATION_REQUESTED")));
