@@ -153,7 +153,7 @@ class Phase5EndToEndIntegrationTest {
     }
 
     @Test
-    void testD_caminoA_FundToPhysicalAsset_withSagaAndBypass() {
+    void testD1_caminoA_registerPhysicalAsset_Integration_withoutOutbox() {
         String fundId = "FUND-" + UUID.randomUUID();
         OrganizationRef orgRef = new OrganizationRef("ORG-1");
         
@@ -183,13 +183,36 @@ class Phase5EndToEndIntegrationTest {
                 .findFirst()
                 .orElseThrow();
 
-        // Inject OutboxMessage because PhysicalAssetCommandService currently doesn't
+        List<com.traceability.core.domain.event.DomainEvent> assetEvents = eventStorePort.loadStream(theAssetId);
+        List<com.traceability.core.domain.event.DomainEventPayload> payloads = assetEvents.stream().map(com.traceability.core.domain.event.DomainEvent::payload).toList();
+        PhysicalAsset asset = PhysicalAsset.rehydrate(theAssetId, payloads, assetEvents.size());
+
+        assertNotNull(asset);
+        assertEquals("ORG-1", asset.getOrganizationRef());
+        assertNull(asset.getDonorRef()); // Camino A donorRef null
+        assertEquals(allocationId, org.springframework.test.util.ReflectionTestUtils.getField(asset, "allocationId"));
+
+        verify(roleAuthorizationPolicy, never()).authorize(any(), any());
+        verify(organizationBoundaryPolicy, never()).assertBelongs(any(), any());
+    }
+
+    @Test
+    void testD2_isolated_AssetRegisteredSagaPolicy_confirmAllocation() {
+        String fundId = "FUND-" + UUID.randomUUID();
+        OrganizationRef orgRef = new OrganizationRef("ORG-1");
+
+        fundCommandService.clearFundsGenesis(UUID.randomUUID().toString(), fundId, orgRef, "CAMP-1", "DONOR-1", "USD", 1000L, "SRC", ACTOR);
+
+        String allocationId = "ALLOC-2";
+        fundCommandService.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 500L, ACTOR);
+
+        // Inject OutboxMessage simulating that it was generated properly
         com.traceability.core.application.saga.OutboxMessage outboxMsg = new com.traceability.core.application.saga.OutboxMessage(
                 UUID.randomUUID().toString(),
                 "ASSET_REGISTRATION_SAGA",
-                theAssetId,
+                "ASSET-" + UUID.randomUUID(),
                 fundId,
-                "{\"allocationId\":\"ALLOC-1\"}",
+                "{\"allocationId\":\"" + allocationId + "\"}",
                 com.traceability.core.application.saga.OutboxStatus.PENDING,
                 0,
                 java.time.Instant.now(),
@@ -214,25 +237,6 @@ class Phase5EndToEndIntegrationTest {
         List<com.traceability.core.domain.event.DomainEventPayload> payloadsF = eventsF.stream().map(com.traceability.core.domain.event.DomainEvent::payload).toList();
         Fund fund = Fund.rehydrate(fundId, payloadsF, eventsF.size());
         assertEquals(500L, fund.getAllocatedAmount());
-
-        List<TraceabilityEventDocument> events = mongoTemplate.findAll(TraceabilityEventDocument.class);
-        String assetId = events.stream()
-                .filter(e -> "PhysicalAsset".equals(e.getAggregateType()))
-                .map(TraceabilityEventDocument::getStreamId)
-                .findFirst()
-                .orElseThrow();
-        
-        List<com.traceability.core.domain.event.DomainEvent> assetEvents = eventStorePort.loadStream(assetId);
-        List<com.traceability.core.domain.event.DomainEventPayload> payloads = assetEvents.stream().map(com.traceability.core.domain.event.DomainEvent::payload).toList();
-        PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, payloads, assetEvents.size());
-        
-        assertNotNull(asset);
-        assertEquals("ORG-1", asset.getOrganizationRef());
-        assertNull(asset.getDonorRef()); // Camino A donorRef null
-        assertEquals(allocationId, org.springframework.test.util.ReflectionTestUtils.getField(asset, "allocationId"));
-
-        verify(roleAuthorizationPolicy, never()).authorize(any(), any());
-        verify(organizationBoundaryPolicy, never()).assertBelongs(any(), any());
     }
 
     @Test
@@ -274,6 +278,11 @@ class Phase5EndToEndIntegrationTest {
         List<com.traceability.core.domain.event.DomainEventPayload> parentPayloads = parentEvents.stream().map(com.traceability.core.domain.event.DomainEvent::payload).toList();
         PhysicalAsset parentAsset = PhysicalAsset.rehydrate(parentAssetId, parentPayloads, parentEvents.size());
 
+        // NOTA DE ALCANCE (Tarea 5.10):
+        // Este test de integración tiene alcance limitado. Únicamente demuestra que
+        // la operación split decrementa el balance del agregado padre.
+        // NO demuestra que el agregado hijo (child asset stream) sea creado, instanciado
+        // o orquestado en Event Sourcing, ya que esto depende del alcance pendiente de la Tarea 5.5.
         assertEquals(0, parentAsset.getQuantity().compareTo(BigDecimal.valueOf(80)));
         verify(organizationBoundaryPolicy, never()).assertBelongs(any(), any());
     }

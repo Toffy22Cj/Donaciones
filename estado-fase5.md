@@ -325,12 +325,12 @@ NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabil
   - suite core validada: 145 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS
 - **5.3** (physicalasset-organization-donor-ref): NO INICIADA
 - **5.4** (physicalasset-donation-genesis-domain): NO INICIADA
-- **5.5** (physicalasset-split-inheritance): **Approved** (Herencia de `organizationRef`, `donorRef` y `donationRef` en `ASSET_SPLIT` con versionado v1/v2 explícito (`AssetSplitV2Payload`), replay histórico seguro sin retro-mutación de v1, fix de regresión en `DonationProjectionHandler`, suite `core` en verde con 151 tests pasados).
+- **5.5** (physicalasset-split-inheritance): **PARCIAL — DOMINIO COMPLETADO; ORQUESTACIÓN DE APLICACIÓN PENDIENTE**. (La parte de dominio está implementada: herencia de `organizationRef`, `donorRef` y `donationRef` en `ASSET_SPLIT` con versionado v1/v2 explícito `AssetSplitV2Payload`, replay histórico seguro sin retro-mutación de v1, fix de regresión en `DonationProjectionHandler`. Sin embargo, la orquestación de creación y persistencia del stream del activo hijo está explícitamente pendiente. Trabajo posterior requerido: `feat/core-physicalasset-split-orchestration`).
 - **5.6** (contracts-identity-principal-port): NO INICIADA
 - **5.7** (organization-boundary-policy): NO INICIADA
 - **5.8** (role-authorization-policy): NO INICIADA
 - **5.9** (authorization-wiring): NO INICIADA
-- **5.10** (fase5-integration-tests): NO INICIADA
+- **5.10** (fase5-integration-tests): **EN PROCESO (CON OBSERVACIONES)**. Todavía no está completada. Se separó la verificación de integración productiva de la verificación del coordinador de Sagas, dado que la implementación actual (ver hallazgo de Outbox) requiere pruebas aisladas. Adicionalmente, el test de split sólo verifica el decremento de cantidad del padre (alcance reducido).
 
 **Aclaración sobre Asimetría de NUEVA-2 (`requestAllocation`):**
 El método `requestAllocation()` de `FundCommandService` incluye la guarda explícita `exists(commandId)` para prevenir repeticiones del mismo comando. A diferencia de este, `confirmAllocation()` y `reverseAllocation()` NO usan esa guarda. La justificación de esta asimetría es:
@@ -357,3 +357,12 @@ Se detectó un defecto preexistente en el mecanismo compartido de reintento de p
 - Consiste en un riesgo de pérdida silenciosa de eventos cuando fallan durante el reprocesamiento del `ProjectionRetryScheduler`.
 - **Estado:** ABIERTO.
 - **Alcance:** FUERA DE NUEVA-4.
+
+**Hallazgo Transversal (Defecto Outbox Camino A - 5.10):**
+BACKLOG NUEVO IDENTIFICADO: `registerPhysicalAsset()` (Application Service) no genera actualmente el OutboxMessage de `ASSET_REGISTRATION_SAGA` cuando el registro proviene de una asignación, debido a que se invoca `appendAndOutbox()` con un `List.of()` vacío.
+- **Estado:** ABIERTO. Documentado durante Tarea 5.10. NO se corrige dentro de 5.10.
+
+**Hallazgo Transversal (Alcance Limitado de Split - 5.5):**
+Se identificó que la verificación de *Split* implementada en 5.10 tiene **alcance reducido**. Únicamente demuestra el decremento de cantidad en el agregado padre. La creación, reconstitución del agregado hijo y sus invariantes genealógicas en Event Sourcing quedan pendientes de auditoría de la Tarea 5.5.
+- No se puede afirmar que el proceso de *split* está completamente verificado.
+- **Auditoría de 5.5:** PENDIENTE.
