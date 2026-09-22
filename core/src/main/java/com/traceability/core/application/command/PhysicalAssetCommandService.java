@@ -145,6 +145,62 @@ public class PhysicalAssetCommandService {
     }
 
     /**
+     * Tarea 5.4 — Camino B: registra un PhysicalAsset directamente por donación en especie.
+     */
+    public void registerPhysicalAssetFromDonation(String commandId,
+            String organizationRef,
+            String donorRef,
+            String assetType,
+            BigDecimal quantity,
+            String unitOfMeasure,
+            String custodianRef,
+            String currentLocation,
+            String allocationId,
+            String sourceAllocationId,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+
+        if (processedCommandRepository.exists(commandId)) {
+            return;
+        }
+
+        String donationRef = UUID.randomUUID().toString();
+
+        retryTemplate.execute(() -> {
+            authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION);
+
+            String assetId = UUID.randomUUID().toString();
+
+            PhysicalAsset asset = PhysicalAsset.create(
+                    assetId,
+                    assetType,
+                    quantity,
+                    unitOfMeasure,
+                    currentLocation,
+                    custodianRef,
+                    null, // parentAssetRef
+                    assetId, // rootAssetRef (él mismo al nacer)
+                    allocationId,
+                    sourceAllocationId,
+                    organizationRef,
+                    donorRef,
+                    donationRef
+            );
+
+            List<DomainEvent> newEvents = asset.getUncommittedEvents();
+
+            eventPublisher.appendAndOutbox(
+                    assetId,
+                    "PhysicalAsset",
+                    0, // génesis → expectedVersion = 0
+                    newEvents,
+                    actorRef,
+                    List.of(),
+                    commandId);
+            return null;
+        });
+    }
+
+    /**
      * NUEVA-3 — Divide un PhysicalAsset existente.
      */
     public void splitPhysicalAsset(String commandId,
