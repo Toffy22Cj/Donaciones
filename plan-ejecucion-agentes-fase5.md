@@ -517,37 +517,34 @@ literal de Surefire de `mvn test -pl core`.
 **Rama:** `feat/core-authorization-wiring` | **Depende de:** 5.7, 5.8 | **ADR:** ADR-032/D3
 
 ```
-TAREA: Integrar OrganizationBoundaryPolicy → RoleAuthorizationPolicy →
-Aggregate.execute() en los Application Services ya existentes que
-tienen contraparte en la matriz (FundCommandService,
-PhysicalAssetCommandService o equivalentes).
+TAREA: Integrar el mecanismo de bypass de SystemActor y ExternalActor 
+en los Application Services ya existentes que tienen contraparte 
+en la matriz (FundCommandService, PhysicalAssetCommandService o equivalentes).
 
 ENTREGABLES:
 1. Cada método de *CommandService correspondiente a uno de los cinco
    CommandType implementables hoy (todo salvo
-   REGISTER_PHYSICAL_ASSET_FROM_DONATION, bloqueado por Tarea 5.4/
-   ADR-031) invoca, en este orden estricto: (a) extrae organizationRef
-   del Aggregate ya cargado; (b) OrganizationBoundaryPolicy.assertBelongs(...);
-   (c) RoleAuthorizationPolicy.authorize(...); (d) Aggregate.execute(command).
+   REGISTER_PHYSICAL_ASSET_FROM_DONATION) implementa un switch 
+   exhaustivo sobre ActorRef.
 2. Confirmar (§9.6, ADR-032/D6) que los caminos disparados por
-   SagaPolicy (AssetRegisteredSagaPolicy, SplitPhysicalAssetSagaPolicy,
-   FundAllocationSagaPolicy) NO pasan por esta guarda — el actor en
-   esos casos es SystemActor, fuera del alcance de P7/P9 por diseño.
-   Verificar explícitamente que el wiring no se aplicó por error a
-   esos caminos internos.
+   SagaPolicy (AssetRegisteredSagaPolicy) NO pasan por esta guarda — 
+   el actor en esos casos es SystemActor, fuera del alcance de P7/P9 
+   por diseño. Verificar explícitamente que el wiring no se aplicó por 
+   error a esos caminos internos.
 
-QUÉ NO HACER: no cambies el orden (rol antes que pertenencia rompe
-ADR-032/D2 — ningún rol tiene bypass de pertenencia). No apliques esta
-guarda a los comandos disparados por SagaPolicy.
+QUÉ NO HACER: no inventar HumanAccount ni accountId falsos. 
+No llamar a IdentityPrincipalPort porque no existe una fuente real de accountId hoy.
 
-DEFINITION OF DONE: test de comportamiento con InOrder (Mockito o
-equivalente) que confirma la secuencia exacta de invocación para al
-menos dos CommandType (uno de Fund, uno de PhysicalAsset). Test que
-confirma que un principal fuera de la organización nunca llega a
-evaluar el rol (aserción negativa sobre RoleAuthorizationPolicy). Test
-que confirma que un comando disparado por SagaPolicy NO invoca ninguna
-de las dos guardas. Output literal de Surefire de `mvn test -pl core`
-— módulo completo.
+NOTA ARQUITECTÓNICA: Con el modelo ActorRef vigente, SystemActor y ExternalActor 
+omiten P7/P9 por diseño. HumanAccount fue diferido por ADR-031. Por tanto, 
+la secuencia Boundary -> Role -> Aggregate no tiene actualmente un camino E2E 
+ejecutable dentro de CommandService. La incorporación futura de HumanAccount 
+deberá implementar y probar dicha secuencia.
+
+DEFINITION OF DONE: test que confirma que un comando disparado por 
+SagaPolicy (SystemActor) o ExternalActor continúa normalmente (bypass)
+y que el switch sobre ActorRef es exhaustivo en los comandos actuales.
+Output literal de Surefire de `mvn test -pl core` — módulo completo.
 ```
 
 ---

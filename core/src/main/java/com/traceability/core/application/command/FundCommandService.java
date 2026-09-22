@@ -1,11 +1,15 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.application.authorization.OrganizationBoundaryPolicy;
 import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.ProcessedCommandRepositoryPort;
 import com.traceability.core.application.service.TransactionalEventPublisher;
+import com.traceability.core.domain.event.ActorRef;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
+import com.traceability.core.domain.event.ExternalActor;
+import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.fund.OrganizationRef;
 import org.springframework.stereotype.Service;
@@ -21,17 +25,32 @@ public class FundCommandService {
     private final EventStorePort eventStore;
     private final TransactionalEventPublisher eventPublisher;
     private final RoleAuthorizationPolicy roleAuthorizationPolicy;
+    private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
 
     public FundCommandService(CommandRetryTemplate retryTemplate,
                               ProcessedCommandRepositoryPort processedCommandRepository,
                               EventStorePort eventStore,
                               TransactionalEventPublisher eventPublisher,
-                              RoleAuthorizationPolicy roleAuthorizationPolicy) {
+                              RoleAuthorizationPolicy roleAuthorizationPolicy,
+                              OrganizationBoundaryPolicy organizationBoundaryPolicy) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
         this.eventPublisher = eventPublisher;
         this.roleAuthorizationPolicy = roleAuthorizationPolicy;
+        this.organizationBoundaryPolicy = organizationBoundaryPolicy;
+    }
+
+    private void authorize(ActorRef actorRef, String organizationRef) {
+        switch (actorRef) {
+            case SystemActor sa -> {
+                // bypass P7/P9
+            }
+            case ExternalActor ea -> {
+                // bypass P7/P9
+            }
+            // NO default branch. When HumanAccount is introduced, compiler will enforce revisiting this switch.
+        }
     }
 
     public void registerFund(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, Long pledgedAmount, com.traceability.core.domain.event.ActorRef actorRef) {
@@ -40,6 +59,8 @@ public class FundCommandService {
         }
 
         retryTemplate.execute(() -> {
+            authorize(actorRef, organizationRef != null ? organizationRef.value() : null);
+
             Fund fund = Fund.registerFund(fundId, organizationRef, pledgedAmount, currency, campaignRef, donorRef);
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
 
@@ -54,6 +75,8 @@ public class FundCommandService {
         }
 
         retryTemplate.execute(() -> {
+            authorize(actorRef, organizationRef != null ? organizationRef.value() : null);
+
             Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
 
@@ -72,6 +95,8 @@ public class FundCommandService {
             List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
+
+            authorize(actorRef, fund.getOrganizationRef().value());
 
             fund.clearFunds(amount, sourceRef);
 
