@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -15,7 +17,6 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import com.traceability.contracts.HashPort;
 import com.traceability.core.application.port.out.OutboxPort;
 
@@ -30,6 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 })
 @Testcontainers
 class LocationReferenceServiceIntegrationTest {
+
+    @MockBean
+    private IdentityPrincipalPort identityPrincipalPort;
 
     @MockBean
     private HashPort hashPort;

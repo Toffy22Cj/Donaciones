@@ -12,6 +12,10 @@ import com.traceability.core.domain.event.ExternalActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.fund.OrganizationRef;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
+import com.traceability.contracts.authorization.AuthorizationPrincipal;
+import com.traceability.core.application.authorization.CommandType;
+import com.traceability.core.domain.event.HumanActor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,22 +30,25 @@ public class FundCommandService {
     private final TransactionalEventPublisher eventPublisher;
     private final RoleAuthorizationPolicy roleAuthorizationPolicy;
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
+    private final IdentityPrincipalPort identityPrincipalPort;
 
     public FundCommandService(CommandRetryTemplate retryTemplate,
                               ProcessedCommandRepositoryPort processedCommandRepository,
                               EventStorePort eventStore,
                               TransactionalEventPublisher eventPublisher,
                               RoleAuthorizationPolicy roleAuthorizationPolicy,
-                              OrganizationBoundaryPolicy organizationBoundaryPolicy) {
+                              OrganizationBoundaryPolicy organizationBoundaryPolicy,
+                              IdentityPrincipalPort identityPrincipalPort) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
         this.eventPublisher = eventPublisher;
         this.roleAuthorizationPolicy = roleAuthorizationPolicy;
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
+        this.identityPrincipalPort = identityPrincipalPort;
     }
 
-    private void authorize(ActorRef actorRef, String organizationRef) {
+    private void authorize(ActorRef actorRef, String organizationRef, CommandType commandType) {
         switch (actorRef) {
             case SystemActor sa -> {
                 // bypass P7/P9
@@ -49,7 +56,11 @@ public class FundCommandService {
             case ExternalActor ea -> {
                 // bypass P7/P9
             }
-            // NO default branch. When HumanAccount is introduced, compiler will enforce revisiting this switch.
+            case HumanActor ha -> {
+                AuthorizationPrincipal principal = identityPrincipalPort.resolvePrincipal(ha.accountId());
+                organizationBoundaryPolicy.assertBelongs(principal.organizationId(), organizationRef);
+                roleAuthorizationPolicy.authorize(principal, commandType);
+            }
         }
     }
 
@@ -59,7 +70,7 @@ public class FundCommandService {
         }
 
         retryTemplate.execute(() -> {
-            authorize(actorRef, organizationRef != null ? organizationRef.value() : null);
+            authorize(actorRef, organizationRef != null ? organizationRef.value() : null, CommandType.REGISTER_FUND);
 
             Fund fund = Fund.registerFund(fundId, organizationRef, pledgedAmount, currency, campaignRef, donorRef);
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
@@ -75,7 +86,7 @@ public class FundCommandService {
         }
 
         retryTemplate.execute(() -> {
-            authorize(actorRef, organizationRef != null ? organizationRef.value() : null);
+            authorize(actorRef, organizationRef != null ? organizationRef.value() : null, CommandType.CLEAR_FUNDS_AS_GENESIS);
 
             Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
@@ -96,7 +107,7 @@ public class FundCommandService {
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
 
-            authorize(actorRef, fund.getOrganizationRef().value());
+            authorize(actorRef, fund.getOrganizationRef().value(), CommandType.CLEAR_FUNDS_FOR_PLEDGE);
 
             fund.clearFunds(amount, sourceRef);
 

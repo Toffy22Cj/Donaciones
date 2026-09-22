@@ -296,7 +296,7 @@ NUEVA-1  feat/core-fund-genesis-commands              (registerFund, clearFundsG
 NUEVA-2  feat/core-fund-request-allocation-command    (requestAllocation) — depende de NUEVA-1
 NUEVA-3  feat/core-physicalasset-application-commands (registerPhysicalAsset, splitPhysicalAsset)
 NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabilidad manual de PENDING_ALLOCATION”) — PARTE A desbloqueada, PARTE B bloqueada
-NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante de ActorRef) — DISEÑO APROBADO / IMPLEMENTACIÓN PENDIENTE
+NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante de ActorRef) — IMPLEMENTACIÓN EN CURSO / EN REVISIÓN
 ```
 
 **Aclaración histórica sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existía inicialmente con un commit que preservaba el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 7 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1, y no representaba implementación en curso. Esto ha sido resuelto en la implementación posterior.
