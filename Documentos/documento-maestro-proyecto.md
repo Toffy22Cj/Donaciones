@@ -2,7 +2,7 @@
 
 **Nombre comercial provisional (no usado en código):** el proyecto se ha referido a sí mismo informalmente como "PaxFide" en la conversación de diseño, pero esto es explícitamente **no vinculante** — puede cambiar sin afectar nada del dominio, la arquitectura ni el código.
 **Base package Java:** `com.traceability`
-**Fase actual:** Fase 5 — Bloque de Dominio y Autorización **completa** (diseño y todas sus tareas de implementación, incluyendo 5.10 y 5.11). Fases 1, 2, 3 y 4 formalmente cerradas. Ver `estado-fase5.md` para el detalle completo de la Fase 5.
+**Fase actual:** Fase 5 — Bloque de Dominio y Autorización **CERRADA** (diseño y tareas de implementación integradas, con deudas técnicas explícitamente diferidas para trabajo posterior). Fases 1, 2, 3 y 4 formalmente cerradas. Ver `estado-fase5.md` para el detalle completo y las precisiones post-auditoría de la Fase 5.
 
 ---
 

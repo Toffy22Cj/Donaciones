@@ -25,7 +25,7 @@ Este documento registra el cierre formal de la Fase 5 verificado con evidencia.
 | ADR-035 | HumanActor como variante de ActorRef y puente de autorización humana | **Approved** |
 | ADR-036 | Reversión Administrativa de Asignación (NUEVA-4B) | **Approved** |
 
-Catálogo del proyecto actual llega hasta **ADR-035** (más la enmienda a ADR-016). ADR-033 y ADR-034 ya forman parte del historial integrado en `develop`. Pendiente: incorporar los ADRs 028-032 y la enmienda a `documento-maestro-proyecto.md` en el repositorio real.
+Catálogo del proyecto actual llega hasta **ADR-036** (más la enmienda a ADR-016). ADR-033, ADR-034, ADR-035 y ADR-036 ya forman parte del historial integrado en `develop`. *Nota documental post-auditoría*: Los archivos físicos de los ADR-028 a ADR-032 no fueron incorporados en `Documentos/` durante la Fase 5. No obstante, las decisiones principales y justificaciones se encuentran sustancialmente referenciadas en `plan-ejecucion-agentes-fase5.md` y `estado-fase5.md`, permitiendo su reconstrucción documental a partir de fuentes internas históricas como deuda de documentación futura.
 
 ---
 
@@ -362,14 +362,18 @@ Se detectó un defecto preexistente en el mecanismo compartido de reintento de p
 - **Estado:** ABIERTO.
 - **Alcance:** FUERA DE NUEVA-4.
 
-**Hallazgo Transversal (Defecto Outbox Camino A - 5.10):**
-BACKLOG NUEVO IDENTIFICADO: `registerPhysicalAsset()` (Application Service) no genera actualmente el OutboxMessage de `ASSET_REGISTRATION_SAGA` cuando el registro proviene de una asignación, debido a que se invoca `appendAndOutbox()` con un `List.of()` vacío.
-- **Estado:** ABIERTO. Documentado durante Tarea 5.10. NO se corrige dentro de 5.10.
+**Deuda Técnica Diferida (Productor de Outbox de Negocio - 5.10):**
+`registerPhysicalAsset()` y otras operaciones de negocio no generan actualmente el `OutboxMessage` porque no existe un productor real en la capa de aplicación (invocan `appendAndOutbox()` con `List.of()` vacío).
+- **Alcance afectado:** La saga E2E `ASSET_REGISTRATION_SAGA` (Camino A) y cualquier otra transacción que dependa de Outbox.
+- **Estado:** DEUDA TÉCNICA DIFERIDA para trabajo posterior. La prueba E2E de 5.10 inyectó el mensaje manualmente para validar el resto del flujo, pero la implementación del productor real pertenece a la fase siguiente. NO es un bug descubierto sorpresivamente; es una limitación aplazada explícitamente.
 
-**Hallazgo Transversal (Alcance Limitado de Split - 5.5):**
-Se identificó que la verificación de *Split* implementada en 5.10 tiene **alcance reducido**. Únicamente demuestra el decremento de cantidad en el agregado padre. La creación, reconstitución del agregado hijo y sus invariantes genealógicas en Event Sourcing quedan pendientes de auditoría de la Tarea 5.5.
-- No se puede afirmar que el proceso de *split* está completamente verificado end-to-end.
-- **Auditoría de 5.5 E2E:** Diferido a futuras fases.
+**Deuda Técnica Diferida (Creación del Stream Hijo en Split):**
+La Tarea 5.5 se completó estrictamente dentro de su alcance original, el cual exigía exclusivamente que el evento emitido por el *padre* heredara los tres identificadores (`organizationRef`, `donorRef`, `donationRef`).
+- El DoD original de 5.5 NO exigía la orquestación y creación del stream independiente del agregado hijo en EventStore.
+- **Estado:** DEUDA TÉCNICA DIFERIDA. La inicialización del stream del hijo queda explícitamente aplazada para trabajo posterior. Esto no constituye un incumplimiento de la 5.5, sino el reconocimiento de un alcance que nunca fue abarcado.
+
+**Observación Futura (`requestAllocation` sin autorización):**
+El comando `requestAllocation` actualmente no implementa `authorize()`. Dado que hoy no existe ningún entrypoint humano (HTTP/GraphQL) que lo exponga, no representa una vulnerabilidad crítica explotable, pero se documenta formalmente como observación/deuda para incorporarle la política de roles en revisión futura.
 
 ---
 
@@ -378,16 +382,17 @@ Se identificó que la verificación de *Split* implementada en 5.10 tiene **alca
 Con la ejecución de la Tarea 5.11, la Fase 5 queda formal y técnicamente **CERRADA**.
 
 **Estado final real:**
-- **Commit de cierre técnico:** `a6c9ebd` (`HEAD == origin/develop`)
-- **Resultado final de tests:** `BUILD SUCCESS` (191 tests en módulo `core`, 0 failures/errors; reactor completo exitoso).
+- **Commit de cierre técnico:** `a6c9ebd` (`HEAD == origin/develop`). El histórico de cierre documental 5.11 está en `87af002`.
+- **Resultado final de tests (Evidencia Histórica):** `BUILD SUCCESS` (191 tests en módulo `core`, 0 failures/errors; reactor completo exitoso registrado al cierre original). Durante esta auditoría forense se contabilizó la existencia de los tests, pero la ejecución completa `mvn clean test` no fue reproducida.
 - **Estado de Git:** Working tree limpio (`git diff --check` limpio).
-- **Tareas completadas:** Todas las definidas para Fase 5, incluyendo Bloque de Dominio (5.0 a 5.5), Bloque C/D Autorización (5.6 a 5.9), Integración E2E (5.10) y Nuevas tareas integradas (NUEVA-1 a NUEVA-5 y NUEVA-4B).
-- **Deudas técnicas explícitamente diferidas:**
-  - *Outbox Camino A:* Generación del OutboxMessage para `registerPhysicalAsset` (Hallazgo 5.10).
-  - *Orquestación de Split:* Creación del stream de Aggregate hijo durante el split (Hallazgo 5.5).
+- **Tareas IMPLEMENTADAS Y CERRADAS:** Todas las definidas para Fase 5 (Bloque de Dominio 5.0 a 5.5, Autorización 5.6 a 5.9, Integración E2E 5.10 validando el alcance efectivamente aprobado, y NUEVA-1 a NUEVA-5 / 4B). La tarea 5.11 consolida el estado como Cierre Documental y Formal.
+- **Deudas técnicas explícitamente DIFERIDAS A TRABAJO POSTERIOR:**
+  - *Productor real de Outbox:* Su ausencia impide un flujo E2E sin intervención manual en operaciones de negocio.
+  - *Stream del Hijo en Split:* Orquestación de persistencia del agregado hijo pendiente (fuera del DoD original de 5.5).
+  - *`requestAllocation` sin `authorize()`:* Diferido para revisión futura por no tener entrypoint externo.
   - *Derivación de organizationRef para ExternalActor:* No hay mecanismo para webhook de pago para derivarlo aún.
-  - *Identidad:* La implementación real del account (escritura HTTP/Endpoints y endpoints de auth no fueron parte del scope de Fase 5).
-- **ADRs relevantes consolidados:** ADR-028, ADR-029, ADR-030, ADR-031, ADR-032, ADR-033, ADR-034, ADR-035, ADR-036. Todos **Approved**. ADR-033 aprobado parcialmente a la espera de estandarización futura según ADR-013.
+  - *ADR-028 a ADR-032:* Su reconstrucción física a partir de fuentes internas históricas se aplaza como deuda documental.
+- **ADRs relevantes:** ADR-034, ADR-035, ADR-036 (**Approved**); ADR-033 (**Aprobado parcialmente**). *Nota complementaria ADR-034/036*: ADR-036 desarrolla e implementa orgánicamente la decisión reservada en la Parte B de ADR-034, sin contradicción funcional. *Deuda Documental ADR-028 a ADR-032*: Sus archivos originales no están presentes en `Documentos/` y no se declaran como archivos ADR formales aprobados en el repositorio, pero sus decisiones se consideran reconstruibles documentalmente a partir de fuentes internas.
 
 **Conclusión:**
-La arquitectura transaccional, de identidades y dominio base ha quedado firmemente conectada e integrada con las reglas de negocio de autorización en capa de aplicación. El sistema base se encuentra validado y listo para abordar las implementaciones de endpoints y capas de infraestructura externa en la próxima fase.
+La Fase 5 queda formalmente **CERRADA**. El sistema base fue auditado sobre el alcance ajustado en 5.10. Capacidades no resueltas (productor de Outbox, stream independiente de activo hijo, autenticación HTTP) se distinguen estrictamente como DEUDAS TÉCNICAS DIFERIDAS para el trabajo futuro, abandonando toda afirmación absoluta de que las capacidades E2E operan de extremo a extremo sin vacíos ni omisiones conocidas.

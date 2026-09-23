@@ -331,6 +331,8 @@ en el camino A. Test de rechazo permanente sobre PhysicalAsset v1.
 Output literal de Surefire de `mvn test -pl core`.
 ```
 
+**Rectificación Post-Auditoría (5.3):** El contrato original estipulaba que `RegisterPhysicalAsset` no recibiera `organizationRef`. Esta restricción experimentó una evolución observada durante la ejecución, evidenciada por la introducción de la Tarea `NUEVA-3` ("el parámetro organizationRef aquí SÍ es explícito... es el futuro llamador quien tiene la responsabilidad"). La tarea 5.3 fue declarada completada bajo esta *evolución de alcance documentada*.
+
 ### TAREA 5.4 — Camino B: soporte de dominio para donación en especie (Application Service BLOQUEADO)
 
 **Rama:** `feat/core-physicalasset-donation-genesis-domain` | **Depende de:** 5.3 (transitivamente pausada hasta Bloque 2bis) | **ADR:** ADR-029, ADR-031
@@ -409,6 +411,8 @@ nulls heredados) y de un asset Camino B (si la Tarea 5.4 ya está
 mergeada; si no, dejar el test marcado y completarlo cuando 5.4 cierre).
 Output literal de Surefire de `mvn test -pl core`.
 ```
+
+**Rectificación Post-Auditoría (5.5):** El DoD original se limitaba exclusivamente a la herencia de los campos (`organizationRef`, `donorRef`, `donationRef`) en el evento emitido por el padre. La creación y orquestación del stream independiente del hijo en el EventStore *nunca formó parte del DoD original de 5.5*, y su implementación se consolida como una deuda técnica posterior, no como un incumplimiento de esta historia.
 
 ---
 
@@ -600,6 +604,8 @@ HumanAccount. Resumen de decisiones de implementación tomadas durante
 el backlog entregado para revisión humana.
 ```
 
+**Rectificación Post-Auditoría (5.10):** Se validó la integración E2E (pruebas y validaciones efectivamente realizadas, revisión de autorización, idempotencia, boundary). Sin embargo, la ausencia del productor real de Outbox impidió un E2E completo "sin intervención manual" para la Saga del Camino A, forzando la inyección manual del mensaje en el test. Estas capacidades no implementadas (productor Outbox, orquestación del stream del hijo en Split) quedan explícitamente registradas como *Deuda Técnica Diferida* para trabajo posterior, sin afirmar que todo el sistema E2E está completamente implementado de extremo a extremo.
+
 ---
 
 ## Resumen de ramas
@@ -634,10 +640,13 @@ el backlog entregado para revisión humana.
 
 Concluida la Tarea 5.11, la Fase 5 queda formalmente cerrada.
 
-- **Trabajo terminado:** Todas las tareas 5.0-5.11, además de NUEVA-1 a NUEVA-5 (incluyendo NUEVA-4B) están completamente integradas, probadas y documentadas en `develop`.
-- **Deudas técnicas diferidas:**
-  - La orquestación completa E2E de la creación del stream del agregado hijo al ejecutar Split.
-  - Generación de `OutboxMessage` para el Camino A en `registerPhysicalAsset`.
+- **Trabajo terminado:** Todas las tareas 5.0-5.11, además de NUEVA-1 a NUEVA-5 (incluyendo NUEVA-4B) están integradas y probadas en `develop` según el alcance y DoD rectificado.
+- **Deudas técnicas diferidas (para trabajo posterior):**
+  - La orquestación completa E2E de la creación del stream independiente del agregado hijo al ejecutar Split.
+  - Generación de `OutboxMessage` desde operaciones de negocio (ej. Camino A), lo cual afecta las transiciones E2E sin intervención manual.
   - Derivación real del `organizationRef` para `ExternalActor` en los pagos externos.
+  - El comando `requestAllocation` actualmente no ejecuta `authorize()`, lo que queda como observación/deuda futura (sin exposición crítica externa actual).
+- **Relaciones Documentales Confirmadas:**
+  - *ADR-034 / ADR-036*: ADR-036 complementa formalmente la decisión reservada en la Parte B de ADR-034. No existe contradicción.
 - **Trabajo perteneciente a fases posteriores:** Autenticación, endpoints HTTP, despliegues, integración directa con Identity externa/bases de datos humanas.
-No quedan tareas de implementación pendientes para Fase 5.
+No quedan tareas de implementación de código activas para la Fase 5.
