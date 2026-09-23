@@ -92,10 +92,10 @@ class MerkleBatchMongoAdapterTest {
         String contract = "0x123";
         adapter.seedNonceCounter(network, contract, 10L);
 
-        // Act & Assert
-        assertThrows(NoPendingBatchAvailableException.class, () -> {
-            adapter.claimNextPendingBatchAndAssignNonceWithRetry(network, contract);
-        });
+        // Act: claimNextPendingBatchAndAssignNonceWithRetry catches NoPendingBatchAvailableException internally
+        // and returns Optional.empty()
+        Optional<MerkleBatch> result = adapter.claimNextPendingBatchAndAssignNonceWithRetry(network, contract);
+        assertTrue(result.isEmpty(), "Should return empty when no PENDING batch exists");
 
         // Verify rollback: Counter should STILL be 10, not 11
         Web3NonceCounterDocument counter = mongoTemplate.findById(network + "-" + contract, Web3NonceCounterDocument.class);
@@ -150,21 +150,18 @@ class MerkleBatchMongoAdapterTest {
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         CountDownLatch latch = new CountDownLatch(1);
         List<Future<Optional<MerkleBatch>>> futures = new ArrayList<>();
-        AtomicInteger exceptionCount = new AtomicInteger(0);
 
-        // Act
+        // Act: claimNextPendingBatchAndAssignNonceWithRetry returns Optional.empty() when no batch
+        // is available (catches NoPendingBatchAvailableException internally)
         for (int i = 0; i < numThreads; i++) {
             futures.add(executor.submit(() -> {
                 try {
                     latch.await();
                     return adapter.claimNextPendingBatchAndAssignNonceWithRetry(network, contract);
-                } catch (NoPendingBatchAvailableException e) {
-                    exceptionCount.incrementAndGet();
-                    return Optional.empty();
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     LOG.severe("Thread interrupted: " + ie.getMessage());
-                    return Optional.empty();
+                    return Optional.<MerkleBatch>empty();
                 }
             }));
         }
@@ -175,6 +172,7 @@ class MerkleBatchMongoAdapterTest {
 
         // Assert
         int successCount = 0;
+        int emptyCount = 0;
         MerkleBatch claimedBatch = null;
 
         for (Future<Optional<MerkleBatch>> future : futures) {
@@ -182,11 +180,13 @@ class MerkleBatchMongoAdapterTest {
             if (result.isPresent()) {
                 successCount++;
                 claimedBatch = result.get();
+            } else {
+                emptyCount++;
             }
         }
 
         assertEquals(1, successCount, "Exactly one thread should successfully claim the batch");
-        assertEquals(1, exceptionCount.get(), "Exactly one thread should get NoPendingBatchAvailableException");
+        assertEquals(1, emptyCount, "Exactly one thread should get Optional.empty()");
         
         assertNotNull(claimedBatch);
         assertEquals(AnchorStatus.SUBMITTING, claimedBatch.status());
@@ -504,5 +504,112 @@ class MerkleBatchMongoAdapterTest {
         assertEquals(2, submitted.size(), "Should find both SUBMITTED batches");
         assertEquals("SUBMITTED-2", submitted.get(0).batchId(), "Oldest should come first");
         assertEquals("SUBMITTED-1", submitted.get(1).batchId(), "Newer should come second");
+    }
+
+    // ============================================================================
+    // COLLECTING RECOVERY TESTS
+    // ============================================================================
+
+    @Test
+    void findCollectingOlderThan_ignoresRecentBatches() {
+        // Arrange: a COLLECTING batch created NOW (within any reasonable timeout)
+        MerkleBatch recentBatch = new MerkleBatch(
+                "RECENT-COLLECTING", java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)),
+                null, Instant.now(), AnchorStatus.COLLECTING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(recentBatch);
+
+        // Act: cutoff is 5 minutes ago — recent batch should NOT appear
+        Instant cutoff = Instant.now().minusSeconds(300);
+        List<MerkleBatch> result = adapter.findCollectingOlderThan(cutoff, 10);
+
+        // Assert
+        assertTrue(result.isEmpty(), "Recent COLLECTING batch should NOT be returned");
+    }
+
+    @Test
+    void findCollectingOlderThan_returnsExpiredBatches() {
+        // Arrange: insert a COLLECTING batch document with createdAt set to 10 minutes ago (expired)
+        MerkleBatchDocument doc = new MerkleBatchDocument();
+        doc.setBatchId("EXPIRED-COLLECTING");
+        doc.setStatus(AnchorStatus.COLLECTING);
+        doc.setCreatedAt(Instant.now().minusSeconds(600));
+        doc.setCoverage(java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)));
+        mongoTemplate.save(doc);
+
+        // Act: cutoff is 5 minutes ago — the 10-minute-old batch should appear
+        Instant cutoff = Instant.now().minusSeconds(300);
+        List<MerkleBatch> result = adapter.findCollectingOlderThan(cutoff, 10);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("EXPIRED-COLLECTING", result.get(0).batchId());
+    }
+
+    @Test
+    void findCollectingOlderThan_respectsLimit() {
+        // Arrange: create 5 expired COLLECTING batches
+        for (int i = 1; i <= 5; i++) {
+            MerkleBatchDocument doc = new MerkleBatchDocument();
+            doc.setBatchId("LIMIT-BATCH-" + i);
+            doc.setStatus(AnchorStatus.COLLECTING);
+            doc.setCreatedAt(Instant.now().minusSeconds(600 + i)); // all expired, slightly staggered
+            doc.setCoverage(java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)));
+            mongoTemplate.save(doc);
+        }
+
+        // Act: cutoff is 5 minutes ago, but limit is 3
+        Instant cutoff = Instant.now().minusSeconds(300);
+        List<MerkleBatch> result = adapter.findCollectingOlderThan(cutoff, 3);
+
+        // Assert: only 3 batches, oldest first
+        assertEquals(3, result.size(), "Should only return limit count");
+        // Verify ordering: oldest first (highest minusSeconds offset)
+        assertTrue(result.get(0).createdAt().isBefore(result.get(1).createdAt()),
+                "Results should be ordered by createdAt ASC (oldest first)");
+    }
+
+    @Test
+    void incrementRecoveryAttempts_incrementsAtomically() {
+        // Arrange: COLLECTING batch with default recoveryAttempts = 0
+        MerkleBatch batch = new MerkleBatch(
+                "INC-TEST", java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)),
+                null, Instant.now(), AnchorStatus.COLLECTING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(batch);
+
+        // Verify initial state
+        assertEquals(0, adapter.findByBatchId("INC-TEST").orElseThrow().recoveryAttempts());
+
+        // Act & Assert: first increment → 1
+        int first = adapter.incrementRecoveryAttempts("INC-TEST");
+        assertEquals(1, first, "First increment should return 1");
+        assertEquals(1, adapter.findByBatchId("INC-TEST").orElseThrow().recoveryAttempts());
+
+        // Act & Assert: second increment → 2
+        int second = adapter.incrementRecoveryAttempts("INC-TEST");
+        assertEquals(2, second, "Second increment should return 2");
+        assertEquals(2, adapter.findByBatchId("INC-TEST").orElseThrow().recoveryAttempts());
+    }
+
+    @Test
+    void incrementRecoveryAttempts_returnsMinusOneIfNotCollecting() {
+        // Arrange: PENDING batch (not COLLECTING)
+        MerkleBatch batch = new MerkleBatch(
+                "NOT-COLLECTING", java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)),
+                "root", Instant.now(), AnchorStatus.PENDING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(batch);
+
+        // Act
+        int result = adapter.incrementRecoveryAttempts("NOT-COLLECTING");
+
+        // Assert: -1 because batch is not in COLLECTING state
+        assertEquals(-1, result, "Should return -1 for non-COLLECTING batch");
+        // Verify recoveryAttempts was NOT incremented
+        assertEquals(0, adapter.findByBatchId("NOT-COLLECTING").orElseThrow().recoveryAttempts());
     }
 }

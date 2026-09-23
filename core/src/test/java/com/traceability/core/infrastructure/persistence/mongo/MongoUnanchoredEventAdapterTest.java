@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import com.traceability.contracts.HashPort;
 
-@SpringBootTest
+@SpringBootTest(classes = MongoUnanchoredEventAdapterTest.TestConfig.class)
 @Testcontainers
 class MongoUnanchoredEventAdapterTest {
 
@@ -40,8 +40,8 @@ class MongoUnanchoredEventAdapterTest {
     }
 
     @Configuration
-    @SpringBootApplication(scanBasePackages = "com.traceability.core")
-    @org.springframework.data.mongodb.repository.config.EnableMongoRepositories(basePackages = "com.traceability.core")
+    @SpringBootApplication(scanBasePackages = "com.traceability.core.infrastructure.persistence.mongo")
+    @org.springframework.data.mongodb.repository.config.EnableMongoRepositories(basePackages = "com.traceability.core.infrastructure.persistence.mongo")
     static class TestConfig {
     }
 
@@ -50,6 +50,9 @@ class MongoUnanchoredEventAdapterTest {
 
     @MockBean
     private HashPort hashPort;
+
+    @MockBean
+    private com.traceability.core.application.event.EventCanonicalMapper eventCanonicalMapper;
 
     @Autowired
     private MongoUnanchoredEventAdapter adapter;

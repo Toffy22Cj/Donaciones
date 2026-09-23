@@ -3,11 +3,15 @@ package com.traceability.crypto.infrastructure.persistence.mongo;
 import com.traceability.crypto.domain.AnchorStatus;
 import com.traceability.crypto.domain.Resolution;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
+// Compound index supports findCollectingOlderThan(status=COLLECTING AND createdAt < cutoff),
+// invoked every scheduler cycle. Justified by design — not speculative.
+@CompoundIndex(name = "status_createdAt", def = "{'status': 1, 'createdAt': 1}")
 @Document(collection = "merkle_batches")
 public class MerkleBatchDocument {
 
@@ -40,6 +44,7 @@ public class MerkleBatchDocument {
     private Long confirmedBlockNumber;
     private Resolution resolution;
     private java.math.BigInteger maxFeePerGasOverride;
+    private int recoveryAttempts;
 
     // Getters and Setters
 
@@ -185,5 +190,13 @@ public class MerkleBatchDocument {
 
     public void setMaxFeePerGasOverride(java.math.BigInteger maxFeePerGasOverride) {
         this.maxFeePerGasOverride = maxFeePerGasOverride;
+    }
+
+    public int getRecoveryAttempts() {
+        return recoveryAttempts;
+    }
+
+    public void setRecoveryAttempts(int recoveryAttempts) {
+        this.recoveryAttempts = recoveryAttempts;
     }
 }

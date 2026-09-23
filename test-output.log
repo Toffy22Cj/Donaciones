@@ -1,0 +1,696 @@
+[INFO] Scanning for projects...
+[WARNING] 
+[WARNING] Some problems were encountered while building the effective model for com.traceability:app:jar:1.0.0-SNAPSHOT
+[WARNING] 'build.plugins.plugin.version' for org.springframework.boot:spring-boot-maven-plugin is missing. @ line 79, column 21
+[WARNING] 
+[WARNING] It is highly recommended to fix these problems because they threaten the stability of your build.
+[WARNING] 
+[WARNING] For this reason, future Maven versions might no longer support building such malformed projects.
+[WARNING] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] core                                                               [jar]
+[INFO] crypto                                                             [jar]
+[INFO] app                                                                [jar]
+[INFO] 
+[INFO] -----------------------< com.traceability:core >------------------------
+[INFO] Building core 1.0.0-SNAPSHOT                                       [1/3]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ core ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] skip non existing resourceDirectory /home/carlos/Proyectos/Donaciones/core/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ core ---
+[INFO] Recompiling the module because of added or removed source files.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 137 source files with javac [debug target 21] to target/classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java:[14,14] expireAfterSeconds() in org.springframework.data.mongodb.core.index.Indexed has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java:[14,14] expireAfterSeconds() in org.springframework.data.mongodb.core.index.Indexed has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java:[14,14] expireAfterSeconds() in org.springframework.data.mongodb.core.index.Indexed has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java:[14,14] expireAfterSeconds() in org.springframework.data.mongodb.core.index.Indexed has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/main/java/com/traceability/core/infrastructure/security/mongo/RevokedTrackingCodeDocument.java:[14,14] expireAfterSeconds() in org.springframework.data.mongodb.core.index.Indexed has been deprecated and marked for removal
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ core ---
+[WARNING] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[INFO] Copying 3 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ core ---
+[INFO] Recompiling the module because of changed dependency.
+[WARNING] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[INFO] Compiling 36 source files with javac [debug target 21] to target/test-classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[45,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[45,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[45,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[45,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[45,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[53,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[53,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[53,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[53,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceAllocationIntegrationTest.java:[53,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[42,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[42,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[42,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[42,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[42,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[47,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[47,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[47,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[47,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[47,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceClearFundsForPledgeIntegrationTest.java:[50,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[49,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[49,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[49,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[49,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/FundCommandServiceGenesisIntegrationTest.java:[49,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[56,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[56,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[56,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[56,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[56,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[59,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[59,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[59,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[59,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[59,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[62,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[62,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[62,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[62,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[62,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[65,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[65,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[65,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[65,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[65,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[68,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[68,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[68,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[68,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/HumanActorAuthorizationIntegrationTest.java:[68,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[48,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[48,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[48,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[48,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[48,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[82,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[82,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[82,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[82,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[82,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[85,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[85,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[85,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[85,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[85,6] org.springframework.boot.test.mock.mockito.SpyBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[88,48] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[88,48] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[88,48] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[88,48] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/Phase5EndToEndIntegrationTest.java:[88,48] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[41,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[WARNING] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java:[46,6] org.springframework.boot.test.mock.mockito.MockBean in org.springframework.boot.test.mock.mockito has been deprecated and marked for removal
+[INFO] /home/carlos/Proyectos/Donaciones/core/src/test/java/com/traceability/core/application/command/PhysicalAssetCommandServiceIntegrationTest.java: Some input files additionally use or override a deprecated API that is marked for removal.
+[INFO] 
+[INFO] --- surefire:3.5.4:test (default-test) @ core ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.traceability.core.application.authorization.OrganizationBoundaryPolicyTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.037 s -- in com.traceability.core.application.authorization.OrganizationBoundaryPolicyTest
+[INFO] Running com.traceability.core.application.authorization.RoleAuthorizationPolicyTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in com.traceability.core.application.authorization.RoleAuthorizationPolicyTest
+[INFO] Running com.traceability.core.application.command.CommandRetryTemplateTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.106 s -- in com.traceability.core.application.command.CommandRetryTemplateTest
+[INFO] Running com.traceability.core.application.command.FundCommandServiceAllocationIntegrationTest
+18:20:53.451 [main] INFO org.testcontainers.images.PullPolicy -- Image pull policy will be performed by: DefaultPullPolicy()
+18:20:53.454 [main] INFO org.testcontainers.utility.ImageNameSubstitutor -- Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+18:20:53.469 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+18:20:53.560 [main] INFO org.testcontainers.dockerclient.DockerClientProviderStrategy -- Loaded org.testcontainers.dockerclient.UnixSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+18:20:53.591 [main] INFO org.testcontainers.dockerclient.DockerMachineClientProviderStrategy -- docker-machine executable was not found on PATH ([/home/carlos/.gemini/antigravity-ide/bin, /usr/local/sbin, /usr/local/bin, /usr/bin, /opt/android-sdk/cmdline-tools/latest/bin, /usr/lib/jvm/default/bin, /usr/bin/site_perl, /usr/bin/vendor_perl, /usr/bin/core_perl])
+18:20:53.591 [main] ERROR org.testcontainers.dockerclient.DockerClientProviderStrategy -- Could not find a valid Docker environment. Please check configuration. Attempted configurations were:
+	UnixSocketClientProviderStrategy: failed with exception InvalidConfigurationException (Could not find unix domain socket). Root cause NoSuchFileException (/var/run/docker.sock)
+	DockerDesktopClientProviderStrategy: failed with exception NullPointerException (Cannot invoke "java.nio.file.Path.toString()" because the return value of "org.testcontainers.dockerclient.DockerDesktopClientProviderStrategy.getSocketPath()" is null)As no valid configuration was found, execution cannot continue.
+See https://java.testcontainers.org/on_failure.html for more details.
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.307 s <<< FAILURE! -- in com.traceability.core.application.command.FundCommandServiceAllocationIntegrationTest
+[ERROR] com.traceability.core.application.command.FundCommandServiceAllocationIntegrationTest -- Time elapsed: 0.307 s <<< ERROR!
+java.lang.IllegalStateException: Could not find a valid Docker environment. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.lambda$getFirstValidStrategy$7(DockerClientProviderStrategy.java:274)
+	at java.base/java.util.Optional.orElseThrow(Optional.java:403)
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:265)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.FundCommandServiceClearFundsForPledgeIntegrationTest
+18:20:53.608 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.010 s <<< FAILURE! -- in com.traceability.core.application.command.FundCommandServiceClearFundsForPledgeIntegrationTest
+[ERROR] com.traceability.core.application.command.FundCommandServiceClearFundsForPledgeIntegrationTest -- Time elapsed: 0.010 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.FundCommandServiceGenesisIntegrationTest
+18:20:53.619 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.009 s <<< FAILURE! -- in com.traceability.core.application.command.FundCommandServiceGenesisIntegrationTest
+[ERROR] com.traceability.core.application.command.FundCommandServiceGenesisIntegrationTest -- Time elapsed: 0.009 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.PhysicalAssetCommandServiceIntegrationTest
+18:20:53.629 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.008 s <<< FAILURE! -- in com.traceability.core.application.command.PhysicalAssetCommandServiceIntegrationTest
+[ERROR] com.traceability.core.application.command.PhysicalAssetCommandServiceIntegrationTest -- Time elapsed: 0.008 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.ProcessedCommandIdempotencyIntegrationTest
+18:20:53.639 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.008 s <<< FAILURE! -- in com.traceability.core.application.command.ProcessedCommandIdempotencyIntegrationTest
+[ERROR] com.traceability.core.application.command.ProcessedCommandIdempotencyIntegrationTest -- Time elapsed: 0.008 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.ExternalActorBypassTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build what is described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html#0.3
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (/home/carlos/.m2/repository/net/bytebuddy/byte-buddy-agent/1.15.11/byte-buddy-agent-1.15.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.649 s -- in com.traceability.core.application.command.ExternalActorBypassTest
+[INFO] Running com.traceability.core.application.command.HumanActorAuthorizationIntegrationTest
+18:20:54.320 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.022 s <<< FAILURE! -- in com.traceability.core.application.command.HumanActorAuthorizationIntegrationTest
+[ERROR] com.traceability.core.application.command.HumanActorAuthorizationIntegrationTest -- Time elapsed: 0.022 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.Phase5EndToEndIntegrationTest
+18:20:54.335 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.011 s <<< FAILURE! -- in com.traceability.core.application.command.Phase5EndToEndIntegrationTest
+[ERROR] com.traceability.core.application.command.Phase5EndToEndIntegrationTest -- Time elapsed: 0.011 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.RegisterPhysicalAssetFromDonationIntegrationTest
+18:20:54.347 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.008 s <<< FAILURE! -- in com.traceability.core.application.command.RegisterPhysicalAssetFromDonationIntegrationTest
+[ERROR] com.traceability.core.application.command.RegisterPhysicalAssetFromDonationIntegrationTest -- Time elapsed: 0.008 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+18:20:54.356 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 6, Failures: 0, Errors: 6, Skipped: 0, Time elapsed: 0.016 s <<< FAILURE! -- in com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+[ERROR] com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.testE_nonExistentAccount -- Time elapsed: 0.002 s <<< ERROR!
+java.lang.ExceptionInInitializerError
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized0(Native Method)
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized(Unsafe.java:1160)
+	at java.base/java.lang.reflect.Constructor.acquireConstructorAccessor(Constructor.java:549)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.<clinit>(ReverseAllocationAdministrativelyIntegrationTest.java:87)
+	... 8 more
+
+[ERROR] com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.testC_humanActorWithoutOrganization -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized0(Native Method)
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized(Unsafe.java:1160)
+	at java.base/java.lang.reflect.Constructor.acquireConstructorAccessor(Constructor.java:549)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration [in thread "main"]
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.<clinit>(ReverseAllocationAdministrativelyIntegrationTest.java:87)
+	... 8 more
+
+[ERROR] com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.testG_sagaBypassOnOriginalReverseAllocation -- Time elapsed: 0 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized0(Native Method)
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized(Unsafe.java:1160)
+	at java.base/java.lang.reflect.Constructor.acquireConstructorAccessor(Constructor.java:549)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration [in thread "main"]
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.<clinit>(ReverseAllocationAdministrativelyIntegrationTest.java:87)
+	... 8 more
+
+[ERROR] com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.testA_F_humanActorAuthorizedAndOrder -- Time elapsed: 0 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized0(Native Method)
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized(Unsafe.java:1160)
+	at java.base/java.lang.reflect.Constructor.acquireConstructorAccessor(Constructor.java:549)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration [in thread "main"]
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.<clinit>(ReverseAllocationAdministrativelyIntegrationTest.java:87)
+	... 8 more
+
+[ERROR] com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.testB_humanActorIncorrectOrganization -- Time elapsed: 0.001 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized0(Native Method)
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized(Unsafe.java:1160)
+	at java.base/java.lang.reflect.Constructor.acquireConstructorAccessor(Constructor.java:549)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration [in thread "main"]
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.<clinit>(ReverseAllocationAdministrativelyIntegrationTest.java:87)
+	... 8 more
+
+[ERROR] com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.testD_humanActorInsufficientRole -- Time elapsed: 0 s <<< ERROR!
+java.lang.NoClassDefFoundError: Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized0(Native Method)
+	at java.base/jdk.internal.misc.Unsafe.ensureClassInitialized(Unsafe.java:1160)
+	at java.base/java.lang.reflect.Constructor.acquireConstructorAccessor(Constructor.java:549)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:499)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:486)
+	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: java.lang.ExceptionInInitializerError: Exception java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration [in thread "main"]
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest.<clinit>(ReverseAllocationAdministrativelyIntegrationTest.java:87)
+	... 8 more
+
+[INFO] Running com.traceability.core.application.event.EventCanonicalMapperTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.124 s -- in com.traceability.core.application.event.EventCanonicalMapperTest
+[INFO] Running com.traceability.core.application.projection.DonationAuditFactsIntegrationTest
+18:20:54.496 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.traceability.core.application.projection.DonationAuditFactsIntegrationTest]: DonationAuditFactsIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+18:20:54.539 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.traceability.core.application.projection.DonationProjectionIntegrationTest$TestConfig for test class com.traceability.core.application.projection.DonationAuditFactsIntegrationTest
+18:20:54.541 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.049 s <<< FAILURE! -- in com.traceability.core.application.projection.DonationAuditFactsIntegrationTest
+[ERROR] com.traceability.core.application.projection.DonationAuditFactsIntegrationTest -- Time elapsed: 0.049 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.projection.DonationProjectionIntegrationTest
+18:20:54.550 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.007 s <<< FAILURE! -- in com.traceability.core.application.projection.DonationProjectionIntegrationTest
+[ERROR] com.traceability.core.application.projection.DonationProjectionIntegrationTest -- Time elapsed: 0.007 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.projection.PendingAllocationProjectionHandlerTest
+18:20:54.555 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.traceability.core.application.projection.PendingAllocationProjectionHandlerTest]: PendingAllocationProjectionHandlerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+18:20:54.557 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.traceability.core.application.projection.DonationProjectionIntegrationTest$TestConfig for test class com.traceability.core.application.projection.PendingAllocationProjectionHandlerTest
+18:20:54.559 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.007 s <<< FAILURE! -- in com.traceability.core.application.projection.PendingAllocationProjectionHandlerTest
+[ERROR] com.traceability.core.application.projection.PendingAllocationProjectionHandlerTest -- Time elapsed: 0.007 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.application.saga.AssetRegisteredSagaPolicyTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.056 s -- in com.traceability.core.application.saga.AssetRegisteredSagaPolicyTest
+[INFO] Running com.traceability.core.application.saga.OutboxSagaCoordinatorTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in com.traceability.core.application.saga.OutboxSagaCoordinatorTest
+[INFO] Running com.traceability.core.application.security.AssetAuthorizationServiceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.063 s -- in com.traceability.core.application.security.AssetAuthorizationServiceTest
+[INFO] Running com.traceability.core.application.service.LocationReferenceServiceIntegrationTest
+18:20:54.691 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.005 s <<< FAILURE! -- in com.traceability.core.application.service.LocationReferenceServiceIntegrationTest
+[ERROR] com.traceability.core.application.service.LocationReferenceServiceIntegrationTest -- Time elapsed: 0.005 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.domain.event.EventStreamTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in com.traceability.core.domain.event.EventStreamTest
+[INFO] Running com.traceability.core.domain.fund.FundTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in com.traceability.core.domain.fund.FundTest
+[INFO] Running com.traceability.core.domain.physicalasset.payloads.PayloadSerializationTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s -- in com.traceability.core.domain.physicalasset.payloads.PayloadSerializationTest
+[INFO] Running com.traceability.core.domain.physicalasset.PhysicalAssetTest
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in com.traceability.core.domain.physicalasset.PhysicalAssetTest
+[INFO] Running com.traceability.core.domain.shared.AggregateRootTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in com.traceability.core.domain.shared.AggregateRootTest
+[INFO] Running com.traceability.core.infrastructure.persistence.mongo.MongoEventStoreAdapterTest
+18:20:54.789 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.006 s <<< FAILURE! -- in com.traceability.core.infrastructure.persistence.mongo.MongoEventStoreAdapterTest
+[ERROR] com.traceability.core.infrastructure.persistence.mongo.MongoEventStoreAdapterTest -- Time elapsed: 0.006 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.infrastructure.persistence.mongo.MongoUnanchoredEventAdapterTest
+18:20:54.797 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.006 s <<< FAILURE! -- in com.traceability.core.infrastructure.persistence.mongo.MongoUnanchoredEventAdapterTest
+[ERROR] com.traceability.core.infrastructure.persistence.mongo.MongoUnanchoredEventAdapterTest -- Time elapsed: 0.006 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.infrastructure.persistence.mongo.config.MongoConfigHumanActorTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.024 s -- in com.traceability.core.infrastructure.persistence.mongo.config.MongoConfigHumanActorTest
+[INFO] Running com.traceability.core.infrastructure.projection.mongo.DonationReadAdapterTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.121 s -- in com.traceability.core.infrastructure.projection.mongo.DonationReadAdapterTest
+[INFO] Running com.traceability.core.infrastructure.security.HmacAssetRefServiceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.035 s -- in com.traceability.core.infrastructure.security.HmacAssetRefServiceTest
+[INFO] Running com.traceability.core.infrastructure.security.HmacTrackingCodeServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.046 s -- in com.traceability.core.infrastructure.security.HmacTrackingCodeServiceTest
+[INFO] Running com.traceability.core.infrastructure.security.TrackingCodeServiceIntegrationTest
+18:20:55.035 [main] INFO org.testcontainers.DockerClientFactory -- Testcontainers version: 1.20.6
+[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.006 s <<< FAILURE! -- in com.traceability.core.infrastructure.security.TrackingCodeServiceIntegrationTest
+[ERROR] com.traceability.core.infrastructure.security.TrackingCodeServiceIntegrationTest -- Time elapsed: 0.006 s <<< ERROR!
+java.lang.IllegalStateException: Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+	at org.testcontainers.dockerclient.DockerClientProviderStrategy.getFirstValidStrategy(DockerClientProviderStrategy.java:229)
+	at org.testcontainers.DockerClientFactory.getOrInitializeStrategy(DockerClientFactory.java:154)
+	at org.testcontainers.DockerClientFactory.client(DockerClientFactory.java:196)
+	at org.testcontainers.DockerClientFactory$1.getDockerClient(DockerClientFactory.java:108)
+	at com.github.dockerjava.api.DockerClientDelegate.authConfig(DockerClientDelegate.java:109)
+	at org.testcontainers.containers.GenericContainer.start(GenericContainer.java:321)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.start(TestcontainersExtension.java:276)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension$StoreAdapter.access$200(TestcontainersExtension.java:263)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$4(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.lambda$startContainers$5(TestcontainersExtension.java:83)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.startContainers(TestcontainersExtension.java:83)
+	at org.testcontainers.junit.jupiter.TestcontainersExtension.beforeAll(TestcontainersExtension.java:57)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+[INFO] Running com.traceability.core.architecture.ArchitectureTest
+18:20:55.045 [main] INFO com.tngtech.archunit.core.PluginLoader -- Detected Java version 21.0.12
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.621 s -- in com.traceability.core.architecture.ArchitectureTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   FundCommandServiceAllocationIntegrationTest » IllegalState Could not find a valid Docker environment. Please see logs and check configuration
+[ERROR]   FundCommandServiceClearFundsForPledgeIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   FundCommandServiceGenesisIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   HumanActorAuthorizationIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   Phase5EndToEndIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   PhysicalAssetCommandServiceIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   ProcessedCommandIdempotencyIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   RegisterPhysicalAssetFromDonationIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   ReverseAllocationAdministrativelyIntegrationTest.testA_F_humanActorAuthorizedAndOrder » NoClassDefFound Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+[ERROR]   ReverseAllocationAdministrativelyIntegrationTest.testB_humanActorIncorrectOrganization » NoClassDefFound Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+[ERROR]   ReverseAllocationAdministrativelyIntegrationTest.testC_humanActorWithoutOrganization » NoClassDefFound Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+[ERROR]   ReverseAllocationAdministrativelyIntegrationTest.testD_humanActorInsufficientRole » NoClassDefFound Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+[ERROR]   ReverseAllocationAdministrativelyIntegrationTest.testE_nonExistentAccount » ExceptionInInitializer
+[ERROR]   ReverseAllocationAdministrativelyIntegrationTest.testG_sagaBypassOnOriginalReverseAllocation » NoClassDefFound Could not initialize class com.traceability.core.application.command.ReverseAllocationAdministrativelyIntegrationTest
+[ERROR]   DonationAuditFactsIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   DonationProjectionIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   PendingAllocationProjectionHandlerTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   LocationReferenceServiceIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   MongoEventStoreAdapterTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   MongoUnanchoredEventAdapterTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[ERROR]   TrackingCodeServiceIntegrationTest » IllegalState Previous attempts to find a Docker environment failed. Will not retry. Please see logs and check configuration
+[INFO] 
+[ERROR] Tests run: 112, Failures: 0, Errors: 21, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for core 1.0.0-SNAPSHOT:
+[INFO] 
+[INFO] core ............................................... FAILURE [  8.510 s]
+[INFO] crypto ............................................. SKIPPED
+[INFO] app ................................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.729 s
+[INFO] Finished at: 2026-09-22T18:20:56-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project core: 
+[ERROR] 
+[ERROR] See /home/carlos/Proyectos/Donaciones/core/target/surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

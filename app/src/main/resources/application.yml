@@ -39,6 +39,10 @@ crypto:
       delay: 300000
     gas:
       max-fee-per-gas-cap: 100000000000
+    collecting-recovery:
+      timeout-seconds: ${CRYPTO_ANCHOR_COLLECTING_RECOVERY_TIMEOUT_SECONDS:300}
+      max-per-cycle: ${CRYPTO_ANCHOR_COLLECTING_RECOVERY_MAX_PER_CYCLE:10}
+      warn-after-attempts: ${CRYPTO_ANCHOR_COLLECTING_RECOVERY_WARN_AFTER_ATTEMPTS:5}
 
 traceability:
   audit:

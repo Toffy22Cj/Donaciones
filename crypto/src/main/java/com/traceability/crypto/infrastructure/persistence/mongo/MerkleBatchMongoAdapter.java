@@ -50,6 +50,7 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
         doc.setConfirmedBlockNumber(batch.confirmedBlockNumber());
         doc.setResolution(batch.resolution());
         doc.setMaxFeePerGasOverride(batch.maxFeePerGasOverride());
+        doc.setRecoveryAttempts(batch.recoveryAttempts());
         
         MerkleBatchDocument saved = repository.save(doc);
         return toDomain(saved);
@@ -306,6 +307,34 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
         mongoTemplate.upsert(query, update, Web3NonceCounterDocument.class);
     }
 
+    @Override
+    public List<MerkleBatch> findCollectingOlderThan(Instant cutoff, int limit) {
+        if (cutoff == null) {
+            throw new IllegalArgumentException("cutoff instant cannot be null");
+        }
+        Query query = new Query(Criteria.where("status").is(AnchorStatus.COLLECTING)
+                .and("createdAt").lt((Object) cutoff));
+        query.with(Sort.by(Sort.Direction.ASC, "createdAt"));
+        query.limit(limit);
+
+        return mongoTemplate.find(query, MerkleBatchDocument.class).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public int incrementRecoveryAttempts(String batchId) {
+        Query query = new Query(Criteria.where("batchId").is(batchId).and("status").is(AnchorStatus.COLLECTING));
+        Update update = new Update().inc("recoveryAttempts", 1);
+        FindAndModifyOptions options = new FindAndModifyOptions().returnNew(true);
+
+        MerkleBatchDocument doc = mongoTemplate.findAndModify(query, update, options, MerkleBatchDocument.class);
+        if (doc == null) {
+            return -1;
+        }
+        return doc.getRecoveryAttempts();
+    }
+
     private MerkleBatch toDomain(MerkleBatchDocument doc) {
         java.util.Map<String, com.traceability.contracts.SequenceRange> coverage = doc.getCoverage();
         if (coverage == null || coverage.isEmpty()) {
@@ -330,7 +359,8 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
                 doc.getAnchoredAt(),
                 doc.getConfirmedBlockNumber(),
                 doc.getResolution(),
-                doc.getMaxFeePerGasOverride()
+                doc.getMaxFeePerGasOverride(),
+                doc.getRecoveryAttempts()
         );
     }
 }
