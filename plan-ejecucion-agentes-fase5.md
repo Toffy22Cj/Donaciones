@@ -235,40 +235,23 @@ Aggregate ya reconstituido. Output literal de Surefire de
 `mvn test -pl core`.
 ```
 
-### TAREA NUEVA-4 — `FundAllocationSagaPolicy`
+### TAREA NUEVA-4 — Pending Allocation Read Model (ADR-034)
 
-**Rama:** `feat/core-fund-allocation-saga-policy` | **Depende de:** NUEVA-2, NUEVA-3 | **ADR:** ADR-012, ADR-029
+**Rama:** `feat/core-pending-allocation-read-model` | **Depende de:** NUEVA-2, NUEVA-3 | **ADR:** ADR-034
 
 ```
-TAREA: Implementar la SagaPolicy que reacciona a ALLOCATION_REQUESTED
-y despacha el registro del PhysicalAsset correspondiente — la pieza
-que el documento maestro afirmaba existente y la auditoría confirmó
-ausente.
+TAREA: (Históricamente planteada como FundAllocationSagaPolicy, pero
+redefinida formalmente por ADR-034).
+Implementar la visibilidad y operabilidad manual de PENDING_ALLOCATION
+a través de un Read Model especializado, descartando la automatización.
 
 ENTREGABLES:
-1. FundAllocationSagaPolicy — reacciona a ALLOCATION_REQUESTED (mismo
-   patrón de SagaPolicy<T>/OutboxSagaCoordinator que ya usa
-   AssetRegisteredSagaPolicy). En execute(): reconstituye el Fund por
-   fundId (AllocationRequestedPayload solo trae allocationId/amount,
-   confirmado por auditoría — no hay atajo posible), extrae
-   organizationRef, y despacha
-   PhysicalAssetCommandService.registerPhysicalAsset(...) (Tarea
-   NUEVA-3) pasando ese organizationRef explícitamente.
-2. En compensate(): política de compensación simétrica a la que ya usa
-   AssetRegisteredSagaPolicy para su propio fallo — investigar ese
-   patrón exacto antes de implementar, no inventar uno nuevo.
-3. Registro formal en el mecanismo de sagas existente (mismo lugar
-   donde AssetRegisteredSagaPolicy ya está registrada).
+1. Proyección actualizada para visibilizar el estado de asignación
+   pendiente.
+2. Permite la resolución manual y auditada, reemplazando la necesidad
+   de una saga de extremo a extremo para la asignación inicial.
 
-QUÉ NO HACER: no implementes ningún mecanismo de autorización aquí —
-esta saga es SystemActor, fuera del alcance de P7/P9 (ADR-032/D6).
-
-DEFINITION OF DONE: test de integración de extremo a extremo: registrar
-Fund (NUEVA-1) → solicitar asignación (NUEVA-2) → confirmar que la saga
-dispara el registro del PhysicalAsset con organizationRef heredado
-correctamente, sin intervención manual. Test de compensación ante fallo
-simulado. Output literal de Surefire de `mvn test -pl core` — módulo
-completo, dado que se integra con AssetRegisteredSagaPolicy existente.
+QUÉ NO HACER: no intentar construir FundAllocationSagaPolicy; fue descartada.
 ```
 
 ---
@@ -333,7 +316,7 @@ Output literal de Surefire de `mvn test -pl core`.
 
 **Rectificación Post-Auditoría (5.3):** El contrato original estipulaba que `RegisterPhysicalAsset` no recibiera `organizationRef`. Esta restricción experimentó una evolución observada durante la ejecución, evidenciada por la introducción de la Tarea `NUEVA-3` ("el parámetro organizationRef aquí SÍ es explícito... es el futuro llamador quien tiene la responsabilidad"). La tarea 5.3 fue declarada completada bajo esta *evolución de alcance documentada*.
 
-### TAREA 5.4 — Camino B: soporte de dominio para donación en especie (Application Service BLOQUEADO)
+### TAREA 5.4 — Camino B: soporte de dominio para donación en especie (Implementado)
 
 **Rama:** `feat/core-physicalasset-donation-genesis-domain` | **Depende de:** 5.3 (transitivamente pausada hasta Bloque 2bis) | **ADR:** ADR-029, ADR-031
 

@@ -1,7 +1,7 @@
-# Estado — Fase 5: Bloque de Dominio (cerrado) + Bloque C/D — Autorización (mecanismo y matriz cerrados) + Implementación (EN CURSO, PAUSADA)
+# Estado — Fase 5: CERRADA
 
 **Proyecto:** Motor de Trazabilidad Verificable de Donaciones (`com.traceability`)
-**Fase actual:** Fase 5 — **CERRADA**
+**Fase actual:** Fase 5 — **CERRADA** (Trabajo posterior: Fase 6 EN CURSO)
 - **Bloque de dominio** (`Organization↔Fund`, `Organization↔PhysicalAsset`, donación en especie, `actorRef`) — **DISEÑO Y IMPLEMENTACIÓN CERRADOS**
 - **Bloque C/D** (autorización, puerto Identity↔Core) — **DISEÑO E IMPLEMENTACIÓN CERRADOS (ADR-032, ADR-035).**
 Este documento registra el cierre formal de la Fase 5 verificado con evidencia.
@@ -20,7 +20,7 @@ Este documento registra el cierre formal de la Fase 5 verificado con evidencia.
 | ADR-030 | `actorRef` — ubicación y persistencia | **Approved** |
 | ADR-031 | Taxonomía de `ActorRef` | **Approved** |
 | ADR-032 | Autorización de comandos en `core`: puerto Identity↔Core, guardas de pertenencia y rol, matriz de autorización | **Approved** |
-| ADR-033 | Contrato del payload de la saga `ASSET_REGISTRATION_SAGA` | **Approved** |
+| ADR-033 | Contrato del payload de la saga `ASSET_REGISTRATION_SAGA` | **Aprobado parcialmente** |
 | ADR-034 | Visibilidad y Operabilidad de Pending Allocation (NUEVA-4 redefinida) | **Approved** |
 | ADR-035 | HumanActor como variante de ActorRef y puente de autorización humana | **Approved** |
 | ADR-036 | Reversión Administrativa de Asignación (NUEVA-4B) | **Approved** |
@@ -69,7 +69,7 @@ Catálogo del proyecto actual llega hasta **ADR-036** (más la enmienda a ADR-01
 - `ClearFundsForPledge(fundId, amount, commandId)` — no recibe datos de identidad del `Fund`, se leen del Aggregate reconstituido.
 
 ### `PhysicalAsset`
-- `RegisterPhysicalAsset(...)` (Camino A, existente) — no recibe `organizationRef`/`donorRef` como input; ambos heredados vía saga.
+- `RegisterPhysicalAsset(...)` (Camino A, existente) — su contrato evolucionó durante la ejecución para incluir explícitamente `organizationRef` y `donorRef` o resolverlos según el caso de uso y la política de saga vigente.
 - `RegisterPhysicalAssetFromDonation(organizationRef, donorRef, donationRef*, assetType, quantity, unitOfMeasure, custodianRef, currentLocation, commandId)` (Camino B) — **diseñado, implementación bloqueada, ver §5**. `donationRef` no es parámetro del comando individual, se genera una vez por invocación de Application Service y se reutiliza en cada registro dentro de esa misma llamada.
 - `SplitPhysicalAsset(...)` (existente) — no recibe `organizationRef`/`donorRef`/`donationRef`; los tres se heredan del padre.
 
@@ -123,9 +123,9 @@ graph TB
 
 ---
 
-## 5. Bloqueador explícito de implementación
+## 5. Bloqueador explícito de implementación (Resuelto)
 
-**`RegisterPhysicalAssetFromDonation` (Camino B, donación en especie) no es implementable todavía.**
+**`RegisterPhysicalAssetFromDonation` (Camino B, donación en especie) se encontraba originalmente bloqueado; posteriormente fue desbloqueado por HumanActor y actualmente está implementado.**
 
 Por diseño de negocio, es el único comando de génesis del sistema sin `SagaPolicy` que lo dispare automáticamente ni webhook externo asociado — solo puede ser ejecutado por un operador humano. La taxonomía de `ActorRef` cerrada en ADR-031 no tiene hoy ninguna variante legítima para representar esa atribución (`SystemActor`/`ExternalActor` no aplican; `HumanAccount` está diferido). ADR-031 prohíbe explícitamente sustituir esa ausencia con `null`, texto libre o un actor provisional.
 
@@ -238,7 +238,7 @@ SPLIT_PHYSICAL_ASSET                   → {EMPLOYEE}  ✅ decidido
      evaluada independientemente, no copiada por continuidad)
 ```
 
-**Matriz P7 completa — seis de seis celdas decididas.** Lectura global: dos fronteras semánticas, no seis decisiones aisladas — comandos de `Fund` (financieros) → `{ADMINISTRATOR}`; comandos de `PhysicalAsset` (operativos/logísticos) → `{EMPLOYEE}`. Ningún comando autoriza a `REPRESENTATIVE` en el estado actual — ausencia deliberada en las seis celdas, registrada explícitamente, no un olvido. Esta agrupación es un **resultado observado del análisis celda por celda**, no una regla general que se haya declarado y aplicado — no existe en ningún documento del proyecto una política que diga "EMPLOYEE gestiona todo PhysicalAsset" o "ADMINISTRATOR gestiona todo Fund"; de aparecer un séptimo comando en cualquiera de los dos Aggregates, debe evaluarse con el mismo rigor individual, no asumiendo la agrupación observada aquí.
+**Matriz P7 completa — decidida para todos los comandos.** Lectura global: dos fronteras semánticas, no decisiones aisladas — comandos de `Fund` (financieros) → `{ADMINISTRATOR}`; comandos de `PhysicalAsset` (operativos/logísticos) → `{EMPLOYEE}`. Ningún comando autoriza a `REPRESENTATIVE` en el estado actual — ausencia deliberada en las celdas, registrada explícitamente, no un olvido. Esta agrupación es un **resultado observado del análisis celda por celda**, no una regla general que se haya declarado y aplicado — no existe en ningún documento del proyecto una política que diga "EMPLOYEE gestiona todo PhysicalAsset" o "ADMINISTRATOR gestiona todo Fund"; todo comando debe evaluarse con el mismo rigor individual, no asumiendo la agrupación observada aquí.
 
 **Insumo de negocio que se usó para completar la matriz** (las tres preguntas planteadas al abrir §9.5, ya resueltas comando por comando):
 1. Naturaleza del compromiso de cada operación — distinguió comandos preparatorios/financieros efectivos (`Fund`) de comandos operativos/logísticos (`PhysicalAsset`).
@@ -261,7 +261,7 @@ Al abrir Fase 5 se fijaron 12 preguntas de arquitectura como punto de partida. C
 | 4 | ¿Quién es el donor de una donación física? | ✅ Cerrada — ADR-029, `donorRef` propio del Camino B |
 | 5 | ¿Qué Aggregate representa la donación en especie? | ✅ Cerrada — `PhysicalAsset`; `InKindDonation` descartado |
 | 6 | ¿Cómo se relaciona con `PhysicalAsset`? | ✅ Cerrada — camino de génesis + `donationRef` de correlación |
-| 7 | ¿Quién puede crear/modificar cada recurso? | ✅ Cerrada — matriz completa, seis de seis (§9.5) |
+| 7 | ¿Quién puede crear/modificar cada recurso? | ✅ Cerrada — matriz completa (§9.5) |
 | 8 | ¿Qué significa `actorId` tras Identity? | ✅ Cerrada — ADR-030/031 |
 | 9 | ¿Cómo se determina que una `Account` puede operar sobre un recurso? | ✅ Cerrada — `OrganizationBoundaryPolicy` (§9.2), scoped a `HumanAccount` (§9.6) |
 | 10 | ¿Dónde vive la autorización? | ✅ Cerrada — composición secuencial en Application Service (§9.3) |
@@ -296,7 +296,7 @@ NUEVA-1  feat/core-fund-genesis-commands              (registerFund, clearFundsG
 NUEVA-2  feat/core-fund-request-allocation-command    (requestAllocation) — depende de NUEVA-1
 NUEVA-3  feat/core-physicalasset-application-commands (registerPhysicalAsset, splitPhysicalAsset)
 NUEVA-4  feat/core-pending-allocation-read-model      (“Visibilidad y operabilidad manual de PENDING_ALLOCATION”) — PARTE A desbloqueada, PARTE B bloqueada
-NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante de ActorRef) — IMPLEMENTACIÓN EN CURSO / EN REVISIÓN
+NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante de ActorRef) — IMPLEMENTACIÓN COMPLETADA
 ```
 
 **Aclaración histórica sobre NUEVA-2:** `NUEVA-2` (`feat/core-fund-request-allocation-command`): la rama existía inicialmente con un commit que preservaba el DISEÑO del test de integración (`FundCommandServiceAllocationIntegrationTest.java`, 7 casos de prueba), rescatado durante un incidente de la Tarea Bug Saga 1, y no representaba implementación en curso. Esto ha sido resuelto en la implementación posterior.
@@ -333,7 +333,7 @@ NUEVA-5  feat/core-human-actor-authorization          (HumanActor como variante 
 - **5.7** (organization-boundary-policy): **COMPLETADA** (PR #20)
 - **5.8** (role-authorization-policy): **COMPLETADA** (PR #16)
 - **5.9** (authorization-wiring): **COMPLETADA** (PR #21)
-- **5.10** (fase5-integration-tests): **COMPLETADA**. Reactor en verde. Test de extremo a extremo completado.
+- **5.10** (fase5-integration-tests): **COMPLETADA**. Validación histórica de la integración del alcance aprobado, con evidencia reproducible obtenida sobre el hito 87af002. Existen deudas explícitamente diferidas hacia el trabajo posterior de Fase 6, abandonando afirmaciones de E2E completo sin matices.
 - **5.11** (cierre documental y formal): **COMPLETADA**
 
 **Aclaración sobre Asimetría de NUEVA-2 (`requestAllocation`):**
@@ -383,16 +383,17 @@ Con la ejecución de la Tarea 5.11, la Fase 5 queda formal y técnicamente **CER
 
 **Estado final real:**
 - **Commit de cierre técnico:** `a6c9ebd` (`HEAD == origin/develop`). El histórico de cierre documental 5.11 está en `87af002`.
-- **Resultado final de tests (Evidencia Histórica):** `BUILD SUCCESS` (191 tests en módulo `core`, 0 failures/errors; reactor completo exitoso registrado al cierre original). Durante esta auditoría forense se contabilizó la existencia de los tests, pero la ejecución completa `mvn clean test` no fue reproducida.
+- **Resultado final de tests (Evidencia Histórica y Reproducible):** `BUILD SUCCESS`. Se obtuvo evidencia reproducible sobre el hito exacto de Fase 5 (`87af002`) mediante `mvn clean test`, validando exitosamente el reactor completo y el módulo `core` aislado (191 tests, 0 failures/errors). Este estado verde es inherente al cierre de Fase 5 y se distingue explícitamente de las fallas introducidas posteriormente en el entorno `develop` por el trabajo en curso de Fase 6.
 - **Estado de Git:** Working tree limpio (`git diff --check` limpio).
 - **Tareas IMPLEMENTADAS Y CERRADAS:** Todas las definidas para Fase 5 (Bloque de Dominio 5.0 a 5.5, Autorización 5.6 a 5.9, Integración E2E 5.10 validando el alcance efectivamente aprobado, y NUEVA-1 a NUEVA-5 / 4B). La tarea 5.11 consolida el estado como Cierre Documental y Formal.
 - **Deudas técnicas explícitamente DIFERIDAS A TRABAJO POSTERIOR:**
   - *Productor real de Outbox:* Su ausencia impide un flujo E2E sin intervención manual en operaciones de negocio.
   - *Stream del Hijo en Split:* Orquestación de persistencia del agregado hijo pendiente (fuera del DoD original de 5.5).
   - *`requestAllocation` sin `authorize()`:* Diferido para revisión futura por no tener entrypoint externo.
+  - *`FundCommandService.reverseAllocation()`:* Observación/deuda técnica. Es un entrypoint interno de compensación. No ejecuta `authorize()`. ADR-036 — Reversión Administrativa de Asignación lo trata como flujo basado en SystemActor, pero el código actual no impone ese tipo en runtime y no existe entrypoint HTTP/humano actual; queda diferido para revisión posterior.
   - *Derivación de organizationRef para ExternalActor:* No hay mecanismo para webhook de pago para derivarlo aún.
   - *ADR-028 a ADR-032:* Su reconstrucción física a partir de fuentes internas históricas se aplaza como deuda documental.
-- **ADRs relevantes:** ADR-034, ADR-035, ADR-036 (**Approved**); ADR-033 (**Aprobado parcialmente**). *Nota complementaria ADR-034/036*: ADR-036 desarrolla e implementa orgánicamente la decisión reservada en la Parte B de ADR-034, sin contradicción funcional. *Deuda Documental ADR-028 a ADR-032*: Sus archivos originales no están presentes en `Documentos/` y no se declaran como archivos ADR formales aprobados en el repositorio, pero sus decisiones se consideran reconstruibles documentalmente a partir de fuentes internas.
+- **ADRs relevantes:** ADR-034, ADR-035, ADR-036 — Reversión Administrativa de Asignación (**Approved**); ADR-033 (**Aprobado parcialmente**). *Nota complementaria ADR-034 / ADR-036 — Reversión Administrativa de Asignación*: ADR-036 — Reversión Administrativa de Asignación desarrolla e implementa orgánicamente la decisión reservada en la Parte B de ADR-034, sin contradicción funcional. *Deuda Documental ADR-028 a ADR-032*: Sus archivos originales no están presentes en `Documentos/` y no se declaran como archivos ADR formales aprobados en el repositorio, pero sus decisiones se consideran reconstruibles documentalmente a partir de fuentes internas. *Aviso de Colisión Documental*: Existe una colisión de numeración para ADR-033 a ADR-036 introducida posteriormente por el trabajo de Fase 6; los números referenciados aquí corresponden exclusivamente a las decisiones documentadas en Fase 5.
 
 **Conclusión:**
 La Fase 5 queda formalmente **CERRADA**. El sistema base fue auditado sobre el alcance ajustado en 5.10. Capacidades no resueltas (productor de Outbox, stream independiente de activo hijo, autenticación HTTP) se distinguen estrictamente como DEUDAS TÉCNICAS DIFERIDAS para el trabajo futuro, abandonando toda afirmación absoluta de que las capacidades E2E operan de extremo a extremo sin vacíos ni omisiones conocidas.
