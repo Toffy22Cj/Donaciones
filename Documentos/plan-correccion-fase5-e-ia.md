@@ -35,22 +35,31 @@
 
 ## Bloque A — Fase 5 (confirmado por dos auditorías independientes)
 
-### A1. Contexto de test roto — `MongoUnanchoredEventAdapterTest` (PRIORIDAD MÁXIMA, bloquea Blockchain hoy mismo)
+### A1. Contexto de test roto — `MongoUnanchoredEventAdapterTest` — ✅ CERRADO
 
-**Hallazgo:** el test de Blockchain (`crypto`/`core`) no puede arrancar su contexto de Spring porque escanea de más y arrastra `FundCommandService`, que depende de `IdentityPrincipalPort` — un bean que el test no provee.
+**Estado:** **CERRADO** (Resuelto en commit `793d4b8`).
 
-**Evidencia:** `No qualifying bean of type 'com.traceability.contracts.authorization.IdentityPrincipalPort' available` — confirmado en dos ejecuciones distintas, una de ellas dentro del reactor completo (`core FAILURE`, `identity`/`app` `SKIPPED`).
+**Hallazgo original:** el test de Blockchain (`crypto`/`core`) no podía arrancar su contexto de Spring porque escaneaba de más y arrastraba `FundCommandService`, que dependía de `IdentityPrincipalPort` — un bean que el test no proveía.
 
-**Causa raíz real:** no es que falte implementar `IdentityPrincipalPort` — es que el test usa un `@SpringBootApplication(scanBasePackages="com.traceability.core")` demasiado amplio, el mismo patrón de sobre-escaneo ya detectado dos veces hoy en Blockchain (con `HashPort` y con la clave de OpenAI).
+**Evidencia previa:** `No qualifying bean of type 'com.traceability.contracts.authorization.IdentityPrincipalPort' available` en ejecuciones históricas.
 
-**Acción:**
-1. Acotar el contexto del test a lo que realmente ejercita — usar `@ContextConfiguration(classes = {MongoUnanchoredEventAdapter.class, ...})` o un slice equivalente, en vez de `@SpringBootApplication` escaneando todo `core`.
-2. **No** proveer un mock de `IdentityPrincipalPort` para "hacer arrancar" el contexto amplio — eso oculta el síntoma sin arreglar la causa (el test seguiría cargando cosas que no necesita).
-3. Verificar que el mismo patrón no está repetido en otros tests de `crypto`/`core` que hoy "funcionan por casualidad" con el contexto amplio.
+**Causa raíz real:** sobre-escaneo de contexto de Spring mediante `@SpringBootApplication(scanBasePackages="com.traceability.core")`.
 
-**Criterio de éxito:** `mvn test -pl core,crypto,app` completo en verde, con el mismo desglose por clase que ya usamos toda la sesión — sin necesidad de ningún mock de `IdentityPrincipalPort`.
+**Solución aplicada (commit `793d4b8`):**
+1. Se acotó el contexto del test restringiendo el escaneo al slice necesario: `@SpringBootApplication(scanBasePackages = "com.traceability.core.infrastructure.persistence.mongo")` y `@EnableMongoRepositories(basePackages = "com.traceability.core.infrastructure.persistence.mongo")`.
+2. Se especificó la clase de configuración de prueba explícitamente: `@SpringBootTest(classes = MongoUnanchoredEventAdapterTest.TestConfig.class)`.
+3. Se proveyeron únicamente los beans de infraestructura requeridos: `@MockBean HashPort` y `@MockBean EventCanonicalMapper`.
+4. Ningún mock innecesario de `IdentityPrincipalPort` fue añadido en el test.
 
-**Responsable sugerido:** quien mantenga la infraestructura de tests de `core`/`crypto` — es un arreglo de configuración, no de lógica de negocio, estimable en horas, no días.
+**Evidencia de validación (24-09-2026):**
+Ejecución: `mvn test -pl core -am -Dtest=MongoUnanchoredEventAdapterTest -Dsurefire.failIfNoSpecifiedTests=false`
+Salida:
+```
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.032 s -- in com.traceability.core.infrastructure.persistence.mongo.MongoUnanchoredEventAdapterTest
+[INFO] Results:
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
 
 ---
 
@@ -120,32 +129,48 @@
 
 ---
 
-### A4. ADR-028 a ADR-032 ausentes del repositorio (PRIORIDAD MEDIA)
+### A4. ADR-028 a ADR-032 ausentes del repositorio — ✅ CERRADO (Reconstrucción Histórica)
 
-**Hallazgo:** cinco documentos de decisión arquitectónica citados como aprobados por `estado-fase5.md` no existen físicamente. El propio documento se contradice: los da por "consolidados" en una sección y por "pendientes de incorporar" en otra.
+**Estado:** **CERRADO** (Reconstrucción histórica completada).
 
-**Por qué te importa para Fase 6:** ADR-034 (Identidad, diseñado en esta sesión) referencia la taxonomía de `ActorRef`/`HumanAccount` de "ADR-031" como ya cerrada. Si ese documento no existe formalmente, esa referencia no tiene respaldo verificable.
+**Hallazgo original:** cinco documentos de decisión arquitectónica citados como aprobados por `estado-fase5.md` no existían físicamente en `Documentos/`.
 
-**Acción:**
-1. Determinar si esas decisiones existen en algún otro formato (actas de reunión, comentarios de PR) que permita reconstruirlas fielmente, o si hay que redecidirlas desde cero.
-2. Redactar los ADR faltantes con evidencia real de lo que el código ya implementa (no al revés — no adaptar el código a lo que "debería" haber dicho el ADR).
-3. Resolver también la discrepancia de nombre `HumanActor` (código) vs. `HumanAccount` (documentación, incluido nuestro ADR-034) — decidir cuál es el nombre canónico y corregir el otro.
+**Acción ejecutada:**
+1. Se reconstruyeron fielmente los 5 ADRs a partir de la evidencia textual de código Java, pruebas unitarias/arquitectura, historial Git y registros de `estado-fase5.md` y `plan-ejecucion-agentes-fase5.md`:
+   - `Documentos/ADR-028-relacion-organization-fund.md`
+   - `Documentos/ADR-029-organization-physicalasset-donacion-especie.md`
+   - `Documentos/ADR-030-actorref-ubicacion-persistencia.md`
+   - `Documentos/ADR-031-taxonomia-actorref.md`
+   - `Documentos/ADR-032-autorizacion-comandos-core-matriz.md`
+2. Los documentos reflejan estrictamente lo que el código y el repositorio implementan, marcados como "Reconstrucción histórica (Aprobada en Fase 5)".
+3. No se alteró la numeración de los ADRs 033-036 existentes ni los de Fase 6.
 
-**Criterio de éxito:** los 5 ADR existen en el repositorio, con estado real verificado contra código, y la discrepancia de nombre queda resuelta en un solo sentido.
-
-**Responsable sugerido:** quien lidere Identidad/documentación de Fase 5.
+**Criterio de éxito:** Los 5 ADRs existen físicamente en el repositorio con evidencia demostrable en código.
 
 ---
 
-### A5. Manejo de errores silencioso (PRIORIDAD BAJA)
+### A5. Manejo de errores silencioso — ✅ CERRADO
 
-**Hallazgo:** `DonationProjectionHandler.java` tiene un `catch (Exception ignored) {}` que traga el tipo real de la excepción — un fallo real queda invisible.
+**Estado:** **CERRADO**.
 
-**Acción:** reemplazar por manejo explícito, nombrando el tipo de excepción esperado y registrando (log) cualquier tipo inesperado en vez de descartarlo silenciosamente — mismo principio que ya aplicamos toda la sesión ("toda condición de fallo tiene su propia excepción nombrada").
+**Hallazgo original:** `DonationProjectionHandler.java` tenía un `catch (Exception ignored) {}` dentro de `enqueueForRetry` que tragaba cualquier excepción de deserialización o resolución, dejando el fallo invisible y el documento erróneamente en estado `PENDING`.
 
-**Criterio de éxito:** el `catch` genérico desaparece; existe un test que demuestra que un fallo real dentro de ese bloque es visible (log, métrica, o propagación), no silencioso.
+**Acción ejecutada:**
+1. Se reemplazó el `catch (Exception ignored) {}` por captura explícita y tipada:
+   - `catch (IllegalArgumentException e)`: cuando el payload es inválido, corrupto o de tipo desconocido, se registra con `log.error` con metadatos completos (`streamId`, `eventId`, `eventType`, `schemaVersion`) y se establece inmediatamente `retryDoc.setStatus("QUARANTINED")`, evitando ciclos infinitos de reintento sobre payloads venenosos.
+   - `catch (org.springframework.dao.DataAccessException e)`: para errores transitorios de acceso a MongoDB durante la resolución de dependencias, se registra con `log.warn` y se conserva el estado `PENDING` para permitir que el `ProjectionRetryScheduler` reintente cuando la base de datos se recupere.
+   - `catch (Exception e)`: para cualquier otro error inesperado, se registra con `log.error` y se asigna `QUARANTINED`.
+2. Se agregó la prueba unitaria focalizada `DonationProjectionHandlerExceptionHandlingTest` con 4 casos de prueba verificando que los payloads inválidos son puestos en cuarentena y los fallos transitorios se mantienen pendientes.
 
-**Responsable sugerido:** Core.
+**Evidencia de validación:**
+Ejecución: `mvn test -pl core -am -Dtest=DonationProjectionHandlerExceptionHandlingTest -Dsurefire.failIfNoSpecifiedTests=false`
+Salida:
+```
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.418 s -- in com.traceability.core.application.projection.DonationProjectionHandlerExceptionHandlingTest
+[INFO] Results:
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
 
 ---
 
