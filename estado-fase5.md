@@ -395,6 +395,32 @@ Históricamente, con la ejecución de la Tarea 5.11 (hito `87af002`), la Fase 5 
 ### 12.2. Auditoría Posterior de Fase 5
 Tras el cierre histórico, una auditoría técnica forense realizada sobre el repositorio identificó deudas técnicas, inconsistencias documentales y omisiones de manejo de excepciones en el Bloque A (A1 a A7.2), concluyendo que se requería un proceso formal de remediación antes de consolidar definitivamente el ciclo de Fase 5.
 
+### 12.2.1. Bloque A2: Auditoría de autorización de comandos
+
+Se auditó exclusivamente la superficie de los siguientes métodos:
+
+- `FundCommandService.requestAllocation`
+- `PhysicalAssetCommandService.deliverAsset`
+- `FundCommandService.confirmAllocation`
+- `FundCommandService.reverseAllocation`
+
+#### Resultado
+
+| Método | Estado actual | Clasificación |
+|---|---|---|
+| `requestAllocation` | No está expuesto externamente. No tiene caller productivo HTTP, adapter, puerto de entrada ni DTO externo. No existe `CommandType` asociado ni autorización humana. | C |
+| `deliverAsset` | No está expuesto externamente. No existe endpoint HTTP, adapter runtime, puerto de entrada ni `CommandType` `DELIVER_PHYSICAL_ASSET`. | C |
+| `confirmAllocation` | Operación interna invocada por `AssetRegisteredSagaPolicy` mediante `SystemActor`. | B |
+| `reverseAllocation` | Operación interna invocada por `AssetRegisteredSagaPolicy` mediante `SystemActor`. La operación administrativa humana separada es `reverseAllocationAdministratively`. | B |
+
+#### Decisiones pendientes
+
+`requestAllocation` queda pendiente de decisión arquitectónica antes de cualquier exposición externa o humana. Actualmente funciona como operación interna de aplicación, sin `CommandType` ni autorización humana.
+
+`deliverAsset` queda pendiente de reconciliar con el contrato documental antes de cualquier exposición. La `api-contract-matrix` describe un endpoint futuro para esta operación, pero dicho endpoint no existe actualmente en runtime. Tampoco existe hoy un `CommandType` asociado ni una autorización conectada al método.
+
+Las clasificaciones B de `confirmAllocation` y `reverseAllocation` se mantienen porque ambos métodos son consumidos actualmente por `AssetRegisteredSagaPolicy` como operaciones internas de compensación/confirmación. La operación administrativa humana de reversión utiliza `reverseAllocationAdministratively`, no `reverseAllocation`.
+
 ### 12.3. Estado Actual de la Rama y Proceso de Remediación Técnica (Bloque A)
 - **Rama activa de trabajo:** `fix/fase5-cierre-bloque-a`.
 - **Estado base real:** Commit `793d4b8` (`develop == origin/develop`), punto de partida oficial y única fuente de verdad para esta remediación.
