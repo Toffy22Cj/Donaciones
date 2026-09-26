@@ -60,25 +60,36 @@ public class ProjectionRetryScheduler {
                     // Unknown handler, quarantine immediately
                     quarantine(retryDoc);
                 }
-            } catch (DonationProjectionHandler.SequenceGapException | DonationProjectionHandler.MissingDependencyException e) {
-                // Still failing. Check if 4 hours have passed
-                Instant firstAttempt = Instant.parse(retryDoc.getFirstAttemptAt());
-                if (firstAttempt.plus(4, ChronoUnit.HOURS).isBefore(Instant.now())) {
+            } catch (Exception e) {
+                boolean isPermanent = isPermanentError(e);
+                if (isPermanent) {
                     quarantine(retryDoc);
                 } else {
-                    retryDoc.setRetryCount(retryDoc.getRetryCount() + 1);
-                    retryDoc.setLastAttemptAt(Instant.now().toString());
-                    retryDoc.setStatus("PENDING"); // Revert back to PENDING so it can be claimed again
-                    retryDoc.setProcessingStartedAt(null);
-                    retryRepository.save(retryDoc);
+                    // Still failing with retryable error. Check if 4 hours have passed
+                    Instant firstAttempt = Instant.parse(retryDoc.getFirstAttemptAt());
+                    if (firstAttempt.plus(4, ChronoUnit.HOURS).isBefore(Instant.now())) {
+                        quarantine(retryDoc);
+                    } else {
+                        retryDoc.setRetryCount(retryDoc.getRetryCount() + 1);
+                        retryDoc.setLastAttemptAt(Instant.now().toString());
+                        retryDoc.setStatus("PENDING"); // Revert back to PENDING so it can be claimed again
+                        retryDoc.setProcessingStartedAt(null);
+                        retryRepository.save(retryDoc);
+                    }
                 }
-            } catch (DonationProjectionHandler.ProjectionPausedException e) {
-                quarantine(retryDoc);
-            } catch (Exception e) {
-                // Other unexpected errors, quarantine immediately
-                quarantine(retryDoc);
             }
         }
+    }
+
+    private boolean isPermanentError(Exception e) {
+        if (e instanceof com.traceability.core.application.projection.DonationProjectionHandler.SequenceGapException ||
+            e instanceof com.traceability.core.application.projection.DonationProjectionHandler.MissingDependencyException ||
+            e instanceof org.springframework.dao.DataAccessException ||
+            e.getClass().getName().contains("MongoSocketException") ||
+            e.getClass().getName().contains("MongoTimeoutException")) {
+            return false; // Retryable
+        }
+        return true; // NullPointerException, IllegalArgumentException, ProjectionPausedException, etc are permanent
     }
 
     private void quarantine(ProjectionRetryDocument retryDoc) {

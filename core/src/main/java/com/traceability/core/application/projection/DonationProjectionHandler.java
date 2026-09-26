@@ -33,29 +33,22 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     private final AssetIndexRepository assetIndexRepository;
     private final DonationProjectionRepository projectionRepository;
     private final AssetHistoryProjectionRepository historyRepository;
-    private final ProjectionRetryRepository retryRepository;
 
     public DonationProjectionHandler(MongoTemplate mongoTemplate,
                                      EventCanonicalMapper canonicalMapper,
                                      AssetIndexRepository assetIndexRepository,
                                      DonationProjectionRepository projectionRepository,
-                                     AssetHistoryProjectionRepository historyRepository,
-                                     ProjectionRetryRepository retryRepository) {
+                                     AssetHistoryProjectionRepository historyRepository) {
         this.mongoTemplate = mongoTemplate;
         this.canonicalMapper = canonicalMapper;
         this.assetIndexRepository = assetIndexRepository;
         this.projectionRepository = projectionRepository;
         this.historyRepository = historyRepository;
-        this.retryRepository = retryRepository;
     }
 
     @Override
     public void handleEvent(TraceabilityEventDocument eventDoc) {
-        try {
-            processEvent(eventDoc);
-        } catch (MissingDependencyException | SequenceGapException | ProjectionPausedException e) {
-            enqueueForRetry(eventDoc);
-        }
+        processEvent(eventDoc);
     }
 
     private void processEvent(TraceabilityEventDocument eventDoc) {
@@ -306,55 +299,6 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         mongoTemplate.updateFirst(q, u, AssetHistoryProjectionDocument.class);
     }
 
-    void enqueueForRetry(TraceabilityEventDocument eventDoc) {
-        ProjectionRetryDocument retryDoc = ProjectionRetryDocument.builder()
-            .id(eventDoc.getEventId() + "_" + getHandlerName())
-            .handlerName(getHandlerName())
-            .eventId(eventDoc.getEventId())
-            .streamId(eventDoc.getStreamId())
-            .sequence(eventDoc.getSequence())
-            .eventType(eventDoc.getEventType())
-            .schemaVersion(eventDoc.getSchemaVersion())
-            .payload(eventDoc.getPayload())
-            .occurredAt(eventDoc.getOccurredAt())
-            .firstAttemptAt(Instant.now().toString())
-            .lastAttemptAt(Instant.now().toString())
-            .build();
-        
-        // PAUSED rule: if we can determine the projectionId and it is PAUSED, quarantine immediately.
-        String projectionId = null;
-        if ("Fund".equals(eventDoc.getAggregateType())) {
-            projectionId = eventDoc.getStreamId();
-        } else {
-            try {
-                DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-                projectionId = resolveProjectionId(eventDoc.getStreamId(), payload);
-            } catch (IllegalArgumentException e) {
-                log.error("Failed to deserialize event payload for streamId={}, eventId={}, eventType={}, schemaVersion={}: {}",
-                        eventDoc.getStreamId(), eventDoc.getEventId(), eventDoc.getEventType(), eventDoc.getSchemaVersion(), e.getMessage(), e);
-                retryDoc.setStatus("QUARANTINED");
-            } catch (org.springframework.dao.DataAccessException e) {
-                log.warn("Database access error while resolving projectionId for streamId={}, eventId={}: {}",
-                        eventDoc.getStreamId(), eventDoc.getEventId(), e.getMessage());
-            } catch (Exception e) {
-                log.error("Unexpected error resolving projectionId during retry enqueue for streamId={}, eventId={}: {}",
-                        eventDoc.getStreamId(), eventDoc.getEventId(), e.getMessage(), e);
-                retryDoc.setStatus("QUARANTINED");
-            }
-        }
-        
-        retryDoc.setProjectionId(projectionId);
-        
-        if (projectionId != null) {
-            DonationProjectionDocument proj = projectionRepository.findById(projectionId).orElse(null);
-            if (proj != null && "PAUSED".equals(proj.getStatus())) {
-                retryDoc.setStatus("QUARANTINED");
-            }
-        }
-        
-        retryRepository.save(retryDoc);
-    }
-    
     public static class SequenceGapException extends RuntimeException {
         public SequenceGapException(String message) { super(message); }
     }
