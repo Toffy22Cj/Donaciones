@@ -85,6 +85,8 @@ public class PhysicalAssetCommandService {
             if (!newEvents.isEmpty()) {
                 eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, newEvents, actorRef, null,
                         commandId);
+            } else {
+                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, java.util.Collections.emptyList(), actorRef, null, commandId);
             }
             return null;
         });

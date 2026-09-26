@@ -103,10 +103,10 @@ class PhysicalAssetTest {
         Instant time = Instant.now();
         asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
         
-        // Exact same parameters throws RedundantDeliveryException
-        assertThrows(RedundantDeliveryException.class, () -> {
-            asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
-        });
+        int eventsBefore = asset.getUncommittedEvents().size();
+        // Exact same parameters is a no-op
+        asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
+        assertEquals(eventsBefore, asset.getUncommittedEvents().size());
     }
 
     @Test
@@ -134,9 +134,11 @@ class PhysicalAssetTest {
     }
 
     @Test
-    void testTransferCustodyRedundant_ThrowsException() {
+    void testTransferCustodyRedundant_IsNoOp() {
         PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
-        assertThrows(RedundantCustodyTransferException.class, () -> asset.transferCustody("CUST_A"));
+        int eventsBefore = asset.getUncommittedEvents().size();
+        asset.transferCustody("CUST_A");
+        assertEquals(eventsBefore, asset.getUncommittedEvents().size());
     }
 
     @Test

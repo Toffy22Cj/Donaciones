@@ -55,7 +55,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
     @MockBean
     private HashPort hashPort;
-    
+
     // We do NOT mock OutboxPort because it's not needed for this test's DoD.
     // The real MongoOutboxPort will be injected.
 
@@ -84,7 +84,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
     @Autowired
     private EventStorePort eventStorePort;
-    
+
     @Autowired
     private TransactionalEventPublisher transactionalEventPublisher;
 
@@ -121,7 +121,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
                 "REF",
                 new SystemActor("test")
         );
-        
+
         Fund fund = Fund.rehydrate(fundId, eventStorePort.loadStream(fundId).stream().map(DomainEvent::payload).toList(), 1);
         fund.requestAllocation("ALLOC-1", 500L);
         transactionalEventPublisher.appendAndOutbox(fundId, "Fund", 1, fund.getUncommittedEvents(), new SystemActor("test"), null, UUID.randomUUID().toString());
@@ -132,7 +132,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
     void confirmAllocation_concurrency() throws InterruptedException {
         String fundId = setupFund();
         String commandId = UUID.randomUUID().toString();
-        
+
         int threadCount = 2;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(1);
@@ -173,7 +173,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
         // confirmAllocation adds 1.
         // Total should be 3.
         assertEquals(3, docs.size(), "Exactly three messages in ProcessedCommand");
-        
+
         long count = docs.stream().filter(d -> d.getCommandId().equals(commandId)).count();
         assertEquals(1, count, "Exactly one ProcessedCommand for the specific commandId");
     }
@@ -182,7 +182,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
     void reverseAllocation_concurrency() throws InterruptedException {
         String fundId = setupFund();
         String commandId = UUID.randomUUID().toString();
-        
+
         int threadCount = 2;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(1);
@@ -216,7 +216,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
         List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
         assertEquals(3, docs.size(), "Exactly three messages in ProcessedCommand");
-        
+
         long count = docs.stream().filter(d -> d.getCommandId().equals(commandId)).count();
         assertEquals(1, count, "Exactly one ProcessedCommand for the specific commandId");
     }
@@ -225,14 +225,14 @@ class ProcessedCommandIdempotencyIntegrationTest {
     void rollback_on_conflict() {
         String fundId = setupFund();
         String commandId = UUID.randomUUID().toString();
-        
+
         List<DomainEvent> stream = eventStorePort.loadStream(fundId);
         assertFalse(stream.isEmpty());
-        
+
         Fund f = Fund.rehydrate(fundId, stream.stream().map(DomainEvent::payload).toList(), stream.size());
         f.confirmAllocation("ALLOC-1");
         List<DomainEvent> newEvents = f.getUncommittedEvents();
-        
+
         // Simular un conflicto de versión pasando un expectedVersion equivocado (9999L en vez de 3L)
         // Esto causará que eventStorePort.append lanze DataIntegrityViolationException (o RuntimeException)
         // Y hará que la transacción actual lance rollback, revirtiendo el tryClaim inicial.
@@ -245,20 +245,76 @@ class ProcessedCommandIdempotencyIntegrationTest {
         long count = docs.stream().filter(d -> d.getCommandId().equals(commandId)).count();
         assertEquals(0, count, "The processed command should NOT persist after rollback");
     }
-    
+
     @Test
     void confirmAllocation_happyPath() {
         String fundId = setupFund();
         String commandId = UUID.randomUUID().toString();
-        
+
         fundCommandService.confirmAllocation(commandId, fundId, "ALLOC-1", new SystemActor("test"));
-        
+
         List<DomainEvent> stream = eventStorePort.loadStream(fundId);
         assertEquals(3, stream.size(), "Exactly three events in the Event Store for confirmAllocation");
         assertEquals("ALLOCATION_CONFIRMED", stream.get(2).eventType().name());
-        
+
         List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
         long count = docs.stream().filter(d -> d.getCommandId().equals(commandId)).count();
         assertEquals(1, count, "Exactly one ProcessedCommand for the specific commandId");
+    }
+
+    @Test
+    void confirmAllocation_sameCommandId_retry_scenarioA() {
+        String fundId = setupFund();
+        String commandId = UUID.randomUUID().toString();
+
+        // First attempt
+        fundCommandService.confirmAllocation(commandId, fundId, "ALLOC-1", new SystemActor("test"));
+
+        // Second attempt with SAME commandId
+        fundCommandService.confirmAllocation(commandId, fundId, "ALLOC-1", new SystemActor("test"));
+
+        List<DomainEvent> stream = eventStorePort.loadStream(fundId);
+        assertEquals(3, stream.size(), "Events should remain 3, no duplicates");
+
+        List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
+        long count = docs.stream().filter(d -> d.getCommandId().equals(commandId)).count();
+        assertEquals(1, count, "Only one claim for this commandId");
+    }
+
+    @Test
+    void confirmAllocation_differentCommandId_redundant_scenarioB() {
+        String fundId = setupFund();
+        String commandId1 = UUID.randomUUID().toString();
+        String commandId2 = UUID.randomUUID().toString();
+
+        // First command confirms it
+        fundCommandService.confirmAllocation(commandId1, fundId, "ALLOC-1", new SystemActor("test"));
+
+        // Second command tries to confirm it again (redundant)
+        fundCommandService.confirmAllocation(commandId2, fundId, "ALLOC-1", new SystemActor("test"));
+
+        List<DomainEvent> stream = eventStorePort.loadStream(fundId);
+        assertEquals(3, stream.size(), "No new events for redundant action");
+
+        List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
+        assertTrue(docs.stream().anyMatch(d -> d.getCommandId().equals(commandId1)));
+        assertTrue(docs.stream().anyMatch(d -> d.getCommandId().equals(commandId2)));
+    }
+
+    @Test
+    void confirmAllocation_invalidTransition_scenarioC() {
+        String fundId = setupFund();
+        String commandId1 = UUID.randomUUID().toString();
+        String commandId2 = UUID.randomUUID().toString();
+
+        fundCommandService.confirmAllocation(commandId1, fundId, "ALLOC-1", new SystemActor("test"));
+
+        // Try to reverse it after it's confirmed, which is an invalid transition according to rules
+        assertThrows(com.traceability.core.domain.fund.exceptions.InvalidFundTransitionException.class, () -> {
+            fundCommandService.reverseAllocation(commandId2, fundId, "ALLOC-1", "Reason", new SystemActor("test"));
+        });
+
+        List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
+        assertFalse(docs.stream().anyMatch(d -> d.getCommandId().equals(commandId2)), "Failed invalid transition should not save commandId");
     }
 }

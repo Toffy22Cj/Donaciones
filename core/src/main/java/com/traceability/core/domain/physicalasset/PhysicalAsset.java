@@ -157,7 +157,7 @@ public class PhysicalAsset extends AggregateRoot {
             throw new AssetTerminalStateException("Cannot transfer custody of terminal asset");
         }
         if (this.custodianRef.equals(newCustodianRef)) {
-            throw new RedundantCustodyTransferException("New custodian is same as current custodian");
+            return;
         }
 
         raiseEvent(PhysicalAssetEventType.ASSET_CUSTODY_TRANSFERRED, new AssetCustodyTransferredPayload(
@@ -216,7 +216,7 @@ public class PhysicalAsset extends AggregateRoot {
         if (lifecycleStatus == AssetLifecycleStatus.DELIVERED) {
             if (this.custodianRef.equals(finalCustodianRef) && this.currentLocation.equals(locationRef)
                     && this.finalEvidenceRef.equals(evidenceRef) && this.finalDeliveredAt.equals(deliveredAt)) {
-                throw new RedundantDeliveryException("Asset is already delivered with these exact parameters");
+                return;
             } else {
                 throw new InvalidAssetTransitionException("Asset already delivered with different parameters");
             }
