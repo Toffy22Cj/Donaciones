@@ -236,6 +236,17 @@ SPLIT_PHYSICAL_ASSET                   → {EMPLOYEE}  ✅ decidido
      donationRef sin cambios — no introduce autoridad financiera, organizacional
      ni administrativa nueva; es la misma responsabilidad operativa que P7.4/P7.5,
      evaluada independientemente, no copiada por continuidad)
+
+Extensiones confirmadas (A2):
+REQUEST_ALLOCATION                     → {ADMINISTRATOR} ✅ decidido (A2, con aprobación humana explícita ya registrada)
+    (Protege el invariante availableBalance >= allocationAmount; mismo tipo de invariante
+     financiero que REGISTER_FUND/CLEAR_FUNDS_AS_GENESIS/CLEAR_FUNDS_FOR_PLEDGE).
+CONFIRM_ALLOCATION                     → {ADMINISTRATOR} ✅ decidido (A2, con aprobación humana explícita ya registrada)
+    (Consolida el compromiso financiero abierto por REQUEST_ALLOCATION; mismo nivel de exposición).
+DELIVER_ASSET                          → {EMPLOYEE} ✅ decidido (A2, con aprobación humana explícita ya registrada)
+    (Transición terminal de custodia física, sin impacto financiero; mismo tipo que REGISTER_PHYSICAL_ASSET).
+
+Nota: REVERSE_ALLOCATION_ADMINISTRATIVELY es una octava entrada preexistente a A2 (no forma parte del "seis de seis" original ni de esta extensión de 3). Se deja constancia explícita de que esta extensión se evaluó con rigor individual, no por generalización, citando textualmente la advertencia existente en el documento: "todo comando debe evaluarse con el mismo rigor individual, no asumiendo la agrupación observada aquí".
 ```
 
 **Matriz P7 completa — decidida para todos los comandos.** Lectura global: dos fronteras semánticas, no decisiones aisladas — comandos de `Fund` (financieros) → `{ADMINISTRATOR}`; comandos de `PhysicalAsset` (operativos/logísticos) → `{EMPLOYEE}`. Ningún comando autoriza a `REPRESENTATIVE` en el estado actual — ausencia deliberada en las celdas, registrada explícitamente, no un olvido. Esta agrupación es un **resultado observado del análisis celda por celda**, no una regla general que se haya declarado y aplicado — no existe en ningún documento del proyecto una política que diga "EMPLOYEE gestiona todo PhysicalAsset" o "ADMINISTRATOR gestiona todo Fund"; todo comando debe evaluarse con el mismo rigor individual, no asumiendo la agrupación observada aquí.
@@ -433,3 +444,21 @@ Las clasificaciones B de `confirmAllocation` y `reverseAllocation` se mantienen 
 
 **Conclusión y Contextualización:**
 La declaración de que "la Fase 5 queda formalmente cerrada" corresponde al hito histórico y documental previo (Tarea 5.11 en `87af002`), el cual delimitó las deudas diferidas conocidas. El trabajo actual sobre la rama `fix/fase5-cierre-bloque-a` no afirma que dicho ciclo esté terminado, sino que constituye precisamente el proceso activo de remediación técnica de las observaciones detectadas con posterioridad, garantizando la consistencia demostrable entre documentación, pruebas y código de producción.
+
+### 12.4. Hallazgo de Regresión A2 (ADR-036) — ✅ Cerrado
+**Descripción:** La implementación original de A2 introdujo incorrectamente una llamada a `authorize(...)` dentro de `FundCommandService.reverseAllocation(...)`. Esto violaba directamente el ADR-036, el cual congela explícitamente ese método ordenando que "permanece inalterado".
+**Riesgo asociado:** El único invocador en producción de este método es la compensación de la saga (`AssetRegisteredSagaPolicy`) operando como `SystemActor`. Ya que las políticas de roles/organizaciones no aplican a `SystemActor` (como se detalla en §9.6), esta guarda espuria amenazaba con romper la compensación automatizada en producción.
+**Corrección:** Se revirtió literalmente la guarda en `reverseAllocation(...)` devolviéndolo a su estado original (sin autorización). Se añadió el test de regresión `reverseAllocation_systemActor_noAuthorizationException` invocando exitosamente como `SystemActor`.
+**Resultado:** `mvn test -pl core` en verde (206/206 tests superados en ese momento).
+
+### 12.5. Productor de Outbox para ASSET_REGISTRATION_SAGA (A3) — ✅ Cerrado (con dependencias)
+**Descripción:** Se sustituyó la inyección manual de `OutboxMessage` en tests E2E por un productor real dentro de `PhysicalAssetCommandService.registerPhysicalAsset(...)`.
+**Cumplimiento del Contrato:** El productor genera el mensaje respetando al 100% los 4 campos esperados por `AssetRegisteredSagaPolicy`:
+1. `correlationId` = `fundId`
+2. El `payload` contiene exactamente `{"allocationId":"...", "fundId":"..."}`
+3. `sourceAggregateId` = `assetId` (el activo registrado, no el fondo)
+4. El `messageId` se genera de forma independiente y no reutiliza el `commandId`.
+**Manejo de Excepciones:** Se corrigió el uso genérico de `IllegalArgumentException` por una excepción de dominio nombrada `InvalidFundReferenceException` (regla 2.6).
+**Deuda técnica preexistente confirmada:** Queda documentado que `registerPhysicalAsset(...)` actualmente **solo valida formato/no-vacío del `fundId`**, sin verificar su existencia real. Este hueco de cobertura preexistía a A3 y no se resolvió en esta tarea.
+**Pendiente:** ⚠️ La corrección del test E2E `testD1_caminoA`, el cual contiene un literal `fundId` huérfano introducido de forma inadvertida por un reemplazo masivo (`sed`), **no se ejecutó en esta sesión y queda explícitamente pendiente** (referencia: `task_A3_fix_testD1_fundId_huerfano.txt`).
+**Resultado:** `mvn test -pl core` ejecutado y en verde (207/207 tests en total, BUILD SUCCESS).
