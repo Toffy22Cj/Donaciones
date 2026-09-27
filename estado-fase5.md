@@ -462,3 +462,7 @@ La declaración de que "la Fase 5 queda formalmente cerrada" corresponde al hito
 **Deuda técnica preexistente confirmada:** Queda documentado que `registerPhysicalAsset(...)` actualmente **solo valida formato/no-vacío del `fundId`**, sin verificar su existencia real. Este hueco de cobertura preexistía a A3 y no se resolvió en esta tarea.
 **Pendiente:** ⚠️ La corrección del test E2E `testD1_caminoA`, el cual contiene un literal `fundId` huérfano introducido de forma inadvertida por un reemplazo masivo (`sed`), **no se ejecutó en esta sesión y queda explícitamente pendiente** (referencia: `task_A3_fix_testD1_fundId_huerfano.txt`).
 **Resultado:** `mvn test -pl core` ejecutado y en verde (207/207 tests en total, BUILD SUCCESS).
+
+### 12.6. Integración End-to-End HumanActor con Identity (A6) — ✅ Cerrado
+**Descripción:** Se integró formalmente la verificación end-to-end (E2E) con `HumanActor` apuntando al módulo de Identity, consolidando la autorización real de comandos.
+**Resultado:** Cherry-pick exitoso (aprobado explícitamente por Carlos) y `mvn test` verificado en verde para el reactor completo (los 7 módulos).
