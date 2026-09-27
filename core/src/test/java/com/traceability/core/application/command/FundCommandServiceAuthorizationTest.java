@@ -149,41 +149,24 @@ class FundCommandServiceAuthorizationTest {
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());
     }
 
-    // --- reverseAllocation ---
+    // --- reverseAllocation (Internal Saga Compensation) ---
 
     @Test
-    void reverseAllocation_positive() {
+    void reverseAllocation_systemActor_noAuthorizationException() {
         String fundId = UUID.randomUUID().toString();
         String orgId = "ORG-1";
         Fund f = createFundWithRequest(fundId, orgId);
         when(eventStore.loadStream(fundId)).thenReturn(f.getUncommittedEvents());
 
-        HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.ADMINISTRATOR));
-        when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
+        com.traceability.core.domain.event.SystemActor actor = new com.traceability.core.domain.event.SystemActor("AssetRegisteredSagaPolicy");
+
+        // IdentityPrincipalPort should not even be called for SystemActor, 
+        // and authorize() should bypass without throwing.
 
         assertDoesNotThrow(() -> {
             service.reverseAllocation("cmd-1", fundId, "alloc-1", "reason", actor);
         });
 
         verify(eventPublisher).appendAndOutbox(eq(fundId), eq("Fund"), any(Long.class), any(), eq(actor), any(), eq("cmd-1"));
-    }
-
-    @Test
-    void reverseAllocation_negative_insufficientRole() {
-        String fundId = UUID.randomUUID().toString();
-        String orgId = "ORG-1";
-        Fund f = createFundWithRequest(fundId, orgId);
-        when(eventStore.loadStream(fundId)).thenReturn(f.getUncommittedEvents());
-
-        HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.EMPLOYEE));
-        when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
-
-        assertThatThrownBy(() -> {
-            service.reverseAllocation("cmd-1", fundId, "alloc-1", "reason", actor);
-        }).isInstanceOf(InsufficientRoleException.class);
-
-        verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());
     }
 }

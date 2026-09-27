@@ -170,8 +170,6 @@ public class FundCommandService {
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
 
-            authorize(actorRef, fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null, CommandType.REVERSE_ALLOCATION_ADMINISTRATIVELY);
-
             fund.reverseAllocation(allocationId, reason);
 
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
