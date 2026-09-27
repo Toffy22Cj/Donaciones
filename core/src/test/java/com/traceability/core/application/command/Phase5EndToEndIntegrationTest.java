@@ -170,7 +170,7 @@ class Phase5EndToEndIntegrationTest {
         fundCommandService.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 500L, ACTOR);
         
         String commandId = UUID.randomUUID().toString();
-        physicalAssetCommandService.registerPhysicalAsset(
+        physicalAssetCommandService.registerPhysicalAsset(fundId, 
             commandId,
             orgRef.value(),
             "TYPE-1",
@@ -213,29 +213,20 @@ class Phase5EndToEndIntegrationTest {
         String allocationId = "ALLOC-2";
         fundCommandService.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 500L, ACTOR);
 
-        // Inject OutboxMessage simulating that it was generated properly
-        com.traceability.core.application.saga.OutboxMessage outboxMsg = new com.traceability.core.application.saga.OutboxMessage(
+        // Act: Call registerPhysicalAsset organically which should generate the OutboxMessage
+        physicalAssetCommandService.registerPhysicalAsset(
                 UUID.randomUUID().toString(),
-                "ASSET_REGISTRATION_SAGA",
-                "ASSET-" + UUID.randomUUID(),
                 fundId,
-                "{\"allocationId\":\"" + allocationId + "\"}",
-                com.traceability.core.application.saga.OutboxStatus.PENDING,
-                0,
-                java.time.Instant.now(),
-                java.time.Instant.now()
+                "ORG-1",
+                "VACCINE",
+                BigDecimal.valueOf(100),
+                "DOSES",
+                "CUST-1",
+                "LOC-1",
+                allocationId,
+                null,
+                ACTOR
         );
-        mongoTemplate.save(new com.traceability.core.infrastructure.persistence.mongo.OutboxMessageDocument(
-                outboxMsg.messageId(),
-                outboxMsg.sagaType(),
-                outboxMsg.sourceAggregateId(),
-                outboxMsg.correlationId(),
-                outboxMsg.payload(),
-                outboxMsg.status().name(),
-                outboxMsg.retryCount(),
-                outboxMsg.createdAt(),
-                outboxMsg.nextRetryAt()
-        ));
 
         // Process outbox to trigger Saga
         outboxSagaCoordinator.processPendingMessages();
@@ -251,7 +242,7 @@ class Phase5EndToEndIntegrationTest {
         String orgRefValue = "ORG-1";
         
         String commandId = UUID.randomUUID().toString();
-        physicalAssetCommandService.registerPhysicalAsset(
+        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
             commandId,
             orgRefValue,
             "TYPE-1",

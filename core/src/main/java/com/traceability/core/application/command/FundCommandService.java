@@ -128,6 +128,8 @@ public class FundCommandService {
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
 
+            authorize(actorRef, fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null, CommandType.REQUEST_ALLOCATION);
+
             fund.requestAllocation(allocationId, amount);
 
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
@@ -143,6 +145,8 @@ public class FundCommandService {
             List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
             Fund fund = Fund.rehydrate(fundId, payloads, events.size());
             long expectedVersion = fund.getVersion();
+
+            authorize(actorRef, fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null, CommandType.CONFIRM_ALLOCATION);
 
             fund.confirmAllocation(allocationId);
 

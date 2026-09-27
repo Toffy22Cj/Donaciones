@@ -1,10 +1,10 @@
 # Estado — Fase 5: CERRADA
 
 **Proyecto:** Motor de Trazabilidad Verificable de Donaciones (`com.traceability`)
-**Fase actual:** Fase 5 — **CERRADA** (Trabajo posterior: Fase 6 EN CURSO)
+**Fase actual:** Fase 5 — Cierre histórico previo / Remediación técnica Bloque A en curso (Trabajo posterior: Fase 6)
 - **Bloque de dominio** (`Organization↔Fund`, `Organization↔PhysicalAsset`, donación en especie, `actorRef`) — **DISEÑO Y IMPLEMENTACIÓN CERRADOS**
 - **Bloque C/D** (autorización, puerto Identity↔Core) — **DISEÑO E IMPLEMENTACIÓN CERRADOS (ADR-032, ADR-035).**
-Este documento registra el cierre formal de la Fase 5 verificado con evidencia.
+Este documento registra el cierre histórico de la Fase 5, su posterior auditoría y el proceso activo de remediación técnica de Bloque A.
 **Fases previas:** 1, 2, 3 y 4 formalmente cerradas (ver `documento-maestro-proyecto.md`, `estado-fase4.md`).
 **Alcance del bloque de dominio, fijado desde el primer intercambio de esta fase:** dominio de negocio únicamente. Autorización, autenticación y escritura HTTP quedaron explícitamente pospuestas a un bloque separado (Bloque C/D) desde antes de abrir la primera pregunta de arquitectura — esa frontera se mantuvo sin excepción durante todo el bloque de dominio, y Bloque C/D, ya abierto, respeta la misma disciplina de no inventar política de negocio sin evidencia documental (ver §9).
 
@@ -25,7 +25,7 @@ Este documento registra el cierre formal de la Fase 5 verificado con evidencia.
 | ADR-035 | HumanActor como variante de ActorRef y puente de autorización humana | **Approved** |
 | ADR-036 | Reversión Administrativa de Asignación (NUEVA-4B) | **Approved** |
 
-Catálogo del proyecto actual llega hasta **ADR-036** (más la enmienda a ADR-016). ADR-033, ADR-034, ADR-035 y ADR-036 ya forman parte del historial integrado en `develop`. *Nota documental post-auditoría*: Los archivos físicos de los ADR-028 a ADR-032 no fueron incorporados en `Documentos/` durante la Fase 5. No obstante, las decisiones principales y justificaciones se encuentran sustancialmente referenciadas en `plan-ejecucion-agentes-fase5.md` y `estado-fase5.md`, permitiendo su reconstrucción documental a partir de fuentes internas históricas como deuda de documentación futura.
+Catálogo del proyecto actual llega hasta **ADR-036** (más la enmienda a ADR-016). ADR-033, ADR-034, ADR-035 y ADR-036 ya forman parte del historial integrado en `develop`. *Nota documental post-auditoría*: Los archivos físicos de los ADR-028 a ADR-032 han sido incorporados en `Documentos/` mediante reconstrucción histórica rigurosa basada en el código Java existente, pruebas unitarias y de arquitectura, e historial Git, resolviendo la deuda documental histórica sin alterar contratos ni numeración.
 
 ---
 
@@ -236,6 +236,17 @@ SPLIT_PHYSICAL_ASSET                   → {EMPLOYEE}  ✅ decidido
      donationRef sin cambios — no introduce autoridad financiera, organizacional
      ni administrativa nueva; es la misma responsabilidad operativa que P7.4/P7.5,
      evaluada independientemente, no copiada por continuidad)
+
+Extensiones confirmadas (A2):
+REQUEST_ALLOCATION                     → {ADMINISTRATOR} ✅ decidido (A2, con aprobación humana explícita ya registrada)
+    (Protege el invariante availableBalance >= allocationAmount; mismo tipo de invariante
+     financiero que REGISTER_FUND/CLEAR_FUNDS_AS_GENESIS/CLEAR_FUNDS_FOR_PLEDGE).
+CONFIRM_ALLOCATION                     → {ADMINISTRATOR} ✅ decidido (A2, con aprobación humana explícita ya registrada)
+    (Consolida el compromiso financiero abierto por REQUEST_ALLOCATION; mismo nivel de exposición).
+DELIVER_ASSET                          → {EMPLOYEE} ✅ decidido (A2, con aprobación humana explícita ya registrada)
+    (Transición terminal de custodia física, sin impacto financiero; mismo tipo que REGISTER_PHYSICAL_ASSET).
+
+Nota: REVERSE_ALLOCATION_ADMINISTRATIVELY es una octava entrada preexistente a A2 (no forma parte del "seis de seis" original ni de esta extensión de 3). Se deja constancia explícita de que esta extensión se evaluó con rigor individual, no por generalización, citando textualmente la advertencia existente en el documento: "todo comando debe evaluarse con el mismo rigor individual, no asumiendo la agrupación observada aquí".
 ```
 
 **Matriz P7 completa — decidida para todos los comandos.** Lectura global: dos fronteras semánticas, no decisiones aisladas — comandos de `Fund` (financieros) → `{ADMINISTRATOR}`; comandos de `PhysicalAsset` (operativos/logísticos) → `{EMPLOYEE}`. Ningún comando autoriza a `REPRESENTATIVE` en el estado actual — ausencia deliberada en las celdas, registrada explícitamente, no un olvido. Esta agrupación es un **resultado observado del análisis celda por celda**, no una regla general que se haya declarado y aplicado — no existe en ningún documento del proyecto una política que diga "EMPLOYEE gestiona todo PhysicalAsset" o "ADMINISTRATOR gestiona todo Fund"; todo comando debe evaluarse con el mismo rigor individual, no asumiendo la agrupación observada aquí.
@@ -377,23 +388,81 @@ El comando `requestAllocation` actualmente no implementa `authorize()`. Dado que
 
 ---
 
-## 12. Cierre de Fase 5
+## 12. Cierre Histórico, Auditoría y Remediación Técnica
 
-Con la ejecución de la Tarea 5.11, la Fase 5 queda formal y técnicamente **CERRADA**.
-
-**Estado final real:**
-- **Commit de cierre técnico:** `a6c9ebd` (`HEAD == origin/develop`). El histórico de cierre documental 5.11 está en `87af002`.
-- **Resultado final de tests (Evidencia Histórica y Reproducible):** `BUILD SUCCESS`. Se obtuvo evidencia reproducible sobre el hito exacto de Fase 5 (`87af002`) mediante `mvn clean test`, validando exitosamente el reactor completo y el módulo `core` aislado (191 tests, 0 failures/errors). Este estado verde es inherente al cierre de Fase 5 y se distingue explícitamente de las fallas introducidas posteriormente en el entorno `develop` por el trabajo en curso de Fase 6.
-- **Estado de Git:** Working tree limpio (`git diff --check` limpio).
-- **Tareas IMPLEMENTADAS Y CERRADAS:** Todas las definidas para Fase 5 (Bloque de Dominio 5.0 a 5.5, Autorización 5.6 a 5.9, Integración E2E 5.10 validando el alcance efectivamente aprobado, y NUEVA-1 a NUEVA-5 / 4B). La tarea 5.11 consolida el estado como Cierre Documental y Formal.
-- **Deudas técnicas explícitamente DIFERIDAS A TRABAJO POSTERIOR:**
+### 12.1. Cierre Histórico Previo de Fase 5
+Históricamente, con la ejecución de la Tarea 5.11 (hito `87af002`), la Fase 5 fue registrada formalmente como cerrada en su alcance original:
+- **Cierre histórico anterior:** Registrado técnicamente en `a6c9ebd`, y formalizado a nivel documental en `87af002`.
+- **Resultado de tests del hito histórico:** `BUILD SUCCESS`. Se obtuvo evidencia reproducible sobre el hito exacto `87af002` mediante `mvn clean test`, validando el reactor y el módulo `core` aislado (191 tests, 0 failures/errors). Este estado verde reflejó el cierre original previo al trabajo de Fase 6 en `develop`.
+- **Tareas del alcance histórico original:** Tareas 5.0 a 5.5 (Bloque de Dominio), 5.6 a 5.9 (Autorización), 5.10 (Integración E2E sobre el alcance aprobado) y NUEVA-1 a NUEVA-5 / 4B.
+- **Deudas técnicas explícitamente diferidas en el cierre histórico:**
   - *Productor real de Outbox:* Su ausencia impide un flujo E2E sin intervención manual en operaciones de negocio.
   - *Stream del Hijo en Split:* Orquestación de persistencia del agregado hijo pendiente (fuera del DoD original de 5.5).
   - *`requestAllocation` sin `authorize()`:* Diferido para revisión futura por no tener entrypoint externo.
-  - *`FundCommandService.reverseAllocation()`:* Observación/deuda técnica. Es un entrypoint interno de compensación. No ejecuta `authorize()`. ADR-036 — Reversión Administrativa de Asignación lo trata como flujo basado en SystemActor, pero el código actual no impone ese tipo en runtime y no existe entrypoint HTTP/humano actual; queda diferido para revisión posterior.
-  - *Derivación de organizationRef para ExternalActor:* No hay mecanismo para webhook de pago para derivarlo aún.
-  - *ADR-028 a ADR-032:* Su reconstrucción física a partir de fuentes internas históricas se aplaza como deuda documental.
-- **ADRs relevantes:** ADR-034, ADR-035, ADR-036 — Reversión Administrativa de Asignación (**Approved**); ADR-033 (**Aprobado parcialmente**). *Nota complementaria ADR-034 / ADR-036 — Reversión Administrativa de Asignación*: ADR-036 — Reversión Administrativa de Asignación desarrolla e implementa orgánicamente la decisión reservada en la Parte B de ADR-034, sin contradicción funcional. *Deuda Documental ADR-028 a ADR-032*: Sus archivos originales no están presentes en `Documentos/` y no se declaran como archivos ADR formales aprobados en el repositorio, pero sus decisiones se consideran reconstruibles documentalmente a partir de fuentes internas. *Aviso de Colisión Documental*: Existe una colisión de numeración para ADR-033 a ADR-036 introducida posteriormente por el trabajo de Fase 6; los números referenciados aquí corresponden exclusivamente a las decisiones documentadas en Fase 5.
+  - *`FundCommandService.reverseAllocation()`:* Entrypoint interno de compensación sin `authorize()`. ADR-036 lo contempla como SystemActor, pero el código no restringe el tipo en runtime y no existe entrypoint HTTP/humano actual.
+  - *Derivación de organizationRef para ExternalActor:* Sin mecanismo de webhook para derivarlo.
+- **ADRs relevantes de Fase 5:** ADR-034, ADR-035, ADR-036 — Reversión Administrativa de Asignación (**Approved**); ADR-033 (**Aprobado parcialmente**). *Aviso de Colisión Documental*: Existe colisión de numeración para ADR-033 a ADR-036 introducida posteriormente por trabajo de Fase 6; los números referenciados aquí corresponden exclusivamente a decisiones de Fase 5.
 
-**Conclusión:**
-La Fase 5 queda formalmente **CERRADA**. El sistema base fue auditado sobre el alcance ajustado en 5.10. Capacidades no resueltas (productor de Outbox, stream independiente de activo hijo, autenticación HTTP) se distinguen estrictamente como DEUDAS TÉCNICAS DIFERIDAS para el trabajo futuro, abandonando toda afirmación absoluta de que las capacidades E2E operan de extremo a extremo sin vacíos ni omisiones conocidas.
+### 12.2. Auditoría Posterior de Fase 5
+Tras el cierre histórico, una auditoría técnica forense realizada sobre el repositorio identificó deudas técnicas, inconsistencias documentales y omisiones de manejo de excepciones en el Bloque A (A1 a A7.2), concluyendo que se requería un proceso formal de remediación antes de consolidar definitivamente el ciclo de Fase 5.
+
+### 12.2.1. Bloque A2: Auditoría de autorización de comandos
+
+Se auditó exclusivamente la superficie de los siguientes métodos:
+
+- `FundCommandService.requestAllocation`
+- `PhysicalAssetCommandService.deliverAsset`
+- `FundCommandService.confirmAllocation`
+- `FundCommandService.reverseAllocation`
+
+#### Resultado
+
+| Método | Estado actual | Clasificación |
+|---|---|---|
+| `requestAllocation` | No está expuesto externamente. No tiene caller productivo HTTP, adapter, puerto de entrada ni DTO externo. No existe `CommandType` asociado ni autorización humana. | C |
+| `deliverAsset` | No está expuesto externamente. No existe endpoint HTTP, adapter runtime, puerto de entrada ni `CommandType` `DELIVER_PHYSICAL_ASSET`. | C |
+| `confirmAllocation` | Operación interna invocada por `AssetRegisteredSagaPolicy` mediante `SystemActor`. | B |
+| `reverseAllocation` | Operación interna invocada por `AssetRegisteredSagaPolicy` mediante `SystemActor`. La operación administrativa humana separada es `reverseAllocationAdministratively`. | B |
+
+#### Decisiones pendientes
+
+`requestAllocation` queda pendiente de decisión arquitectónica antes de cualquier exposición externa o humana. Actualmente funciona como operación interna de aplicación, sin `CommandType` ni autorización humana.
+
+`deliverAsset` queda pendiente de reconciliar con el contrato documental antes de cualquier exposición. La `api-contract-matrix` describe un endpoint futuro para esta operación, pero dicho endpoint no existe actualmente en runtime. Tampoco existe hoy un `CommandType` asociado ni una autorización conectada al método.
+
+Las clasificaciones B de `confirmAllocation` y `reverseAllocation` se mantienen porque ambos métodos son consumidos actualmente por `AssetRegisteredSagaPolicy` como operaciones internas de compensación/confirmación. La operación administrativa humana de reversión utiliza `reverseAllocationAdministratively`, no `reverseAllocation`.
+
+### 12.3. Estado Actual de la Rama y Proceso de Remediación Técnica (Bloque A)
+- **Rama activa de trabajo:** `fix/fase5-cierre-bloque-a`.
+- **Estado base real:** Commit `793d4b8` (`develop == origin/develop`), punto de partida oficial y única fuente de verdad para esta remediación.
+- **Evidencia histórica del estado base:** En el commit base `793d4b8`, el working tree original se encontraba completamente limpio (`git diff --check` limpio).
+- **Estado de trabajo actual:** La rama contiene modificaciones locales activas sin commit correspondientes a la primera etapa de remediación:
+  - *A1 — Contexto de Test Acotado (MongoUnanchoredEventAdapterTest):* Verificado en `793d4b8` y documentado como CERRADO en el plan de corrección (3/3 tests ejecutados de forma autónoma con éxito).
+  - *A4 — Reconstrucción de ADR-028 a ADR-032:* Archivos físicos `ADR-028-relacion-organization-fund.md` a `ADR-032-autorizacion-comandos-core-matriz.md` reincorporados en `Documentos/`, respaldados por evidencia directa en código, tests e historial Git.
+  - *A5 — Manejo de Excepciones en Proyecciones:* Eliminado el silencio de error en `DonationProjectionHandler.java` con diferenciación entre `IllegalArgumentException` (`QUARANTINED`), `DataAccessException` (`PENDING`) y `Exception` (`QUARANTINED`), respaldado por `DonationProjectionHandlerExceptionHandlingTest.java` (4/4 tests unitarios pasando; reactor `core` con 198 tests exitosos).
+- **Tareas pendientes de Bloque A (A2, A3, A6, A7.1, A7.2):** Se mantienen delimitadas sin cambios en esta etapa, a la espera de las decisiones técnicas y de contrato previstas en el plan.
+
+**Conclusión y Contextualización:**
+La declaración de que "la Fase 5 queda formalmente cerrada" corresponde al hito histórico y documental previo (Tarea 5.11 en `87af002`), el cual delimitó las deudas diferidas conocidas. El trabajo actual sobre la rama `fix/fase5-cierre-bloque-a` no afirma que dicho ciclo esté terminado, sino que constituye precisamente el proceso activo de remediación técnica de las observaciones detectadas con posterioridad, garantizando la consistencia demostrable entre documentación, pruebas y código de producción.
+
+### 12.4. Hallazgo de Regresión A2 (ADR-036) — ✅ Cerrado
+**Descripción:** La implementación original de A2 introdujo incorrectamente una llamada a `authorize(...)` dentro de `FundCommandService.reverseAllocation(...)`. Esto violaba directamente el ADR-036, el cual congela explícitamente ese método ordenando que "permanece inalterado".
+**Riesgo asociado:** El único invocador en producción de este método es la compensación de la saga (`AssetRegisteredSagaPolicy`) operando como `SystemActor`. Ya que las políticas de roles/organizaciones no aplican a `SystemActor` (como se detalla en §9.6), esta guarda espuria amenazaba con romper la compensación automatizada en producción.
+**Corrección:** Se revirtió literalmente la guarda en `reverseAllocation(...)` devolviéndolo a su estado original (sin autorización). Se añadió el test de regresión `reverseAllocation_systemActor_noAuthorizationException` invocando exitosamente como `SystemActor`.
+**Resultado:** `mvn test -pl core` en verde (206/206 tests superados en ese momento).
+
+### 12.5. Productor de Outbox para ASSET_REGISTRATION_SAGA (A3) — ✅ Cerrado (con dependencias)
+**Descripción:** Se sustituyó la inyección manual de `OutboxMessage` en tests E2E por un productor real dentro de `PhysicalAssetCommandService.registerPhysicalAsset(...)`.
+**Cumplimiento del Contrato:** El productor genera el mensaje respetando al 100% los 4 campos esperados por `AssetRegisteredSagaPolicy`:
+1. `correlationId` = `fundId`
+2. El `payload` contiene exactamente `{"allocationId":"...", "fundId":"..."}`
+3. `sourceAggregateId` = `assetId` (el activo registrado, no el fondo)
+4. El `messageId` se genera de forma independiente y no reutiliza el `commandId`.
+**Manejo de Excepciones:** Se corrigió el uso genérico de `IllegalArgumentException` por una excepción de dominio nombrada `InvalidFundReferenceException` (regla 2.6).
+**Deuda técnica preexistente confirmada:** Queda documentado que `registerPhysicalAsset(...)` actualmente **solo valida formato/no-vacío del `fundId`**, sin verificar su existencia real. Este hueco de cobertura preexistía a A3 y no se resolvió en esta tarea.
+**Pendiente:** ⚠️ La corrección del test E2E `testD1_caminoA`, el cual contiene un literal `fundId` huérfano introducido de forma inadvertida por un reemplazo masivo (`sed`), **no se ejecutó en esta sesión y queda explícitamente pendiente** (referencia: `task_A3_fix_testD1_fundId_huerfano.txt`).
+**Resultado:** `mvn test -pl core` ejecutado y en verde (207/207 tests en total, BUILD SUCCESS).
+
+### 12.6. Integración End-to-End HumanActor con Identity (A6) — ✅ Cerrado
+**Descripción:** Se integró formalmente la verificación end-to-end (E2E) con `HumanActor` apuntando al módulo de Identity, consolidando la autorización real de comandos.
+**Resultado:** Cherry-pick exitoso (aprobado explícitamente por Carlos) y `mvn test` verificado en verde para el reactor completo (los 7 módulos).

@@ -49,7 +49,7 @@ class ExternalActorBypassTest {
         ExternalActor externalActor = new ExternalActor("Source-System-A", "event-id-123");
         
         assertDoesNotThrow(() -> {
-            service.registerPhysicalAsset(
+            service.registerPhysicalAsset("FUND-1", 
                     UUID.randomUUID().toString(),
                     "org-1",
                     "LAPTOP",

@@ -306,7 +306,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         mongoTemplate.updateFirst(q, u, AssetHistoryProjectionDocument.class);
     }
 
-    private void enqueueForRetry(TraceabilityEventDocument eventDoc) {
+    void enqueueForRetry(TraceabilityEventDocument eventDoc) {
         ProjectionRetryDocument retryDoc = ProjectionRetryDocument.builder()
             .id(eventDoc.getEventId() + "_" + getHandlerName())
             .handlerName(getHandlerName())
@@ -329,7 +329,18 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             try {
                 DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
                 projectionId = resolveProjectionId(eventDoc.getStreamId(), payload);
-            } catch (Exception ignored) {}
+            } catch (IllegalArgumentException e) {
+                log.error("Failed to deserialize event payload for streamId={}, eventId={}, eventType={}, schemaVersion={}: {}",
+                        eventDoc.getStreamId(), eventDoc.getEventId(), eventDoc.getEventType(), eventDoc.getSchemaVersion(), e.getMessage(), e);
+                retryDoc.setStatus("QUARANTINED");
+            } catch (org.springframework.dao.DataAccessException e) {
+                log.warn("Database access error while resolving projectionId for streamId={}, eventId={}: {}",
+                        eventDoc.getStreamId(), eventDoc.getEventId(), e.getMessage());
+            } catch (Exception e) {
+                log.error("Unexpected error resolving projectionId during retry enqueue for streamId={}, eventId={}: {}",
+                        eventDoc.getStreamId(), eventDoc.getEventId(), e.getMessage(), e);
+                retryDoc.setStatus("QUARANTINED");
+            }
         }
         
         retryDoc.setProjectionId(projectionId);

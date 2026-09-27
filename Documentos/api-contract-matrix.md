@@ -54,7 +54,7 @@
 | `POST /physical-assets/{assetRef}/split` | ídem | `SPLIT_PHYSICAL_ASSET` | assets resultantes | CONTRATO DEFINIDO / integración P7 pendiente |
 | `POST /physical-assets/{assetRef}/dispatch` | ídem | `DISPATCH_PHYSICAL_ASSET` (extensión de `CommandType`, ver §5.2) | `{assetRef, status}` | CONTRATO CONCEPTUAL — método ni siquiera expuesto en `PhysicalAssetCommandService` hoy |
 | `POST /physical-assets/{assetRef}/receive` | ídem | `RECEIVE_PHYSICAL_ASSET` (extensión) | ídem | CONTRATO CONCEPTUAL — mismo estado que dispatch |
-| `POST /physical-assets/{assetRef}/deliver` | ídem | `DELIVER_PHYSICAL_ASSET` (extensión) — método `deliverAsset` ya existe, sin autorización | ídem | CONTRATO DEFINIDO / integración P7 pendiente |
+| `POST /physical-assets/{assetRef}/deliver` | Pendiente de decisión | `DELIVER_PHYSICAL_ASSET` aún no existe en `CommandType`; `deliverAsset` existe como método interno, pero no hay endpoint ni adapter HTTP implementado | Pendiente | CONTRATO FUTURO NO IMPLEMENTADO — requiere reconciliar exposición y autorización antes de publicarse |
 
 ## 5. Tracking y narrativas
 
