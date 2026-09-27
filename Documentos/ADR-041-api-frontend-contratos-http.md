@@ -1,7 +1,7 @@
-# ADR-037 (número tentativo — confirmar contra el catálogo real antes de commitear) — APIs de producto y Frontend
+# ADR-041 (número tentativo — confirmar contra el catálogo real antes de commitear) — APIs de producto y Frontend
 
-**Estado:** Aprobado — arquitectura de la capa cerrada. No bloquea trabajo paralelo, pero varios endpoints concretos no son asignables hasta que sus contratos de dominio heredados (ADR-033/034/036) se resuelvan.
-**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-033/034/035/036.
+**Estado:** Aprobado — arquitectura de la capa cerrada. No bloquea trabajo paralelo, pero varios endpoints concretos no son asignables hasta que sus contratos de dominio heredados (ADR-037/034/036) se resuelvan.
+**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-037/034/035/036.
 **Complementa:** `api-contract-matrix.md`, `golden-path.md`. No reabre ningún ADR de dominio — su función es traducir, mapear y transportar, nunca decidir.
 
 ---
@@ -29,13 +29,13 @@ Con las cuatro capas de dominio de Fase 6 revisadas (Convocatoria, Identidad, Bl
 
 | Endpoint | Estado en matriz | Hueco heredado |
 |---|---|---|
-| `POST /organizations/{id}/campaigns` | DISEÑO CERRADO | Firma de `CreateConvocatoria` no verificada (ADR-033 §7) |
+| `POST /organizations/{id}/campaigns` | DISEÑO CERRADO | Firma de `CreateConvocatoria` no verificada (ADR-037 §7) |
 | `POST /campaigns/{campaignRef}/employees` | DISEÑO CERRADO | Firma de `AssignEmployee` no verificada; D2 (autoasignación) sin resolver |
-| `POST /webhooks/payments` | CONTRATO CONCEPTUAL | **Idempotencia de `clearFundsGenesis` no verificada (ADR-033 §7) — mayor severidad de todo el mapeo** |
-| `POST /platform/organizations/{id}/verify` | DISEÑO CERRADO | `VERIFY` sobre `Organization` ya `VERIFIED` sin definir (ADR-034 §7, ítem 4) |
-| `POST /platform/administrators` / `DELETE .../{accountId}` | DISEÑO CERRADO | `GRANT`/`REVOKE` repetidos sin resolver; mecanismo de concurrencia de `PlatformAuthorityState` no verificado (ADR-034 §7) |
-| `POST /auth/login` | CONTRATO CERRADO | Fallo de `TokenIssuerPort.issue()` no documentado (ADR-034 §7) |
-| `GET /public/campaigns/{publicCode}/narrative` | CONTRATO DEFINIDO | **Contradicción `AuditFactsPort`/`CampaignAuditFactsPort` sin resolver (ADR-036, C1)** |
+| `POST /webhooks/payments` | CONTRATO CONCEPTUAL | **Idempotencia de `clearFundsGenesis` no verificada (ADR-037 §7) — mayor severidad de todo el mapeo** |
+| `POST /platform/organizations/{id}/verify` | DISEÑO CERRADO | `VERIFY` sobre `Organization` ya `VERIFIED` sin definir (ADR-038 §7, ítem 4) |
+| `POST /platform/administrators` / `DELETE .../{accountId}` | DISEÑO CERRADO | `GRANT`/`REVOKE` repetidos sin resolver; mecanismo de concurrencia de `PlatformAuthorityState` no verificado (ADR-038 §7) |
+| `POST /auth/login` | CONTRATO CERRADO | Fallo de `TokenIssuerPort.issue()` no documentado (ADR-038 §7) |
+| `GET /public/campaigns/{publicCode}/narrative` | CONTRATO DEFINIDO | **Contradicción `AuditFactsPort`/`CampaignAuditFactsPort` sin resolver (ADR-040, C1)** |
 | Los cinco endpoints de `PhysicalAsset` | CONTRATO DEFINIDO / bloqueado | `HumanAccount` + integración P7 (`golden-path.md` §5, no reabierto aquí) |
 
 Ningún endpoint de esta tabla requiere una decisión nueva de esta capa — todos heredan bloqueos ya identificados en ADRs anteriores.
@@ -99,10 +99,10 @@ Pruebas críticas de seguridad: exclusión de campos del `ReadModel` verificada 
 
 ### 7-B. Huecos heredados que esta capa solo hace visibles (no resuelve)
 
-Idempotencia de `clearFundsGenesis` (ADR-033) · `VERIFY` sobre `VERIFIED` y `GRANT`/`REVOKE` repetidos (ADR-034) · fallo de `TokenIssuerPort.issue()` (ADR-034) · contradicción `AuditFactsPort`/`CampaignAuditFactsPort` (ADR-036) · `HumanAccount`+P7 para `PhysicalAsset` (`golden-path.md`, no de esta sesión).
+Idempotencia de `clearFundsGenesis` (ADR-037) · `VERIFY` sobre `VERIFIED` y `GRANT`/`REVOKE` repetidos (ADR-038) · fallo de `TokenIssuerPort.issue()` (ADR-038) · contradicción `AuditFactsPort`/`CampaignAuditFactsPort` (ADR-040) · `HumanAccount`+P7 para `PhysicalAsset` (`golden-path.md`, no de esta sesión).
 
 Ningún punto de §7 bloquea trabajo paralelo en esta capa (contratos ya cerrados pueden implementarse); los de 7-B bloquean específicamente los endpoints listados en §2.3 hasta que sus ADRs de origen se resuelvan.
 
 ## 8. Trazabilidad de verificación
 
-No se inspeccionó código nuevo en esta sesión para esta capa — el análisis se apoya en `api-contract-matrix.md`, `golden-path.md`, y las cuatro capas de dominio ya verificadas en ADR-033/034/035/036 dentro de esta misma sesión.
+No se inspeccionó código nuevo en esta sesión para esta capa — el análisis se apoya en `api-contract-matrix.md`, `golden-path.md`, y las cuatro capas de dominio ya verificadas en ADR-037/034/035/036 dentro de esta misma sesión.

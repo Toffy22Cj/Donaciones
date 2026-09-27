@@ -1,4 +1,4 @@
-# ADR-033 (número tentativo — confirmar contra el catálogo real antes de commitear) — Convocatoria, CampaignFundingLedger, CampaignAssignment, CampaignResponsibleState y DonationIntent
+# ADR-037 (número tentativo — confirmar contra el catálogo real antes de commitear) — Convocatoria, CampaignFundingLedger, CampaignAssignment, CampaignResponsibleState y DonationIntent
 
 **Estado:** Aprobado — diseño conceptual y arquitectónico, con registro de riesgos cerrado (§7). Pendiente de implementación, de una única decisión de producto (D2, autoasignación) y de las verificaciones técnicas listadas en §7.
 **Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura).

@@ -1,7 +1,7 @@
-# ADR-036 (número tentativo — confirmar contra el catálogo real antes de commitear) — ConvocatoriaAuditFacts
+# ADR-040 (número tentativo — confirmar contra el catálogo real antes de commitear) — ConvocatoriaAuditFacts
 
-**Estado:** Aprobado parcialmente — límites de responsabilidad, exclusiones semánticas y frontera modular cerrados. **Tres decisiones estructurales interdependientes siguen abiertas (§7-A, C1-C4)** y son más centrales que en ADR-033/034/035: no son detalles menores, son el núcleo de cómo se construye el componente.
-**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-033/034/035.
+**Estado:** Aprobado parcialmente — límites de responsabilidad, exclusiones semánticas y frontera modular cerrados. **Tres decisiones estructurales interdependientes siguen abiertas (§7-A, C1-C4)** y son más centrales que en ADR-037/034/035: no son detalles menores, son el núcleo de cómo se construye el componente.
+**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-037/034/035.
 **Complementa:** `ia-resumen.md`. No reabre el pipeline existente (`DonationAuditFacts`, `AuditFactsPort`, `NarrativeGenerator`, `SpringAiLlmAdapter`, `NarrativePromptSanitizer`, `GroundingValidatorImpl`, `FallbackNarrativeTemplateService`, `NarrativeCacheCoordinator`), implementado y probado desde Fase 2.
 
 ---
@@ -60,12 +60,12 @@ Sin colección propia mientras B esté abierta — crear una para un objeto pote
 
 ### 2.7 Estados y transiciones
 
-Sin máquina de estados propia — no hay evidencia equivalente a `COLLECTING` de `MerkleBatch` (ADR-035); introducir una sería fabricar complejidad para ocultar una decisión (B) no tomada, no para resolver un problema real documentado.
+Sin máquina de estados propia — no hay evidencia equivalente a `COLLECTING` de `MerkleBatch` (ADR-039); introducir una sería fabricar complejidad para ocultar una decisión (B) no tomada, no para resolver un problema real documentado.
 
 ## 3. Consecuencias
 
 - Positivas: preserva la separación de responsabilidad entre obtención de hechos deterministas y generación de narrativa, ya validada por `DonationAuditFacts`; identifica con precisión por qué esta capa no es simétrica a las anteriores (mezcla event-sourced + CRUD, algo que ninguna otra capa de Fase 6 combina de esta forma).
-- Negativas / deuda aceptada: tres decisiones estructurales sin resolver, más una contradicción de nomenclatura de puerto sin verificar — este ADR cierra menos superficie que ADR-033/034/035 en proporción a lo que queda por diseñar.
+- Negativas / deuda aceptada: tres decisiones estructurales sin resolver, más una contradicción de nomenclatura de puerto sin verificar — este ADR cierra menos superficie que ADR-037/034/035 en proporción a lo que queda por diseñar.
 
 ## 4. Alternativas descartadas
 
@@ -95,7 +95,7 @@ Pipeline LLM (sanitización/grounding/fallback/caché) reutilizado sin cambios. 
 | C4 | Decisión C: garantía de consistencia temporal entre las tres fuentes | Corrección de los hechos combinados, trazabilidad completa, pruebas de consistencia |
 | C5 | Nombre/firma del productor de `ConvocatoriaAuditFacts` — no existe en ninguna fuente | Materialización del componente |
 | C6 | Contrato de error si `campaignRef` no resuelve a ninguna `Convocatoria` | Manejo de errores del productor |
-| C7 | `Convocatoria` sin `CampaignFundingLedger` correspondiente — posible hueco no resuelto en ADR-033, no inventado aquí | Semántica de integridad del productor |
+| C7 | `Convocatoria` sin `CampaignFundingLedger` correspondiente — posible hueco no resuelto en ADR-037, no inventado aquí | Semántica de integridad del productor |
 | C8 | Comportamiento de la narrativa pública cuando `Convocatoria.status=CLOSED` | Contrato del endpoint HTTP, no de este componente |
 
 ### 7-B. Verificación técnica pendiente
