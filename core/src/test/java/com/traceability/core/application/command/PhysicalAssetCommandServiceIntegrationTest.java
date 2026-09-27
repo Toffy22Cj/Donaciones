@@ -91,7 +91,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
         String commandId = UUID.randomUUID().toString();
         SystemActor actor = new SystemActor("test-harness");
 
-        physicalAssetCommandService.registerPhysicalAsset(
+        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
                 commandId,
                 "ORG-123",
                 "FOOD",
@@ -126,12 +126,38 @@ class PhysicalAssetCommandServiceIntegrationTest {
     }
 
     @Test
+    void registerPhysicalAsset_invalidFundId_doesNotPersist() {
+        String commandId = UUID.randomUUID().toString();
+        SystemActor actor = new SystemActor("test-harness");
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () -> {
+            physicalAssetCommandService.registerPhysicalAsset(
+                    commandId,
+                    "", // invalid fundId
+                    "ORG-123",
+                    "FOOD",
+                    new BigDecimal("100.0000"),
+                    "KG",
+                    "CUSTODIAN-1",
+                    "WAREHOUSE-A",
+                    "ALLOC-001",
+                    null,
+                    actor);
+        });
+
+        // Verify no events were persisted
+        List<TraceabilityEventDocument> allEvents = mongoTemplate.findAll(TraceabilityEventDocument.class);
+        assertTrue(allEvents.isEmpty(), "No events should be persisted when fundId is invalid");
+    }
+
+    @Test
     void splitPhysicalAsset_reducesQuantityAndPersistsSplitEvent() {
         String registerCommandId = UUID.randomUUID().toString();
         SystemActor actor = new SystemActor("test-harness");
 
         // 1. Primero registramos un asset
-        physicalAssetCommandService.registerPhysicalAsset(
+        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
                 registerCommandId,
                 "ORG-123",
                 "FOOD",

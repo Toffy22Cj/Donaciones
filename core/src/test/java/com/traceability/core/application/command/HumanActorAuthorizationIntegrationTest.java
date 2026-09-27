@@ -199,7 +199,7 @@ class HumanActorAuthorizationIntegrationTest {
         String commandId = UUID.randomUUID().toString();
         HumanActor actor = new HumanActor(accountId);
 
-        physicalAssetCommandService.registerPhysicalAsset(
+        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
                 commandId,
                 "ORG-456",
                 "Tents",
