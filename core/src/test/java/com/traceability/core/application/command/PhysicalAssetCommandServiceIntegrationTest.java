@@ -131,7 +131,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
         SystemActor actor = new SystemActor("test-harness");
 
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(com.traceability.core.application.exception.InvalidFundReferenceException.class, () -> {
             physicalAssetCommandService.registerPhysicalAsset(
                     commandId,
                     "", // invalid fundId

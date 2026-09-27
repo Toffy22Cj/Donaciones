@@ -114,7 +114,7 @@ public class PhysicalAssetCommandService {
         }
 
         if (fundId == null || fundId.isBlank()) {
-            throw new IllegalArgumentException("fundId cannot be null or empty for Asset Registration (Path A)");
+            throw new com.traceability.core.application.exception.InvalidFundReferenceException("fundId cannot be null or empty for Asset Registration (Path A)");
         }
 
         retryTemplate.execute(() -> {

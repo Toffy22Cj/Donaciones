@@ -170,7 +170,7 @@ class Phase5EndToEndIntegrationTest {
         fundCommandService.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 500L, ACTOR);
         
         String commandId = UUID.randomUUID().toString();
-        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
+        physicalAssetCommandService.registerPhysicalAsset(fundId, 
             commandId,
             orgRef.value(),
             "TYPE-1",
