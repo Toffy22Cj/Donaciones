@@ -79,6 +79,8 @@ public class PhysicalAssetCommandService {
             PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, payloads, events.size());
             long expectedVersion = asset.getVersion();
 
+            authorize(actorRef, asset.getOrganizationRef(), CommandType.DELIVER_ASSET);
+
             asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt);
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
@@ -98,6 +100,7 @@ public class PhysicalAssetCommandService {
      * pero todavía no se usa en el Aggregate (eso llega en la tarea 5.3).
      */
     public void registerPhysicalAsset(String commandId,
+            String fundId,
             String organizationRef,
             String assetType,
             BigDecimal quantity,
@@ -110,6 +113,10 @@ public class PhysicalAssetCommandService {
 
         if (processedCommandRepository.exists(commandId)) {
             return;
+        }
+
+        if (fundId == null || fundId.isBlank()) {
+            throw new com.traceability.core.application.exception.InvalidFundReferenceException("fundId cannot be null or empty for Asset Registration (Path A)");
         }
 
         retryTemplate.execute(() -> {
@@ -134,13 +141,26 @@ public class PhysicalAssetCommandService {
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
 
+            String payloadJson = String.format("{\"allocationId\":\"%s\",\"fundId\":\"%s\"}", allocationId, fundId);
+            com.traceability.core.application.saga.OutboxMessage sagaMessage = new com.traceability.core.application.saga.OutboxMessage(
+                    UUID.randomUUID().toString(),
+                    "ASSET_REGISTRATION_SAGA",
+                    assetId,
+                    fundId,
+                    payloadJson,
+                    com.traceability.core.application.saga.OutboxStatus.PENDING,
+                    0,
+                    Instant.now(),
+                    Instant.now()
+            );
+
             eventPublisher.appendAndOutbox(
                     assetId,
                     "PhysicalAsset",
                     0, // génesis → expectedVersion = 0
                     newEvents,
                     actorRef,
-                    List.of(),
+                    List.of(sagaMessage),
                     commandId);
             return null;
         });
