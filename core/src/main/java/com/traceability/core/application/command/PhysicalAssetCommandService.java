@@ -79,6 +79,8 @@ public class PhysicalAssetCommandService {
             PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, payloads, events.size());
             long expectedVersion = asset.getVersion();
 
+            authorize(actorRef, asset.getOrganizationRef(), CommandType.DELIVER_ASSET);
+
             asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt);
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
