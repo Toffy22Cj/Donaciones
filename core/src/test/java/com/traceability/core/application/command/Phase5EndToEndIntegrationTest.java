@@ -3,6 +3,8 @@ package com.traceability.core.application.command;
 import com.traceability.core.application.authorization.OrganizationBoundaryPolicy;
 import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
+import com.traceability.core.application.port.out.OutboxPort;
+import com.traceability.core.application.saga.OutboxMessage;
 import com.traceability.core.application.saga.OutboxSagaCoordinator;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.Fund;
@@ -79,6 +81,9 @@ class Phase5EndToEndIntegrationTest {
     @Autowired
     private OutboxSagaCoordinator outboxSagaCoordinator;
 
+    @Autowired
+    private OutboxPort outboxPort;
+
     @SpyBean
     private RoleAuthorizationPolicy roleAuthorizationPolicy;
 
@@ -94,14 +99,14 @@ class Phase5EndToEndIntegrationTest {
     void setup() {
         mongoTemplate.dropCollection(TraceabilityEventDocument.class);
         mongoTemplate.dropCollection("processed_commands");
-        mongoTemplate.dropCollection("outbox_messages");
+        mongoTemplate.dropCollection("outbox");
     }
 
     @AfterEach
     void clean() {
         mongoTemplate.dropCollection(TraceabilityEventDocument.class);
         mongoTemplate.dropCollection("processed_commands");
-        mongoTemplate.dropCollection("outbox_messages");
+        mongoTemplate.dropCollection("outbox");
     }
 
     @Test
@@ -160,7 +165,7 @@ class Phase5EndToEndIntegrationTest {
     }
 
     @Test
-    void testD1_caminoA_registerPhysicalAsset_Integration_withoutOutbox() {
+    void testD1_caminoA_registerPhysicalAsset_inheritsFundOrganization_andEmitsSagaEnvelope() {
         String fundId = "FUND-" + UUID.randomUUID();
         OrganizationRef orgRef = new OrganizationRef("ORG-1");
         
@@ -170,8 +175,9 @@ class Phase5EndToEndIntegrationTest {
         fundCommandService.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 500L, ACTOR);
         
         String commandId = UUID.randomUUID().toString();
-        physicalAssetCommandService.registerPhysicalAsset(fundId, 
+        physicalAssetCommandService.registerPhysicalAsset(
             commandId,
+            fundId,
             orgRef.value(),
             "TYPE-1",
             BigDecimal.valueOf(10),
@@ -194,10 +200,24 @@ class Phase5EndToEndIntegrationTest {
         List<com.traceability.core.domain.event.DomainEventPayload> payloads = assetEvents.stream().map(com.traceability.core.domain.event.DomainEvent::payload).toList();
         PhysicalAsset asset = PhysicalAsset.rehydrate(theAssetId, payloads, assetEvents.size());
 
+        List<com.traceability.core.domain.event.DomainEvent> fundEvents = eventStorePort.loadStream(fundId);
+        Fund fund = Fund.rehydrate(fundId, fundEvents.stream().map(com.traceability.core.domain.event.DomainEvent::payload).toList(), fundEvents.size());
+
         assertNotNull(asset);
-        assertEquals("ORG-1", asset.getOrganizationRef());
+        assertEquals(fund.getOrganizationRef().value(), asset.getOrganizationRef()); // ADR-029: Fund's organization
         assertNull(asset.getDonorRef()); // Camino A donorRef null
         assertEquals(allocationId, org.springframework.test.util.ReflectionTestUtils.getField(asset, "allocationId"));
+
+        // ASSET_REGISTRATION_SAGA envelope (ADR-033) points at the real Fund, not at the commandId
+        List<OutboxMessage> sagaMessages = outboxPort.fetchPendingMessages(java.time.Instant.now().plusSeconds(60)).stream()
+                .filter(m -> theAssetId.equals(m.sourceAggregateId()))
+                .toList();
+        assertEquals(1, sagaMessages.size());
+        OutboxMessage sagaMessage = sagaMessages.get(0);
+        assertEquals("ASSET_REGISTRATION_SAGA", sagaMessage.sagaType());
+        assertEquals(fundId, sagaMessage.correlationId());
+        assertEquals("{\"allocationId\":\"" + allocationId + "\",\"fundId\":\"" + fundId + "\"}", sagaMessage.payload());
+        org.junit.jupiter.api.Assertions.assertNotEquals(commandId, sagaMessage.messageId());
 
         verify(roleAuthorizationPolicy, never()).authorize(any(), any());
         verify(organizationBoundaryPolicy, never()).assertBelongs(any(), any());
@@ -240,10 +260,13 @@ class Phase5EndToEndIntegrationTest {
     @Test
     void testE_splitPhysicalAsset_withBypass() {
         String orgRefValue = "ORG-1";
-        
+        String fundId = "FUND-" + UUID.randomUUID();
+        fundCommandService.clearFundsGenesis(UUID.randomUUID().toString(), fundId, new OrganizationRef(orgRefValue), "CAMP-1", "DONOR-1", "USD", 1000L, "SRC", ACTOR);
+
         String commandId = UUID.randomUUID().toString();
-        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
+        physicalAssetCommandService.registerPhysicalAsset(
             commandId,
+            fundId,
             orgRefValue,
             "TYPE-1",
             BigDecimal.valueOf(100),

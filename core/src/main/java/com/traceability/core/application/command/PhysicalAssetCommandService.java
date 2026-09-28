@@ -1,5 +1,6 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.application.authorization.CrossOrganizationAccessException;
 import com.traceability.core.application.authorization.OrganizationBoundaryPolicy;
 import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
@@ -10,6 +11,7 @@ import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.event.ExternalActor;
 import com.traceability.core.domain.event.SystemActor;
+import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
@@ -95,9 +97,10 @@ public class PhysicalAssetCommandService {
     }
 
     /**
-     * NUEVA-3 — Camino A: registra un PhysicalAsset (génesis).
-     * organizationRef se recibe aquí porque la saga (NUEVA-4) lo va a pasar,
-     * pero todavía no se usa en el Aggregate (eso llega en la tarea 5.3).
+     * NUEVA-3 — Camino A: registra un PhysicalAsset (génesis) contra la asignación de un Fund.
+     * organizationRef lo aporta el llamador (rectificación NUEVA-3), pero ADR-029 exige que sea el
+     * del Fund: como la saga que iba a resolverlo fue descartada (ADR-034), aquí se valida contra el
+     * Fund cargado y se rechaza cualquier discrepancia antes de autorizar o persistir.
      */
     public void registerPhysicalAsset(String commandId,
             String fundId,
@@ -120,6 +123,7 @@ public class PhysicalAssetCommandService {
         }
 
         retryTemplate.execute(() -> {
+            assertOrganizationMatchesFund(fundId, organizationRef);
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET);
 
             String assetId = UUID.randomUUID().toString();
@@ -164,6 +168,19 @@ public class PhysicalAssetCommandService {
                     commandId);
             return null;
         });
+    }
+
+    private void assertOrganizationMatchesFund(String fundId, String organizationRef) {
+        List<DomainEvent> fundEvents = eventStore.loadStream(fundId);
+        if (fundEvents.isEmpty()) {
+            throw new com.traceability.core.application.exception.InvalidFundReferenceException("Fund " + fundId + " does not exist for Asset Registration (Path A)");
+        }
+        Fund fund = Fund.rehydrate(fundId, fundEvents.stream().map(DomainEvent::payload).collect(Collectors.toList()), fundEvents.size());
+        String fundOrganizationRef = fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null;
+        if (fundOrganizationRef == null || !fundOrganizationRef.equals(organizationRef)) {
+            throw new CrossOrganizationAccessException(
+                    "organizationRef '" + organizationRef + "' does not match organizationRef '" + fundOrganizationRef + "' of Fund " + fundId + " (ADR-029, Path A)");
+        }
     }
 
     /**

@@ -1,10 +1,13 @@
 package com.traceability.core.application.command;
 
 import com.traceability.contracts.HashPort;
+import com.traceability.core.application.authorization.CrossOrganizationAccessException;
+import com.traceability.core.application.exception.InvalidFundReferenceException;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.OutboxPort;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.SystemActor;
+import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import org.junit.jupiter.api.AfterEach;
@@ -69,6 +72,9 @@ class PhysicalAssetCommandServiceIntegrationTest {
     private PhysicalAssetCommandService physicalAssetCommandService;
 
     @Autowired
+    private FundCommandService fundCommandService;
+
+    @Autowired
     private EventStorePort eventStorePort;
 
     @Autowired
@@ -90,9 +96,11 @@ class PhysicalAssetCommandServiceIntegrationTest {
     void registerPhysicalAsset_persistsGenesisEventCorrectly() {
         String commandId = UUID.randomUUID().toString();
         SystemActor actor = new SystemActor("test-harness");
+        String fundId = registerFund("ORG-123");
 
-        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
+        physicalAssetCommandService.registerPhysicalAsset(
                 commandId,
+                fundId,
                 "ORG-123",
                 "FOOD",
                 new BigDecimal("100.0000"),
@@ -105,10 +113,10 @@ class PhysicalAssetCommandServiceIntegrationTest {
 
         // Como el assetId se genera dentro del método, buscamos el único stream que
         // exista
-        List<TraceabilityEventDocument> allEvents = mongoTemplate.findAll(TraceabilityEventDocument.class);
-        assertFalse(allEvents.isEmpty(), "Debe haberse persistido al menos un evento");
+        List<TraceabilityEventDocument> assetEvents = physicalAssetEvents();
+        assertFalse(assetEvents.isEmpty(), "Debe haberse persistido al menos un evento");
 
-        String assetId = allEvents.get(0).getStreamId();
+        String assetId = assetEvents.get(0).getStreamId();
         List<DomainEvent> stream = eventStorePort.loadStream(assetId);
 
         assertEquals(1, stream.size());
@@ -152,13 +160,60 @@ class PhysicalAssetCommandServiceIntegrationTest {
     }
 
     @Test
+    void registerPhysicalAsset_nonExistentFund_doesNotPersist() {
+        assertThrows(InvalidFundReferenceException.class, () ->
+                physicalAssetCommandService.registerPhysicalAsset(
+                        UUID.randomUUID().toString(),
+                        "FUND-DOES-NOT-EXIST",
+                        "ORG-123",
+                        "FOOD",
+                        new BigDecimal("100.0000"),
+                        "KG",
+                        "CUSTODIAN-1",
+                        "WAREHOUSE-A",
+                        "ALLOC-001",
+                        null,
+                        new SystemActor("test-harness")));
+
+        assertTrue(mongoTemplate.findAll(TraceabilityEventDocument.class).isEmpty());
+        org.mockito.Mockito.verify(outboxPort, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void registerPhysicalAsset_organizationRefDifferentFromFund_rejectedEvenForSystemActor() {
+        // ADR-029 Path A: organizationRef must be the Fund's; an arbitrary value is rejected
+        // regardless of actor type (SystemActor bypasses P7/P9, not this invariant).
+        String fundId = registerFund("ORG-123");
+
+        assertThrows(CrossOrganizationAccessException.class, () ->
+                physicalAssetCommandService.registerPhysicalAsset(
+                        UUID.randomUUID().toString(),
+                        fundId,
+                        "ORG-ARBITRARY",
+                        "FOOD",
+                        new BigDecimal("100.0000"),
+                        "KG",
+                        "CUSTODIAN-1",
+                        "WAREHOUSE-A",
+                        "ALLOC-001",
+                        null,
+                        new SystemActor("test-harness")));
+
+        assertTrue(physicalAssetEvents().isEmpty(), "No PhysicalAsset may be persisted with a foreign organizationRef");
+        assertEquals(1, eventStorePort.loadStream(fundId).size(), "Fund stream must be untouched");
+        org.mockito.Mockito.verify(outboxPort, org.mockito.Mockito.never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void splitPhysicalAsset_reducesQuantityAndPersistsSplitEvent() {
         String registerCommandId = UUID.randomUUID().toString();
         SystemActor actor = new SystemActor("test-harness");
+        String fundId = registerFund("ORG-123");
 
         // 1. Primero registramos un asset
-        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
+        physicalAssetCommandService.registerPhysicalAsset(
                 registerCommandId,
+                fundId,
                 "ORG-123",
                 "FOOD",
                 new BigDecimal("100.0000"),
@@ -169,8 +224,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
                 null,
                 actor);
 
-        List<TraceabilityEventDocument> allEvents = mongoTemplate.findAll(TraceabilityEventDocument.class);
-        String assetId = allEvents.get(0).getStreamId();
+        String assetId = physicalAssetEvents().get(0).getStreamId();
 
         // 2. Ahora hacemos split
         String splitCommandId = UUID.randomUUID().toString();
@@ -192,4 +246,16 @@ class PhysicalAssetCommandServiceIntegrationTest {
         assertEquals(0, new BigDecimal("70.0000").compareTo(reconstituted.getQuantity()));
     }
 
+    private String registerFund(String organizationId) {
+        String fundId = "FUND-" + UUID.randomUUID();
+        fundCommandService.registerFund(UUID.randomUUID().toString(), fundId, new OrganizationRef(organizationId),
+                "CAMP-1", "DONOR-1", "USD", 1000L, new SystemActor("test-setup"));
+        return fundId;
+    }
+
+    private List<TraceabilityEventDocument> physicalAssetEvents() {
+        return mongoTemplate.findAll(TraceabilityEventDocument.class).stream()
+                .filter(e -> "PhysicalAsset".equals(e.getAggregateType()))
+                .toList();
+    }
 }
