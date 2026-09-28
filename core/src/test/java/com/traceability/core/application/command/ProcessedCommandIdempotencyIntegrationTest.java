@@ -7,6 +7,9 @@ import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.fund.OrganizationRef;
+import com.traceability.core.domain.physicalasset.PhysicalAsset;
+import com.traceability.core.domain.physicalasset.exceptions.InvalidAssetTransitionException;
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
 import com.traceability.core.infrastructure.persistence.mongo.ProcessedCommandDocument;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import org.junit.jupiter.api.AfterEach;
@@ -30,6 +33,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -81,6 +85,9 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
     @Autowired
     private FundCommandService fundCommandService;
+
+    @Autowired
+    private PhysicalAssetCommandService physicalAssetCommandService;
 
     @Autowired
     private EventStorePort eventStorePort;
@@ -316,5 +323,102 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
         List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
         assertFalse(docs.stream().anyMatch(d -> d.getCommandId().equals(commandId2)), "Failed invalid transition should not save commandId");
+    }
+
+    // --- deliverAsset (A7.1 on PhysicalAsset) ---
+
+    private static final Instant DELIVERED_AT = Instant.parse("2026-01-01T00:00:00Z");
+
+    private String setupDispatchedAsset() {
+        String assetId = UUID.randomUUID().toString();
+        PhysicalAsset asset = PhysicalAsset.register(assetId, "FOOD", new java.math.BigDecimal("10"), "KG",
+                "WAREHOUSE-A", "CUSTODIAN-1", null, assetId, null, null, "ORG-1", null);
+        asset.dispatch("CARRIER-1");
+        transactionalEventPublisher.appendAndOutbox(assetId, "PhysicalAsset", 0, asset.getUncommittedEvents(),
+                new SystemActor("test"), null, UUID.randomUUID().toString());
+        return assetId;
+    }
+
+    private void deliver(String commandId, String assetId, String beneficiaryRef, String evidenceRef) {
+        physicalAssetCommandService.deliverAsset(commandId, assetId, "CLINIC-1", beneficiaryRef, "CLINIC-LOC",
+                evidenceRef, DELIVERED_AT, new SystemActor("test"));
+    }
+
+    private boolean claimed(String commandId) {
+        return mongoTemplate.findAll(ProcessedCommandDocument.class).stream()
+                .anyMatch(d -> d.getCommandId().equals(commandId));
+    }
+
+    @Test
+    void deliverAsset_sameCommandId_retry_scenarioA() {
+        String assetId = setupDispatchedAsset();
+        String commandId = UUID.randomUUID().toString();
+
+        deliver(commandId, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+        deliver(commandId, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+
+        assertEquals(3, eventStorePort.loadStream(assetId).size(), "REGISTERED, DISPATCHED, DELIVERED — no duplicate");
+        assertEquals(1, mongoTemplate.findAll(ProcessedCommandDocument.class).stream()
+                .filter(d -> d.getCommandId().equals(commandId)).count());
+    }
+
+    @Test
+    void deliverAsset_differentCommandId_exactRedundant_scenarioB() {
+        String assetId = setupDispatchedAsset();
+        String commandId1 = UUID.randomUUID().toString();
+        String commandId2 = UUID.randomUUID().toString();
+
+        deliver(commandId1, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+        deliver(commandId2, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+
+        assertEquals(3, eventStorePort.loadStream(assetId).size(), "No new event for an exact redundant delivery");
+        assertTrue(claimed(commandId1));
+        assertTrue(claimed(commandId2), "Exact redundancy reaches appendAndOutbox and records the commandId");
+    }
+
+    @Test
+    void deliverAsset_differentBeneficiary_rejectedWithoutEffects() {
+        String assetId = setupDispatchedAsset();
+        String commandId1 = UUID.randomUUID().toString();
+        String commandId2 = UUID.randomUUID().toString();
+
+        deliver(commandId1, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+
+        assertThrows(InvalidAssetTransitionException.class,
+                () -> deliver(commandId2, assetId, "BENEFICIARY-B", "EVIDENCE-1"));
+
+        List<DomainEvent> stream = eventStorePort.loadStream(assetId);
+        assertEquals(3, stream.size());
+        assertEquals("BENEFICIARY-A", ((AssetDeliveredPayload) stream.get(2).payload()).beneficiaryRef());
+        assertFalse(claimed(commandId2), "A rejected delivery must not be recorded as processed");
+    }
+
+    @Test
+    void deliverAsset_nullEvidence_exactRedundant_isNoOp() {
+        String assetId = setupDispatchedAsset();
+        String commandId1 = UUID.randomUUID().toString();
+        String commandId2 = UUID.randomUUID().toString();
+
+        deliver(commandId1, assetId, "BENEFICIARY-A", null);
+        assertDoesNotThrow(() -> deliver(commandId2, assetId, "BENEFICIARY-A", null));
+
+        assertEquals(3, eventStorePort.loadStream(assetId).size());
+        assertTrue(claimed(commandId2));
+    }
+
+    @Test
+    void deliverAsset_invalidTransition_notDispatched_scenarioC() {
+        String assetId = UUID.randomUUID().toString();
+        PhysicalAsset asset = PhysicalAsset.register(assetId, "FOOD", new java.math.BigDecimal("10"), "KG",
+                "WAREHOUSE-A", "CUSTODIAN-1", null, assetId, null, null, "ORG-1", null);
+        transactionalEventPublisher.appendAndOutbox(assetId, "PhysicalAsset", 0, asset.getUncommittedEvents(),
+                new SystemActor("test"), null, UUID.randomUUID().toString());
+        String commandId = UUID.randomUUID().toString();
+
+        assertThrows(InvalidAssetTransitionException.class,
+                () -> deliver(commandId, assetId, "BENEFICIARY-A", "EVIDENCE-1"));
+
+        assertEquals(1, eventStorePort.loadStream(assetId).size());
+        assertFalse(claimed(commandId));
     }
 }

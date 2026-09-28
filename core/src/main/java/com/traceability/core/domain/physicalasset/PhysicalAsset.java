@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -34,7 +35,10 @@ public class PhysicalAsset extends AggregateRoot {
     private String donorRef;
     private String donationRef;
 
-    // final delivery metadata for idempotency checking
+    // final delivery metadata for idempotency checking.
+    // finalBeneficiaryRef is only replayed from ASSET_DELIVERED to compare redeliveries; it never
+    // touches custodianRef (ADR-014).
+    private String finalBeneficiaryRef;
     private String finalEvidenceRef;
     private Instant finalDeliveredAt;
 
@@ -214,8 +218,11 @@ public class PhysicalAsset extends AggregateRoot {
             Instant deliveredAt) {
         checkOrganizationAssigned();
         if (lifecycleStatus == AssetLifecycleStatus.DELIVERED) {
-            if (this.custodianRef.equals(finalCustodianRef) && this.currentLocation.equals(locationRef)
-                    && this.finalEvidenceRef.equals(evidenceRef) && this.finalDeliveredAt.equals(deliveredAt)) {
+            if (Objects.equals(this.custodianRef, finalCustodianRef)
+                    && Objects.equals(this.finalBeneficiaryRef, beneficiaryRef)
+                    && Objects.equals(this.currentLocation, locationRef)
+                    && Objects.equals(this.finalEvidenceRef, evidenceRef)
+                    && Objects.equals(this.finalDeliveredAt, deliveredAt)) {
                 return;
             } else {
                 throw new InvalidAssetTransitionException("Asset already delivered with different parameters");
@@ -303,6 +310,7 @@ public class PhysicalAsset extends AggregateRoot {
                 this.currentLocation = p.locationRef();
                 this.lastKnownLocation = p.locationRef();
                 this.custodianRef = p.finalCustodianRef();
+                this.finalBeneficiaryRef = p.beneficiaryRef();
                 this.finalEvidenceRef = p.evidenceRef();
                 this.finalDeliveredAt = p.deliveredAt();
             }
