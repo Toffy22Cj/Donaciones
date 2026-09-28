@@ -21,14 +21,20 @@
 
 **Responsable sugerido:** quien mantenga el catálogo de ADR — es una corrección administrativa urgente, no requiere debate de arquitectura.
 
+**Estado (C5/C6, verificado contra `feat/fase5-a7-1-a7-2`, `develop` local y `origin/develop`): ⏳ PENDIENTE DE DECISIÓN HUMANA — sin renumerar.**
+- La colisión 033–036 sigue en el repositorio y ADR-037 (APIs/Frontend) sigue marcado como "número tentativo".
+- La propuesta del punto 2 (037–041) ya no puede aplicarse tal cual: ADR-037 está ocupado por APIs/Frontend y `develop` local contiene ADR-038 (supersedido, no se porta) y ADR-039 (A7.1, pendiente de numeración). Hay que decidir de nuevo el rango destino.
+- Para no agravar la colisión, el ADR de A7.2 se creó como **ADR-042**, primer número libre en todas las ramas y fuera del rango reservado aquí (037–041).
+- Detalle del catálogo: `estado-fase5.md` §1.
+
 ---
 
 ## Resumen ejecutivo
 
 | Bloque | Ítems | Bloquea Fase 6 |
 |---|---|---|
-| Colisión de ADR | 1 hallazgo crítico | Sí — ambigüedad activa en cualquier referencia nueva a ADR-033/034/035/036 |
-| A — Fase 5 / Core / Identity | 6 hallazgos (5 originales + A6 nuevo) | Sí — 2 de ellos bloquean directamente trabajo de Blockchain y Convocatoria |
+| Colisión de ADR | 1 hallazgo crítico — ⏳ pendiente de decisión humana | Sí — ambigüedad activa en cualquier referencia nueva a ADR-033/034/035/036 |
+| A — Fase 5 / Core / Identity | 6 hallazgos (5 originales + A6 nuevo) — ✅ todos cerrados (C1–C6), con deudas explícitas | Ya no — ver estado por ítem |
 | B — IA / ADR-036 (Fase 6) | 3 decisiones estructurales + 1 contradicción + 4 verificaciones técnicas | No bloquea otras capas, sí bloquea completar el diseño de `ConvocatoriaAuditFacts` |
 
 ---
@@ -63,7 +69,12 @@ Salida:
 
 ---
 
-### A2. Autorización ausente en cuatro métodos (PRIORIDAD ALTA, antes de exponer HTTP) — VERIFICACIÓN PENDIENTE, no cerrar sin evidencia nueva
+### A2. Autorización ausente en cuatro métodos (PRIORIDAD ALTA, antes de exponer HTTP) — ✅ CERRADO
+
+**Estado:** **CERRADO** (A2 `7be6751`; regresión de `reverseAllocation` revertida en `8356373`; C2 `c07f994`).
+- `requestAllocation`, `confirmAllocation` y `deliverAsset` invocan `authorize(...)` con `REQUEST_ALLOCATION`, `CONFIRM_ALLOCATION` y `DELIVER_ASSET` (matriz en `estado-fase5.md` §9.5).
+- `reverseAllocation` queda **sin** `authorize()` por diseño (ADR-036 §2: compensación interna de la saga como `SystemActor`). C2 lo documenta en código y añade un test de integración que ejercita la compensación real de `AssetRegisteredSagaPolicy` (asignación revertida, `SystemActor` persistido, sin llamadas de autorización).
+- Deuda aceptada: `reverseAllocation` no restringe en runtime el tipo de actor; mientras no exista entrypoint humano no es explotable.
 
 **Hallazgo original (ambas auditorías, con cita de código real):** `requestAllocation`, `confirmAllocation`, `reverseAllocation` (en `FundCommandService`) y `deliverAsset` (en `PhysicalAssetCommandService`) reciben un `actorRef`/`HumanActor` como parámetro pero nunca invocan `authorize`/`resolvePrincipal` sobre él — a diferencia de `registerFund`, `clearFundsGenesis`, `reverseAllocationAdministratively`, `registerPhysicalAsset` y `splitPhysicalAsset`, que sí lo hacen correctamente.
 
@@ -84,7 +95,9 @@ Salida:
 
 ---
 
-### A6. Contradicción interna en la propia "documentación actualizada" — camino de autorización E2E (PRIORIDAD ALTA, resolver junto con A2)
+### A6. Contradicción interna en la propia "documentación actualizada" — camino de autorización E2E (PRIORIDAD ALTA, resolver junto con A2) — ✅ CERRADO
+
+**Estado:** **CERRADO** (`fc8cbc7`; cableado real reforzado en C1 `8a36894`). Afirmación única y verdadera: la secuencia `IdentityPrincipalPortImpl → OrganizationBoundaryPolicy → RoleAuthorizationPolicy → Aggregate` funciona hoy con el contexto de producción de `app`, demostrada por `HumanActorIdentityIntegrationTest` para `registerFund` (éxito, rol insuficiente, otra organización). **No** existe camino HTTP de escritura: el test entra directamente al `CommandService`. La nota de la Tarea 5.9 en `plan-ejecucion-agentes-fase5.md` se marcó como superada.
 
 **Hallazgo:** `plan-ejecucion-agentes-fase5.md` (Tarea 5.9, nota arquitectónica) dice textualmente: *"la secuencia Boundary -> Role -> Aggregate no tiene actualmente un camino E2E ejecutable dentro de CommandService"*. En el mismo conjunto de documentos, `estado-fase5.md` marca **NUEVA-5 como COMPLETADA**, describiéndola como el cableado real de `IdentityPrincipalPort`/`OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` para `HumanActor` en los `*CommandService`.
 
@@ -110,9 +123,30 @@ Salida:
 
 **Responsable sugerido:** Core.
 
+**Estado A7.1: ✅ CERRADO técnicamente, con deuda explícita** (`e10a3ca`; la variante `04ad840` de `develop` local no es la canónica).
+- La redundancia exacta es un no-op de dominio (cero eventos). El Application Service continúa hasta `appendAndOutbox(emptyList, ..., commandId)`, donde `tryClaim` deduplica el mismo `commandId` y registra uno distinto como procesado. Se eliminaron las seis clases `Redundant*`, y `CommandRetryTemplate` solo reintenta ante `ConcurrencyConflictException`.
+- Criterio cumplido para `Fund`: `ProcessedCommandIdempotencyIntegrationTest` (escenario A: mismo `commandId`; B: `commandId` distinto y redundante; C: transición inválida sigue fallando).
+- **Deuda explícita — `PhysicalAsset.deliver` (✅ cerrada en C7; ver `estado-fase5.md` §12.8):** la comparación de redundancia exacta no incluye `beneficiaryRef` (el agregado no lo guarda en su estado). Una segunda entrega con otro beneficiario y los demás parámetros iguales se acepta como no-op en lugar de rechazarse. Además, compara con `equals` sin tolerar nulos en `evidenceRef`/`deliveredAt`, que el payload no valida. No hay test de integración de `deliverAsset` redundante con `ProcessedCommand`.
+- **ADR:** la decisión no tiene ADR publicado. ADR-039 (solo en `develop` local) la describe, pero está pendiente de resolver su numeración (ver hallazgo de colisión).
+
+**Estado A7.2: ✅ CERRADO** (`e4404e5` + C4 `20ba931`; decisión formalizada en **ADR-042**). Los handlers ya no gestionan reintentos. `ProjectionEventSource` hace el primer intento, clasifica el error y solo avanza el checkpoint con el retry persistido. `ProjectionRetryScheduler` hace a lo sumo un intento por documento en cada ejecución, con ventana de 4 h y cuarentena. `resumeProjection` conserva el evento si falla. Cubierto por `ProjectionEventSourceTest` y `ProjectionRetrySchedulerTest`. `hallazgo-framework-retry-projections.md` queda marcado como cerrado.
+
+**Deuda técnica posterior de A7.2 — DEUDA FUERA DE ALCANCE (A7.2 no se reabre):**
+- C4 (`20ba931`) resolvió el bucle de reintentos del scheduler y la pérdida del evento en `resumeProjection`.
+- C7 (`107cfb4`) verificó, con una sonda de integración contra MongoDB real, qué pasa cuando falla la persistencia del retry:
+  - el checkpoint **no** avanza y no hay salto silencioso ni pérdida silenciosa confirmada;
+  - pero la tarea del change stream termina, y las proyecciones quedan detenidas hasta reiniciar o volver a suscribirse;
+  - tras el reinicio, el evento puede volver a entregarse.
+- La parada del change stream requiere una política explícita de resuscripción o reinicio, que queda para trabajo posterior.
+- Riesgo asociado, aceptado y no demostrado: al volver a entregarse, el documento de retry se reconstruye con `firstAttemptAt`/`retryCount` reiniciados.
+- Detalle: `estado-fase5.md` §12.8, deudas 7 y 8.
+
 ---
 
-### A3. Outbox sin productor real de negocio (PRIORIDAD MEDIA-ALTA, bloquea la confianza en `STRICT` de Convocatoria)
+### A3. Outbox sin productor real de negocio (PRIORIDAD MEDIA-ALTA, bloquea la confianza en `STRICT` de Convocatoria) — ✅ CERRADO
+
+**Estado:** **CERRADO** (`01a9f60` + `d30cd00`; contrato alineado en C3 `014d101`). `registerPhysicalAsset` produce el `OutboxMessage` de `ASSET_REGISTRATION_SAGA` en la misma operación que el evento de génesis. El envelope es `correlationId = fundId`, payload `{allocationId, fundId}` y un `messageId` propio. `Phase5EndToEndIntegrationTest.testD2_isolated_AssetRegisteredSagaPolicy_confirmAllocation` demuestra productor → Outbox → `OutboxSagaCoordinator` → `AssetRegisteredSagaPolicy` → `Fund` confirmado, sin inyección manual. Desde C3 el comando además valida el `Fund` (existencia y `organizationRef`, ADR-029 §2.1), con tests negativos. ADR-033 fue actualizado en C5.
+*Alcance:* es **un** productor real. Validar "carga real" para `STRICT` de Convocatoria sigue siendo trabajo de Fase 6.
 
 **Hallazgo:** el mecanismo transaccional de Outbox existe y está probado en aislamiento, pero **ningún comando de negocio real** produce un mensaje — los 14 puntos de invocación pasan lista vacía. Solo `OutboxSagaCoordinator` construye mensajes, y únicamente para reconstruir reintentos/cuarentena de algo que ya debería haber existido.
 

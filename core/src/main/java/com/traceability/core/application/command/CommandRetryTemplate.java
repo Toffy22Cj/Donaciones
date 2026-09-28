@@ -1,7 +1,7 @@
 package com.traceability.core.application.command;
 
 import com.traceability.core.application.exception.ConcurrencyConflictException;
-import com.traceability.core.domain.shared.exceptions.RedundantDomainActionException;
+
 import org.springframework.stereotype.Component;
 
 import java.util.function.Supplier;
@@ -17,10 +17,6 @@ public class CommandRetryTemplate {
             try {
                 return commandAction.get();
             } catch (com.traceability.core.domain.shared.exceptions.DomainInvariantViolationException e) {
-                if (e instanceof RedundantDomainActionException) {
-                    // Idempotent success (intercepted AFTER invoking the aggregate)
-                    return null; // Or some context-aware successful result
-                }
                 throw e;
             } catch (ConcurrencyConflictException e) {
                 attempts++;

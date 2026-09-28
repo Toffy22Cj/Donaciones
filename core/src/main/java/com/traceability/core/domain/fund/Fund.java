@@ -141,7 +141,7 @@ public class Fund extends AggregateRoot {
     public void confirmAllocation(String allocationId) {
         checkOrganizationAssigned();
         if (allocationStatus.get(allocationId) == AllocationStatus.CONFIRMED) {
-            throw new RedundantAllocationConfirmationException("Allocation " + allocationId + " is already confirmed");
+            return;
         }
         if (!activeAllocations.containsKey(allocationId)) {
             throw new InvalidFundTransitionException("Cannot confirm allocation " + allocationId + " because it is not active");
@@ -152,7 +152,7 @@ public class Fund extends AggregateRoot {
     public void reverseAllocation(String allocationId, String reason) {
         checkOrganizationAssigned();
         if (allocationStatus.get(allocationId) == AllocationStatus.REVERSED) {
-            throw new RedundantAllocationReversalException("Allocation " + allocationId + " is already reversed");
+            return;
         }
         if (!activeAllocations.containsKey(allocationId)) {
             throw new InvalidFundTransitionException("Cannot reverse allocation " + allocationId + " because it is not active");
@@ -166,7 +166,7 @@ public class Fund extends AggregateRoot {
             throw new IllegalArgumentException("Refund amount must be strictly positive");
         }
         if (processedRefunds.contains(refundId)) {
-            throw new DuplicateRefundException("Refund " + refundId + " has already been processed");
+            return;
         }
         
         // Critical Rule (ADR-004): refundAmount + refundedAmount <= clearedAmount

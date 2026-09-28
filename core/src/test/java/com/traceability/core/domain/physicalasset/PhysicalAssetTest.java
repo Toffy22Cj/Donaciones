@@ -103,10 +103,10 @@ class PhysicalAssetTest {
         Instant time = Instant.now();
         asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
         
-        // Exact same parameters throws RedundantDeliveryException
-        assertThrows(RedundantDeliveryException.class, () -> {
-            asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
-        });
+        int eventsBefore = asset.getUncommittedEvents().size();
+        // Exact same parameters is a no-op
+        asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
+        assertEquals(eventsBefore, asset.getUncommittedEvents().size());
     }
 
     @Test
@@ -122,6 +122,50 @@ class PhysicalAssetTest {
         });
     }
 
+    @Test
+    void testDeliverAsset_DifferentBeneficiaryIsNotRedundant() {
+        // Same custodian, location, evidence and time but another beneficiary is a different delivery fact
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z"));
+
+        assertThrows(InvalidAssetTransitionException.class, () ->
+                asset.deliver("CLINIC_1", "BENEFICIARY_2", "LOC_FINAL", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z")));
+        assertTrue(asset.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    void testDeliverAsset_RedundantAfterReplayIsNoOp() {
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z"));
+
+        asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z"));
+        assertTrue(asset.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    void testDeliverAsset_NullEvidenceRedundantIsNoOp() {
+        // evidenceRef is nullable in the ASSET_DELIVERED contract (Task 2, ADR-014)
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", null, Instant.parse("2026-01-01T00:00:00Z"));
+
+        assertDoesNotThrow(() ->
+                asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", null, Instant.parse("2026-01-01T00:00:00Z")));
+        assertTrue(asset.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    void testDeliverAsset_NullEvidenceThenDifferentEvidenceIsRejected() {
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", null, Instant.parse("2026-01-01T00:00:00Z"));
+
+        assertThrows(InvalidAssetTransitionException.class, () ->
+                asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z")));
+    }
+
+    private PhysicalAsset rehydrateDelivered(String beneficiaryRef, String evidenceRef, Instant deliveredAt) {
+        PhysicalAsset original = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
+        original.dispatch("CARRIER_1");
+        original.deliver("CLINIC_1", beneficiaryRef, "LOC_FINAL", evidenceRef, deliveredAt);
+        List<DomainEventPayload> payloads = original.getUncommittedEvents().stream().map(DomainEvent::payload).toList();
+        return PhysicalAsset.rehydrate("A1", payloads, payloads.size());
+    }
+
     // -- Exception Tests --
 
     @Test
@@ -134,9 +178,11 @@ class PhysicalAssetTest {
     }
 
     @Test
-    void testTransferCustodyRedundant_ThrowsException() {
+    void testTransferCustodyRedundant_IsNoOp() {
         PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
-        assertThrows(RedundantCustodyTransferException.class, () -> asset.transferCustody("CUST_A"));
+        int eventsBefore = asset.getUncommittedEvents().size();
+        asset.transferCustody("CUST_A");
+        assertEquals(eventsBefore, asset.getUncommittedEvents().size());
     }
 
     @Test

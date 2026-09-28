@@ -4,12 +4,14 @@ import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.core.application.authorization.CommandType;
+import com.traceability.core.application.authorization.CrossOrganizationAccessException;
 import com.traceability.core.application.authorization.OrganizationBoundaryPolicy;
 import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.OutboxPort;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.HumanActor;
+import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
@@ -42,8 +44,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest(properties = {
         "core.projection.retry.delay=100",
@@ -196,11 +202,15 @@ class HumanActorAuthorizationIntegrationTest {
         String accountId = "acc-emp-1";
         identityPrincipalPort.addPrincipal(accountId, "ORG-456", Set.of(AuthorizationRole.EMPLOYEE));
 
+        String fundId = UUID.randomUUID().toString();
+        registerFund(fundId, "ORG-456");
+
         String commandId = UUID.randomUUID().toString();
         HumanActor actor = new HumanActor(accountId);
 
-        physicalAssetCommandService.registerPhysicalAsset("FUND-1", 
+        physicalAssetCommandService.registerPhysicalAsset(
                 commandId,
+                fundId,
                 "ORG-456",
                 "Tents",
                 new BigDecimal("100"),
@@ -216,5 +226,48 @@ class HumanActorAuthorizationIntegrationTest {
         inOrder.verify(identityPrincipalPort).resolvePrincipal(accountId);
         inOrder.verify(organizationBoundaryPolicy).assertBelongs("ORG-456", "ORG-456");
         inOrder.verify(roleAuthorizationPolicy).authorize(any(AuthorizationPrincipal.class), eq(CommandType.REGISTER_PHYSICAL_ASSET));
+        assertEquals(1, physicalAssetEvents().size());
+    }
+
+    @Test
+    void physicalAssetCommandService_withHumanActor_fundOfOtherOrganization_rejectedWithoutEffects() {
+        // Employee of ORG-456 declares its own organization but points at a Fund owned by ORG-OTHER:
+        // the boundary check against the declared organizationRef alone would pass (ADR-029, Path A).
+        String accountId = "acc-emp-2";
+        identityPrincipalPort.addPrincipal(accountId, "ORG-456", Set.of(AuthorizationRole.EMPLOYEE));
+
+        String foreignFundId = UUID.randomUUID().toString();
+        registerFund(foreignFundId, "ORG-OTHER");
+
+        assertThrows(CrossOrganizationAccessException.class, () ->
+                physicalAssetCommandService.registerPhysicalAsset(
+                        UUID.randomUUID().toString(),
+                        foreignFundId,
+                        "ORG-456",
+                        "Tents",
+                        new BigDecimal("100"),
+                        "Units",
+                        "CUST-1",
+                        "LOC-1",
+                        "ALLOC-1",
+                        null,
+                        new HumanActor(accountId)
+                ));
+
+        assertTrue(physicalAssetEvents().isEmpty(), "No PhysicalAsset may be persisted for a foreign Fund");
+        assertEquals(1, eventStorePort.loadStream(foreignFundId).size(), "Foreign Fund stream must be untouched");
+        verify(outboxPort, never()).save(any());
+        verify(identityPrincipalPort, never()).resolvePrincipal(accountId);
+    }
+
+    private void registerFund(String fundId, String organizationId) {
+        fundCommandService.registerFund(UUID.randomUUID().toString(), fundId, new OrganizationRef(organizationId),
+                "CAMP-1", "DONOR-1", "COP", 1000L, new SystemActor("test-setup"));
+    }
+
+    private List<TraceabilityEventDocument> physicalAssetEvents() {
+        return mongoTemplate.findAll(TraceabilityEventDocument.class).stream()
+                .filter(e -> "PhysicalAsset".equals(e.getAggregateType()))
+                .toList();
     }
 }

@@ -15,8 +15,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.Optional;
 
-import com.traceability.core.infrastructure.projection.mongo.documents.ProjectionRetryDocument;
-import com.traceability.core.infrastructure.projection.mongo.repositories.ProjectionRetryRepository;
 
 @Component
 public class PendingAllocationProjectionHandler implements ProjectionEventHandler {
@@ -24,12 +22,9 @@ public class PendingAllocationProjectionHandler implements ProjectionEventHandle
     private final EventCanonicalMapper canonicalMapper;
     private final PendingAllocationRepository repository;
 
-    private final ProjectionRetryRepository retryRepository;
-
-    public PendingAllocationProjectionHandler(EventCanonicalMapper canonicalMapper, PendingAllocationRepository repository, ProjectionRetryRepository retryRepository) {
+    public PendingAllocationProjectionHandler(EventCanonicalMapper canonicalMapper, PendingAllocationRepository repository) {
         this.canonicalMapper = canonicalMapper;
         this.repository = repository;
-        this.retryRepository = retryRepository;
     }
 
     @Override
@@ -39,11 +34,7 @@ public class PendingAllocationProjectionHandler implements ProjectionEventHandle
 
     @Override
     public void handleEvent(TraceabilityEventDocument eventDoc) {
-        try {
-            processEvent(eventDoc);
-        } catch (DonationProjectionHandler.MissingDependencyException | DonationProjectionHandler.SequenceGapException | DonationProjectionHandler.ProjectionPausedException e) {
-            enqueueForRetry(eventDoc);
-        }
+        processEvent(eventDoc);
     }
 
     void processEvent(TraceabilityEventDocument eventDoc) {
@@ -80,22 +71,5 @@ public class PendingAllocationProjectionHandler implements ProjectionEventHandle
             doc.setStatus(AllocationStatus.REVERSED);
             repository.save(doc);
         }
-    }
-
-    private void enqueueForRetry(TraceabilityEventDocument eventDoc) {
-        ProjectionRetryDocument retryDoc = ProjectionRetryDocument.builder()
-            .id(eventDoc.getEventId() + "_" + getHandlerName())
-            .handlerName(getHandlerName())
-            .eventId(eventDoc.getEventId())
-            .streamId(eventDoc.getStreamId())
-            .sequence(eventDoc.getSequence())
-            .eventType(eventDoc.getEventType())
-            .schemaVersion(eventDoc.getSchemaVersion())
-            .payload(eventDoc.getPayload())
-            .occurredAt(eventDoc.getOccurredAt())
-            .firstAttemptAt(Instant.now().toString())
-            .lastAttemptAt(Instant.now().toString())
-            .build();
-        retryRepository.save(retryDoc);
     }
 }
