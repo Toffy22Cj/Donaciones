@@ -185,4 +185,109 @@ class ProjectionRetrySchedulerTest {
         verify(retryRepository).delete(doc);
         verify(retryRepository, never()).save(any());
     }
+
+    @Test
+    void testRetryableFailure_AttemptedOncePerRun_AndDoesNotStarveLaterDocuments() throws Exception {
+        // Arrange: in-memory claim with the same semantics as claimNextPendingRetry
+        // (lowest sequence among PENDING documents, which become PROCESSING when claimed).
+        ProjectionRetryDocument failing = retryDoc("retry-failing", 1L, Instant.now().toString());
+        ProjectionRetryDocument later = retryDoc("retry-later", 2L, Instant.now().toString());
+        List<ProjectionRetryDocument> store = List.of(failing, later);
+        when(retryRepository.claimNextPendingRetry(anyInt())).thenAnswer(inv -> store.stream()
+                .filter(d -> "PENDING".equals(d.getStatus()))
+                .min(java.util.Comparator.comparingLong(ProjectionRetryDocument::getSequence))
+                .map(d -> {
+                    d.setStatus("PROCESSING");
+                    d.setProcessingStartedAt(Instant.now().toString());
+                    return d;
+                }));
+
+        java.util.concurrent.atomic.AtomicInteger failingAttempts = new java.util.concurrent.atomic.AtomicInteger();
+        doAnswer(inv -> {
+            TraceabilityEventDocument ev = inv.getArgument(0);
+            if ("evt-retry-failing".equals(ev.getEventId())) {
+                failingAttempts.incrementAndGet();
+                throw new org.springframework.dao.DataAccessResourceFailureException("DB down");
+            }
+            return null;
+        }).when(handler).handleEvent(any());
+
+        // Act
+        assertTimeoutPreemptively(java.time.Duration.ofSeconds(5), () -> scheduler.processRetries());
+
+        // Assert: one attempt per run, released to PENDING for the next run, later document processed
+        assertEquals(1, failingAttempts.get(), "A retryable failure must not be re-attempted within the same run");
+        assertEquals("PENDING", failing.getStatus());
+        assertNull(failing.getProcessingStartedAt());
+        assertEquals(1, failing.getRetryCount());
+        verify(retryRepository).save(failing);
+        verify(retryRepository).delete(later);
+        verify(retryRepository, never()).delete(failing);
+    }
+
+    @Test
+    void testRetryableFailureOlderThanFourHours_QuarantinesAndPausesProjection() throws Exception {
+        // Arrange
+        ProjectionRetryDocument doc = retryDoc("retry-old", 1L, Instant.now().minus(5, ChronoUnit.HOURS).toString());
+        doc.setProjectionId("fund-old");
+        DonationProjectionDocument proj = new DonationProjectionDocument();
+        proj.setStatus("ACTIVE");
+        when(projectionRepository.findById("fund-old")).thenReturn(Optional.of(proj));
+        when(retryRepository.claimNextPendingRetry(anyInt()))
+                .thenReturn(Optional.of(doc))
+                .thenReturn(Optional.empty());
+        doThrow(new org.springframework.dao.DataAccessResourceFailureException("DB down"))
+                .when(handler).handleEvent(any());
+
+        // Act
+        scheduler.processRetries();
+
+        // Assert
+        ArgumentCaptor<ProjectionRetryDocument> captor = ArgumentCaptor.forClass(ProjectionRetryDocument.class);
+        verify(retryRepository).save(captor.capture());
+        assertEquals("QUARANTINED", captor.getValue().getStatus(), "Retryable failure past the 4h window must quarantine");
+        verify(retryRepository, never()).delete(any());
+        assertEquals("PAUSED", proj.getStatus());
+    }
+
+    @Test
+    void testResumeProjection_FailureKeepsEventQuarantinedAndStops() throws Exception {
+        // Arrange
+        DonationProjectionDocument proj = new DonationProjectionDocument();
+        proj.setStatus("PAUSED");
+        when(projectionRepository.findById("fund-r")).thenReturn(Optional.of(proj));
+        ProjectionRetryDocument first = retryDoc("retry-q1", 1L, Instant.now().toString());
+        ProjectionRetryDocument second = retryDoc("retry-q2", 2L, Instant.now().toString());
+        for (ProjectionRetryDocument d : List.of(first, second)) {
+            d.setProjectionId("fund-r");
+            d.setStatus("QUARANTINED");
+        }
+        when(retryRepository.findByProjectionIdAndStatusOrderBySequenceAsc("fund-r", "QUARANTINED"))
+                .thenReturn(List.of(first, second));
+        doThrow(new DonationProjectionHandler.SequenceGapException("gap"))
+                .when(handler).handleEvent(any());
+
+        // Act
+        scheduler.resumeProjection("fund-r");
+
+        // Assert: nothing deleted, event kept QUARANTINED, projection paused again, order preserved
+        verify(retryRepository, never()).delete(any());
+        verify(retryRepository).save(first);
+        assertEquals("QUARANTINED", first.getStatus());
+        assertEquals("PAUSED", proj.getStatus());
+        verify(handler, times(1)).handleEvent(any());
+    }
+
+    private ProjectionRetryDocument retryDoc(String id, long sequence, String firstAttemptAt) {
+        ProjectionRetryDocument doc = new ProjectionRetryDocument();
+        doc.setId(id);
+        doc.setEventId("evt-" + id);
+        doc.setHandlerName("TestHandler");
+        doc.setSequence(sequence);
+        doc.setFirstAttemptAt(firstAttemptAt);
+        doc.setStatus("PENDING");
+        doc.setEventType("TEST_EVENT");
+        doc.setPayload(java.util.Map.of());
+        return doc;
+    }
 }

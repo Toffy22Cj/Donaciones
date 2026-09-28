@@ -103,4 +103,50 @@ class ProjectionEventSourceTest {
         // Ensure checkpoint was NOT saved
         verify(checkpointRepository, never()).save(any(ProjectionCheckpointDocument.class));
     }
+
+    @Test
+    void testInitialFailure_PermanentErrorQuarantined_AndCheckpointAdvances() throws Exception {
+        ProjectionRetryDocument saved = deliverFailingEvent(new IllegalArgumentException("Invalid payload"));
+
+        assertEquals("QUARANTINED", saved.getStatus(), "Permanent error must be quarantined on the first attempt");
+        verify(checkpointRepository).save(any(ProjectionCheckpointDocument.class));
+    }
+
+    @Test
+    void testInitialFailure_RetryableErrorPending_AndCheckpointAdvances() throws Exception {
+        ProjectionRetryDocument saved = deliverFailingEvent(new org.springframework.dao.DataAccessResourceFailureException("DB down"));
+
+        assertEquals("PENDING", saved.getStatus(), "Retryable error must be left PENDING for the scheduler");
+        assertEquals(0, saved.getRetryCount());
+        assertNotNull(saved.getFirstAttemptAt());
+        verify(checkpointRepository).save(any(ProjectionCheckpointDocument.class));
+    }
+
+    private ProjectionRetryDocument deliverFailingEvent(Exception failure) throws Exception {
+        eventSource.start();
+        ArgumentCaptor<org.springframework.data.mongodb.core.messaging.ChangeStreamRequest> requestCaptor = ArgumentCaptor.forClass(org.springframework.data.mongodb.core.messaging.ChangeStreamRequest.class);
+        verify(messageListenerContainer).register(requestCaptor.capture(), eq(TraceabilityEventDocument.class));
+        MessageListener<ChangeStreamDocument<Document>, TraceabilityEventDocument> listener = requestCaptor.getValue().getMessageListener();
+
+        TraceabilityEventDocument eventDoc = new TraceabilityEventDocument();
+        eventDoc.setEventId("evt-2");
+        eventDoc.setStreamId("fund-2");
+        eventDoc.setAggregateType("Fund");
+        eventDoc.setSequence(1L);
+
+        Message<ChangeStreamDocument<Document>, TraceabilityEventDocument> message = mock(Message.class);
+        when(message.getBody()).thenReturn(eventDoc);
+        ChangeStreamDocument<Document> rawMock = mock(ChangeStreamDocument.class);
+        when(rawMock.getResumeToken()).thenReturn(new BsonDocument("_data", new BsonString("token456")));
+        when(message.getRaw()).thenReturn(rawMock);
+
+        doThrow(failure).when(handler1).handleEvent(eventDoc);
+        when(projectionRepository.findById("fund-2")).thenReturn(Optional.empty());
+
+        listener.onMessage(message);
+
+        ArgumentCaptor<ProjectionRetryDocument> captor = ArgumentCaptor.forClass(ProjectionRetryDocument.class);
+        verify(retryRepository).save(captor.capture());
+        return captor.getValue();
+    }
 }
