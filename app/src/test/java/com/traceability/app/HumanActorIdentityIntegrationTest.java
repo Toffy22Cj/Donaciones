@@ -15,16 +15,10 @@ import identity.domain.model.Account;
 import identity.domain.model.Email;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationType;
-import identity.infrastructure.persistence.mongo.repositories.MongoAccountRepositoryAdapter;
-import identity.infrastructure.persistence.mongo.repositories.MongoAuditLogAdapter;
-import identity.infrastructure.persistence.mongo.repositories.MongoOrganizationRepositoryAdapter;
-import identity.infrastructure.security.BCryptPasswordHasherAdapter;
-import identity.application.service.MongoTransactionRetryHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -35,6 +29,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,19 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
     "crypto.web3j.node-url=http://dummy-node",
     "spring.ai.openai.api-key=dummy-api-key"
 })
-@org.springframework.data.mongodb.repository.config.EnableMongoRepositories(basePackages = "identity")
-@Import({
-    MongoAccountRepositoryAdapter.class,
-    MongoAuditLogAdapter.class,
-    MongoOrganizationRepositoryAdapter.class,
-    BCryptPasswordHasherAdapter.class,
-    MongoTransactionRetryHelper.class,
-    CreateAccountService.class,
-    CreateOrganizationService.class,
-    AddEmployeeService.class,
-    AssignAdministratorService.class,
-    IdentityPrincipalPortImpl.class
-})
+// No @Import / @EnableMongoRepositories / mocks: identity beans come from TraceabilityApplication's own wiring.
 class HumanActorIdentityIntegrationTest {
 
     @Container
@@ -116,6 +99,11 @@ class HumanActorIdentityIntegrationTest {
         assignAdministratorService.assignAdministrator(org2.getOrganizationId(), org2Admin.getAccountId());
 
         initialized = true;
+    }
+
+    @Test
+    void productionContext_wiresRealIdentityPrincipalPort() {
+        assertThat(identityPrincipalPort).isInstanceOf(IdentityPrincipalPortImpl.class);
     }
 
     @Test

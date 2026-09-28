@@ -5,8 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(scanBasePackages = "com.traceability")
-@EnableMongoRepositories(basePackages = "com.traceability")
+// "identity" lives outside com.traceability; app is the composition root that wires it (ADR-032/D1).
+@SpringBootApplication(scanBasePackages = {"com.traceability", "identity"})
+@EnableMongoRepositories(basePackages = {"com.traceability", "identity"})
 @EnableScheduling
 public class TraceabilityApplication {
 
