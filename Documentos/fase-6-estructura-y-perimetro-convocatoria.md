@@ -135,7 +135,7 @@ convocatoria → contracts   (única dependencia directa)
 - **`organizationRef`**: referencia opaca (Value Object), sin importar tipos de `identity`.
 - **Roles/autorización**: reutiliza `IdentityPrincipalPort` + `AuthorizationPrincipal` (ya existentes en `contracts`, verificado en `estado-fase5.md` §9.1) — cero contrato nuevo necesario.
 - **Referencia a `Fund`**: vía `campaignRef`/correlación, sin importar el Aggregate.
-- **Coordinación `CampaignFundingLedger ↔ Fund`**: orquestación externa (mismo patrón que `AssetRegisteredSagaPolicy`, ADR-029 Camino A), sin dependencia directa `convocatoria → core`.
+- **Coordinación `CampaignFundingLedger ↔ Fund`**: orquestación externa (mismo patrón que `AssetRegisteredSagaPolicy`: contrato en ADR-033 (Fase 5), sobre el Camino A de ADR-029), sin dependencia directa `convocatoria → core`.
 
 ### 3.9 Fuera de alcance (Fase 6, Capa 1)
 
@@ -152,7 +152,7 @@ convocatoria → contracts   (única dependencia directa)
 
 - `IdentityPrincipalPort` / `AuthorizationPrincipal` (`contracts`, Fase 5).
 - `OrganizationBoundaryPolicy`, `RoleAuthorizationPolicy` (`core.application.authorization`, ADR-032).
-- `AssetRegisteredSagaPolicy` (precedente de orquestación intermodular, ADR-029).
+- `AssetRegisteredSagaPolicy` (precedente de orquestación intermodular, ADR-033 de Fase 5; Camino A de ADR-029).
 - `CannotRemoveLastRoleException` (precedente de cardinalidad mínima, ADR-026).
 - ADR-016 (enmendado), ADR-021, ADR-029, ADR-032 (enmienda pendiente de redacción formal).
 

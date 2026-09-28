@@ -23,7 +23,7 @@ El mecanismo actual de recuperación ante fallos de proyección tiene una contra
 Riesgo de **pérdida silenciosa de datos (Data Loss)**. Si un evento entra en la colección de reintentos y vuelve a fallar cuando el Scheduler lo procesa, el evento se borra permanentemente de la base de datos sin entrar a cuarentena y sin alertar del fallo, provocando inconsistencia irreversible entre el Write Model (Event Store) y el Read Model.
 
 ## 5. Estado
-**ABIERTO**
+**✅ CERRADO** (A7.2 — `e4404e5`, endurecido en `20ba931`). La decisión arquitectónica que pedía §7 está formalizada en `Documentos/ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`. Los handlers ya no capturan ni re-encolan, y `ProjectionEventSource` registra el primer fallo antes de avanzar el checkpoint. `ProjectionRetryScheduler` es el único que reintenta: a lo sumo un intento por documento en cada ejecución, cuarentena a las 4 h. `resumeProjection` mantiene el documento en cuarentena si el reproceso falla. Las secciones siguientes se conservan como registro del hallazgo original.
 
 ## 6. Alcance (NUEVA-4)
 **FUERA DE NUEVA-4.** Este hallazgo es un defecto base del framework compartido de CQRS y afecta a todos los handlers, no es específico de la funcionalidad de `PENDING_ALLOCATION`.

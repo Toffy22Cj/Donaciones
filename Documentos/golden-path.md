@@ -1,6 +1,6 @@
 # Golden Path — Demo de extremo a extremo (no congelado)
 
-**Estado:** Escenario conceptual cerrado. **No es ejecutable hoy** — depende de una precondición de implementación explícita (§5). Sirve para derivar el dataset mínimo, los contratos de API y las pantallas del frontend a partir de una única historia real, no de una lista de endpoints inventados.
+**Estado:** Escenario conceptual cerrado. **No es ejecutable hoy** — depende de precondiciones de implementación explícitas (§5; las de dominio de Fase 5 ya están resueltas, quedan las de HTTP/Fase 6). Sirve para derivar el dataset mínimo, los contratos de API y las pantallas del frontend a partir de una única historia real, no de una lista de endpoints inventados.
 
 ---
 
@@ -48,9 +48,17 @@
    del donorRef (opaco efímero vs. derivado de accountId).
 
 4. Transmutación a especie
-   Actor: EMPLOYEE asignado. Comando: RegisterPhysicalAssetFromDonation.
-   PhysicalAsset hereda organizationRef, donorRef, donationRef de Fund (ADR-029).
-   ⚠ Ver §5 — bloqueado hoy.
+   Actor: EMPLOYEE asignado.
+   Camino A (compra con el Fund): registerPhysicalAsset(commandId, fundId,
+     organizationRef, ..., allocationId, ...). organizationRef debe ser el del
+     Fund (se valida contra el Fund cargado y se rechaza si difiere);
+     donorRef = null, donationRef = null (ADR-029 §2.1). Emite
+     ASSET_REGISTRATION_SAGA → AssetRegisteredSagaPolicy confirma la
+     asignación en el Fund (ADR-033).
+   Camino B (donación en especie directa): registerPhysicalAssetFromDonation.
+     organizationRef y donorRef son entrada directa; donationRef se genera
+     por acto de donación. No depende de un Fund (ADR-029).
+   Estado: ambos caminos implementados en core; sin endpoint HTTP (ver §5).
 
 5. Ciclo logístico
    DISPATCH → RECEIVE → DELIVER. beneficiaryRef se sella en DELIVER (ADR-014).
@@ -92,6 +100,14 @@
 | Verificación de integridad | Real | — |
 
 ## 5. Precondiciones de implementación — bloquean el paso 4/5, no son notas al pie
+
+> **Actualización (cierre del Bloque A de Fase 5, C6).** Verificado contra el código de `feat/fase5-a7-1-a7-2`:
+> - **§5.1 resuelta:** `HumanActor` existe (ADR-035) y `registerPhysicalAssetFromDonation` está implementado (Tarea 5.4).
+> - **§5.2 resuelta en `core`:** `PhysicalAssetCommandService` invoca `authorize(...)` (P9 → P7) en `registerPhysicalAsset`, `registerPhysicalAssetFromDonation`, `splitPhysicalAsset` y `deliverAsset`. `dispatch`/`receive` siguen sin método público en el servicio.
+> - **§5.3:** `clearFundsForPledge` ya existe en `FundCommandService`; todos sus comandos invocan `authorize(...)` salvo `reverseAllocation`, interno de la saga por diseño (ADR-036).
+> - **Sigue pendiente:** no hay endpoints HTTP de escritura que construyan un `HumanActor` (la integración real con Identity solo está demostrada para `registerFund`), ni derivación de `organizationRef` para `ExternalActor` (webhook), ni §5.4. El Golden Path sigue **sin ser ejecutable de extremo a extremo**, ahora por la capa HTTP/Fase 6 y no por el dominio.
+>
+> El texto original de §5.1–§5.3 se conserva abajo como registro de la inspección que lo motivó.
 
 **5.1 — `HumanAccount`.** `RegisterPhysicalAssetFromDonation` está bloqueado desde Fase 5 (ADR-031) hasta que exista `HumanAccount`. El Golden Path completo, tal como está descrito, **no es ejecutable hoy de extremo a extremo** — describe el producto deseado, no el estado actual.
 

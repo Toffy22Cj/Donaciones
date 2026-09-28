@@ -547,6 +547,12 @@ la secuencia Boundary -> Role -> Aggregate no tiene actualmente un camino E2E
 ejecutable dentro de CommandService. La incorporación futura de HumanAccount
 deberá implementar y probar dicha secuencia.
 
+NOTA POSTERIOR (A6 / C1, superada): HumanActor (ADR-035) ya implementa esa
+secuencia. HumanActorIdentityIntegrationTest (app, cableado de producción,
+commit 8a36894) la ejercita con IdentityPrincipalPortImpl real para
+registerFund. Sigue sin existir entrypoint HTTP de escritura. Ver
+estado-fase5.md §12.6.
+
 DEFINITION OF DONE: test que confirma que un comando disparado por
 SagaPolicy (SystemActor) o ExternalActor continúa normalmente (bypass)
 y que el switch sobre ActorRef es exhaustivo en los comandos actuales.
@@ -586,6 +592,8 @@ un defecto de la suite, es el estado esperado hasta que exista
 HumanAccount. Resumen de decisiones de implementación tomadas durante
 el backlog entregado para revisión humana.
 ```
+
+*(Nota posterior, C6: la deuda del productor Outbox quedó cerrada por A3/C3 — ver `estado-fase5.md` §12.5; la del stream hijo en Split sigue vigente.)*
 
 **Rectificación Post-Auditoría (5.10):** Se validó la integración E2E (pruebas y validaciones efectivamente realizadas, revisión de autorización, idempotencia, boundary). Sin embargo, la ausencia del productor real de Outbox impidió un E2E completo "sin intervención manual" para la Saga del Camino A, forzando la inyección manual del mensaje en el test. Estas capacidades no implementadas (productor Outbox, orquestación del stream del hijo en Split) quedan explícitamente registradas como *Deuda Técnica Diferida* para trabajo posterior, sin afirmar que todo el sistema E2E está completamente implementado de extremo a extremo.
 
