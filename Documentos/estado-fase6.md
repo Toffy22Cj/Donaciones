@@ -13,17 +13,17 @@ Las cinco capas de diseño conceptual de Fase 6 quedaron cerradas con review for
 
 | Capa | ADR | Estado de diseño | Estado de implementación |
 |---|---|---|---|
-| Convocatoria + Ledger + Assignment + DonationIntent | ADR-033 (tentativo) | 12/12 cerrado, D1 (pago tardío) resuelto, D2 (autoasignación) abierto | Sin código de esta sesión |
-| Identidad (HumanAccount, Platform Admin, verificación Organization, JWT) | ADR-034 (tentativo) | 12/12 cerrado, varias decisiones funcionales abiertas (§7) | Sin código de esta sesión |
-| Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-035 (tentativo) | 12/12 cerrado | **Productor: Fase 1-3 implementada y verificada. `IntegrityVerificationPort`: sin empezar** |
-| IA (ConvocatoriaAuditFacts) | ADR-036 (tentativo) | Cerrado parcialmente — 3 decisiones estructurales (A/B/C) y una contradicción de nomenclatura de puerto (C1) siguen abiertas | Sin código de esta sesión |
-| APIs + Frontend | ADR-037 (tentativo) | 12/12 cerrado — mapeo endpoint↔hueco de dominio consolidado | Sin código de esta sesión |
+| Convocatoria + Ledger + Assignment + DonationIntent | ADR-037 (tentativo) | 12/12 cerrado, D1 (pago tardío) resuelto, D2 (autoasignación) abierto | Sin código de esta sesión |
+| Identidad (HumanAccount, Platform Admin, verificación Organization, JWT) | ADR-038 (tentativo) | 12/12 cerrado, varias decisiones funcionales abiertas (§7) | Sin código de esta sesión |
+| Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-039 (tentativo) | 12/12 cerrado | **Productor: Fase 1-3 implementada y verificada. `IntegrityVerificationPort`: sin empezar** |
+| IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — 3 decisiones estructurales (A/B/C) y una contradicción de nomenclatura de puerto (C1) siguen abiertas | Sin código de esta sesión |
+| APIs + Frontend | ADR-041 (tentativo) | 12/12 cerrado — mapeo endpoint↔hueco de dominio consolidado | Sin código de esta sesión |
 
 ## 3. Blockchain — único componente con evidencia de código real
 
 ### 3.1 Verificado antes de tocar código (Fase de auditoría)
 
-- `MerkleTree.build(List<String>)`: sin acoplamiento a orden de inserción real — descartado el riesgo que ADR-035 marcaba como pendiente de verificar. No requirió modificación.
+- `MerkleTree.build(List<String>)`: sin acoplamiento a orden de inserción real — descartado el riesgo que ADR-039 marcaba como pendiente de verificar. No requirió modificación.
 - `MerkleBatch`: record inmutable, 15 campos reales (no 14 como decía `blockchain-resumen.md` — discrepancia documental, no bloqueante).
 - `EventCanonicalMapper.toCanonicalMap()`: firma explícita sin `actorRef` ni `merkleBatchId` — confirmado por código que agregar `merkleBatchId` a `TraceabilityEventDocument` no afecta `eventHash`, siempre que esa firma no se amplíe.
 - `AnchorStatus`: no tenía `COLLECTING`. Auditados los tres consumidores (`BlockchainAnchorScheduler`, `AnchorConfirmationPoller`, `BlockchainAdminOperationsService`) — ninguno usa `switch` exhaustivo, todos filtran por `findByStatus` de un valor específico. Agregar `COLLECTING` es seguro.
@@ -33,7 +33,7 @@ Las cinco capas de diseño conceptual de Fase 6 quedaron cerradas con review for
 
 - **`SequenceRange`** (record `fromSequence`/`toSequence`) vive en `contracts` — consumido por `core`, `app` y `crypto`, ninguno es dueño exclusivo.
 - **`UnanchoredEventRepositoryPort`** vive en `core.application.port.out`, implementado por `MongoUnanchoredEventAdapter` en `core.infrastructure.persistence.mongo` — mismo patrón que `EventStorePort`/`MongoEventStoreAdapter` (el módulo dueño de la colección posee también el puerto y el adapter).
-- **`BlockchainAnchorProducer` vive en `app`**, no en `crypto` — mismo precedente que el orquestador de `STRICT` en ADR-033: cuando una operación necesita atomicidad transaccional entre dos módulos hermanos, el orquestador vive en `app`, ninguno de los dos módulos de dominio importa al otro.
+- **`BlockchainAnchorProducer` vive en `app`**, no en `crypto` — mismo precedente que el orquestador de `STRICT` en ADR-037: cuando una operación necesita atomicidad transaccional entre dos módulos hermanos, el orquestador vive en `app`, ninguno de los dos módulos de dominio importa al otro.
 - **`MerkleBatchRepositoryPort.transitionCollectingToPending(batchId, merkleRoot): boolean`** — método nuevo, update condicional real (`WHERE batchId=X AND status=COLLECTING`), reemplaza el `save()` genérico original (que era lectura-luego-escritura, insuficiente para la Fase 3 del protocolo).
 - **`coverage[]` persistido en `MerkleBatch`** — `sequenceRangeStart`/`sequenceRangeEnd` permanecen en `MerkleBatchDocument`, marcados `@Deprecated(forRemoval=false)`, sin eliminar (evita romper deserialización de batches históricos).
 - **`LegacyBatchCoverageUnavailableException`** (excepción nombrada, `crypto.domain.exception`) — `toDomain()` falla explícitamente si `coverage` es nulo/vacío, en vez de sintetizar un `streamId` falso para batches legacy. Se descartó la síntesis silenciosa por riesgo real de falso `MISMATCH` en `IntegrityVerificationPort`.
@@ -55,7 +55,7 @@ Nota de proceso: hubo un reporte intermedio de "`BUILD SUCCESS`" basado en `mvn 
 
 ## 4. Pendiente — Blockchain
 
-- `IntegrityVerificationPort` (`verifyBatch`, `verifyAllAnchored`) — diseño cerrado en ADR-035, sin código todavía.
+- `IntegrityVerificationPort` (`verifyBatch`, `verifyAllAnchored`) — diseño cerrado en ADR-039, sin código todavía.
 - Partición cuando un stream supera `maxEventsPerBatch` sin romper contigüidad.
 - Semántica de `matchedCount==0` en Fase 3 cuando dos workers compiten por el mismo `COLLECTING`.
 - Mecanismo operativo que descubre y reintenta batches `COLLECTING` abandonados.

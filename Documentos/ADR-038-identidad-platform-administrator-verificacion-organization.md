@@ -1,14 +1,14 @@
-# ADR-034 (número tentativo — confirmar contra el catálogo real antes de commitear) — Identidad: HumanAccount, Platform Administrator, Verificación de Organization, Autenticación
+# ADR-038 (número tentativo — confirmar contra el catálogo real antes de commitear) — Identidad: HumanAccount, Platform Administrator, Verificación de Organization, Autenticación
 
 **Estado:** Aprobado — diseño conceptual y arquitectónico. Pendiente de implementación, de las decisiones funcionales listadas en §7, y de verificaciones técnicas que no bloquean continuar con las capas siguientes de Fase 6.
-**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), inmediatamente posterior a ADR-033 (Convocatoria).
+**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), inmediatamente posterior a ADR-037 (Convocatoria).
 **Complementa:** `identity-resumen.md`. No reabre `Account`/`Organization`/`Membership`/`IdentityPrincipalPort`/`OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` (cerrados en Fase 4/5).
 
 ---
 
 ## 1. Contexto
 
-Fase 6 requiere que una `Organization` pueda verificarse antes de operar (precondición ya consumida por `CreateConvocatoria`, ADR-033 §5), que exista una autoridad de plataforma capaz de verificar organizaciones y gestionar administradores globales, y que los seis `CommandType` organizacionales existentes (`Fund`/`PhysicalAsset`) puedan asociarse a un actor humano concreto para auditoría, sin que eso implique que `identity` decida autorización de dominio.
+Fase 6 requiere que una `Organization` pueda verificarse antes de operar (precondición ya consumida por `CreateConvocatoria`, ADR-037 §5), que exista una autoridad de plataforma capaz de verificar organizaciones y gestionar administradores globales, y que los seis `CommandType` organizacionales existentes (`Fund`/`PhysicalAsset`) puedan asociarse a un actor humano concreto para auditoría, sin que eso implique que `identity` decida autorización de dominio.
 
 Este ADR formaliza el perímetro de `HumanAccount`, Platform Administrator (`Account.platformAuthority` + `PlatformAuthorityState`), la máquina de estados de verificación de `Organization`, y los tres puertos de autenticación, todos ya diseñados conceptualmente en `identity-resumen.md` pero sin el review formal de 12 puntos que este ADR provee.
 
@@ -24,15 +24,15 @@ Variante de `ActorRef` (taxonomía ADR-031): snapshot histórico inmutable de `a
 
 ### 2.2 Actor propio para el audit log de `identity`
 
-`Account`/`Organization` son CRUD + audit log (no Event Sourced). Su audit log interno **no puede usar `core.domain.event.ActorRef`** sin violar la misma frontera de arriba — mismo patrón ya aplicado en ADR-033 para `ConvocatoriaAuthorizationPolicy` (no reutilizar directamente un tipo de `core` desde un módulo hermano). `identity` usa una representación de actor propia para sus operaciones de auditoría interna; nombre de clase y campos exactos quedan como detalle de implementación.
+`Account`/`Organization` son CRUD + audit log (no Event Sourced). Su audit log interno **no puede usar `core.domain.event.ActorRef`** sin violar la misma frontera de arriba — mismo patrón ya aplicado en ADR-037 para `ConvocatoriaAuthorizationPolicy` (no reutilizar directamente un tipo de `core` desde un módulo hermano). `identity` usa una representación de actor propia para sus operaciones de auditoría interna; nombre de clase y campos exactos quedan como detalle de implementación.
 
 ### 2.3 Platform Administrator
 
 - `Account.platformAuthority: PlatformAuthority?` (único valor hoy: `ADMINISTRATOR`) — autoridad global, eje paralelo a `Membership.roles`, sin solape con `OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` (comandos globales, sin `organizationRef` de recurso).
-- Cinco `PlatformCommandType`, cerrados para MVP: `VERIFY_ORGANIZATION`, `REJECT_ORGANIZATION`, `REQUEST_ORGANIZATION_INFORMATION`, `GRANT_PLATFORM_AUTHORITY`, `REVOKE_PLATFORM_AUTHORITY`. Todos comparten hoy el mismo requisito: `platformAuthority == ADMINISTRATOR`, evaluado por `PlatformAuthorizationPolicy` (vive en `identity.application.authorization`, no en `core` — mismo razonamiento que llevó a `ConvocatoriaAuthorizationPolicy` en ADR-033).
-- `activePlatformAdmins >= 1` en todo momento; auto-revocación permitida si queda al menos otro. Protegido por `PlatformAuthorityState { activeAdministratorCount, version }`, documento dedicado — evita el mismo *write skew* que motivó `CampaignResponsibleState` en ADR-033 (dos revocaciones concurrentes sobre cuentas distintas, cada una viendo "hay margen" en su propia lectura).
-- `Grant`/`Revoke` modifican `Account` + `PlatformAuthorityState` + Audit Log en la misma transacción MongoDB (reutiliza el `MongoTransactionManager` canónico de `app`, verificado real en ADR-033 §2.3).
-- **Mecanismo exacto de concurrencia (escritura condicional atómica vs. optimistic locking con `version`) NO verificado** — a diferencia de `CampaignResponsibleState` en ADR-033, aquí no se tiene código real que inspeccionar; el campo `version` está documentado en la forma conceptual, pero su función efectiva (mecanismo activo, dato auxiliar, o residuo) no puede confirmarse sin ver la implementación. No se recomienda sustituir `version` por el patrón de Convocatoria sin esa evidencia.
+- Cinco `PlatformCommandType`, cerrados para MVP: `VERIFY_ORGANIZATION`, `REJECT_ORGANIZATION`, `REQUEST_ORGANIZATION_INFORMATION`, `GRANT_PLATFORM_AUTHORITY`, `REVOKE_PLATFORM_AUTHORITY`. Todos comparten hoy el mismo requisito: `platformAuthority == ADMINISTRATOR`, evaluado por `PlatformAuthorizationPolicy` (vive en `identity.application.authorization`, no en `core` — mismo razonamiento que llevó a `ConvocatoriaAuthorizationPolicy` en ADR-037).
+- `activePlatformAdmins >= 1` en todo momento; auto-revocación permitida si queda al menos otro. Protegido por `PlatformAuthorityState { activeAdministratorCount, version }`, documento dedicado — evita el mismo *write skew* que motivó `CampaignResponsibleState` en ADR-037 (dos revocaciones concurrentes sobre cuentas distintas, cada una viendo "hay margen" en su propia lectura).
+- `Grant`/`Revoke` modifican `Account` + `PlatformAuthorityState` + Audit Log en la misma transacción MongoDB (reutiliza el `MongoTransactionManager` canónico de `app`, verificado real en ADR-037 §2.3).
+- **Mecanismo exacto de concurrencia (escritura condicional atómica vs. optimistic locking con `version`) NO verificado** — a diferencia de `CampaignResponsibleState` en ADR-037, aquí no se tiene código real que inspeccionar; el campo `version` está documentado en la forma conceptual, pero su función efectiva (mecanismo activo, dato auxiliar, o residuo) no puede confirmarse sin ver la implementación. No se recomienda sustituir `version` por el patrón de Convocatoria sin esa evidencia.
 - `PlatformAuthorityState` se trata, por inferencia estructural (no confirmada documentalmente), como documento singleton — no correlacionado por clave como `CampaignResponsibleState`, sino único para toda la plataforma.
 
 ### 2.4 Bootstrap
@@ -79,7 +79,7 @@ TokenIssuerPort.issue(accountId) → token
 ## 4. Alternativas descartadas
 
 - **`identity` construye `HumanAccount` directamente**: descartada — introduciría `identity → core`, prohibido.
-- **Reutilizar `core.domain.event.ActorRef` para el audit log de `identity`**: descartada — misma razón, mismo patrón de corrección que `ConvocatoriaAuthorizationPolicy` en ADR-033.
+- **Reutilizar `core.domain.event.ActorRef` para el audit log de `identity`**: descartada — misma razón, mismo patrón de corrección que `ConvocatoriaAuthorizationPolicy` en ADR-037.
 - **Inventar un `HumanAccount` sintético para trazar el bootstrap en el Audit Log normal**: descartada — contaminaría el significado histórico del actor; el bootstrap, por definición, no tiene un `AuthorizationPrincipal` autenticado que capturar.
 - **Tratar `VERIFY`/`REJECT`/`REQUEST_INFORMATION` sobre estados sin transición como rechazo automático por convención**: descartada explícitamente durante el review — sería el test (o el ADR) inventando el contrato que el propio review declaró abierto, en vez de esperar la decisión del equipo.
 
@@ -117,4 +117,4 @@ Ningún punto de esta tabla bloquea continuar con las capas siguientes de Fase 6
 
 ## 8. Trazabilidad de verificación
 
-A diferencia de ADR-033, este ADR **no tuvo código real disponible para inspeccionar** en esta sesión (no hay equivalente a `FundCommandService`/`MongoEventStoreAdapter` para Platform Administrator). Todo lo aquí congelado se apoya en `identity-resumen.md` como única fuente conceptual — las secciones marcadas "no verificado" en §7 (ítems 9-13) requieren específicamente esa misma clase de verificación contra código que sí se hizo para Convocatoria, antes de tratarlas como cerradas.
+A diferencia de ADR-037, este ADR **no tuvo código real disponible para inspeccionar** en esta sesión (no hay equivalente a `FundCommandService`/`MongoEventStoreAdapter` para Platform Administrator). Todo lo aquí congelado se apoya en `identity-resumen.md` como única fuente conceptual — las secciones marcadas "no verificado" en §7 (ítems 9-13) requieren específicamente esa misma clase de verificación contra código que sí se hizo para Convocatoria, antes de tratarlas como cerradas.

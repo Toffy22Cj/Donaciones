@@ -1,7 +1,7 @@
-# ADR-035 (número tentativo — confirmar contra el catálogo real antes de commitear) — Productor de MerkleBatch e IntegrityVerificationPort
+# ADR-039 (número tentativo — confirmar contra el catálogo real antes de commitear) — Productor de MerkleBatch e IntegrityVerificationPort
 
 **Estado:** Aprobado — modelo arquitectónico cerrado en lo que la documentación permite cerrar. No es "listo para implementar sin más": pendiente de un conjunto explícito de decisiones menores (§7-A) y verificaciones técnicas (§7-B).
-**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-033 (Convocatoria) y ADR-034 (Identidad).
+**Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-037 (Convocatoria) y ADR-038 (Identidad).
 **Complementa:** `blockchain-resumen.md`, `technical_documentation.md` §8.2-8.4. No reabre ADR-019/ADR-022 (Anchoring EVM, implementado y probado con 39 tests).
 
 ---
