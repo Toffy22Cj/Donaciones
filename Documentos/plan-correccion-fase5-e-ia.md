@@ -131,6 +131,16 @@ Salida:
 
 **Estado A7.2: ✅ CERRADO** (`e4404e5` + C4 `20ba931`; decisión formalizada en **ADR-042**). Los handlers ya no gestionan reintentos. `ProjectionEventSource` hace el primer intento, clasifica el error y solo avanza el checkpoint con el retry persistido. `ProjectionRetryScheduler` hace a lo sumo un intento por documento en cada ejecución, con ventana de 4 h y cuarentena. `resumeProjection` conserva el evento si falla. Cubierto por `ProjectionEventSourceTest` y `ProjectionRetrySchedulerTest`. `hallazgo-framework-retry-projections.md` queda marcado como cerrado.
 
+**Deuda técnica posterior de A7.2 — DEUDA FUERA DE ALCANCE (A7.2 no se reabre):**
+- C4 (`20ba931`) resolvió el bucle de reintentos del scheduler y la pérdida del evento en `resumeProjection`.
+- C7 (`107cfb4`) verificó, con una sonda de integración contra MongoDB real, qué pasa cuando falla la persistencia del retry:
+  - el checkpoint **no** avanza y no hay salto silencioso ni pérdida silenciosa confirmada;
+  - pero la tarea del change stream termina, y las proyecciones quedan detenidas hasta reiniciar o volver a suscribirse;
+  - tras el reinicio, el evento puede volver a entregarse.
+- La parada del change stream requiere una política explícita de resuscripción o reinicio, que queda para trabajo posterior.
+- Riesgo asociado, aceptado y no demostrado: al volver a entregarse, el documento de retry se reconstruye con `firstAttemptAt`/`retryCount` reiniciados.
+- Detalle: `estado-fase5.md` §12.8, deudas 7 y 8.
+
 ---
 
 ### A3. Outbox sin productor real de negocio (PRIORIDAD MEDIA-ALTA, bloquea la confianza en `STRICT` de Convocatoria) — ✅ CERRADO

@@ -534,6 +534,15 @@ Rama: `feat/fase5-a7-1-a7-2`, sobre la base remota `842c5e3` (merge de `origin/d
 4. **`reverseAllocation`:** sin `authorize()` por diseño y sin restricción en runtime del tipo de actor (§12.2.1).
 5. **Derivación de `organizationRef` para `ExternalActor`:** sin mecanismo (§9.6).
 6. **Escritura HTTP / E2E completo con `HumanActor`:** inexistente. Pertenece a Fase 6 (ADR-037 de Fase 6).
+7. **Change stream / persistencia del retry (deuda residual de A7.2, DEUDA FUERA DE ALCANCE de C7):** comportamiento verificado en C7 con una sonda de integración contra MongoDB real (spring-data-mongodb 4.4.4), no mediante un test permanente del repositorio:
+   - Si falla la persistencia del documento de retry en `ProjectionEventSource`, el checkpoint **no** avanza.
+   - El listener lanza la excepción y la tarea del change stream (`CursorReadingTask`) **termina**: los eventos posteriores no se procesan.
+   - **No** hay salto silencioso del checkpoint: ningún evento posterior lo avanza por encima del evento fallido. **No** se ha confirmado pérdida silenciosa de eventos.
+   - Las proyecciones quedan **detenidas** hasta reiniciar la aplicación o volver a suscribirse.
+   - Tras el reinicio, la suscripción se reanuda desde el último checkpoint y el evento puede volver a entregarse.
+   - **No existe todavía** una política de recuperación automática ni de resuscripción. Definirla es trabajo posterior.
+   - A7.2 sigue **cerrado**; esta es una deuda residual documentada, no una reapertura.
+8. **Redelivery del retry (riesgo aceptado / no demostrado):** si un evento se vuelve a entregar (solo ocurre tras un reinicio sin avance del checkpoint), `ProjectionEventSource` guarda el documento de retry con su id determinista (`eventId_handlerName`). Eso lo reconstruye con `firstAttemptAt` y `retryCount = 0` reiniciados. Una proyección en `PAUSED` sigue en cuarentena. No se ha demostrado que esto viole hoy el contrato de ADR-042; queda como riesgo aceptado.
 
 **Decisiones humanas pendientes (no resueltas en C5/C6, sin renumeración):**
 - Colisiones ADR-033 a ADR-037 entre Fase 5 y Fase 6, y el rango destino de la renumeración de Fase 6 (la propuesta 037–041 de `plan-correccion-fase5-e-ia.md` ya no es aplicable tal cual).
