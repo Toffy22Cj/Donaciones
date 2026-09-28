@@ -162,6 +162,8 @@ public class FundCommandService {
         });
     }
 
+    // Internal saga compensation only (AssetRegisteredSagaPolicy, SystemActor): intentionally no authorize().
+    // Human-initiated reversals must use reverseAllocationAdministratively (ADR-036 §2-3).
     public void reverseAllocation(String commandId, String fundId, String allocationId, String reason, com.traceability.core.domain.event.ActorRef actorRef) {
 
         retryTemplate.execute(() -> {

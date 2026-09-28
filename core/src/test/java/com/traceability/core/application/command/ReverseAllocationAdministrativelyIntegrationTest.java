@@ -8,6 +8,9 @@ import com.traceability.core.application.authorization.OrganizationBoundaryPolic
 import com.traceability.core.application.authorization.RoleAuthorizationPolicy;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.OutboxPort;
+import com.traceability.core.application.saga.AssetRegisteredSagaPolicy;
+import com.traceability.core.application.saga.OutboxMessage;
+import com.traceability.core.application.saga.OutboxStatus;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.event.SystemActor;
@@ -37,6 +40,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -76,6 +80,9 @@ public class ReverseAllocationAdministrativelyIntegrationTest {
 
     @Autowired
     private OutboxPort outboxPort;
+
+    @Autowired
+    private AssetRegisteredSagaPolicy assetRegisteredSagaPolicy;
 
     @MockBean
     private HashPort hashPort; // prevent errors in security infra if picked up
@@ -275,6 +282,36 @@ public class ReverseAllocationAdministrativelyIntegrationTest {
         assertTrue(events.stream().anyMatch(e -> e.eventType().name().equals("ALLOCATION_REVERSED")));
 
         // Verify authorize() was NEVER called because original method does not have authorize() inside
+        Mockito.verify(identityPrincipalPort, Mockito.never()).resolvePrincipal(any());
+        Mockito.verify(organizationBoundaryPolicy, Mockito.never()).assertBelongs(any(), any());
+        Mockito.verify(roleAuthorizationPolicy, Mockito.never()).authorize(any(), any());
+    }
+
+    @Test
+    void testH_realSagaCompensation_reversesAllocationAsSystemActorWithoutAuthorization() {
+        String fundId = UUID.randomUUID().toString();
+        String allocationId = "alloc-saga";
+        createFundWithAllocation(fundId, "ORG-1", allocationId);
+
+        String payload = "{\"allocationId\": \"" + allocationId + "\", \"fundId\": \"" + fundId + "\"}";
+        OutboxMessage message = new OutboxMessage(
+                UUID.randomUUID().toString(), "ASSET_REGISTRATION_SAGA", "ASSET-1", fundId,
+                payload, OutboxStatus.PENDING, 0, Instant.now(), Instant.now());
+
+        // Real saga policy -> real FundCommandService.reverseAllocation -> real event store (ADR-036 §2)
+        assetRegisteredSagaPolicy.compensate(message);
+
+        List<DomainEvent> events = eventStorePort.loadStream(fundId);
+        Fund fund = Fund.rehydrate(fundId, events.stream().map(DomainEvent::payload).toList(), events.size());
+        assertEquals(0L, fund.getPendingAllocationAmount());
+        assertEquals(1000L, fund.getAvailableAmount());
+
+        List<TraceabilityEventDocument> reversed = mongoTemplate.findAll(TraceabilityEventDocument.class).stream()
+                .filter(d -> fundId.equals(d.getStreamId()) && "ALLOCATION_REVERSED".equals(d.getEventType()))
+                .toList();
+        assertEquals(1, reversed.size());
+        assertEquals(new SystemActor("AssetRegisteredSagaPolicy"), reversed.get(0).getActorRef());
+
         Mockito.verify(identityPrincipalPort, Mockito.never()).resolvePrincipal(any());
         Mockito.verify(organizationBoundaryPolicy, Mockito.never()).assertBelongs(any(), any());
         Mockito.verify(roleAuthorizationPolicy, Mockito.never()).authorize(any(), any());
