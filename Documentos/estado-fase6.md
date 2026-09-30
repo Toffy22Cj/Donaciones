@@ -14,7 +14,7 @@ Las cinco capas de diseño conceptual de Fase 6 quedaron cerradas con review for
 | Capa | ADR | Estado de diseño | Estado de implementación |
 |---|---|---|---|
 | Convocatoria + Ledger + Assignment + DonationIntent | ADR-037 (tentativo) | 12/12 cerrado, D1 (pago tardío) resuelto, D2 (autoasignación) abierto | Sin código de esta sesión |
-| Identidad (HumanAccount, Platform Admin, verificación Organization, JWT) | ADR-038 (tentativo) | 12/12 cerrado, varias decisiones funcionales abiertas (§7) | Sin código de esta sesión |
+| Identidad (HumanActor, Platform Admin, verificación Organization, JWT) | ADR-038 | Approved — diseño conceptual; §7 cerrado (2026-09-30); evidencia en `verificacion-adr-038.md`; enmienda ADR-026 | Implementación no iniciada |
 | Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-039 (tentativo) | 12/12 cerrado | **Productor: Fase 1-3 implementada y verificada. `IntegrityVerificationPort`: sin empezar** |
 | IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — 3 decisiones estructurales (A/B/C) y una contradicción de nomenclatura de puerto (C1) siguen abiertas | Sin código de esta sesión |
 | APIs + Frontend | ADR-041 (tentativo) | 12/12 cerrado — mapeo endpoint↔hueco de dominio consolidado | Sin código de esta sesión |
@@ -69,7 +69,7 @@ Nota de proceso: hubo un reporte intermedio de "`BUILD SUCCESS`" basado en `mvn 
 Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor severidad, sin repetir lo ya extenso en cada documento:
 
 - **Convocatoria**: idempotencia real de `clearFundsGenesis` ante retry no verificada (bloquea el camino completo del webhook de pago) — máxima severidad de todo Fase 6.
-- **Identidad**: comportamiento de `VERIFY` sobre `Organization` ya `VERIFIED`, y de `GRANT`/`REVOKE` repetidos sobre Platform Administrator, sin definir.
+- **Identidad**: diseño cerrado (ADR-038 §7, 2026-09-30). Pendiente: tres correcciones de código de Fase 4 (`fix/identity-resolve-principal-inactive`, `fix/identity-deactivate-retry`, `fix/identity-audit-actor`) y la implementación de Platform Administrator.
 - **IA**: contradicción sin resolver entre `AuditFactsPort` (`ia-resumen.md`) y `CampaignAuditFactsPort` (`api-contract-matrix.md`) — requiere verificación de código antes de considerar el contrato cerrado.
 - **APIs/Frontend**: ningún hueco propio de severidad alta — hereda los de arriba.
 - **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanAccount`+P7, entre otros).
