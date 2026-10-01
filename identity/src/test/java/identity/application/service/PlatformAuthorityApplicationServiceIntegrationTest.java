@@ -63,6 +63,7 @@ import static org.mockito.Mockito.verify;
         RevokePlatformAuthorityService.class,
         DeactivateAccountService.class
 })
+@org.springframework.test.annotation.DirtiesContext
 class PlatformAuthorityApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
 
     @MockitoSpyBean
