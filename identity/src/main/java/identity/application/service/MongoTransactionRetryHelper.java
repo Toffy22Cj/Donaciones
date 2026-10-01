@@ -54,10 +54,6 @@ public class MongoTransactionRetryHelper {
         this.sleeper = sleeper != null ? sleeper : Thread::sleep;
     }
 
-    public MongoTransactionRetryHelper(PlatformTransactionManager transactionManager) {
-        this(transactionManager, Thread::sleep);
-    }
-
     public <T> T executeWithRetry(Supplier<T> operation) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new NestedIdentityTransactionException(
