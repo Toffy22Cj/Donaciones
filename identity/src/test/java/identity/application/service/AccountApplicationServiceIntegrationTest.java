@@ -314,4 +314,19 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         assertEquals(returnedAccount.getAccountId(), loadedAccount.getAccountId());
         assertEquals(returnedAccount.getEmail(), loadedAccount.getEmail());
     }
+
+    @Test
+    void changeCredentials_insideActiveTransaction_throwsNestedIdentityTransactionException() {
+        Email email = new Email("nested.tx@example.com");
+        Account account = createAccountService.createAccount(email, "password123");
+
+        org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            assertThrows(identity.domain.exception.NestedIdentityTransactionException.class, () -> {
+                changeCredentialsService.changeCredentials(account.getAccountId(), "newPassword");
+            });
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
 }
