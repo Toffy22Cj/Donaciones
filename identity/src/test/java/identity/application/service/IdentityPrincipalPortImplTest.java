@@ -72,6 +72,7 @@ class IdentityPrincipalPortImplTest {
         assertEquals(accountId.value(), principal.accountId());
         assertNull(principal.organizationId());
         assertEquals(0, principal.roles().size());
+        assertNull(principal.platformAuthority());
     }
 
     @Test
@@ -94,6 +95,7 @@ class IdentityPrincipalPortImplTest {
         assertEquals(employeeId.value(), principal.accountId());
         assertEquals(org.getOrganizationId().value(), principal.organizationId());
         assertEquals(Set.of(AuthorizationRole.EMPLOYEE, AuthorizationRole.ADMINISTRATOR), principal.roles());
+        assertNull(principal.platformAuthority());
     }
 
     @Test
@@ -114,6 +116,7 @@ class IdentityPrincipalPortImplTest {
         assertEquals(accountId.value(), principal.accountId());
         assertEquals(org.getOrganizationId().value(), principal.organizationId());
         assertEquals(true, principal.roles().isEmpty());
+        assertNull(principal.platformAuthority());
     }
 
     @Test

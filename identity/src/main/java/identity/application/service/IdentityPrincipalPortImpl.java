@@ -41,7 +41,8 @@ public class IdentityPrincipalPortImpl implements IdentityPrincipalPort {
             return new AuthorizationPrincipal(
                 accountIdStr,
                 null,
-                Collections.emptySet()
+                Collections.emptySet(),
+                null // ADR-038 §2.3: Account todavía no persiste platformAuthority
             );
         }
 
@@ -59,7 +60,8 @@ public class IdentityPrincipalPortImpl implements IdentityPrincipalPort {
         return new AuthorizationPrincipal(
             accountIdStr,
             orgIdStr,
-            roles
+            roles,
+            null // ADR-038 §2.3: Account todavía no persiste platformAuthority
         );
     }
 

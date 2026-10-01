@@ -83,7 +83,7 @@ class FundCommandServiceAuthorizationTest {
         when(eventStore.loadStream(fundId)).thenReturn(f.getUncommittedEvents());
 
         HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.ADMINISTRATOR));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.ADMINISTRATOR), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertDoesNotThrow(() -> {
@@ -101,7 +101,7 @@ class FundCommandServiceAuthorizationTest {
         when(eventStore.loadStream(fundId)).thenReturn(f.getUncommittedEvents());
 
         HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.EMPLOYEE));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.EMPLOYEE), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertThatThrownBy(() -> {
@@ -121,7 +121,7 @@ class FundCommandServiceAuthorizationTest {
         when(eventStore.loadStream(fundId)).thenReturn(f.getUncommittedEvents());
 
         HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.ADMINISTRATOR));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.ADMINISTRATOR), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertDoesNotThrow(() -> {
@@ -139,7 +139,7 @@ class FundCommandServiceAuthorizationTest {
         when(eventStore.loadStream(fundId)).thenReturn(f.getUncommittedEvents());
 
         HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", "DIFFERENT-ORG", Set.of(AuthorizationRole.ADMINISTRATOR));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", "DIFFERENT-ORG", Set.of(AuthorizationRole.ADMINISTRATOR), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertThatThrownBy(() -> {
