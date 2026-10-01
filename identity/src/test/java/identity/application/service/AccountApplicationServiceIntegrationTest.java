@@ -2,6 +2,7 @@ package identity.application.service;
 
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.AuditLogPort;
+import identity.application.port.out.OrganizationRepositoryPort;
 import identity.application.port.out.PasswordHasherPort;
 import identity.domain.exception.DuplicateEmailException;
 import identity.domain.model.Account;
@@ -9,10 +10,13 @@ import identity.domain.model.AccountId;
 import identity.domain.model.AccountStatus;
 import identity.domain.model.AuditActor;
 import identity.domain.model.Email;
+import identity.domain.model.Organization;
+import identity.domain.model.OrganizationType;
 import identity.domain.model.PasswordHash;
 import identity.infrastructure.persistence.mongo.BaseMongoIntegrationTest;
 import identity.infrastructure.persistence.mongo.repositories.MongoAccountRepositoryAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoAuditLogAdapter;
+import identity.infrastructure.persistence.mongo.repositories.MongoOrganizationRepositoryAdapter;
 import identity.infrastructure.security.BCryptPasswordHasherAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,12 +48,14 @@ import static org.mockito.Mockito.times;
 @Import({
         MongoAccountRepositoryAdapter.class,
         MongoAuditLogAdapter.class,
+        MongoOrganizationRepositoryAdapter.class,
         BCryptPasswordHasherAdapter.class,
         MongoTransactionRetryHelper.class,
         CreateAccountService.class,
         ChangeCredentialsService.class,
         DeactivateAccountService.class,
-        ReactivateAccountService.class
+        ReactivateAccountService.class,
+        AddEmployeeService.class
 })
 class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
 
@@ -66,6 +72,12 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
 
     @Autowired
     private ReactivateAccountService reactivateAccountService;
+
+    @Autowired
+    private AddEmployeeService addEmployeeService;
+
+    @Autowired
+    private OrganizationRepositoryPort organizationRepository;
 
     @MockitoSpyBean
     private AccountRepositoryPort accountRepository;
@@ -384,5 +396,91 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         org.bson.Document changeSummary = rawDoc.get("changeSummary", org.bson.Document.class);
         assertNotNull(changeSummary, "changeSummary subdocument must exist");
         assertEquals(Boolean.TRUE, changeSummary.getBoolean("selfRegistration"));
+    }
+
+    @Test
+    void deactivateAccount_onPlatformAdministrator_isRejected_andAccountIntact() {
+        Email email = new Email("admin.deact@example.com");
+        Account account = createAccountService.createAccount(email, "password123");
+
+        mongoTemplate.updateFirst(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(account.getAccountId().value())),
+                new org.springframework.data.mongodb.core.query.Update().set("platformAuthority", "ADMINISTRATOR"),
+                "accounts"
+        );
+
+        reset(auditLogPort);
+
+        try {
+            deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
+        } catch (RuntimeException ignored) {
+        }
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(account.getAccountId().value())),
+                org.bson.Document.class,
+                "accounts"
+        );
+
+        assertNotNull(rawDoc);
+        assertEquals("ACTIVE", rawDoc.getString("status"));
+        assertEquals("ADMINISTRATOR", rawDoc.getString("platformAuthority"));
+    }
+
+    @Test
+    void changeCredentials_onPlatformAdministrator_preservesPlatformAuthority() {
+        Email email = new Email("admin.changecred@example.com");
+        Account account = createAccountService.createAccount(email, "password123");
+
+        mongoTemplate.updateFirst(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(account.getAccountId().value())),
+                new org.springframework.data.mongodb.core.query.Update().set("platformAuthority", "ADMINISTRATOR"),
+                "accounts"
+        );
+
+        changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword456");
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(account.getAccountId().value())),
+                org.bson.Document.class,
+                "accounts"
+        );
+
+        assertNotNull(rawDoc);
+        assertEquals("ADMINISTRATOR", rawDoc.getString("platformAuthority"));
+    }
+
+    @Test
+    void addEmployee_onPlatformAdministrator_preservesPlatformAuthority() {
+        Account rep = createAccountService.createAccount(new Email("rep.org@example.com"), "password123");
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, rep.getAccountId());
+        organizationRepository.save(organization);
+        rep.joinOrganization(organization.getOrganizationId());
+        accountRepository.save(rep);
+
+        Account adminAccount = createAccountService.createAccount(new Email("admin.employee@example.com"), "password123");
+
+        mongoTemplate.updateFirst(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(adminAccount.getAccountId().value())),
+                new org.springframework.data.mongodb.core.query.Update().set("platformAuthority", "ADMINISTRATOR"),
+                "accounts"
+        );
+
+        addEmployeeService.addEmployee(testActor, organization.getOrganizationId(), adminAccount.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(adminAccount.getAccountId().value())),
+                org.bson.Document.class,
+                "accounts"
+        );
+
+        assertNotNull(rawDoc);
+        assertEquals("ADMINISTRATOR", rawDoc.getString("platformAuthority"));
     }
 }
