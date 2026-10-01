@@ -8,7 +8,6 @@ import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
 import identity.domain.model.AuditLogEntry;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
@@ -18,31 +17,36 @@ public class DeactivateAccountService {
 
     private final AccountRepositoryPort accountRepository;
     private final AuditLogPort auditLogPort;
+    private final MongoTransactionRetryHelper retryHelper;
 
-    public DeactivateAccountService(AccountRepositoryPort accountRepository, AuditLogPort auditLogPort) {
+    public DeactivateAccountService(AccountRepositoryPort accountRepository, 
+                                    AuditLogPort auditLogPort,
+                                    MongoTransactionRetryHelper retryHelper) {
         this.accountRepository = accountRepository;
         this.auditLogPort = auditLogPort;
+        this.retryHelper = retryHelper;
     }
 
-    @Transactional
     public void deactivateAccount(AccountId accountId) {
-        Account account = accountRepository.findById(accountId);
-        
-        boolean mutated = account.deactivate();
-        
-        if (mutated) {
-            accountRepository.save(account);
+        retryHelper.executeWithRetry(() -> {
+            Account account = accountRepository.findById(accountId);
+            
+            boolean mutated = account.deactivate();
+            
+            if (mutated) {
+                accountRepository.save(account);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
-                    UlidCreator.getUlid().toString(),
-                    Instant.now(),
-                    account.getAccountId(),
-                    account.getAccountId(),
-                    null,
-                    AuditAction.ACCOUNT_DEACTIVATED,
-                    Map.of()
-            );
-            auditLogPort.record(auditLog);
-        }
+                AuditLogEntry auditLog = new AuditLogEntry(
+                        UlidCreator.getUlid().toString(),
+                        Instant.now(),
+                        account.getAccountId(),
+                        account.getAccountId(),
+                        null,
+                        AuditAction.ACCOUNT_DEACTIVATED,
+                        Map.of()
+                );
+                auditLogPort.record(auditLog);
+            }
+        });
     }
 }

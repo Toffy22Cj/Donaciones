@@ -22,9 +22,19 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import org.springframework.test.context.ContextConfiguration;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 
@@ -34,6 +44,7 @@ import static org.mockito.Mockito.times;
         MongoAccountRepositoryAdapter.class,
         MongoAuditLogAdapter.class,
         BCryptPasswordHasherAdapter.class,
+        MongoTransactionRetryHelper.class,
         CreateAccountService.class,
         ChangeCredentialsService.class,
         DeactivateAccountService.class,
@@ -53,8 +64,11 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Autowired
     private ReactivateAccountService reactivateAccountService;
 
-    @Autowired
+    @MockitoSpyBean
     private AccountRepositoryPort accountRepository;
+
+    @Autowired
+    private MongoTransactionRetryHelper retryHelper;
 
     @Autowired
     private PasswordHasherPort passwordHasher;
@@ -175,5 +189,129 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
 
         // CRITICAL REQUIREMENT: Explicit negative assertion on idempotent call
         verify(auditLogPort, never()).record(any());
+    }
+
+    @Test
+    void concurrentChangeCredentials_sameAccount_bothSucceedAfterRetry() throws InterruptedException {
+        Account account = createAccountService.createAccount(new Email("concurrent.creds@example.com"), "initialPassword");
+
+        int initialRetries = retryHelper.getRetryCount();
+        String password1 = "newPasswordAlpha123";
+        String password2 = "newPasswordBeta456";
+
+        CyclicBarrier readBarrier = new CyclicBarrier(2);
+        AtomicBoolean firstPass = new AtomicBoolean(true);
+
+        doAnswer(invocation -> {
+            Object result = invocation.callRealMethod();
+            if (firstPass.get()) {
+                try {
+                    readBarrier.await(5, TimeUnit.SECONDS);
+                } catch (java.util.concurrent.TimeoutException e) {
+                    // Ignorar si hay timeout en la barrera
+                }
+                if (readBarrier.getNumberWaiting() == 0) {
+                    firstPass.set(false);
+                }
+            }
+            return result;
+        }).when(accountRepository).findById(account.getAccountId());
+
+        int threadCount = 2;
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        try {
+            CountDownLatch readyLatch = new CountDownLatch(threadCount);
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+            AtomicReference<Throwable> error = new AtomicReference<>();
+
+            Runnable task1 = () -> {
+                try {
+                    readyLatch.countDown();
+                    startLatch.await();
+                    changeCredentialsService.changeCredentials(account.getAccountId(), password1);
+                } catch (Throwable t) {
+                    error.compareAndSet(null, t);
+                } finally {
+                    doneLatch.countDown();
+                }
+            };
+
+            Runnable task2 = () -> {
+                try {
+                    readyLatch.countDown();
+                    startLatch.await();
+                    changeCredentialsService.changeCredentials(account.getAccountId(), password2);
+                } catch (Throwable t) {
+                    error.compareAndSet(null, t);
+                } finally {
+                    doneLatch.countDown();
+                }
+            };
+
+            executorService.submit(task1);
+            executorService.submit(task2);
+
+            assertTrue(readyLatch.await(5, TimeUnit.SECONDS), "Timeout: los hilos no estuvieron listos");
+            startLatch.countDown();
+
+            assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "Timeout: los hilos concurrentes no terminaron");
+
+            if (error.get() != null) {
+                System.err.println("=== Detalle de Excepción en concurrentChangeCredentials ===");
+                Throwable cur = error.get();
+                while (cur != null) {
+                    System.err.println("  -> " + cur.getClass().getName() + ": " + cur.getMessage());
+                    if (cur instanceof com.mongodb.MongoException me) {
+                        System.err.println("     errorLabels: " + me.getErrorLabels());
+                    }
+                    cur = cur.getCause();
+                }
+                fail("Concurrency test failed with exception: " + error.get().getMessage(), error.get());
+            }
+
+            Account updated = accountRepository.findById(account.getAccountId());
+            boolean p1Matches = passwordHasher.matches(password1, updated.getPasswordHash());
+            boolean p2Matches = passwordHasher.matches(password2, updated.getPasswordHash());
+
+            assertTrue(p1Matches ^ p2Matches, "Password must match exactly one of the two concurrent updates");
+
+            assertTrue(retryHelper.getRetryCount() > initialRetries,
+                    "Expected retryCount to increase from " + initialRetries + " due to write conflict retry");
+        } finally {
+            reset(accountRepository);
+            executorService.shutdownNow();
+        }
+    }
+
+    @Test
+    void changeCredentials_onInactiveAccount_doesNotRetry() {
+        Email email = new Email("inactive.noretry@example.com");
+        Account account = createAccountService.createAccount(email, "password123");
+        deactivateAccountService.deactivateAccount(account.getAccountId());
+
+        int retriesBefore = retryHelper.getRetryCount();
+
+        assertThrows(identity.domain.exception.InactiveAccountException.class, () -> {
+            changeCredentialsService.changeCredentials(account.getAccountId(), "newPassword");
+        });
+
+        assertEquals(retriesBefore, retryHelper.getRetryCount(), "Domain exceptions must not trigger transaction retries");
+    }
+
+    @Test
+    void createAccount_returnsPersistedAccountMatchingFindById() {
+        Email email = new Email("return.check@example.com");
+        String password = "securePassword123";
+
+        Account returnedAccount = createAccountService.createAccount(email, password);
+
+        assertNotNull(returnedAccount);
+        assertNotNull(returnedAccount.getAccountId());
+        Account loadedAccount = accountRepository.findById(returnedAccount.getAccountId());
+        assertNotNull(loadedAccount);
+        assertEquals(returnedAccount.getAccountId(), loadedAccount.getAccountId());
+        assertEquals(returnedAccount.getEmail(), loadedAccount.getEmail());
     }
 }

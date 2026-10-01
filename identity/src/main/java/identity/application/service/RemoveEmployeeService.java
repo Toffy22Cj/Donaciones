@@ -9,7 +9,6 @@ import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
@@ -19,31 +18,36 @@ public class RemoveEmployeeService {
 
     private final OrganizationRepositoryPort organizationRepository;
     private final AuditLogPort auditLogPort;
+    private final MongoTransactionRetryHelper retryHelper;
 
-    public RemoveEmployeeService(OrganizationRepositoryPort organizationRepository, AuditLogPort auditLogPort) {
+    public RemoveEmployeeService(OrganizationRepositoryPort organizationRepository, 
+                                 AuditLogPort auditLogPort,
+                                 MongoTransactionRetryHelper retryHelper) {
         this.organizationRepository = organizationRepository;
         this.auditLogPort = auditLogPort;
+        this.retryHelper = retryHelper;
     }
 
-    @Transactional
     public void removeEmployee(OrganizationId organizationId, AccountId accountId) {
-        Organization organization = organizationRepository.findById(organizationId);
+        retryHelper.executeWithRetry(() -> {
+            Organization organization = organizationRepository.findById(organizationId);
 
-        boolean mutated = organization.removeEmployee(accountId);
+            boolean mutated = organization.removeEmployee(accountId);
 
-        if (mutated) {
-            organizationRepository.save(organization);
+            if (mutated) {
+                organizationRepository.save(organization);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
-                    UlidCreator.getUlid().toString(),
-                    Instant.now(),
-                    accountId, 
-                    accountId,
-                    organizationId,
-                    AuditAction.EMPLOYEE_REMOVED,
-                    Map.of()
-            );
-            auditLogPort.record(auditLog);
-        }
+                AuditLogEntry auditLog = new AuditLogEntry(
+                        UlidCreator.getUlid().toString(),
+                        Instant.now(),
+                        accountId, 
+                        accountId,
+                        organizationId,
+                        AuditAction.EMPLOYEE_REMOVED,
+                        Map.of()
+                );
+                auditLogPort.record(auditLog);
+            }
+        });
     }
 }
