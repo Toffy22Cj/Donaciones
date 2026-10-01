@@ -127,7 +127,7 @@ public class MongoTransactionRetryHelper {
     }
 
     // For testing purposes
-    int getRetryCount() {
+    public int getRetryCount() {
         return retryCount.get();
     }
 }

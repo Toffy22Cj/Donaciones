@@ -3,6 +3,8 @@ package identity.domain.model;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.InactiveAccountException;
 import identity.domain.exception.PlatformAdministratorDeactivationException;
+import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
+import identity.domain.exception.PlatformAuthorityNotHeldException;
 import lombok.Getter;
 
 @Getter
@@ -84,5 +86,22 @@ public class Account {
 
     public void leaveOrganization() {
         this.organizationId = null;
+    }
+
+    public void grantPlatformAuthority() {
+        if (this.status == AccountStatus.INACTIVE) {
+            throw new InactiveAccountException("Cannot grant platform authority to an inactive account");
+        }
+        if (this.platformAuthority != null) {
+            throw new PlatformAuthorityAlreadyGrantedException("Account already has platform authority: " + this.accountId.value());
+        }
+        this.platformAuthority = PlatformAuthority.ADMINISTRATOR;
+    }
+
+    public void revokePlatformAuthority() {
+        if (this.platformAuthority == null) {
+            throw new PlatformAuthorityNotHeldException("Account does not have platform authority: " + this.accountId.value());
+        }
+        this.platformAuthority = null;
     }
 }

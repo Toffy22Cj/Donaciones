@@ -67,10 +67,11 @@ public class ArchitectureTest {
     public static final ArchRule only_CreateAccountService_and_AuditLogEntryMapper_may_call_AccountAuditActor_constructor =
             noClasses().that().doNotHaveFullyQualifiedName(identity.application.service.CreateAccountService.class.getName())
                     .and().doNotHaveFullyQualifiedName(identity.infrastructure.persistence.mongo.mappers.AuditLogEntryMapper.class.getName())
+                    .and().doNotHaveFullyQualifiedName(identity.application.authorization.AuthorizationAuditActorMapper.class.getName())
                     .and().doNotHaveFullyQualifiedName(identity.domain.model.AuditActor.AccountAuditActor.class.getName())
                     .should().callConstructorWhere(com.tngtech.archunit.base.DescribedPredicate.describe(
                             "target is AccountAuditActor constructor",
                             call -> call.getTargetOwner().isEquivalentTo(identity.domain.model.AuditActor.AccountAuditActor.class)))
-                    .because("Only CreateAccountService (self-registration) and AuditLogEntryMapper may construct AccountAuditActor (D3 / ADR-038 §2.2)");
+                    .because("Only CreateAccountService (self-registration), AuditLogEntryMapper and AuthorizationAuditActorMapper may construct AccountAuditActor (D3 / ADR-038 §2.2, §2.3)");
 }
 
