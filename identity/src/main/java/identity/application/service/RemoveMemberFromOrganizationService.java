@@ -26,9 +26,9 @@ public class RemoveMemberFromOrganizationService {
     private final MongoTransactionRetryHelper retryHelper;
 
     public RemoveMemberFromOrganizationService(AccountRepositoryPort accountRepository, 
-                                                OrganizationRepositoryPort organizationRepository, 
-                                                AuditLogPort auditLogPort,
-                                                MongoTransactionRetryHelper retryHelper) {
+                                               OrganizationRepositoryPort organizationRepository, 
+                                               AuditLogPort auditLogPort,
+                                               MongoTransactionRetryHelper retryHelper) {
         this.accountRepository = accountRepository;
         this.organizationRepository = organizationRepository;
         this.auditLogPort = auditLogPort;

@@ -41,6 +41,12 @@ public class TransferRepresentativeAndRemoveService {
         retryHelper.executeWithRetry(() -> {
             Organization organization = organizationRepository.findById(organizationId);
             Account currentRepAccount = accountRepository.findById(currentRepId);
+            
+            // Only strictly needed to verify newRep exists if the invariant doesn't cover it,
+            // but the domain model TransferRepresentativeAndRemove checks if newRep is a member.
+            // If they are a member, they MUST exist in the DB, so we don't necessarily have to load newRepAccount 
+            // to modify it, unless we need to change its organizationId (but it already is a member, so orgId is already set).
+            // So we only load currentRepAccount to possibly nullify its organizationId.
 
             organization.transferRepresentativeAndRemove(currentRepId, newRepId);
 
