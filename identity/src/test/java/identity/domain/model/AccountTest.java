@@ -2,6 +2,7 @@ package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.InactiveAccountException;
+import identity.domain.exception.PlatformAdministratorDeactivationException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,6 +21,7 @@ class AccountTest {
         assertEquals(passwordHash, account.getPasswordHash());
         assertEquals(AccountStatus.ACTIVE, account.getStatus());
         assertNull(account.getOrganizationId());
+        assertNull(account.getPlatformAuthority());
     }
 
     @Test
@@ -52,6 +54,27 @@ class AccountTest {
 
         // Idempotent call
         account.deactivate();
+        assertEquals(AccountStatus.INACTIVE, account.getStatus());
+    }
+
+    @Test
+    void testDeactivate_WithPlatformAuthority_ThrowsException() {
+        AccountId id = AccountId.generate();
+        Email email = new Email("admin@example.com");
+        PasswordHash hash = new PasswordHash("hash");
+        Account account = Account.reconstitute(id, email, hash, AccountStatus.ACTIVE, null, PlatformAuthority.ADMINISTRATOR);
+
+        assertThrows(PlatformAdministratorDeactivationException.class, account::deactivate);
+        assertEquals(AccountStatus.ACTIVE, account.getStatus());
+        assertEquals(PlatformAuthority.ADMINISTRATOR, account.getPlatformAuthority());
+    }
+
+    @Test
+    void testDeactivate_WithoutPlatformAuthority_Succeeds() {
+        Account account = Account.createAccount(new Email("user@example.com"), new PasswordHash("hash"));
+        assertNull(account.getPlatformAuthority());
+
+        assertTrue(account.deactivate());
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
     }
 
@@ -109,12 +132,13 @@ class AccountTest {
         PasswordHash hash = new PasswordHash("existing-hash");
         OrganizationId orgId = OrganizationId.generate();
 
-        Account account = Account.reconstitute(id, email, hash, AccountStatus.INACTIVE, orgId);
+        Account account = Account.reconstitute(id, email, hash, AccountStatus.INACTIVE, orgId, null);
 
         assertEquals(id, account.getAccountId());
         assertEquals(email, account.getEmail());
         assertEquals(hash, account.getPasswordHash());
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
         assertEquals(orgId, account.getOrganizationId());
+        assertNull(account.getPlatformAuthority());
     }
 }

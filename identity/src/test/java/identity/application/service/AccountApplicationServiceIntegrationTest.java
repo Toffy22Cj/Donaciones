@@ -411,11 +411,14 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         );
 
         reset(auditLogPort);
+        int retriesBefore = retryHelper.getRetryCount();
 
-        try {
+        assertThrows(identity.domain.exception.PlatformAdministratorDeactivationException.class, () -> {
             deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
-        } catch (RuntimeException ignored) {
-        }
+        });
+
+        assertEquals(retriesBefore, retryHelper.getRetryCount(), "Domain exceptions must not trigger transaction retries");
+        verify(auditLogPort, never()).record(any());
 
         org.bson.Document rawDoc = mongoTemplate.findOne(
                 new org.springframework.data.mongodb.core.query.Query(

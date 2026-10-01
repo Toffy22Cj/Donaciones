@@ -10,6 +10,7 @@ import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AccountStatus;
 import identity.domain.model.Organization;
+import identity.domain.model.PlatformAuthority;
 import identity.domain.model.Role;
 import org.springframework.stereotype.Service;
 
@@ -37,12 +38,14 @@ public class IdentityPrincipalPortImpl implements IdentityPrincipalPort {
             throw new InactiveAccountException("Account is inactive: " + accountIdStr);
         }
 
+        com.traceability.contracts.authorization.PlatformAuthority platformAuthority = mapPlatformAuthority(account.getPlatformAuthority());
+
         if (account.getOrganizationId() == null) {
             return new AuthorizationPrincipal(
                 accountIdStr,
                 null,
                 Collections.emptySet(),
-                null // ADR-038 §2.3: Account todavía no persiste platformAuthority
+                platformAuthority
             );
         }
 
@@ -61,8 +64,17 @@ public class IdentityPrincipalPortImpl implements IdentityPrincipalPort {
             accountIdStr,
             orgIdStr,
             roles,
-            null // ADR-038 §2.3: Account todavía no persiste platformAuthority
+            platformAuthority
         );
+    }
+
+    private com.traceability.contracts.authorization.PlatformAuthority mapPlatformAuthority(PlatformAuthority domainAuthority) {
+        if (domainAuthority == null) {
+            return null;
+        }
+        return switch (domainAuthority) {
+            case ADMINISTRATOR -> com.traceability.contracts.authorization.PlatformAuthority.ADMINISTRATOR;
+        };
     }
 
     private AuthorizationRole mapRole(Role domainRole) {

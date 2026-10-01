@@ -60,6 +60,53 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
     }
 
     @Test
+    void testAccountRoundTrip_withPlatformAdministrator() {
+        AccountId accountId = AccountId.generate();
+        Email email = new Email("platform.admin@example.com");
+        PasswordHash hash = new PasswordHash("myhash");
+        Account account = Account.reconstitute(
+                accountId,
+                email,
+                hash,
+                identity.domain.model.AccountStatus.ACTIVE,
+                null,
+                identity.domain.model.PlatformAuthority.ADMINISTRATOR
+        );
+
+        accountRepository.save(account);
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(accountId.value())),
+                org.bson.Document.class,
+                "accounts"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("ADMINISTRATOR", rawDoc.getString("platformAuthority"));
+
+        Account retrieved = accountRepository.findById(accountId);
+        assertNotNull(retrieved);
+        assertEquals(accountId, retrieved.getAccountId());
+        assertEquals(email, retrieved.getEmail());
+        assertEquals(identity.domain.model.PlatformAuthority.ADMINISTRATOR, retrieved.getPlatformAuthority());
+    }
+
+    @Test
+    void testAccount_legacyDocumentWithoutPlatformAuthority_readsAsNull() {
+        AccountId accountId = AccountId.generate();
+        org.bson.Document rawDoc = new org.bson.Document("_id", accountId.value())
+                .append("email", "legacy.account@example.com")
+                .append("passwordHash", "legacyhash")
+                .append("status", "ACTIVE");
+        mongoTemplate.insert(rawDoc, "accounts");
+
+        Account retrieved = accountRepository.findById(accountId);
+        assertNotNull(retrieved);
+        assertEquals(accountId, retrieved.getAccountId());
+        assertNull(retrieved.getPlatformAuthority());
+    }
+
+    @Test
     void testAccountUniqueEmailConstraint() {
         Email email = new Email("duplicate@example.com");
         Account account1 = Account.createAccount(email, new PasswordHash("hash1"));

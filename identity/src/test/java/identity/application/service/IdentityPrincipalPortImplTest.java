@@ -8,6 +8,7 @@ import identity.domain.exception.AccountNotFoundException;
 import identity.domain.exception.InactiveAccountException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
+import identity.domain.model.AccountStatus;
 import identity.domain.model.Email;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
@@ -73,6 +74,28 @@ class IdentityPrincipalPortImplTest {
         assertNull(principal.organizationId());
         assertEquals(0, principal.roles().size());
         assertNull(principal.platformAuthority());
+    }
+
+    @Test
+    void resolvePrincipal_AccountWithPlatformAuthority() {
+        AccountId accountId = AccountId.generate();
+        Account account = Account.reconstitute(
+                accountId,
+                new Email("admin@example.com"),
+                new PasswordHash("hash"),
+                AccountStatus.ACTIVE,
+                null,
+                identity.domain.model.PlatformAuthority.ADMINISTRATOR
+        );
+
+        when(accountRepositoryPort.findById(accountId)).thenReturn(account);
+
+        AuthorizationPrincipal principal = identityPrincipalPortImpl.resolvePrincipal(accountId.value());
+
+        assertEquals(accountId.value(), principal.accountId());
+        assertNull(principal.organizationId());
+        assertEquals(0, principal.roles().size());
+        assertEquals(com.traceability.contracts.authorization.PlatformAuthority.ADMINISTRATOR, principal.platformAuthority());
     }
 
     @Test

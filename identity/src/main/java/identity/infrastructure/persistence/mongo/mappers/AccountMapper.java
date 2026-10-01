@@ -6,6 +6,7 @@ import identity.domain.model.AccountStatus;
 import identity.domain.model.Email;
 import identity.domain.model.OrganizationId;
 import identity.domain.model.PasswordHash;
+import identity.domain.model.PlatformAuthority;
 import identity.infrastructure.persistence.mongo.documents.AccountDocument;
 
 public class AccountMapper {
@@ -22,6 +23,9 @@ public class AccountMapper {
         if (account.getOrganizationId() != null) {
             doc.setOrganizationId(account.getOrganizationId().value());
         }
+        if (account.getPlatformAuthority() != null) {
+            doc.setPlatformAuthority(account.getPlatformAuthority().name());
+        }
         return doc;
     }
 
@@ -35,12 +39,18 @@ public class AccountMapper {
             orgId = new OrganizationId(doc.getOrganizationId());
         }
 
+        PlatformAuthority platformAuthority = null;
+        if (doc.getPlatformAuthority() != null) {
+            platformAuthority = PlatformAuthority.valueOf(doc.getPlatformAuthority());
+        }
+
         return Account.reconstitute(
             new AccountId(doc.getAccountId()),
             new Email(doc.getEmail()),
             new PasswordHash(doc.getPasswordHash()),
             AccountStatus.valueOf(doc.getStatus()),
-            orgId
+            orgId,
+            platformAuthority
         );
     }
 }
