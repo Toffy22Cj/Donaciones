@@ -554,6 +554,62 @@ class PlatformAuthorityApplicationServiceIntegrationTest extends BaseMongoIntegr
         assertErrorInvariants(targetId, target, 1L, 1L, initialAudit, initialRetry);
     }
 
+    @Test
+    void revokePlatformAuthority_principalActorInactiveInDb_throwsInsufficientAuthority() {
+        AccountId callerId = AccountId.generate();
+        seedAccount(callerId, "caller@example.com", AccountStatus.INACTIVE, PlatformAuthority.ADMINISTRATOR);
+        AuthorizationPrincipal callerPrincipal = createPrincipal(callerId, PlatformAuthority.ADMINISTRATOR);
+
+        AccountId targetId = AccountId.generate();
+        Account target = seedAccount(targetId, "target@example.com", AccountStatus.ACTIVE, PlatformAuthority.ADMINISTRATOR);
+        seedPlatformAuthorityState(2, 1);
+
+        int initialRetry = retryHelper.getRetryCount();
+        long initialAudit = getAuditLogCount();
+
+        assertThrows(InsufficientPlatformAuthorityException.class,
+                () -> revokePlatformAuthorityService.revokePlatformAuthority(callerPrincipal, targetId));
+
+        assertErrorInvariants(targetId, target, 2L, 1L, initialAudit, initialRetry);
+    }
+
+    @Test
+    void revokePlatformAuthority_principalActorLacksAuthorityInDb_throwsInsufficientAuthority() {
+        AccountId callerId = AccountId.generate();
+        seedAccount(callerId, "caller@example.com", AccountStatus.ACTIVE, null);
+        AuthorizationPrincipal callerPrincipal = createPrincipal(callerId, PlatformAuthority.ADMINISTRATOR);
+
+        AccountId targetId = AccountId.generate();
+        Account target = seedAccount(targetId, "target@example.com", AccountStatus.ACTIVE, PlatformAuthority.ADMINISTRATOR);
+        seedPlatformAuthorityState(2, 1);
+
+        int initialRetry = retryHelper.getRetryCount();
+        long initialAudit = getAuditLogCount();
+
+        assertThrows(InsufficientPlatformAuthorityException.class,
+                () -> revokePlatformAuthorityService.revokePlatformAuthority(callerPrincipal, targetId));
+
+        assertErrorInvariants(targetId, target, 2L, 1L, initialAudit, initialRetry);
+    }
+
+    @Test
+    void revokePlatformAuthority_principalActorNotFoundInDb_throwsInsufficientAuthority() {
+        AccountId nonExistentCallerId = AccountId.generate();
+        AuthorizationPrincipal callerPrincipal = createPrincipal(nonExistentCallerId, PlatformAuthority.ADMINISTRATOR);
+
+        AccountId targetId = AccountId.generate();
+        Account target = seedAccount(targetId, "target@example.com", AccountStatus.ACTIVE, PlatformAuthority.ADMINISTRATOR);
+        seedPlatformAuthorityState(2, 1);
+
+        int initialRetry = retryHelper.getRetryCount();
+        long initialAudit = getAuditLogCount();
+
+        assertThrows(InsufficientPlatformAuthorityException.class,
+                () -> revokePlatformAuthorityService.revokePlatformAuthority(callerPrincipal, targetId));
+
+        assertErrorInvariants(targetId, target, 2L, 1L, initialAudit, initialRetry);
+    }
+
     // =========================================================================
     // 4.6 Integración — Enmienda ADR-026 con contador singleton
     // =========================================================================

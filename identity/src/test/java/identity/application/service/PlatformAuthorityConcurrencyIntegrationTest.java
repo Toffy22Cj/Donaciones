@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.mockito.stubbing.Answer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -206,6 +207,43 @@ class PlatformAuthorityConcurrencyIntegrationTest extends BaseMongoIntegrationTe
         }
     }
 
+    private Answer<Object> firstPassBarrier(CyclicBarrier barrier, AtomicBoolean firstPass, AtomicInteger arrivals) {
+        return invocation -> {
+            Object result = invocation.callRealMethod();
+            if (firstPass.get()) {
+                arrivals.incrementAndGet();
+                try {
+                    barrier.await(5, TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    throw new RuntimeException("Barrier await failed", e);
+                } finally {
+                    firstPass.set(false);
+                }
+            }
+            return result;
+        };
+    }
+
+    private Answer<Object> loserWaitsForWinner(
+            AtomicReference<Thread> loserThread,
+            AtomicBoolean loserFirstWrite,
+            CountDownLatch winnerDone
+    ) {
+        return invocation -> {
+            if (Thread.currentThread().equals(loserThread.get()) && loserFirstWrite.compareAndSet(true, false)) {
+                try {
+                    if (!winnerDone.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Winner did not finish within 5s; forced ordering broken");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted waiting for winnerDone", e);
+                }
+            }
+            return invocation.callRealMethod();
+        };
+    }
+
     // =========================================================================
     // Escenario a: REVOKE(A) por B || REVOKE(B) por A
     // =========================================================================
@@ -226,61 +264,127 @@ class PlatformAuthorityConcurrencyIntegrationTest extends BaseMongoIntegrationTe
         AtomicBoolean firstPass = new AtomicBoolean(true);
         AtomicInteger barrierArrivals = new AtomicInteger(0);
 
-        doAnswer(invocation -> {
-            Object result = invocation.callRealMethod();
-            if (firstPass.get()) {
-                barrierArrivals.incrementAndGet();
-                try {
-                    readBarrier.await(5, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    throw new RuntimeException("Barrier await failed in scenario a", e);
-                } finally {
-                    firstPass.set(false);
-                }
-            }
-            return result;
-        }).when(platformAuthorityStatePort).exists();
+        doAnswer(firstPassBarrier(readBarrier, firstPass, barrierArrivals))
+                .when(platformAuthorityStatePort).exists();
 
-        AtomicReference<Throwable> error1 = new AtomicReference<>();
-        AtomicReference<Throwable> error2 = new AtomicReference<>();
+        CountDownLatch winnerDone = new CountDownLatch(1);
+        AtomicReference<Thread> loserThread = new AtomicReference<>();
+        AtomicBoolean loserFirstWrite = new AtomicBoolean(true);
+
+        doAnswer(loserWaitsForWinner(loserThread, loserFirstWrite, winnerDone))
+                .when(platformAuthorityStatePort).decrementAdministratorsIfMoreThanOne();
+
+        AtomicReference<Throwable> winnerError = new AtomicReference<>();
+        AtomicReference<Throwable> loserError = new AtomicReference<>();
 
         executeConcurrent(
                 () -> {
+                    // Ganador: REVOKE(A) por B
                     try {
                         revokePlatformAuthorityService.revokePlatformAuthority(principalB, accountIdA);
                     } catch (Throwable t) {
-                        error1.set(t);
+                        winnerError.set(t);
+                    } finally {
+                        winnerDone.countDown();
                     }
                 },
                 () -> {
+                    // Perdedor: REVOKE(B) por A
+                    loserThread.set(Thread.currentThread());
                     try {
                         revokePlatformAuthorityService.revokePlatformAuthority(principalA, accountIdB);
                     } catch (Throwable t) {
-                        error2.set(t);
+                        loserError.set(t);
                     }
                 }
         );
 
-        // 1. Ambas transacciones leyeron antes de que ninguna escriba
+        // 1. Ambas transacciones leyeron antes de escribir
         assertEquals(2, barrierArrivals.get(), "Both transactions must reach the barrier before either writes");
 
-        // 2. Hubo colisión real de concurrencia
-        assertTrue(retryHelper.getRetryCount() - initialRetryCount >= 1, "Retry count must increase");
+        // 2. Exactamente un reintento por el conflicto forzado
+        assertEquals(1, retryHelper.getRetryCount() - initialRetryCount, "Retry count delta must be exactly 1");
 
-        // 3. Resultado permitido: exactamente uno con éxito; el otro LastPlatformAdministratorException o InsufficientPlatformAuthorityException
-        boolean task1Success = error1.get() == null;
-        boolean task2Success = error2.get() == null;
-        assertTrue(task1Success ^ task2Success, "Exactly one revoke must succeed");
-
-        Throwable failedError = task1Success ? error2.get() : error1.get();
-        assertTrue(
-                failedError instanceof LastPlatformAdministratorException ||
-                failedError instanceof InsufficientPlatformAuthorityException ||
-                failedError instanceof IdentityConcurrentModificationException,
-                "Failed error must be LastPlatformAdministratorException, InsufficientPlatformAuthorityException or IdentityConcurrentModificationException but was: " + failedError
-        );
+        // 3. Resultados exactos: ganador sin error, perdedor lanza InsufficientPlatformAuthorityException por D6e
+        assertNull(winnerError.get(), "Winner must succeed without error");
+        assertNotNull(loserError.get(), "Loser must fail");
+        assertInstanceOf(InsufficientPlatformAuthorityException.class, loserError.get());
 
         // 4. Invariantes finales
+        assertNull(accountRepository.findById(accountIdA).getPlatformAuthority(), "Account A must have authority revoked");
+        assertEquals(PlatformAuthority.ADMINISTRATOR, accountRepository.findById(accountIdB).getPlatformAuthority(), "Account B must remain administrator");
+        assertFinalInvariants(1L);
+        assertEquals(1L, getPlatformAuthorityState().getActiveAdministratorCount());
+    }
+
+    // =========================================================================
+    // Escenario a2: Protección del último administrador bajo concurrencia
+    // =========================================================================
+    @Test
+    void concurrency_scenario_a2_concurrentRevokeOnLastAdministratorProtection() throws InterruptedException {
+        AccountId accountIdA = AccountId.generate();
+        seedAccount(accountIdA, "adminA@example.com", AccountStatus.ACTIVE, PlatformAuthority.ADMINISTRATOR);
+        AuthorizationPrincipal principalA = createPrincipal(accountIdA, PlatformAuthority.ADMINISTRATOR);
+
+        AccountId accountIdB = AccountId.generate();
+        seedAccount(accountIdB, "adminB@example.com", AccountStatus.ACTIVE, PlatformAuthority.ADMINISTRATOR);
+
+        seedPlatformAuthorityState(2, 1);
+        int initialRetryCount = retryHelper.getRetryCount();
+
+        CyclicBarrier readBarrier = new CyclicBarrier(2);
+        AtomicBoolean firstPass = new AtomicBoolean(true);
+        AtomicInteger barrierArrivals = new AtomicInteger(0);
+
+        doAnswer(firstPassBarrier(readBarrier, firstPass, barrierArrivals))
+                .when(platformAuthorityStatePort).exists();
+
+        CountDownLatch winnerDone = new CountDownLatch(1);
+        AtomicReference<Thread> loserThread = new AtomicReference<>();
+        AtomicBoolean loserFirstWrite = new AtomicBoolean(true);
+
+        doAnswer(loserWaitsForWinner(loserThread, loserFirstWrite, winnerDone))
+                .when(platformAuthorityStatePort).decrementAdministratorsIfMoreThanOne();
+
+        AtomicReference<Throwable> winnerError = new AtomicReference<>();
+        AtomicReference<Throwable> loserError = new AtomicReference<>();
+
+        executeConcurrent(
+                () -> {
+                    // Ganador: REVOKE(B) por A
+                    try {
+                        revokePlatformAuthorityService.revokePlatformAuthority(principalA, accountIdB);
+                    } catch (Throwable t) {
+                        winnerError.set(t);
+                    } finally {
+                        winnerDone.countDown();
+                    }
+                },
+                () -> {
+                    // Perdedor: REVOKE(A) por A (autorrevocación)
+                    loserThread.set(Thread.currentThread());
+                    try {
+                        revokePlatformAuthorityService.revokePlatformAuthority(principalA, accountIdA);
+                    } catch (Throwable t) {
+                        loserError.set(t);
+                    }
+                }
+        );
+
+        // 1. Ambas transacciones leyeron antes de escribir
+        assertEquals(2, barrierArrivals.get(), "Both transactions must reach the barrier before either writes");
+
+        // 2. Exactamente un reintento por el conflicto forzado
+        assertEquals(1, retryHelper.getRetryCount() - initialRetryCount, "Retry count delta must be exactly 1");
+
+        // 3. Resultados exactos: ganador sin error, perdedor lanza LastPlatformAdministratorException
+        assertNull(winnerError.get(), "Winner must succeed without error");
+        assertNotNull(loserError.get(), "Loser must fail");
+        assertInstanceOf(LastPlatformAdministratorException.class, loserError.get());
+
+        // 4. Invariantes finales
+        assertEquals(PlatformAuthority.ADMINISTRATOR, accountRepository.findById(accountIdA).getPlatformAuthority(), "Account A must remain administrator");
+        assertNull(accountRepository.findById(accountIdB).getPlatformAuthority(), "Account B must have authority revoked");
         assertFinalInvariants(1L);
         assertEquals(1L, getPlatformAuthorityState().getActiveAdministratorCount());
     }
@@ -621,73 +725,58 @@ class PlatformAuthorityConcurrencyIntegrationTest extends BaseMongoIntegrationTe
         AtomicBoolean firstPass = new AtomicBoolean(true);
         AtomicInteger barrierArrivals = new AtomicInteger(0);
 
-        doAnswer(invocation -> {
-            Object result = invocation.callRealMethod();
-            if (firstPass.get()) {
-                barrierArrivals.incrementAndGet();
-                try {
-                    readBarrier.await(5, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    throw new RuntimeException("Barrier await failed in scenario f", e);
-                } finally {
-                    firstPass.set(false);
-                }
-            }
-            return result;
-        }).when(platformAuthorityStatePort).exists();
+        doAnswer(firstPassBarrier(readBarrier, firstPass, barrierArrivals))
+                .when(platformAuthorityStatePort).exists();
 
-        AtomicReference<Throwable> error1 = new AtomicReference<>();
-        AtomicReference<Throwable> error2 = new AtomicReference<>();
+        CountDownLatch winnerDone = new CountDownLatch(1);
+        AtomicReference<Thread> loserThread = new AtomicReference<>();
+        AtomicBoolean loserFirstWrite = new AtomicBoolean(true);
+
+        // La primera escritura de GRANT es sobre la cuenta C, que el ganador no toca, así que no choca. El conflicto ocurre en la segunda escritura, incrementAdministrators() sobre el singleton.
+        doAnswer(loserWaitsForWinner(loserThread, loserFirstWrite, winnerDone))
+                .when(accountRepository).grantPlatformAuthorityIfAbsent(any(AccountId.class));
+
+        AtomicReference<Throwable> winnerError = new AtomicReference<>();
+        AtomicReference<Throwable> loserError = new AtomicReference<>();
 
         executeConcurrent(
                 () -> {
+                    // Ganador: REVOKE(B) por A
                     try {
                         revokePlatformAuthorityService.revokePlatformAuthority(principalA, accountIdB);
                     } catch (Throwable t) {
-                        error1.set(t);
+                        winnerError.set(t);
+                    } finally {
+                        winnerDone.countDown();
                     }
                 },
                 () -> {
+                    // Perdedor: GRANT(C) por B
+                    loserThread.set(Thread.currentThread());
                     try {
                         grantPlatformAuthorityService.grantPlatformAuthority(principalB, accountIdC);
                     } catch (Throwable t) {
-                        error2.set(t);
+                        loserError.set(t);
                     }
                 }
         );
 
-        // 1. Ambas transacciones validaron a sus llamadores y leyeron el singleton antes de escribir
+        // 1. Ambas transacciones leyeron antes de escribir
         assertEquals(2, barrierArrivals.get(), "Both transactions must reach the barrier before either writes");
 
-        // 2. Conflicto de escritura real sobre el documento singleton platform_authority_state
-        assertTrue(retryHelper.getRetryCount() - initialRetryCount >= 1, "Conflict on singleton must trigger retry");
+        // 2. Exactamente un reintento por el conflicto forzado
+        assertEquals(1, retryHelper.getRetryCount() - initialRetryCount, "Retry count delta must be exactly 1");
 
-        // 3. Resultados permitidos:
-        if (error1.get() == null && error2.get() != null) {
-            // REVOKE confirmó primero: B fue revocado. GRANT en su reintento detectó por D6e que B ya no tiene autoridad (o agotó reintentos)
-            assertTrue(
-                    error2.get() instanceof InsufficientPlatformAuthorityException ||
-                    error2.get() instanceof IdentityConcurrentModificationException,
-                    "Failed error for GRANT must be InsufficientPlatformAuthorityException or IdentityConcurrentModificationException but was: " + error2.get()
-            );
-            assertNull(accountRepository.findById(accountIdC).getPlatformAuthority(), "Account C must NOT be granted administrator");
-            assertEquals(1L, getPlatformAuthorityState().getActiveAdministratorCount());
-            assertFinalInvariants(1L);
-        } else if (error1.get() == null && error2.get() == null) {
-            // GRANT confirmó primero: C quedó como administrador (count=3); luego REVOKE reintentó y revocó a B (count=2)
-            assertEquals(PlatformAuthority.ADMINISTRATOR, accountRepository.findById(accountIdC).getPlatformAuthority());
-            assertNull(accountRepository.findById(accountIdB).getPlatformAuthority());
-            assertEquals(2L, getPlatformAuthorityState().getActiveAdministratorCount());
-            assertFinalInvariants(2L);
-        } else if (error1.get() != null && error2.get() == null) {
-            // GRANT confirmó primero; REVOKE agotó sus reintentos por conflicto
-            assertInstanceOf(IdentityConcurrentModificationException.class, error1.get());
-            assertEquals(PlatformAuthority.ADMINISTRATOR, accountRepository.findById(accountIdC).getPlatformAuthority());
-            assertEquals(PlatformAuthority.ADMINISTRATOR, accountRepository.findById(accountIdB).getPlatformAuthority());
-            assertEquals(3L, getPlatformAuthorityState().getActiveAdministratorCount());
-            assertFinalInvariants(1L);
-        } else {
-            fail("At least one operation must succeed in scenario f");
-        }
+        // 3. Resultados exactos: REVOKE sin error; GRANT lanza InsufficientPlatformAuthorityException por D6e
+        assertNull(winnerError.get(), "REVOKE must succeed without error");
+        assertNotNull(loserError.get(), "GRANT must fail");
+        assertInstanceOf(InsufficientPlatformAuthorityException.class, loserError.get());
+
+        // 4. Invariantes finales
+        assertNull(accountRepository.findById(accountIdC).getPlatformAuthority(), "Account C must NOT have platform authority");
+        assertNull(accountRepository.findById(accountIdB).getPlatformAuthority(), "Account B must have authority revoked");
+        assertEquals(PlatformAuthority.ADMINISTRATOR, accountRepository.findById(accountIdA).getPlatformAuthority(), "Account A must remain administrator");
+        assertEquals(1L, getPlatformAuthorityState().getActiveAdministratorCount());
+        assertFinalInvariants(1L);
     }
 }
