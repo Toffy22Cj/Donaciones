@@ -73,5 +73,15 @@ public class ArchitectureTest {
                             "target is AccountAuditActor constructor",
                             call -> call.getTargetOwner().isEquivalentTo(identity.domain.model.AuditActor.AccountAuditActor.class)))
                     .because("Only CreateAccountService (self-registration), AuditLogEntryMapper and AuthorizationAuditActorMapper may construct AccountAuditActor (D3 / ADR-038 §2.2, §2.3)");
+
+    @ArchTest
+    public static final ArchRule only_BootstrapPlatformAuthorityService_and_AuditLogEntryMapper_may_call_SystemAuditActor_constructor =
+            noClasses().that().doNotHaveFullyQualifiedName(identity.application.service.BootstrapPlatformAuthorityService.class.getName())
+                    .and().doNotHaveFullyQualifiedName(identity.infrastructure.persistence.mongo.mappers.AuditLogEntryMapper.class.getName())
+                    .and().doNotHaveFullyQualifiedName(identity.domain.model.AuditActor.SystemAuditActor.class.getName())
+                    .should().callConstructorWhere(com.tngtech.archunit.base.DescribedPredicate.describe(
+                            "target is SystemAuditActor constructor",
+                            call -> call.getTargetOwner().isEquivalentTo(identity.domain.model.AuditActor.SystemAuditActor.class)))
+                    .because("Only BootstrapPlatformAuthorityService and AuditLogEntryMapper may construct SystemAuditActor (ADR-038 §2.2, §2.4)");
 }
 

@@ -4,6 +4,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.traceability.core.archfixture.CoreMarker;
 import identity.archfixture.HelperThatBuildsActor;
+import identity.archfixture.HelperThatBuildsSystemActor;
 import identity.archfixture.ViolatesCoreRule;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +25,14 @@ class ArchitectureRulesBiteTest {
         JavaClasses classes = new ClassFileImporter().importClasses(HelperThatBuildsActor.class);
         assertThrows(AssertionError.class, () ->
                 ArchitectureTest.only_CreateAccountService_and_AuditLogEntryMapper_may_call_AccountAuditActor_constructor.check(classes)
+        );
+    }
+
+    @Test
+    void only_BootstrapPlatformAuthorityService_and_AuditLogEntryMapper_may_call_SystemAuditActor_constructor_bites() {
+        JavaClasses classes = new ClassFileImporter().importClasses(HelperThatBuildsSystemActor.class);
+        assertThrows(AssertionError.class, () ->
+                ArchitectureTest.only_BootstrapPlatformAuthorityService_and_AuditLogEntryMapper_may_call_SystemAuditActor_constructor.check(classes)
         );
     }
 }

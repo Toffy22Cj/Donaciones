@@ -60,4 +60,10 @@ public class MongoAccountRepositoryAdapter implements AccountRepositoryPort {
         Update update = new Update().unset("platformAuthority");
         return mongoTemplate.updateFirst(query, update, "accounts").getMatchedCount() == 1L;
     }
+
+    @Override
+    public boolean existsAnyWithPlatformAuthority() {
+        Query query = Query.query(Criteria.where("platformAuthority").ne(null));
+        return mongoTemplate.exists(query, "accounts");
+    }
 }

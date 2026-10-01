@@ -26,4 +26,12 @@ public interface PlatformAuthorityStatePort {
      * @return true if decremented successfully, false if count <= 1 or document not found
      */
     boolean decrementAdministratorsIfMoreThanOne();
+
+    /**
+     * Initializes the singleton platform authority state document with activeAdministratorCount = 1
+     * and version = 1 (ADR-038 §2.4).
+     *
+     * @throws identity.domain.exception.PlatformAlreadyBootstrappedException if the document already exists
+     */
+    void initialize();
 }

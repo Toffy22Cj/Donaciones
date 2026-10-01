@@ -1,8 +1,11 @@
 package identity.infrastructure.persistence.mongo.repositories;
 
 import identity.application.port.out.PlatformAuthorityStatePort;
+import identity.domain.exception.PlatformAlreadyBootstrappedException;
 import identity.domain.exception.PlatformAuthorityStateMissingException;
+import identity.infrastructure.persistence.mongo.documents.PlatformAuthorityStateDocument;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -45,5 +48,19 @@ public class MongoPlatformAuthorityStateAdapter implements PlatformAuthorityStat
         );
         Update update = new Update().inc("activeAdministratorCount", -1).inc("version", 1);
         return mongoTemplate.updateFirst(query, update, COLLECTION_NAME).getMatchedCount() == 1L;
+    }
+
+    @Override
+    public void initialize() {
+        PlatformAuthorityStateDocument doc = new PlatformAuthorityStateDocument(
+                SINGLETON_ID,
+                1L,
+                1L
+        );
+        try {
+            mongoTemplate.insert(doc, COLLECTION_NAME);
+        } catch (DuplicateKeyException e) {
+            throw new PlatformAlreadyBootstrappedException("Platform authority state already exists", e);
+        }
     }
 }

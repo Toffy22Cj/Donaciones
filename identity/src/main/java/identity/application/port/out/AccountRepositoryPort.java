@@ -46,5 +46,12 @@ public interface AccountRepositoryPort {
      *         or does not hold platform administrator authority
      */
     boolean revokePlatformAuthorityIfHeld(AccountId accountId);
+
+    /**
+     * Checks if there exists any account in the database that currently holds platform administrator authority.
+     *
+     * @return true if at least one account has platformAuthority != null, false otherwise
+     */
+    boolean existsAnyWithPlatformAuthority();
 }
 
