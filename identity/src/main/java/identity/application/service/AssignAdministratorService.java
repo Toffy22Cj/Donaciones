@@ -5,13 +5,15 @@ import identity.application.port.out.AuditLogPort;
 import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class AssignAdministratorService {
@@ -28,7 +30,9 @@ public class AssignAdministratorService {
         this.retryHelper = retryHelper;
     }
 
-    public void assignAdministrator(OrganizationId organizationId, AccountId accountId) {
+    public void assignAdministrator(AuditActor actor, OrganizationId organizationId, AccountId accountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Organization organization = organizationRepository.findById(organizationId);
 
@@ -37,14 +41,14 @@ public class AssignAdministratorService {
             if (mutated) {
                 organizationRepository.save(organization);
 
-                AuditLogEntry auditLog = new AuditLogEntry(
+                AuditLogEntry auditLog = AuditLogEntry.record(
                         UlidCreator.getUlid().toString(),
                         Instant.now(),
+                        actor,
                         accountId, 
-                        accountId,
                         organizationId,
                         AuditAction.ADMINISTRATOR_ASSIGNED,
-                        Map.of()
+                        Collections.emptyMap()
                 );
                 auditLogPort.record(auditLog);
             }

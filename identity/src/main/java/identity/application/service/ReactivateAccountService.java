@@ -6,11 +6,13 @@ import identity.application.port.out.AuditLogPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class ReactivateAccountService {
@@ -27,7 +29,9 @@ public class ReactivateAccountService {
         this.retryHelper = retryHelper;
     }
 
-    public void reactivateAccount(AccountId accountId) {
+    public void reactivateAccount(AuditActor actor, AccountId accountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(accountId);
             
@@ -36,14 +40,14 @@ public class ReactivateAccountService {
             if (mutated) {
                 accountRepository.save(account);
 
-                AuditLogEntry auditLog = new AuditLogEntry(
+                AuditLogEntry auditLog = AuditLogEntry.record(
                         UlidCreator.getUlid().toString(),
                         Instant.now(),
-                        account.getAccountId(),
+                        actor,
                         account.getAccountId(),
                         null,
                         AuditAction.ACCOUNT_REACTIVATED,
-                        Map.of()
+                        Collections.emptyMap()
                 );
                 auditLogPort.record(auditLog);
             }

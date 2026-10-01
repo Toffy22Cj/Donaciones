@@ -8,13 +8,15 @@ import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class AddEmployeeService {
@@ -34,7 +36,9 @@ public class AddEmployeeService {
         this.retryHelper = retryHelper;
     }
 
-    public void addEmployee(OrganizationId organizationId, AccountId accountId) {
+    public void addEmployee(AuditActor actor, OrganizationId organizationId, AccountId accountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Organization organization = organizationRepository.findById(organizationId);
             Account account = accountRepository.findById(accountId);
@@ -49,14 +53,14 @@ public class AddEmployeeService {
             organizationRepository.save(organization);
             accountRepository.save(account);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
-                    accountId, // actor
+                    actor,
                     accountId, // target
                     organizationId,
                     AuditAction.EMPLOYEE_ADDED,
-                    java.util.Collections.emptyMap()
+                    Collections.emptyMap()
             );
             auditLogPort.record(auditLog);
         });

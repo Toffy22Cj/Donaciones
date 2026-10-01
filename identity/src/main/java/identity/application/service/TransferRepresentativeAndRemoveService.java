@@ -7,13 +7,15 @@ import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class TransferRepresentativeAndRemoveService {
@@ -33,16 +35,12 @@ public class TransferRepresentativeAndRemoveService {
         this.retryHelper = retryHelper;
     }
 
-    public void transferRepresentativeAndRemove(OrganizationId organizationId, AccountId currentRepId, AccountId newRepId) {
+    public void transferRepresentativeAndRemove(AuditActor actor, OrganizationId organizationId, AccountId currentRepId, AccountId newRepId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Organization organization = organizationRepository.findById(organizationId);
             Account currentRepAccount = accountRepository.findById(currentRepId);
-            
-            // Only strictly needed to verify newRep exists if the invariant doesn't cover it,
-            // but the domain model TransferRepresentativeAndRemove checks if newRep is a member.
-            // If they are a member, they MUST exist in the DB, so we don't necessarily have to load newRepAccount 
-            // to modify it, unless we need to change its organizationId (but it already is a member, so orgId is already set).
-            // So we only load currentRepAccount to possibly nullify its organizationId.
 
             organization.transferRepresentativeAndRemove(currentRepId, newRepId);
 
@@ -56,14 +54,14 @@ public class TransferRepresentativeAndRemoveService {
 
             organizationRepository.save(organization);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
-                    currentRepId, // actor
+                    actor,
                     newRepId,     // target
                     organizationId,
                     AuditAction.REPRESENTATIVE_TRANSFERRED,
-                    Map.of()
+                    Collections.emptyMap()
             );
             auditLogPort.record(auditLog);
         });

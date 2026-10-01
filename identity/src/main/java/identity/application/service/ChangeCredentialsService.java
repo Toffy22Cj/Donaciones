@@ -7,12 +7,14 @@ import identity.application.port.out.PasswordHasherPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.PasswordHash;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class ChangeCredentialsService {
@@ -32,7 +34,9 @@ public class ChangeCredentialsService {
         this.retryHelper = retryHelper;
     }
 
-    public void changeCredentials(AccountId accountId, String newPlainPassword) {
+    public void changeCredentials(AuditActor actor, AccountId accountId, String newPlainPassword) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(accountId);
             
@@ -41,14 +45,14 @@ public class ChangeCredentialsService {
             
             accountRepository.save(account);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
-                    account.getAccountId(),
+                    actor,
                     account.getAccountId(),
                     null,
                     AuditAction.CREDENTIALS_CHANGED,
-                    Map.of()
+                    Collections.emptyMap()
             );
             auditLogPort.record(auditLog);
         });

@@ -7,6 +7,7 @@ import identity.application.port.out.AuditLogPort;
 import identity.application.service.MongoTransactionRetryHelper;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.OrganizationId;
 import identity.infrastructure.persistence.mongo.IdentityTestApplication;
@@ -129,10 +130,10 @@ public class CommitRetryComparisonIntegrationTest {
                 standardTemplate.execute(status -> {
                     lambdaExecutions.incrementAndGet();
                     mongoTemplate.insert(new Document("_id", testId).append("data", "scenario1"), "comparison_test_docs");
-                    AuditLogEntry entry = new AuditLogEntry(
+                    AuditLogEntry entry = AuditLogEntry.record(
                             UlidCreator.getUlid().toString(),
                             Instant.now(),
-                            AccountId.generate(),
+                            new AuditActor.AccountAuditActor(AccountId.generate()),
                             AccountId.generate(),
                             OrganizationId.generate(),
                             AuditAction.ACCOUNT_CREATED,
@@ -163,10 +164,10 @@ public class CommitRetryComparisonIntegrationTest {
                 cPlusRetryHelper.executeWithRetry(() -> {
                     lambdaExecutions.incrementAndGet();
                     mongoTemplate.insert(new Document("_id", testId).append("data", "scenario2"), "comparison_test_docs");
-                    AuditLogEntry entry = new AuditLogEntry(
+                    AuditLogEntry entry = AuditLogEntry.record(
                             UlidCreator.getUlid().toString(),
                             Instant.now(),
-                            AccountId.generate(),
+                            new AuditActor.AccountAuditActor(AccountId.generate()),
                             AccountId.generate(),
                             OrganizationId.generate(),
                             AuditAction.ACCOUNT_CREATED,
@@ -197,10 +198,10 @@ public class CommitRetryComparisonIntegrationTest {
                 standardTemplate.execute(status -> {
                     lambdaExecutions.incrementAndGet();
                     mongoTemplate.insert(new Document("_id", testId).append("data", "scenario3"), "comparison_test_docs");
-                    AuditLogEntry entry = new AuditLogEntry(
+                    AuditLogEntry entry = AuditLogEntry.record(
                             UlidCreator.getUlid().toString(),
                             Instant.now(),
-                            AccountId.generate(),
+                            new AuditActor.AccountAuditActor(AccountId.generate()),
                             AccountId.generate(),
                             OrganizationId.generate(),
                             AuditAction.ACCOUNT_CREATED,
@@ -239,10 +240,10 @@ public class CommitRetryComparisonIntegrationTest {
                 cPlusRetryHelper.executeWithRetry(() -> {
                     lambdaExecutions.incrementAndGet();
                     mongoTemplate.insert(new Document("_id", testId).append("data", "scenario4"), "comparison_test_docs");
-                    AuditLogEntry entry = new AuditLogEntry(
+                    AuditLogEntry entry = AuditLogEntry.record(
                             UlidCreator.getUlid().toString(),
                             Instant.now(),
-                            AccountId.generate(),
+                            new AuditActor.AccountAuditActor(AccountId.generate()),
                             AccountId.generate(),
                             OrganizationId.generate(),
                             AuditAction.ACCOUNT_CREATED,

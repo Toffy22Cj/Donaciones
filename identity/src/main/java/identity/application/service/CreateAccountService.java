@@ -7,6 +7,7 @@ import identity.application.port.out.PasswordHasherPort;
 import identity.domain.exception.DuplicateEmailException;
 import identity.domain.model.Account;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Email;
 import identity.domain.model.PasswordHash;
@@ -44,14 +45,15 @@ public class CreateAccountService {
 
             accountRepository.save(newAccount);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditActor actor = new AuditActor.AccountAuditActor(newAccount.getAccountId());
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
-                    newAccount.getAccountId(),
+                    actor,
                     newAccount.getAccountId(),
                     null,
                     AuditAction.ACCOUNT_CREATED,
-                    Map.of("email", email.value())
+                    Map.of("email", email.value(), "selfRegistration", true)
             );
             auditLogPort.record(auditLog);
 

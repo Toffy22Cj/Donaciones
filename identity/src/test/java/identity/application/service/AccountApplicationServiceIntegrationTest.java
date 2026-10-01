@@ -7,6 +7,7 @@ import identity.domain.exception.DuplicateEmailException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AccountStatus;
+import identity.domain.model.AuditActor;
 import identity.domain.model.Email;
 import identity.domain.model.PasswordHash;
 import identity.infrastructure.persistence.mongo.BaseMongoIntegrationTest;
@@ -52,6 +53,8 @@ import static org.mockito.Mockito.times;
 })
 class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
 
+    private final AuditActor testActor = new AuditActor.AccountAuditActor(AccountId.generate());
+
     @Autowired
     private CreateAccountService createAccountService;
 
@@ -75,6 +78,9 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
 
     @MockitoSpyBean
     private AuditLogPort auditLogPort;
+
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     @Test
     void createAccount_success() {
@@ -116,7 +122,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         Account account = createAccountService.createAccount(email, "oldPassword");
         org.mockito.Mockito.reset(auditLogPort);
 
-        changeCredentialsService.changeCredentials(account.getAccountId(), "newPassword");
+        changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
 
         Account updated = accountRepository.findById(account.getAccountId());
         assertTrue(passwordHasher.matches("newPassword", updated.getPasswordHash()));
@@ -127,11 +133,11 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     void changeCredentials_onInactiveAccount_throwsException_andDoesNotGenerateAuditLog() {
         Email email = new Email("change.creds.inactive@example.com");
         Account account = createAccountService.createAccount(email, "oldPassword");
-        deactivateAccountService.deactivateAccount(account.getAccountId());
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
         org.mockito.Mockito.reset(auditLogPort);
 
         assertThrows(identity.domain.exception.InactiveAccountException.class, () -> {
-            changeCredentialsService.changeCredentials(account.getAccountId(), "newPassword");
+            changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
         });
 
         verify(auditLogPort, never()).record(any());
@@ -143,7 +149,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         Account account = createAccountService.createAccount(email, "password");
         org.mockito.Mockito.reset(auditLogPort);
 
-        deactivateAccountService.deactivateAccount(account.getAccountId());
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
 
         Account updated = accountRepository.findById(account.getAccountId());
         assertEquals(AccountStatus.INACTIVE, updated.getStatus());
@@ -154,11 +160,11 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     void deactivateAccount_idempotent_doesNotGenerateAuditLog() {
         Email email = new Email("deactivate.idempotent@example.com");
         Account account = createAccountService.createAccount(email, "password");
-        deactivateAccountService.deactivateAccount(account.getAccountId()); // First time mutates
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId()); // First time mutates
         org.mockito.Mockito.reset(auditLogPort);
 
         // Second time should be idempotent
-        deactivateAccountService.deactivateAccount(account.getAccountId());
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
 
         // CRITICAL REQUIREMENT: Explicit negative assertion on idempotent call
         verify(auditLogPort, never()).record(any());
@@ -168,10 +174,10 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     void reactivateAccount_success() {
         Email email = new Email("reactivate@example.com");
         Account account = createAccountService.createAccount(email, "password");
-        deactivateAccountService.deactivateAccount(account.getAccountId());
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
         org.mockito.Mockito.reset(auditLogPort);
 
-        reactivateAccountService.reactivateAccount(account.getAccountId());
+        reactivateAccountService.reactivateAccount(testActor, account.getAccountId());
 
         Account updated = accountRepository.findById(account.getAccountId());
         assertEquals(AccountStatus.ACTIVE, updated.getStatus());
@@ -185,7 +191,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         org.mockito.Mockito.reset(auditLogPort);
 
         // Already active, so reactivating should be idempotent
-        reactivateAccountService.reactivateAccount(account.getAccountId());
+        reactivateAccountService.reactivateAccount(testActor, account.getAccountId());
 
         // CRITICAL REQUIREMENT: Explicit negative assertion on idempotent call
         verify(auditLogPort, never()).record(any());
@@ -230,7 +236,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
                 try {
                     readyLatch.countDown();
                     startLatch.await();
-                    changeCredentialsService.changeCredentials(account.getAccountId(), password1);
+                    changeCredentialsService.changeCredentials(testActor, account.getAccountId(), password1);
                 } catch (Throwable t) {
                     error.compareAndSet(null, t);
                 } finally {
@@ -242,7 +248,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
                 try {
                     readyLatch.countDown();
                     startLatch.await();
-                    changeCredentialsService.changeCredentials(account.getAccountId(), password2);
+                    changeCredentialsService.changeCredentials(testActor, account.getAccountId(), password2);
                 } catch (Throwable t) {
                     error.compareAndSet(null, t);
                 } finally {
@@ -289,12 +295,12 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     void changeCredentials_onInactiveAccount_doesNotRetry() {
         Email email = new Email("inactive.noretry@example.com");
         Account account = createAccountService.createAccount(email, "password123");
-        deactivateAccountService.deactivateAccount(account.getAccountId());
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
 
         int retriesBefore = retryHelper.getRetryCount();
 
         assertThrows(identity.domain.exception.InactiveAccountException.class, () -> {
-            changeCredentialsService.changeCredentials(account.getAccountId(), "newPassword");
+            changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
         });
 
         assertEquals(retriesBefore, retryHelper.getRetryCount(), "Domain exceptions must not trigger transaction retries");
@@ -323,10 +329,60 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
         org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
         try {
             assertThrows(identity.domain.exception.NestedIdentityTransactionException.class, () -> {
-                changeCredentialsService.changeCredentials(account.getAccountId(), "newPassword");
+                changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
             });
         } finally {
             org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
         }
+    }
+
+    @Test
+    void deactivateAccount_auditActorIsNotTheTarget() {
+        Email email = new Email("target.deact@example.com");
+        Account targetAccount = createAccountService.createAccount(email, "password123");
+        Account operatorAccount = createAccountService.createAccount(new Email("operator.deact@example.com"), "password123");
+
+        AuditActor operatorActor = new AuditActor.AccountAuditActor(operatorAccount.getAccountId());
+        deactivateAccountService.deactivateAccount(operatorActor, targetAccount.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("targetAccountId").is(targetAccount.getAccountId().value())
+                                .and("action").is("ACCOUNT_DEACTIVATED")),
+                org.bson.Document.class,
+                "identity_audit_log"
+        );
+
+        assertNotNull(rawDoc, "Audit log document must exist in MongoDB");
+        assertNull(rawDoc.get("actorAccountId"), "actorAccountId must not exist or must be null in post-cutover document");
+        org.bson.Document actorDoc = rawDoc.get("actor", org.bson.Document.class);
+        assertNotNull(actorDoc, "actor subdocument must exist");
+        assertEquals("ACCOUNT", actorDoc.getString("type"));
+        assertEquals(operatorAccount.getAccountId().value(), actorDoc.getString("accountId"));
+    }
+
+    @Test
+    void createAccount_selfRegistration_recordsNewAccountAsActor_andSetsFlag() {
+        Email email = new Email("selfreg@example.com");
+        Account account = createAccountService.createAccount(email, "password123");
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("targetAccountId").is(account.getAccountId().value())
+                                .and("action").is("ACCOUNT_CREATED")),
+                org.bson.Document.class,
+                "identity_audit_log"
+        );
+
+        assertNotNull(rawDoc, "Audit log document must exist");
+        assertNull(rawDoc.get("actorAccountId"), "actorAccountId must be null in post-cutover");
+        org.bson.Document actorDoc = rawDoc.get("actor", org.bson.Document.class);
+        assertNotNull(actorDoc, "actor subdocument must exist");
+        assertEquals("ACCOUNT", actorDoc.getString("type"));
+        assertEquals(account.getAccountId().value(), actorDoc.getString("accountId"));
+
+        org.bson.Document changeSummary = rawDoc.get("changeSummary", org.bson.Document.class);
+        assertNotNull(changeSummary, "changeSummary subdocument must exist");
+        assertEquals(Boolean.TRUE, changeSummary.getBoolean("selfRegistration"));
     }
 }
