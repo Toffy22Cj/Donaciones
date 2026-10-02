@@ -1,6 +1,7 @@
 package identity.infrastructure.persistence.mongo;
 
 
+import identity.domain.exception.PlatformAlreadyBootstrappedException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
@@ -15,6 +16,7 @@ import identity.domain.model.Role;
 import identity.infrastructure.persistence.mongo.repositories.MongoAccountRepositoryAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoAuditLogAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoOrganizationRepositoryAdapter;
+import identity.infrastructure.persistence.mongo.repositories.MongoPlatformAuthorityStateAdapter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
@@ -23,6 +25,7 @@ import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,7 +33,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataMongoTest
-@Import({MongoAccountRepositoryAdapter.class, MongoOrganizationRepositoryAdapter.class, MongoAuditLogAdapter.class})
+@Import({MongoAccountRepositoryAdapter.class, MongoOrganizationRepositoryAdapter.class, MongoAuditLogAdapter.class, MongoPlatformAuthorityStateAdapter.class})
 class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
 
     @Autowired
@@ -41,6 +44,9 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
 
     @Autowired
     private MongoAuditLogAdapter auditLogRepository;
+
+    @Autowired
+    private MongoPlatformAuthorityStateAdapter platformAuthorityStateAdapter;
 
     @Test
     void testAccountRoundTrip() {
@@ -372,5 +378,25 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
                 "identity_audit_log"
         );
         assertNull(rawDoc, "No document must be persisted in identity_audit_log when writing legacy entry");
+    }
+
+    @Test
+    void platformAuthorityState_initializeTwice_outsideTransaction_throwsPlatformAlreadyBootstrapped() {
+        mongoTemplate.dropCollection("platform_authority_state");
+
+        platformAuthorityStateAdapter.initialize();
+
+        PlatformAlreadyBootstrappedException ex = assertThrows(
+                PlatformAlreadyBootstrappedException.class,
+                () -> platformAuthorityStateAdapter.initialize()
+        );
+        assertInstanceOf(DuplicateKeyException.class, ex.getCause());
+
+        List<org.bson.Document> rawDocs = mongoTemplate.findAll(org.bson.Document.class, "platform_authority_state");
+        assertEquals(1, rawDocs.size());
+        org.bson.Document rawDoc = rawDocs.get(0);
+        assertEquals("platform-authority", rawDoc.getString("_id"));
+        assertEquals(1L, rawDoc.getLong("activeAdministratorCount"));
+        assertEquals(1L, rawDoc.getLong("version"));
     }
 }

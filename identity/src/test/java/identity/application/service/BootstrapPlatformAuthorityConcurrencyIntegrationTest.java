@@ -228,10 +228,10 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
         assertNull(winnerError.get(), "Winner must succeed without error");
         assertNotNull(loserError.get(), "Loser must fail");
 
-        // El comportamiento exacto ante colisión en MongoDB (WriteConflict reintentado vs DuplicateKeyException)
-        // depende de MongoDB 6.0; el delta observado lo fija el revisor.
+        // Observado en MongoDB 6.0 (verificado por el humano sobre 4218ffb): la inserción del singleton por el
+        // perdedor da WriteConflict (TransientTransactionError) en ambos órdenes → 1 reintento → exists() → AlreadyBootstrapped.
         int retryDelta = retryHelper.getRetryCount() - initialRetryCount;
-        assertTrue(retryDelta <= 1, "Retry delta must be <= 1 (observed: " + retryDelta + ")"); // Endurecer con el valor observado
+        assertEquals(1, retryDelta, "Retry delta must be 1 (observed: " + retryDelta + ")");
         assertInstanceOf(
                 PlatformAlreadyBootstrappedException.class,
                 loserError.get(),
@@ -329,9 +329,6 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
             return invocation.callRealMethod();
         }).when(platformAuthorityStatePort).initialize();
 
-        CountDownLatch winnerGranted = new CountDownLatch(1);
-        AtomicBoolean loserFirstGrant = new AtomicBoolean(true);
-
         doAnswer(invocation -> {
             Thread current = Thread.currentThread();
             if (current.equals(winnerThread.get())) {
@@ -343,20 +340,7 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("Interrupted waiting for loserInitFinished", e);
                 }
-                try {
-                    return invocation.callRealMethod();
-                } finally {
-                    winnerGranted.countDown();
-                }
-            } else if (current.equals(loserThread.get()) && loserFirstGrant.compareAndSet(true, false)) {
-                try {
-                    if (!winnerGranted.await(5, TimeUnit.SECONDS)) {
-                        throw new IllegalStateException("winnerGranted latch timed out after 5s in order (ii)");
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted waiting for winnerGranted", e);
-                }
+                return invocation.callRealMethod();
             }
             return invocation.callRealMethod();
         }).when(accountRepository).grantPlatformAuthorityIfAbsent(any(AccountId.class));
@@ -395,10 +379,10 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
         assertNull(winnerError.get(), "Winner must succeed without error");
         assertNotNull(loserError.get(), "Loser must fail");
 
-        // El comportamiento exacto ante colisión en MongoDB (WriteConflict reintentado vs DuplicateKeyException)
-        // depende de MongoDB 6.0; el delta observado lo fija el revisor.
+        // Observado en MongoDB 6.0 (verificado por el humano sobre 4218ffb): la inserción del singleton por el
+        // perdedor da WriteConflict (TransientTransactionError) en ambos órdenes → 1 reintento → exists() → AlreadyBootstrapped.
         int retryDelta = retryHelper.getRetryCount() - initialRetryCount;
-        assertTrue(retryDelta <= 1, "Retry delta must be <= 1 (observed: " + retryDelta + ")"); // Endurecer con el valor observado
+        assertEquals(1, retryDelta, "Retry delta must be 1 (observed: " + retryDelta + ")");
         assertInstanceOf(
                 PlatformAlreadyBootstrappedException.class,
                 loserError.get(),
