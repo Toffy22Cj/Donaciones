@@ -220,6 +220,11 @@ Salida:
 
 **Responsable sugerido:** quien lidere IA/Convocatoria — no es Blockchain.
 
+**✅ CERRADO.** Verificado contra código real de `contracts`: solo existía
+`AuditFactsPort` (donación individual). Se formalizó `CampaignAuditFactsPort`/
+`CampaignAuditFactsDTO` como interfaz nueva y separada. Detalle completo en
+`ADR-040` §8. Rama: `feat/contracts-campaign-auditfacts-port`.
+
 ---
 
 ### B2. Tres decisiones estructurales interdependientes, sin resolver (BLOQUEANTE para completar el diseño, no para empezar)
