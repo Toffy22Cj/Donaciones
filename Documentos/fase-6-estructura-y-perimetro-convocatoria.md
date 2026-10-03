@@ -59,7 +59,11 @@ Capa 6 — Dataset + narrativa de demo
 
 ## 3. Capa 1 — Perímetro congelado de Convocatoria
 
+*Nota de la consolidación documental del 2026-10-03 (solo sobre esta §3):* esta sección es el perímetro inicial de Convocatoria (18 sept) y se conserva como **histórico**. La normativa vigente es ADR-037 consolidado (`ADR-037-convocatoria-ledger-assignment-donationintent.md`). Donde se contradigan, ADR-037 y su Enmienda 1 prevalecen sobre esta sección (regla N11, ADR-037 §0). Índice del bloque: `convocatoria-resumen.md` §0.
+
 ### 3.1 Alcance funcional confirmado (API pública, MVP)
+
+*Nota de la consolidación (2026-10-03):* sobre el listado/búsqueda pública, la necesidad de negocio quedó confirmada después (`convocatoria-resumen.md` §2; ADR-037 §7.1, fila "Descubrimiento público"). El contrato HTTP sigue pendiente.
 
 | Caso de uso | Estado |
 |---|---|
@@ -73,6 +77,8 @@ Capa 6 — Dataset + narrativa de demo
 | Panel de "eventos y donaciones públicas abiertas" | **No confirmado** — mencionado en reunión, naturaleza exacta sin definir; no asumir que equivale al listado anterior |
 
 ### 3.2 Invariantes de dominio
+
+*Nota de la consolidación (2026-10-03):* sobre los responsables, la asignación y la autoasignación, prevalece ADR-037 §2.4, §2.5 y §5 (Enmienda 1 §4). Un `ADMINISTRATOR` puede ser responsable y autoasignarse, y la restricción de una convocatoria activa se aplica solo a `EMPLOYEE`. El respaldo del `REPRESENTATIVE` es el pendiente P6.
 
 - **Responsables de la convocatoria**: cardinalidad mínima 1 en todo momento. Retirar al último responsable sin reemplazo en la misma operación se rechaza. Mismo mecanismo que `CannotRemoveLastRoleException` (`REPRESENTATIVE`/`Organization`, Fase 4).
 - **Responsable puede ser** `EMPLOYEE` o, en su ausencia, `REPRESENTATIVE` como capacidad de respaldo contextual (ver §3.5 — no implica herencia de rol).
@@ -91,11 +97,15 @@ Verificado contra `documento-maestro-proyecto.md` §6.2 (Fase 1-2, cerrado e imp
 
 ### 3.4 Mecanismo de `STRICT` — decisión final
 
+*Nota de la consolidación (2026-10-03):* **SUPERADO** por ADR-037 §2.3 (transacción MongoDB real compartida, orquestada en `app`). ADR-037 §2.3 ordena marcarlo así. El texto se conserva como registro histórico.
+
 - **Verificado con evidencia de código** (`MongoEventStoreAdapter.java`, `MongoConfig.java`): `core` no tiene `MongoTransactionManager` — su concurrencia se resuelve enteramente vía índice único `(streamId, sequence)` capturado como `DuplicateKeyException`. Introducir una transacción MongoDB compartida entre `core` y `Convocatoria` significaría construir infraestructura transaccional nueva en el componente más sensible del sistema (el Event Store), por primera vez, solo para esta regla.
 - **Decisión adoptada**: **STRICT con tolerancia documentada**. `CampaignFundingLedger` protege `clearedAmount <= targetAmount` con una escritura condicional atómica de un solo documento (sin transacción cruzada). Existe una ventana breve entre la confirmación de capacidad en el ledger y el registro del evento en `Fund`; un fallo posterior en `Fund` dejaría una inconsistencia contable **reconciliable**, no una violación arbitraria de la meta.
 - Esta decisión reemplaza explícitamente la alternativa de saga+compensación (descartada por costo/beneficio) y la de transacción compartida (descartada por el hallazgo de infraestructura anterior).
 
 ### 3.5 Enmienda a ADR-032 — capacidad de respaldo de `REPRESENTATIVE`
+
+*Nota de la consolidación (2026-10-03):* la enmienda a ADR-032 descrita aquí **no se ha redactado**. El respaldo no existe en el código (ADR-037 §7.3) y su condición de activación es el pendiente P6 (ADR-037 §7.2). Además, `REGISTER_PHYSICAL_ASSET_FROM_DONATION` ya está implementado y autorizado para `EMPLOYEE` (`convocatoria-resumen.md` §6.9.4). Subordinado a ADR-037 por N11.
 
 ```
 REPRESENTATIVE_BACKUP_COMMANDS = { REGISTER_PHYSICAL_ASSET, SPLIT_PHYSICAL_ASSET }
