@@ -16,11 +16,11 @@
 - BCrypt (`spring-security-crypto`, factor 12) ya presente para `passwordHash` — sin `spring-boot-starter-security` todavía.
 - Explícitamente fuera de alcance hasta ahora: cualquier endpoint HTTP, login, sesión.
 
-## 2. `HumanAccount` (decisión previa, confirmada en esta capa)
+## 2. `HumanActor` (decisión previa, confirmada en esta capa)
 
 - Variante de `ActorRef` (taxonomía cerrada en ADR-031): `accountId + organizationId + roles efectivos en el momento de la acción`.
 - Snapshot histórico **inmutable**, sin PII ni credenciales — no es la fuente de autorización, solo registra bajo qué contexto se ejecutó la acción.
-- Solo se usa para actores humanos autenticados ejecutando los seis `CommandType` organizacionales existentes; los donantes (con o sin cuenta) y los webhooks siguen usando `ExternalActor`, nunca `HumanAccount`.
+- Solo se usa para actores humanos autenticados ejecutando los seis `CommandType` organizacionales existentes; los donantes (con o sin cuenta) y los webhooks siguen usando `ExternalActor`, nunca `HumanActor`.
 - No incorpora `platformAuthority`.
 - Pendiente, explícitamente diferido: si debe distinguir "actuó por autoridad ordinaria" de "actuó mediante la capacidad de respaldo de `REPRESENTATIVE`" (enmienda ADR-032) — se resolverá cuando se implementen esos comandos, no antes.
 
@@ -35,7 +35,7 @@ PlatformAuthority
 └── ADMINISTRATOR   (único valor hoy)
 ```
 - Autoridad **global**, fuera de `Membership`/`Organization` — un eje de autorización paralelo, no un rol más.
-- `HumanAccount` no incorpora esta autoridad.
+- `HumanActor` no incorpora esta autoridad.
 
 **Cardinalidad**
 - `activePlatformAdmins >= 1` en todo momento — no se puede revocar al último.
@@ -123,7 +123,7 @@ iat
 exp
 signature
 ```
-Nunca contiene: `organizationId`, `roles`, `platformAuthority`, `email`, `HumanAccount`, permisos de negocio.
+Nunca contiene: `organizationId`, `roles`, `platformAuthority`, `email`, `HumanActor`, permisos de negocio.
 
 **Frontera de módulos para la composición HTTP (corregida — ver nota de reversión al final):**
 ```text
@@ -158,7 +158,7 @@ app       → bootstrap puro + MongoTransactionManager; sin capa HTTP propia,
 
 ## 8. Nota de procedencia
 
-Los cimientos (`Account`, `Organization`, `Membership`, `IdentityPrincipalPort`, `OrganizationBoundaryPolicy`, `RoleAuthorizationPolicy`) ya estaban documentados en Fase 4/5 antes de esta conversación. Todo lo demás — `HumanAccount` (forma final), Platform Administrator completo, verificación de Organization, y los tres puertos de autenticación — es diseño nuevo de esta sesión, sin precedente en los documentos previos del proyecto.
+Los cimientos (`Account`, `Organization`, `Membership`, `IdentityPrincipalPort`, `OrganizationBoundaryPolicy`, `RoleAuthorizationPolicy`) ya estaban documentados en Fase 4/5 antes de esta conversación. Todo lo demás — `HumanActor` (forma final), Platform Administrator completo, verificación de Organization, y los tres puertos de autenticación — es diseño nuevo de esta sesión, sin precedente en los documentos previos del proyecto.
 
 ## 9. Nota de reversión — Spring Security
 

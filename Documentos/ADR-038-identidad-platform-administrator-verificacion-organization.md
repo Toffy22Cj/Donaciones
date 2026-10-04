@@ -1,6 +1,6 @@
 # ADR-038 — Identidad: HumanActor, Platform Administrator, Verificación de Organization, Autenticación
 
-**Estado:** Approved — diseño conceptual. Decisiones de §7 aprobadas por el equipo el 2026-09-30. **Texto pendiente de revisión humana antes de commit.** Implementación no iniciada.
+**Estado:** Approved — diseño conceptual. Decisiones de §7 aprobadas por el equipo el 2026-09-30. **Implementado** en la rama `feat/identity-adr-038` (2026-10-01 → 2026-10-04, último commit `2b2a68a`), pendiente de merge a `develop`. Las decisiones tomadas durante la implementación **prevalecen sobre el texto de §2** donde lo contradigan y se registran en §9.
 **Fecha:** Fase 6. Review formal de 12 puntos (Modo de Arquitectura) posterior a ADR-037 (Convocatoria); cierre de huecos 2026-09-30.
 **Complementa:** `identity-resumen.md`. No reabre `Account`/`Organization`/`Membership`/`IdentityPrincipalPort`/`OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` (Fase 4/5).
 **Enmienda asociada:** `ADR-026-enmienda-desactivacion-platform-administrator.md` (guarda de `DeactivateAccount`).
@@ -239,3 +239,122 @@ Cadena `actor → comando → escritura (Account/Organization) → PlatformAutho
 ## 8. Trazabilidad de verificación
 
 Evidencia completa en `verificacion-adr-038.md`. Por la política de red de la sesión de verificación (Docker Hub y Maven Central bloqueados), **no se ejecutó MongoDB real ni `mvn test`**. Los resultados del verificador de intercalaciones son de un modelo de la semántica documentada de MongoDB, no del motor. La *Definition of Done* de la implementación son los tests con Testcontainers listados en la §6 de ese informe, con la salida literal de Surefire.
+
+## 9. Implementación y enmiendas (2026-10-01 → 2026-10-04)
+
+Todo el trabajo se hizo en una sola rama, `feat/identity-adr-038`, en lugar de las tres ramas `fix/` y las ramas de feature que preveía §7. Cada decisión de esta sección fue aprobada por el humano durante la implementación. Donde contradice a §2, **prevalece esta sección**.
+
+### 9.1 Commits
+
+| Tarea | Alcance | Commits |
+|---|---|---|
+| — | Cierre documental de huecos y enmienda ADR-026 | `6d42f3f` |
+| 1 | `resolvePrincipal` rechaza cuentas `INACTIVE` (§2.7) | `4872bd7` |
+| 2 | Los 7 servicios con reintento transaccional | `7a9813b` |
+| 3 | Política de reintentos C+ (§2.8) | `9a3a8c3`, `1baac5e` |
+| 4 | Actor real del Audit Log y régimen pre/post-corte (§2.2) | `558a915`, `6b8a463` |
+| 5 | `AuthorizationPrincipal.platformAuthority` en `contracts` (§2.7) | `99b41e2` |
+| 6A | `Account.platformAuthority` y guarda de desactivación (enmienda ADR-026) | `db046ba` (rojo), `3146e75` |
+| 6B | Singleton, política, GRANT/REVOKE y concurrencia (§2.3) | `3389c3d`, `4234723`, `3b8ce2c` |
+| 7 | Bootstrap del primer administrador (§2.4) | `4218ffb`, `9a68e17`, `0e2440a` |
+| 8A | Estado de verificación de `Organization` y su persistencia (§2.5) | `f9fb485` (rojo), `788def5` |
+| 8B | Comandos de verificación (§2.5, §2.6) | `2b2a68a` |
+
+### 9.2 Enmiendas
+
+**E1 — §2.2, actor del Audit Log.**
+- **Tipo:** `sealed AuditActor` = `AccountAuditActor(AccountId)` | `SystemAuditActor(String processId)`.
+- **Régimen:** `AuditRegime` se **deriva** del actor; no se almacena.
+- **Definición de "presente":** el campo de actor es no nulo tras el mapeo de Spring Data. Un `actor: null` explícito equivale a ausente.
+- **Única excepción al actor obligatorio:** `CreateAccountService.createAccount(Email, String)` no recibe actor, porque en el autorregistro la cuenta aún no existe. Registra `AccountAuditActor(<cuenta nueva>)` con `changeSummary.selfRegistration = true`. Cualquier alta hecha por otra persona exige un método nuevo que reciba el actor.
+- **Límite del modelo de amenaza:** la distinción pre/post-corte detecta errores y corrupción estructural. **No** garantiza integridad ni autenticidad frente a quien pueda escribir directamente en MongoDB, porque el Audit Log de `identity` no tiene cadena de hashes (ADR-025).
+- **Corte del régimen:** commit `558a915` (2026-10-01), en la rama `feat/identity-adr-038`. La fecha de merge a `develop` se añadirá al fusionar.
+- **Restricción de construcción** (reglas ArchUnit con bite test):
+  - `AccountAuditActor` solo lo construyen `CreateAccountService`, `AuditLogEntryMapper` y `AuthorizationAuditActorMapper`;
+  - `SystemAuditActor` solo lo construyen `BootstrapPlatformAuthorityService` y `AuditLogEntryMapper`.
+
+**E2 — §2.3.2, revalidación del llamador en GRANT/REVOKE (D6e).**
+- La política se evalúa sobre el principal **antes** de la transacción.
+- **Dentro** de la transacción se relee la cuenta del llamador y se exige `ACTIVE` + `ADMINISTRATOR`. Si no se cumple → `InsufficientPlatformAuthorityException`.
+- Es eficaz porque todo GRANT/REVOKE exitoso escribe el singleton: la perdedora de una carrera reintenta y relee al llamador.
+- **Consecuencia sobre los escenarios de concurrencia:** en `REVOKE(A) por B ‖ REVOKE(B) por A`, con 2 administradores, el perdedor termina en `InsufficientPlatformAuthorityException`, **no** en `LastPlatformAdministratorException`. La protección del último administrador bajo concurrencia se demuestra con `REVOKE(B) por A ‖ REVOKE(A) por A`.
+
+**E3 — §2.4, bootstrap.**
+- **Reparto:** la lógica vive en `identity` (`BootstrapPlatformAuthorityService`). En `app` hay un `ApplicationRunner` delgado (`PlatformAdminBootstrapRunner`), activo solo con el flag.
+- **Datos fijos:**
+  - el singleton se crea con `activeAdministratorCount = 1` y `version = 1`;
+  - `processId = "platform-bootstrap"`;
+  - la auditoría **no** incluye el email.
+- **Excepciones:**
+  - cuenta destino inexistente → `BootstrapTargetAccountNotFoundException`, cuyo mensaje no lleva el email;
+  - email ausente o inválido → `InvalidEmailFormatException`, sin tocar MongoDB.
+- **Concurrencia, hallazgo empírico en MongoDB 6.0** (instrumentado por el humano):
+  - si la otra transacción **ya confirmó**, insertar el `_id` del singleton da `WriteConflict` en el momento de escribir;
+  - si **aún no ha confirmado**, la inserción **no falla** y el conflicto aparece **al confirmar**.
+  - En ambos casos **gana la primera transacción que confirma**. La otra reintenta, relee `exists()` y lanza `PlatformAlreadyBootstrappedException`. Exactamente uno gana; `count = 1` y hay 1 auditoría.
+- **Duplicado de clave:** la traducción `DuplicateKeyException` → `PlatformAlreadyBootstrappedException` solo se ejerce fuera de una transacción.
+- **Riesgo aceptado:** Spring Boot 3.4.4 ejecuta los runners **después** de arrancar el servidor web, así que hay una ventana breve en la que se sirve HTTP antes de que el bootstrap termine o falle. No permite conceder autoridad, porque GRANT exige el singleton.
+- **Riesgo menor:** `InvalidEmailFormatException`, clase anterior a esta tarea, incluye el valor recibido en su mensaje. Un email mal escrito en la configuración aparece en el log del fallo de arranque.
+
+**E4 — §2.5, estado de verificación.**
+- **D2:** un documento sin campo de estado se lee como `PENDING_VERIFICATION`, **solo en lectura**: no se reescribe al leer. Las organizaciones nuevas persisten el estado explícitamente.
+- **Invariante:** `verificationInformationRequest` existe **si y solo si** el estado es `NEEDS_MORE_INFORMATION`.
+- **Al verificar o rechazar,** el mensaje **se borra**. El historial de la transición queda en el Audit Log.
+- **El mapper es fail-closed:** un estado desconocido o un par estado/mensaje inválido lanzan `CorruptOrganizationDocumentException`, sin caer en `PENDING_VERIFICATION`. Ni esa excepción ni su causa contienen el texto del mensaje.
+- **Comando de la excepción de transición:** `InvalidVerificationTransitionException` lleva un `VerificationCommand`, enum **del dominio**. No usa `PlatformCommandType`, que es de la capa de aplicación.
+- **Regla ArchUnit nueva:** `identity.domain` no depende de `identity.application` ni de `identity.infrastructure`.
+- **Validación del mensaje:** `InformationRequestMessage` recorta extremos con `strip()` y cuenta **code points** (máximo 2000).
+
+**E5 — §2.6, comandos de verificación.**
+- **Servicios:** `VerifyOrganizationService`, `RejectOrganizationService` y `RequestOrganizationInformationService`, uno por comando.
+- **Orden de cada servicio:**
+  1. política;
+  2. Value Object del mensaje (solo REQUEST), sin tocar MongoDB;
+  3. transacción con revalidación del llamador;
+  4. `findById` → método del Aggregate → `save()`;
+  5. auditoría.
+- **Sin escrituras condicionales:** la serialización la dan el `WriteConflict` sobre el documento `Organization` y el reintento.
+- **Revalidación del llamador (D8e):** igual que E2. **Límite documentado:** estos comandos no escriben nada que compartan con REVOKE, así que la revalidación **estrecha la ventana, pero no serializa** frente a una revocación concurrente.
+- **Auditoría (D8f):**
+  - acciones `ORGANIZATION_VERIFIED`, `ORGANIZATION_REJECTED` y `ORGANIZATION_INFORMATION_REQUESTED`;
+  - `targetAccountId = null` y la organización como objetivo;
+  - `changeSummary` con exactamente `previousStatus`, `newStatus` e `informationRequestPresent`;
+  - **nunca** el texto del mensaje.
+
+**E6 — §2.8, reintentos (C+).**
+- **Gestor de transacciones propio:** `identity` usa su propio `CommitRetryingMongoTransactionManager`. Lo crea `MongoTransactionRetryHelper`; **no** se modificó el gestor compartido de `app`.
+- **Ambigüedad en el commit:** ante `UnknownTransactionCommitResult` se reintenta **solo el commit**, hasta 3 intentos.
+- **Reintento de la transacción:** máximo 3 intentos, con backoff exponencial de jitter completo (base 50 ms, tope 500 ms).
+- **Nombres reales de las excepciones** (sustituyen a los de §2.8):
+  - `IdentityConcurrentModificationException` en lugar de `ConcurrentModificationException`;
+  - `IdentityTransactionOutcomeUnknownException` en lugar de `PlatformAuthorityOutcomeUnknownException`. Esta última **no se creó**: GRANT/REVOKE usan las genéricas del helper.
+  - `NestedIdentityTransactionException` si ya hay una transacción activa.
+- **Liveness observado:** con contención real y sin orden forzado, el perdedor puede agotar los 3 intentos antes de que el ganador confirme (≈1 de cada 7 ejecuciones en un escenario de test). Resultado: `IdentityConcurrentModificationException`, sin aplicar nada. Es un resultado permitido; la política no se cambió.
+
+### 9.3 Evidencia
+
+- **Reactor completo**, `mvn clean test` sobre `2b2a68a` (2026-10-04), ejecutado por el humano: `BUILD SUCCESS` con core 229, crypto 50, ai 19, api 34, identity 261 y app 27.
+- **Pruebas de mutación** (cambios temporales que el humano aplicó y revirtió, sin commitear). Cada una puso en rojo exactamente los tests previstos:
+
+| Mutación | Tarea |
+|---|---|
+| Revalidación D6e fuera de la transacción o eliminada | 6B |
+| Sin traducción de `DuplicateKeyException` | 7 |
+| Sin la precondición "ninguna cuenta es administradora" | 7 |
+| El runner se traga la excepción | 7 |
+| El mapper no escribe el estado de verificación | 8A |
+| `verify()` no borra el mensaje | 8A |
+| Estado desconocido leído como pendiente | 8A |
+| VERIFY sin revalidación | 8B |
+| Mensaje dentro de la auditoría | 8B |
+| VERIFY sin política | 8B |
+
+- **Escenarios de concurrencia:** se ejecutan con orden forzado y afirman **qué hilo** falló, además del número de reintentos.
+- **Repeticiones:** los tests de concurrencia del bootstrap pasaron 10/10 y los de verificación 5/5.
+
+### 9.4 Deuda técnica
+
+- El bloque de revalidación del llamador está duplicado en 5 servicios (GRANT, REVOKE, VERIFY, REJECT y REQUEST_INFORMATION). Pendiente extraerlo a un componente compartido.
+- `MongoTransactionRetryHelper` (`identity.application`) instancia `CommitRetryingMongoTransactionManager` (`identity.infrastructure`): es una dependencia de aplicación hacia infraestructura.
+- `MongoTransactionRetryHelper.getRetryCount()` es público solo para los tests.
+- Las clases de test con contenedor por clase necesitan `@DirtiesContext` para no reutilizar un contexto de Spring que apunta a un contenedor ya detenido. Mejora: contenedor singleton en `BaseMongoIntegrationTest`.

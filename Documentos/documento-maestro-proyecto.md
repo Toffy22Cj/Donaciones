@@ -80,8 +80,8 @@ raíz/ (pom.xml, packaging=pom)
 ├── identity/    → Módulo de Identidad y Cuentas (Fase 4, ADR-027). Depende ÚNICAMENTE
 │                  de spring-boot-starter, spring-data-mongodb y spring-security-crypto
 │                  (JAR aislado de hashing, NUNCA spring-boot-starter-security). NUNCA
-│                  depende de `core` ni de su infraestructura. No depende de `contracts`
-│                  (sin necesidad real de comunicación cruzada todavía). Aggregates
+│                  depende de `core` ni de su infraestructura. Depende de `contracts`
+│                  desde `8012f87` (ADR-032/D1: implementa `IdentityPrincipalPort`). Aggregates
 │                  `Account` y `Organization` sin Event Sourcing (CRUD + Audit Log
 │                  append-only, ADR-025). Estructura hexagonal equivalente a `core`.
 └── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai, api,
