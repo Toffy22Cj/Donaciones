@@ -91,6 +91,9 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
     @MockitoSpyBean
     private AuditLogPort auditLogPort;
 
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
     @BeforeEach
     void setUp() {
         // Any setup if needed
@@ -263,4 +266,86 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
         Account updatedSuccessor = accountRepository.findById(successor.getAccountId());
         assertEquals(org.getOrganizationId(), updatedSuccessor.getOrganizationId());
     }
+
+    @Test
+    void createOrganization_persistsPendingVerificationExplicitly() {
+        Account rep = Account.createAccount(new Email("rep.verify@test.com"), new PasswordHash("hash"));
+        accountRepository.save(rep);
+
+        Organization organization = createOrganizationService.createOrganization(testActor, OrganizationType.FOUNDATION, rep.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("PENDING_VERIFICATION", rawDoc.getString("verificationStatus"));
+    }
+
+    @Test
+    void addEmployee_onVerifiedOrganization_preservesVerificationStatus() {
+        Account rep = Account.createAccount(new Email("rep.addemp@test.com"), new PasswordHash("hash"));
+        accountRepository.save(rep);
+        Organization organization = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
+
+        mongoTemplate.updateFirst(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.springframework.data.mongodb.core.query.Update.update("verificationStatus", "VERIFIED"),
+                "organizations"
+        );
+
+        Account emp = Account.createAccount(new Email("emp.verify@test.com"), new PasswordHash("hash"));
+        accountRepository.save(emp);
+
+        addEmployeeService.addEmployee(testActor, organization.getOrganizationId(), emp.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("VERIFIED", rawDoc.getString("verificationStatus"));
+
+        java.util.List<org.bson.Document> members = rawDoc.getList("members", org.bson.Document.class);
+        assertNotNull(members);
+        assertTrue(members.stream().anyMatch(m -> emp.getAccountId().value().equals(m.getString("accountId"))));
+    }
+
+    @Test
+    void assignAdministrator_onNeedsMoreInformationOrganization_preservesStatusAndMessage() {
+        Account rep = Account.createAccount(new Email("rep.admin@test.com"), new PasswordHash("hash"));
+        accountRepository.save(rep);
+        Organization organization = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
+
+        Account emp = Account.createAccount(new Email("emp.admin@test.com"), new PasswordHash("hash"));
+        accountRepository.save(emp);
+        addEmployeeService.addEmployee(testActor, organization.getOrganizationId(), emp.getAccountId());
+
+        mongoTemplate.updateFirst(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                new org.springframework.data.mongodb.core.query.Update()
+                        .set("verificationStatus", "NEEDS_MORE_INFORMATION")
+                        .set("verificationInformationRequest", "Falta el RUT"),
+                "organizations"
+        );
+
+        assignAdministratorService.assignAdministrator(testActor, organization.getOrganizationId(), emp.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("NEEDS_MORE_INFORMATION", rawDoc.getString("verificationStatus"));
+        assertEquals("Falta el RUT", rawDoc.getString("verificationInformationRequest"));
+    }
 }
+
