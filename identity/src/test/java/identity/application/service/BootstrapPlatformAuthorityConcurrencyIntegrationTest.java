@@ -283,6 +283,8 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
         AtomicReference<Thread> winnerThread = new AtomicReference<>();
         AtomicReference<Thread> loserThread = new AtomicReference<>();
         AtomicBoolean loserFirstWrite = new AtomicBoolean(true);
+        AtomicBoolean loserFirstGrant = new AtomicBoolean(true);
+        AtomicBoolean loserFirstInitSucceeded = new AtomicBoolean(false);
 
         doAnswer(invocation -> {
             Thread current = Thread.currentThread();
@@ -321,7 +323,9 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
                     throw new RuntimeException("Interrupted waiting for winnerInitialized", e);
                 }
                 try {
-                    return invocation.callRealMethod();
+                    Object result = invocation.callRealMethod();
+                    loserFirstInitSucceeded.set(true);
+                    return result;
                 } finally {
                     loserInitFinished.countDown();
                 }
@@ -339,6 +343,16 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("Interrupted waiting for loserInitFinished", e);
+                }
+                return invocation.callRealMethod();
+            } else if (current.equals(loserThread.get()) && loserFirstGrant.compareAndSet(true, false)) {
+                try {
+                    if (!winnerDone.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("winnerDone latch timed out after 5s before loser's first grant in order (ii)");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted waiting for winnerDone before loser's first grant", e);
                 }
                 return invocation.callRealMethod();
             }
@@ -379,8 +393,12 @@ class BootstrapPlatformAuthorityConcurrencyIntegrationTest extends BaseMongoInte
         assertNull(winnerError.get(), "Winner must succeed without error");
         assertNotNull(loserError.get(), "Loser must fail");
 
-        // Observado en MongoDB 6.0 (verificado por el humano sobre 4218ffb): la inserción del singleton por el
-        // perdedor da WriteConflict (TransientTransactionError) en ambos órdenes → 1 reintento → exists() → AlreadyBootstrapped.
+        assertTrue(loserFirstInitSucceeded.get(), "Observado en MongoDB 6.0: la 2.ª inserción del singleton no falla mientras la 1.ª no confirma; el conflicto aparece al confirmar");
+
+        // Observado en MongoDB 6.0 (instrumentado por el humano sobre 788def5): con el ganador sin confirmar,
+        // la inserción del perdedor NO falla; el conflicto aparece al confirmar. El perdedor espera a que el
+        // ganador confirme (winnerDone) antes de su primera escritura de cuenta → conflicto → 1 reintento →
+        // exists()=true → PlatformAlreadyBootstrappedException.
         int retryDelta = retryHelper.getRetryCount() - initialRetryCount;
         assertEquals(1, retryDelta, "Retry delta must be 1 (observed: " + retryDelta + ")");
         assertInstanceOf(
