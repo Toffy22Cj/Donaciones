@@ -72,7 +72,7 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
 - **Identidad**: ADR-038 implementado en `feat/identity-adr-038` (detalle en §7 de este documento y en ADR-038 §9). Pendiente: merge a `develop`, emisión de JWT/autenticación HTTP (§2.7), endpoints de plataforma y la deuda técnica de ADR-038 §9.4.
 - **IA**: contradicción sin resolver entre `AuditFactsPort` (`ia-resumen.md`) y `CampaignAuditFactsPort` (`api-contract-matrix.md`) — requiere verificación de código antes de considerar el contrato cerrado.
 - **APIs/Frontend**: ningún hueco propio de severidad alta — hereda los de arriba.
-- **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanAccount`+P7, entre otros).
+- **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanActor`+P7, entre otros; el modelo de identidad de ADR-038 ya está implementado, falta su exposición HTTP).
 
 ## 6. Próximo paso sugerido
 

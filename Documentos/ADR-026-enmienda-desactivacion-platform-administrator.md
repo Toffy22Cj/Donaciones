@@ -1,6 +1,6 @@
 # Enmienda a ADR-026 — Desactivación de una cuenta con autoridad de plataforma
 
-**Insertar esta sección al final de `ADR-026-modelo-dominio-identidad.md`, antes de `## Status`, y cambiar el estado del documento a "Approved with amendment".**
+**APLICADA** (commit `e580766`, 2026-10-04): este texto ya está incorporado en `ADR-026-modelo-dominio-identidad.md`, que pasa a "Approved with amendment". Este archivo se conserva solo como registro histórico de la enmienda. *(Instrucción original: insertar esta sección al final de ADR-026, antes de `## Status`, y cambiar el estado del documento.)*
 
 **Origen:** cierre de huecos de ADR-038 (hueco A), aprobado por el equipo el 2026-09-30. Evidencia en `verificacion-adr-038.md` (escenario S4).
 
