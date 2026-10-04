@@ -1,6 +1,7 @@
 package identity.infrastructure.persistence.mongo;
 
 
+import identity.domain.exception.CorruptOrganizationDocumentException;
 import identity.domain.exception.PlatformAlreadyBootstrappedException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
@@ -8,11 +9,13 @@ import identity.domain.model.AuditAction;
 import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Email;
+import identity.domain.model.InformationRequestMessage;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import identity.domain.model.OrganizationType;
 import identity.domain.model.PasswordHash;
 import identity.domain.model.Role;
+import identity.domain.model.VerificationStatus;
 import identity.infrastructure.persistence.mongo.repositories.MongoAccountRepositoryAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoAuditLogAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoOrganizationRepositoryAdapter;
@@ -144,6 +147,161 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
 
         assertTrue(retrieved.getMembers().stream().anyMatch(m -> m.getAccountId().equals(repId) && m.hasRole(Role.REPRESENTATIVE)));
         assertTrue(retrieved.getMembers().stream().anyMatch(m -> m.getAccountId().equals(empId) && m.hasRole(Role.EMPLOYEE) && m.hasRole(Role.ADMINISTRATOR)));
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, retrieved.getVerificationStatus());
+        assertNull(retrieved.getVerificationInformationRequest());
+    }
+
+    @Test
+    void testOrganizationRoundTrip_allVerificationStatuses() {
+        // 1. PENDING_VERIFICATION
+        Organization organizationPending = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organizationRepository.save(organizationPending);
+        Organization reloadedPending = organizationRepository.findById(organizationPending.getOrganizationId());
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, reloadedPending.getVerificationStatus());
+        assertNull(reloadedPending.getVerificationInformationRequest());
+
+        // 2. NEEDS_MORE_INFORMATION with message
+        Organization organizationNeedsInfo = Organization.createOrganization(OrganizationType.FOUNDATION, AccountId.generate());
+        InformationRequestMessage requestMessage = new InformationRequestMessage("Falta el balance auditado");
+        organizationNeedsInfo.requestInformation(requestMessage);
+        organizationRepository.save(organizationNeedsInfo);
+        Organization reloadedNeedsInfo = organizationRepository.findById(organizationNeedsInfo.getOrganizationId());
+        assertEquals(VerificationStatus.NEEDS_MORE_INFORMATION, reloadedNeedsInfo.getVerificationStatus());
+        assertEquals(requestMessage, reloadedNeedsInfo.getVerificationInformationRequest());
+
+        // 3. VERIFIED
+        Organization organizationVerified = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organizationVerified.verify();
+        organizationRepository.save(organizationVerified);
+        Organization reloadedVerified = organizationRepository.findById(organizationVerified.getOrganizationId());
+        assertEquals(VerificationStatus.VERIFIED, reloadedVerified.getVerificationStatus());
+        assertNull(reloadedVerified.getVerificationInformationRequest());
+
+        // 4. REJECTED
+        Organization organizationRejected = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organizationRejected.reject();
+        organizationRepository.save(organizationRejected);
+        Organization reloadedRejected = organizationRepository.findById(organizationRejected.getOrganizationId());
+        assertEquals(VerificationStatus.REJECTED, reloadedRejected.getVerificationStatus());
+        assertNull(reloadedRejected.getVerificationInformationRequest());
+    }
+
+    @Test
+    void testOrganization_rawDocumentWithoutVerificationFields_readsAsPendingVerification_andDoesNotModifyDocument() {
+        String rawOrgId = OrganizationId.generate().value();
+        AccountId repId = AccountId.generate();
+        org.bson.Document rawDoc = new org.bson.Document("_id", rawOrgId)
+                .append("type", "COMPANY")
+                .append("members", List.of(
+                        new org.bson.Document("accountId", repId.value())
+                                .append("roles", List.of("REPRESENTATIVE"))
+                ));
+        mongoTemplate.insert(rawDoc, "organizations");
+
+        Organization organization = organizationRepository.findById(new OrganizationId(rawOrgId));
+        assertNotNull(organization);
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+
+        // D2 solo en lectura: verificar que el documento crudo en MongoDB no cambia tras la lectura
+        org.bson.Document docAfterRead = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(rawOrgId)),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(docAfterRead);
+        assertFalse(docAfterRead.containsKey("verificationStatus"), "verificationStatus must not be persisted on read");
+        assertFalse(docAfterRead.containsKey("verificationInformationRequest"), "verificationInformationRequest must not be persisted on read");
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "corrupt organization document: {0}")
+    @org.junit.jupiter.params.provider.MethodSource("corruptOrganizationDocumentPayloads")
+    void corruptOrganizationDocument_throwsCorruptOrganizationDocumentException(
+            String caseName, org.bson.Document payload, String secretTextToCheck) {
+        String testOrgId = OrganizationId.generate().value();
+        payload.append("_id", testOrgId);
+        payload.putIfAbsent("type", "COMPANY");
+        payload.putIfAbsent("members", List.of(
+                new org.bson.Document("accountId", AccountId.generate().value())
+                        .append("roles", List.of("REPRESENTATIVE"))
+        ));
+
+        mongoTemplate.insert(payload, "organizations");
+
+        CorruptOrganizationDocumentException ex = assertThrows(
+                CorruptOrganizationDocumentException.class,
+                () -> organizationRepository.findById(new OrganizationId(testOrgId)),
+                "Corrupt organization document [" + caseName + "] must throw CorruptOrganizationDocumentException"
+        );
+
+        assertTrue(ex.getMessage().contains(testOrgId), "Exception message must include organizationId");
+
+        if (secretTextToCheck != null) {
+            assertFalse(ex.getMessage().contains(secretTextToCheck),
+                    "Exception message must NOT contain saved message text");
+            if (ex.getCause() != null && ex.getCause().getMessage() != null) {
+                assertFalse(ex.getCause().getMessage().contains(secretTextToCheck),
+                        "Exception cause message must NOT contain saved message text");
+            }
+        }
+    }
+
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> corruptOrganizationDocumentPayloads() {
+        String pendingSecretMsg = "SECRETO-PII-PENDING-MSG";
+        String verifiedSecretMsg = "SECRETO-PII-VERIFIED-MSG";
+        String rejectedSecretMsg = "SECRETO-PII-REJECTED-MSG";
+        String missingStatusSecretMsg = "SECRETO-PII-MISSING-STATUS-MSG";
+        String blankMsg = "   ";
+        String over2000Msg = ("SECRETO-PII-2001-".repeat(200)).substring(0, 2001);
+
+        return java.util.stream.Stream.of(
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "unknown status FOO",
+                        new org.bson.Document("verificationStatus", "FOO"),
+                        null
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "PENDING_VERIFICATION with message",
+                        new org.bson.Document("verificationStatus", "PENDING_VERIFICATION")
+                                .append("verificationInformationRequest", pendingSecretMsg),
+                        pendingSecretMsg
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "VERIFIED with message",
+                        new org.bson.Document("verificationStatus", "VERIFIED")
+                                .append("verificationInformationRequest", verifiedSecretMsg),
+                        verifiedSecretMsg
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "REJECTED with message",
+                        new org.bson.Document("verificationStatus", "REJECTED")
+                                .append("verificationInformationRequest", rejectedSecretMsg),
+                        rejectedSecretMsg
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "NEEDS_MORE_INFORMATION without message",
+                        new org.bson.Document("verificationStatus", "NEEDS_MORE_INFORMATION"),
+                        null
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "NEEDS_MORE_INFORMATION with blank message",
+                        new org.bson.Document("verificationStatus", "NEEDS_MORE_INFORMATION")
+                                .append("verificationInformationRequest", blankMsg),
+                        blankMsg
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "NEEDS_MORE_INFORMATION with 2001 chars message",
+                        new org.bson.Document("verificationStatus", "NEEDS_MORE_INFORMATION")
+                                .append("verificationInformationRequest", over2000Msg),
+                        "SECRETO-PII-2001-"
+                ),
+                org.junit.jupiter.params.provider.Arguments.of(
+                        "missing status with message",
+                        new org.bson.Document("verificationInformationRequest", missingStatusSecretMsg),
+                        missingStatusSecretMsg
+                )
+        );
     }
 
     @Autowired

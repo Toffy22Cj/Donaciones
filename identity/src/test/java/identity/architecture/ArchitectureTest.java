@@ -83,5 +83,11 @@ public class ArchitectureTest {
                             "target is SystemAuditActor constructor",
                             call -> call.getTargetOwner().isEquivalentTo(identity.domain.model.AuditActor.SystemAuditActor.class)))
                     .because("Only BootstrapPlatformAuthorityService and AuditLogEntryMapper may construct SystemAuditActor (ADR-038 §2.2, §2.4)");
+
+    @ArchTest
+    public static final ArchRule domain_should_not_depend_on_application_or_infrastructure =
+            noClasses().that().resideInAPackage("identity.domain..")
+                    .should().dependOnClassesThat().resideInAnyPackage("identity.application..", "identity.infrastructure..")
+                    .because("Domain layer must not depend on application or infrastructure layers (ADR-038 §2.5 / D8g)");
 }
 

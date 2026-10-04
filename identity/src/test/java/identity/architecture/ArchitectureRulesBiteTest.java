@@ -3,9 +3,11 @@ package identity.architecture;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.traceability.core.archfixture.CoreMarker;
+import identity.application.service.CreateAccountService;
 import identity.archfixture.HelperThatBuildsActor;
 import identity.archfixture.HelperThatBuildsSystemActor;
 import identity.archfixture.ViolatesCoreRule;
+import identity.domain.archfixture.ViolatesDomainRule;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,6 +35,14 @@ class ArchitectureRulesBiteTest {
         JavaClasses classes = new ClassFileImporter().importClasses(HelperThatBuildsSystemActor.class);
         assertThrows(AssertionError.class, () ->
                 ArchitectureTest.only_BootstrapPlatformAuthorityService_and_AuditLogEntryMapper_may_call_SystemAuditActor_constructor.check(classes)
+        );
+    }
+
+    @Test
+    void domain_should_not_depend_on_application_or_infrastructure_bites() {
+        JavaClasses classes = new ClassFileImporter().importClasses(ViolatesDomainRule.class, CreateAccountService.class);
+        assertThrows(AssertionError.class, () ->
+                ArchitectureTest.domain_should_not_depend_on_application_or_infrastructure.check(classes)
         );
     }
 }

@@ -14,4 +14,6 @@ public class OrganizationDocument {
     private String organizationId;
     private String type;
     private List<MembershipDocument> members;
+    private String verificationStatus;
+    private String verificationInformationRequest;
 }
