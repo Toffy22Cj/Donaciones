@@ -94,13 +94,13 @@ Pipeline LLM (sanitización/grounding/fallback/caché) reutilizado sin cambios. 
 | C3 | Decisión B: ¿efímero o snapshot histórico persistido? | Esquema de persistencia, si aplica |
 | C4 | Decisión C: garantía de consistencia temporal entre las tres fuentes | Corrección de los hechos combinados, trazabilidad completa, pruebas de consistencia |
 | C5 | Nombre/firma del productor de `ConvocatoriaAuditFacts` — no existe en ninguna fuente | Materialización del componente |
-| C6 | Contrato de error si `campaignRef` no resuelve a ninguna `Convocatoria` | Manejo de errores del productor |
-| C7 | `Convocatoria` sin `CampaignFundingLedger` correspondiente — posible hueco no resuelto en ADR-037, no inventado aquí | Semántica de integridad del productor |
+| C6 | **✅ CERRADO (por el equipo de Convocatoria):** `CampaignNotFoundException` ya existe en `convocatoria/domain/exception/`. | — |
+| C7 | **✅ CERRADO:** comportamiento esperado, no un hueco. `CampaignFundingLedger` solo existe si la convocatoria acepta `MONETARY` (confirmado en código y en ADR-037 Enmienda 1 §3.1/§9.1). Si falta el ledger, la aplicación de fondos termina en `CampaignNotFoundException`. | — |
 | C8 | Comportamiento de la narrativa pública cuando `Convocatoria.status=CLOSED` | Contrato del endpoint HTTP, no de este componente |
 
 ### 7-B. Verificación técnica pendiente
 
-Índice `{campaignRef:1, status:1}` sobre la proyección de `PhysicalAsset` usada para agregar (candidato de rendimiento, no confirmado si ya existe) · trazabilidad `eventId`/`streamId` accesible desde esa misma proyección · aislamiento de caché por campaña verificado, no asumido, aunque comparta `promptTemplateVersion` con otra campaña · single-flight verificado específicamente para narrativas de convocatoria concurrentes. Adicional tras cierre de C1: mecanismo `donationRef → campaignRef` para que `PhysicalAsset` pueda agregarse por convocatoria — `PhysicalAsset` tiene `donationRef`, no `campaignRef` directo (ver §8).
+Índice `{campaignRef:1, status:1}` sobre la proyección de `PhysicalAsset` usada para agregar (candidato de rendimiento, no confirmado si ya existe) · trazabilidad `eventId`/`streamId` accesible desde esa misma proyección · aislamiento de caché por campaña verificado, no asumido, aunque comparta `promptTemplateVersion` con otra campaña · single-flight verificado específicamente para narrativas de convocatoria concurrentes. Adicional tras cierre de C1: mecanismo `donationRef → campaignRef` para que `PhysicalAsset` pueda agregarse por convocatoria (ver §8, corrección posterior).
 
 ### Riesgos explícitamente retirados durante este review
 
@@ -126,4 +126,4 @@ Se releyó textualmente `api-contract-matrix.md` §5 y `ia-resumen.md` §3 para 
 
 Específico de donación individual — un `fundId`, una lista de transiciones de esa sola donación. No es compatible con lo que `ConvocatoriaAuditFacts` necesita (totales agregados de una campaña completa). No hay contradicción real de nombres: son dos responsabilidades de nivel distinto que requieren dos contratos distintos. Se formaliza `CampaignAuditFactsPort` (ver §2.1, §7-A).
 
-Verificación adicional durante esta misma sesión: `PhysicalAsset` (código real) tiene `donationRef`, pero no `campaignRef` directo. Agregar `PhysicalAsset` por convocatoria requerirá resolver ese enlace (`donationRef → campaignRef`) antes de materializar el productor — no bloquea el cierre de C1, sí queda registrado como verificación pendiente para C2/C5 (ver §7-B).
+**Corrección posterior (tras la fusión del módulo `convocatoria` y su Enmienda 1):** `PhysicalAsset` hoy NO tiene `campaignRef` en ningún lugar (confirmado por ADR-037 Enmienda 1 §9.1, citando código real: `PhysicalAsset.java:22-43`). `Fund` sí lo tiene, pero es **opcional** — puede ser `null`. Decisión ya tomada por el equipo: los activos con `campaignRef = null` "quedan sin convocatoria" permanentemente, nunca se infiere después (sin backfill retroactivo). Esto afecta directamente a C2/C5: la agregación de `ConvocatoriaAuditFacts` debe excluir, no inferir, los activos sin `campaignRef` — no bloquea el cierre de C1, sí queda registrado como verificación pendiente para C2/C5 (ver §7-B).
