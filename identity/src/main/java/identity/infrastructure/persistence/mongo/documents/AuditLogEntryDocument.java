@@ -23,6 +23,7 @@ public class AuditLogEntryDocument {
     
     private Instant occurredAt;
     private String actorAccountId;
+    private ActorDocument actor;
     private String targetAccountId; // nullable
     private String targetOrganizationId; // nullable
     private AuditAction action;

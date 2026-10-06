@@ -12,6 +12,8 @@ import identity.application.service.CreateAccountService;
 import identity.application.service.CreateOrganizationService;
 import identity.application.service.IdentityPrincipalPortImpl;
 import identity.domain.model.Account;
+import identity.domain.model.AccountId;
+import identity.domain.model.AuditActor;
 import identity.domain.model.Email;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationType;
@@ -56,6 +58,8 @@ class HumanActorIdentityIntegrationTest {
         registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
     }
 
+    private final AuditActor testActor = new AuditActor.AccountAuditActor(AccountId.generate());
+
     @Autowired private FundCommandService fundCommandService;
     @Autowired private CreateAccountService createAccountService;
     @Autowired private CreateOrganizationService createOrganizationService;
@@ -78,25 +82,25 @@ class HumanActorIdentityIntegrationTest {
 
         // 1. Create Organization 1
         Account org1Creator = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
-        org1 = createOrganizationService.createOrganization(OrganizationType.FOUNDATION, org1Creator.getAccountId());
+        org1 = createOrganizationService.createOrganization(testActor, OrganizationType.FOUNDATION, org1Creator.getAccountId());
 
         // 2. Add an Administrator to Org 1
         org1Admin = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
-        addEmployeeService.addEmployee(org1.getOrganizationId(), org1Admin.getAccountId());
-        assignAdministratorService.assignAdministrator(org1.getOrganizationId(), org1Admin.getAccountId());
+        addEmployeeService.addEmployee(testActor, org1.getOrganizationId(), org1Admin.getAccountId());
+        assignAdministratorService.assignAdministrator(testActor, org1.getOrganizationId(), org1Admin.getAccountId());
 
         // 3. Add an Employee (non-admin) to Org 1
         org1Employee = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
-        addEmployeeService.addEmployee(org1.getOrganizationId(), org1Employee.getAccountId());
+        addEmployeeService.addEmployee(testActor, org1.getOrganizationId(), org1Employee.getAccountId());
 
         // 4. Create Organization 2
         Account org2Creator = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
-        org2 = createOrganizationService.createOrganization(OrganizationType.COMPANY, org2Creator.getAccountId());
+        org2 = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, org2Creator.getAccountId());
 
         // 5. Add an Administrator to Org 2
         org2Admin = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
-        addEmployeeService.addEmployee(org2.getOrganizationId(), org2Admin.getAccountId());
-        assignAdministratorService.assignAdministrator(org2.getOrganizationId(), org2Admin.getAccountId());
+        addEmployeeService.addEmployee(testActor, org2.getOrganizationId(), org2Admin.getAccountId());
+        assignAdministratorService.assignAdministrator(testActor, org2.getOrganizationId(), org2Admin.getAccountId());
 
         initialized = true;
     }

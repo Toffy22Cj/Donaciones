@@ -7,13 +7,15 @@ import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class RemoveMemberFromOrganizationService {
@@ -33,7 +35,9 @@ public class RemoveMemberFromOrganizationService {
         this.retryHelper = retryHelper;
     }
 
-    public void removeMemberFromOrganization(OrganizationId organizationId, AccountId accountId) {
+    public void removeMemberFromOrganization(AuditActor actor, OrganizationId organizationId, AccountId accountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Organization organization = organizationRepository.findById(organizationId);
             Account account = accountRepository.findById(accountId);
@@ -44,14 +48,14 @@ public class RemoveMemberFromOrganizationService {
             organizationRepository.save(organization);
             accountRepository.save(account);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
+                    actor,
                     accountId, 
-                    accountId,
                     organizationId,
                     AuditAction.MEMBER_REMOVED,
-                    Map.of()
+                    Collections.emptyMap()
             );
             auditLogPort.record(auditLog);
         });

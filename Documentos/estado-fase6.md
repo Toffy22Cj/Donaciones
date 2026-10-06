@@ -16,7 +16,7 @@ Las cinco capas de diseño conceptual de Fase 6 quedaron cerradas con review for
 | Capa | ADR | Estado de diseño | Estado de implementación |
 |---|---|---|---|
 | Convocatoria + Ledger + Assignment + DonationIntent | ADR-037 + Enmienda 1 (aprobada) | Cerrado para el primer corte (`implementation_plan.md` rev. 2.2); P1–P7 y R4 abiertos | **Primer corte implementado y verificado (2026-10-01), sin commit — ver §3bis** |
-| Identidad (HumanAccount, Platform Admin, verificación Organization, JWT) | ADR-038 (tentativo) | 12/12 cerrado, varias decisiones funcionales abiertas (§7) | Sin código de esta sesión |
+| Identidad (HumanActor, Platform Admin, verificación Organization, JWT) | ADR-038 | Approved — diseño conceptual; §7 cerrado (2026-09-30); enmiendas de implementación en ADR-038 §9; enmienda ADR-026 aplicada | **Implementado y verificado** en `feat/identity-adr-038` (último commit `2b2a68a`): tareas 1–8, sin JWT ni endpoints HTTP. Pendiente de merge a `develop` |
 | Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-039 (tentativo) | 12/12 cerrado | **Productor: Fase 1-3 implementada y verificada. `IntegrityVerificationPort`: sin empezar** |
 | IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — 3 decisiones estructurales (A/B/C) y una contradicción de nomenclatura de puerto (C1) siguen abiertas | Sin código de esta sesión |
 | APIs + Frontend | ADR-041 (tentativo) | 12/12 cerrado — mapeo endpoint↔hueco de dominio consolidado | Sin código de esta sesión |
@@ -130,11 +130,31 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
   - la idempotencia de `clearFundsGenesis` en ejecución.
 
   Ver ADR-037 §7.1 y la Enmienda 2 §6.
-- **Identidad**: comportamiento de `VERIFY` sobre `Organization` ya `VERIFIED`, y de `GRANT`/`REVOKE` repetidos sobre Platform Administrator, sin definir.
+- **Identidad**: ADR-038 implementado en `feat/identity-adr-038` (detalle en §7 de este documento y en ADR-038 §9). Pendiente: merge a `develop`, emisión de JWT/autenticación HTTP (§2.7), endpoints de plataforma y la deuda técnica de ADR-038 §9.4.
 - **IA**: contradicción sin resolver entre `AuditFactsPort` (`ia-resumen.md`) y `CampaignAuditFactsPort` (`api-contract-matrix.md`) — requiere verificación de código antes de considerar el contrato cerrado.
 - **APIs/Frontend**: ningún hueco propio de severidad alta — hereda los de arriba.
-- **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanAccount`+P7, entre otros).
+- **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanActor`+P7, entre otros; el modelo de identidad de ADR-038 ya está implementado, falta su exposición HTTP).
 
 ## 6. Próximo paso sugerido
 
 De los pendientes de mayor severidad, ninguno depende de otro para empezar. Orden por impacto en el Golden Path: (1) verificar idempotencia de `clearFundsGenesis`, (2) resolver la contradicción de puerto en IA, (3) continuar con `IntegrityVerificationPort` en Blockchain, (4) decisiones funcionales de Identidad.
+
+## 7. Identidad — implementación de ADR-038 (2026-10-01 → 2026-10-04)
+
+Commits, enmiendas, evidencia y deuda técnica: **ADR-038 §9**. Aquí solo el estado y los incidentes de proceso.
+
+### 7.1 Evidencia (output real, ejecutado por el humano)
+
+| Verificación | Resultado |
+|---|---|
+| `mvn clean test` (reactor completo) sobre `2b2a68a` | `BUILD SUCCESS` — core 229, crypto 50, ai 19, api 34, identity 261, app 27 |
+| `BootstrapPlatformAuthorityConcurrencyIntegrationTest`, 10 ejecuciones | 10/10 `Tests run: 2, Failures: 0, Errors: 0` |
+| `OrganizationVerificationConcurrencyIntegrationTest`, 5 ejecuciones | 5/5 `Tests run: 7, Failures: 0, Errors: 0` |
+| Pruebas de mutación (6B, 7, 8A, 8B) | Cada mutación puso en rojo exactamente los tests previstos (ADR-038 §9.3) |
+
+### 7.2 Incidentes de proceso
+
+- **Tarea 4 (`558a915`): salidas fabricadas.** El reporte del agente presentó como literales salidas de Maven y de git que no lo eran (un ULID con fecha de 2025, líneas de ArchUnit inexistentes, conteos que no sumaban el total, un autor falso). Su apartado de desviaciones decía "ninguna" mientras el diff borraba un comentario y cambiaba sangrías; se corrigió en `6b8a463`. **Regla derivada:** la evidencia de tests la ejecuta y la pega el humano, nunca el agente.
+- **Tareas 6A y 8A: tests que no compilaban.** En dos ocasiones, tests rojos del agente usaron una variable local `org`, que tapa los paquetes `org.springframework` y `org.bson`. El compilador del editor dejó en `target/` clases que fallaban al ejecutarse. **Regla derivada:** no usar `org` como nombre de variable y verificar siempre con `mvn clean`.
+- **Tarea 7 (`9a68e17`): regresión introducida por el revisor.** El revisor declaró "código muerto" una espera del test de concurrencia del bootstrap a partir del delta de reintentos, sin comprobar qué transacción reintentaba. Sin esa espera, el test falló 7 de 10 veces. La instrumentación mostró que en MongoDB 6.0 el conflicto aparece al confirmar (ADR-038 §9.2, E3), y se corrigió en `0e2440a`. **Regla derivada:** en tests de concurrencia, se instrumenta antes de declarar código muerto, y las aserciones identifican qué hilo falló.
+- **Tarea 6B: contexto de Spring con contenedor detenido.** Dos clases con la misma configuración compartían el contexto cacheado de Spring, que apuntaba a un contenedor ya detenido ("Conexión rehusada"). Se corrigió con `@DirtiesContext`.

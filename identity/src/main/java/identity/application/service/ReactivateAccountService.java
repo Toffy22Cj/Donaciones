@@ -6,43 +6,51 @@ import identity.application.port.out.AuditLogPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class ReactivateAccountService {
 
     private final AccountRepositoryPort accountRepository;
     private final AuditLogPort auditLogPort;
+    private final MongoTransactionRetryHelper retryHelper;
 
-    public ReactivateAccountService(AccountRepositoryPort accountRepository, AuditLogPort auditLogPort) {
+    public ReactivateAccountService(AccountRepositoryPort accountRepository, 
+                                    AuditLogPort auditLogPort,
+                                    MongoTransactionRetryHelper retryHelper) {
         this.accountRepository = accountRepository;
         this.auditLogPort = auditLogPort;
+        this.retryHelper = retryHelper;
     }
 
-    @Transactional
-    public void reactivateAccount(AccountId accountId) {
-        Account account = accountRepository.findById(accountId);
-        
-        boolean mutated = account.reactivate();
-        
-        if (mutated) {
-            accountRepository.save(account);
+    public void reactivateAccount(AuditActor actor, AccountId accountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
 
-            AuditLogEntry auditLog = new AuditLogEntry(
-                    UlidCreator.getUlid().toString(),
-                    Instant.now(),
-                    account.getAccountId(),
-                    account.getAccountId(),
-                    null,
-                    AuditAction.ACCOUNT_REACTIVATED,
-                    Map.of()
-            );
-            auditLogPort.record(auditLog);
-        }
+        retryHelper.executeWithRetry(() -> {
+            Account account = accountRepository.findById(accountId);
+            
+            boolean mutated = account.reactivate();
+            
+            if (mutated) {
+                accountRepository.save(account);
+
+                AuditLogEntry auditLog = AuditLogEntry.record(
+                        UlidCreator.getUlid().toString(),
+                        Instant.now(),
+                        actor,
+                        account.getAccountId(),
+                        null,
+                        AuditAction.ACCOUNT_REACTIVATED,
+                        Collections.emptyMap()
+                );
+                auditLogPort.record(auditLog);
+            }
+        });
     }
 }

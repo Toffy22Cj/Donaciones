@@ -2,7 +2,9 @@ package identity.application.service;
 
 import identity.application.port.out.AuditLogPort;
 import identity.domain.model.Account;
+import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Email;
 import identity.domain.model.Organization;
@@ -45,6 +47,8 @@ import static org.mockito.Mockito.verify;
 })
 class IdentityEndToEndIntegrationTest extends BaseMongoIntegrationTest {
 
+    private final AuditActor testActor = new AuditActor.AccountAuditActor(AccountId.generate());
+
     @Autowired
     private CreateAccountService createAccountService;
 
@@ -75,25 +79,25 @@ class IdentityEndToEndIntegrationTest extends BaseMongoIntegrationTest {
         Account emp3 = createAccountService.createAccount(new Email("emp3@test.com"), "Password123!");
 
         // 2. Create Organization with Representative
-        Organization org = createOrganizationService.createOrganization(OrganizationType.COMPANY, rep.getAccountId());
+        Organization org = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
 
         // 3. Add 3 Employees
-        addEmployeeService.addEmployee(org.getOrganizationId(), emp1.getAccountId());
-        addEmployeeService.addEmployee(org.getOrganizationId(), emp2.getAccountId());
-        addEmployeeService.addEmployee(org.getOrganizationId(), emp3.getAccountId());
+        addEmployeeService.addEmployee(testActor, org.getOrganizationId(), emp1.getAccountId());
+        addEmployeeService.addEmployee(testActor, org.getOrganizationId(), emp2.getAccountId());
+        addEmployeeService.addEmployee(testActor, org.getOrganizationId(), emp3.getAccountId());
 
         // 4. Assign Administrator to emp1
-        assignAdministratorService.assignAdministrator(org.getOrganizationId(), emp1.getAccountId());
+        assignAdministratorService.assignAdministrator(testActor, org.getOrganizationId(), emp1.getAccountId());
 
         // 5. Try to assign Administrator to emp1 again (should be no-op, no new audit log)
-        assignAdministratorService.assignAdministrator(org.getOrganizationId(), emp1.getAccountId());
+        assignAdministratorService.assignAdministrator(testActor, org.getOrganizationId(), emp1.getAccountId());
 
         // 6. Transfer Representative from rep to emp1
         // (Since rep only has the REPRESENTATIVE role, this operation will completely remove rep's Membership from the Organization)
-        transferRepresentativeAndRemoveService.transferRepresentativeAndRemove(org.getOrganizationId(), rep.getAccountId(), emp1.getAccountId());
+        transferRepresentativeAndRemoveService.transferRepresentativeAndRemove(testActor, org.getOrganizationId(), rep.getAccountId(), emp1.getAccountId());
 
         // 7. Remove emp2 from the organization
-        removeMemberFromOrganizationService.removeMemberFromOrganization(org.getOrganizationId(), emp2.getAccountId());
+        removeMemberFromOrganizationService.removeMemberFromOrganization(testActor, org.getOrganizationId(), emp2.getAccountId());
 
         // 8. Verify the exact Audit Log sequence
         ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);

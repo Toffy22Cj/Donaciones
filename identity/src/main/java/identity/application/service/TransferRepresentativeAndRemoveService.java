@@ -7,13 +7,15 @@ import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class TransferRepresentativeAndRemoveService {
@@ -33,7 +35,9 @@ public class TransferRepresentativeAndRemoveService {
         this.retryHelper = retryHelper;
     }
 
-    public void transferRepresentativeAndRemove(OrganizationId organizationId, AccountId currentRepId, AccountId newRepId) {
+    public void transferRepresentativeAndRemove(AuditActor actor, OrganizationId organizationId, AccountId currentRepId, AccountId newRepId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         retryHelper.executeWithRetry(() -> {
             Organization organization = organizationRepository.findById(organizationId);
             Account currentRepAccount = accountRepository.findById(currentRepId);
@@ -56,14 +60,14 @@ public class TransferRepresentativeAndRemoveService {
 
             organizationRepository.save(organization);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
-                    currentRepId, // actor
+                    actor,
                     newRepId,     // target
                     organizationId,
                     AuditAction.REPRESENTATIVE_TRANSFERRED,
-                    Map.of()
+                    Collections.emptyMap()
             );
             auditLogPort.record(auditLog);
         });

@@ -7,13 +7,14 @@ import identity.application.port.out.PasswordHasherPort;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.PasswordHash;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class ChangeCredentialsService {
@@ -21,31 +22,39 @@ public class ChangeCredentialsService {
     private final AccountRepositoryPort accountRepository;
     private final PasswordHasherPort passwordHasher;
     private final AuditLogPort auditLogPort;
+    private final MongoTransactionRetryHelper retryHelper;
 
-    public ChangeCredentialsService(AccountRepositoryPort accountRepository, PasswordHasherPort passwordHasher, AuditLogPort auditLogPort) {
+    public ChangeCredentialsService(AccountRepositoryPort accountRepository, 
+                                  PasswordHasherPort passwordHasher, 
+                                  AuditLogPort auditLogPort,
+                                  MongoTransactionRetryHelper retryHelper) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.auditLogPort = auditLogPort;
+        this.retryHelper = retryHelper;
     }
 
-    @Transactional
-    public void changeCredentials(AccountId accountId, String newPlainPassword) {
-        Account account = accountRepository.findById(accountId);
-        
-        PasswordHash newPasswordHash = passwordHasher.hash(newPlainPassword);
-        account.changeCredentials(newPasswordHash);
-        
-        accountRepository.save(account);
+    public void changeCredentials(AuditActor actor, AccountId accountId, String newPlainPassword) {
+        Objects.requireNonNull(actor, "actor must not be null");
 
-        AuditLogEntry auditLog = new AuditLogEntry(
-                UlidCreator.getUlid().toString(),
-                Instant.now(),
-                account.getAccountId(),
-                account.getAccountId(),
-                null,
-                AuditAction.CREDENTIALS_CHANGED,
-                Map.of()
-        );
-        auditLogPort.record(auditLog);
+        retryHelper.executeWithRetry(() -> {
+            Account account = accountRepository.findById(accountId);
+            
+            PasswordHash newPasswordHash = passwordHasher.hash(newPlainPassword);
+            account.changeCredentials(newPasswordHash);
+            
+            accountRepository.save(account);
+
+            AuditLogEntry auditLog = AuditLogEntry.record(
+                    UlidCreator.getUlid().toString(),
+                    Instant.now(),
+                    actor,
+                    account.getAccountId(),
+                    null,
+                    AuditAction.CREDENTIALS_CHANGED,
+                    Collections.emptyMap()
+            );
+            auditLogPort.record(auditLog);
+        });
     }
 }

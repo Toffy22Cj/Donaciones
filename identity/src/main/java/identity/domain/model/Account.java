@@ -2,6 +2,9 @@ package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.InactiveAccountException;
+import identity.domain.exception.PlatformAdministratorDeactivationException;
+import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
+import identity.domain.exception.PlatformAuthorityNotHeldException;
 import lombok.Getter;
 
 @Getter
@@ -11,21 +14,23 @@ public class Account {
     private PasswordHash passwordHash;
     private AccountStatus status;
     private OrganizationId organizationId;
+    private PlatformAuthority platformAuthority;
 
-    private Account(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status, OrganizationId organizationId) {
+    private Account(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status, OrganizationId organizationId, PlatformAuthority platformAuthority) {
         this.accountId = accountId;
         this.email = email;
         this.passwordHash = passwordHash;
         this.status = status;
         this.organizationId = organizationId;
+        this.platformAuthority = platformAuthority;
     }
 
     /**
      * Uso exclusivo de adaptadores de persistencia — NUNCA invocar desde Application Services ni tests de dominio.
      * No aplica ninguna regla de negocio de creación.
      */
-    public static Account reconstitute(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status, OrganizationId organizationId) {
-        return new Account(accountId, email, passwordHash, status, organizationId);
+    public static Account reconstitute(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status, OrganizationId organizationId, PlatformAuthority platformAuthority) {
+        return new Account(accountId, email, passwordHash, status, organizationId, platformAuthority);
     }
 
     public static Account createAccount(Email email, PasswordHash passwordHash) {
@@ -35,7 +40,7 @@ public class Account {
         if (passwordHash == null) {
             throw new IllegalArgumentException("PasswordHash cannot be null");
         }
-        return new Account(AccountId.generate(), email, passwordHash, AccountStatus.ACTIVE, null);
+        return new Account(AccountId.generate(), email, passwordHash, AccountStatus.ACTIVE, null, null);
     }
 
     public void changeCredentials(PasswordHash newPasswordHash) {
@@ -49,6 +54,11 @@ public class Account {
     }
 
     public boolean deactivate() {
+        if (this.platformAuthority != null) {
+            throw new PlatformAdministratorDeactivationException(
+                "Cannot deactivate account with platform authority: " + this.accountId.value()
+            );
+        }
         if (this.status != AccountStatus.INACTIVE) {
             this.status = AccountStatus.INACTIVE;
             return true;
@@ -76,5 +86,22 @@ public class Account {
 
     public void leaveOrganization() {
         this.organizationId = null;
+    }
+
+    public void grantPlatformAuthority() {
+        if (this.status == AccountStatus.INACTIVE) {
+            throw new InactiveAccountException("Cannot grant platform authority to an inactive account");
+        }
+        if (this.platformAuthority != null) {
+            throw new PlatformAuthorityAlreadyGrantedException("Account already has platform authority: " + this.accountId.value());
+        }
+        this.platformAuthority = PlatformAuthority.ADMINISTRATOR;
+    }
+
+    public void revokePlatformAuthority() {
+        if (this.platformAuthority == null) {
+            throw new PlatformAuthorityNotHeldException("Account does not have platform authority: " + this.accountId.value());
+        }
+        this.platformAuthority = null;
     }
 }
