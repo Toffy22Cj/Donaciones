@@ -1,0 +1,157 @@
+{
+  "modelVersion": "baseline-0.1.0",
+  "datasetVersion": "synthetic-v1",
+  "datasetSha256": "ccbfbf9dbfc06865639a11f673ec0ea25537b49c67cccde420b120feabe9fb8f",
+  "synthetic": true,
+  "sklearnVersion": "1.9.1",
+  "split": {
+    "strategy": "GroupShuffleSplit por campaignRef (20 % test) + GroupKFold(5) en train",
+    "snapshotsTotal": 4381,
+    "snapshotsExcludedAlreadyReached": 571,
+    "trainSnapshots": 3060,
+    "testSnapshots": 750,
+    "trainCampaigns": 1125,
+    "testCampaigns": 282,
+    "campaignOverlapTrainTest": 0
+  },
+  "models": {
+    "pace_baseline": {
+      "cvBrierMean": 0.2056,
+      "cvBrierStd": 0.0103,
+      "test": {
+        "n": 750,
+        "positiveRate": 0.46,
+        "brier": 0.2122,
+        "logLoss": 0.6194,
+        "rocAuc": 0.7577,
+        "ece": 0.1333,
+        "accuracyAt0_5": 0.6733
+      },
+      "testByT": {
+        "0.15": {
+          "n": 282,
+          "positiveRate": 0.5213,
+          "brier": 0.2016,
+          "logLoss": 0.6138,
+          "rocAuc": 0.7629,
+          "ece": 0.1542,
+          "accuracyAt0_5": 0.7482
+        },
+        "0.25": {
+          "n": 255,
+          "positiveRate": 0.4706,
+          "brier": 0.2175,
+          "logLoss": 0.6216,
+          "rocAuc": 0.739,
+          "ece": 0.2163,
+          "accuracyAt0_5": 0.6235
+        },
+        "0.5": {
+          "n": 213,
+          "positiveRate": 0.3662,
+          "brier": 0.22,
+          "logLoss": 0.624,
+          "rocAuc": 0.7047,
+          "ece": 0.1234,
+          "accuracyAt0_5": 0.6338
+        }
+      }
+    },
+    "logistic_regression": {
+      "cvBrierMean": 0.0667,
+      "cvBrierStd": 0.0087,
+      "test": {
+        "n": 750,
+        "positiveRate": 0.46,
+        "brier": 0.0652,
+        "logLoss": 0.2333,
+        "rocAuc": 0.9707,
+        "ece": 0.0337,
+        "accuracyAt0_5": 0.912
+      },
+      "testByT": {
+        "0.15": {
+          "n": 282,
+          "positiveRate": 0.5213,
+          "brier": 0.0699,
+          "logLoss": 0.246,
+          "rocAuc": 0.9691,
+          "ece": 0.0563,
+          "accuracyAt0_5": 0.9113
+        },
+        "0.25": {
+          "n": 255,
+          "positiveRate": 0.4706,
+          "brier": 0.0624,
+          "logLoss": 0.224,
+          "rocAuc": 0.9728,
+          "ece": 0.0299,
+          "accuracyAt0_5": 0.9137
+        },
+        "0.5": {
+          "n": 213,
+          "positiveRate": 0.3662,
+          "brier": 0.0624,
+          "logLoss": 0.2276,
+          "rocAuc": 0.9684,
+          "ece": 0.0391,
+          "accuracyAt0_5": 0.9108
+        }
+      }
+    },
+    "hist_gradient_boosting": {
+      "cvBrierMean": 0.065,
+      "cvBrierStd": 0.0079,
+      "test": {
+        "n": 750,
+        "positiveRate": 0.46,
+        "brier": 0.0828,
+        "logLoss": 0.295,
+        "rocAuc": 0.9604,
+        "ece": 0.0545,
+        "accuracyAt0_5": 0.8933
+      },
+      "testByT": {
+        "0.15": {
+          "n": 282,
+          "positiveRate": 0.5213,
+          "brier": 0.0786,
+          "logLoss": 0.2767,
+          "rocAuc": 0.9621,
+          "ece": 0.0529,
+          "accuracyAt0_5": 0.8972
+        },
+        "0.25": {
+          "n": 255,
+          "positiveRate": 0.4706,
+          "brier": 0.0843,
+          "logLoss": 0.3052,
+          "rocAuc": 0.9602,
+          "ece": 0.061,
+          "accuracyAt0_5": 0.898
+        },
+        "0.5": {
+          "n": 213,
+          "positiveRate": 0.3662,
+          "brier": 0.0864,
+          "logLoss": 0.3072,
+          "rocAuc": 0.9565,
+          "ece": 0.0766,
+          "accuracyAt0_5": 0.8826
+        }
+      }
+    }
+  },
+  "leakageControl": {
+    "check": "logistic_regression entrenada 30 veces con etiquetas permutadas; AUC medio en test real",
+    "rocAucMean": 0.4928,
+    "rocAucStd": 0.113,
+    "passed": true
+  },
+  "regressionFinalPct": {
+    "model": "HistGradientBoostingRegressor",
+    "testMAE_pctPoints": 13.91,
+    "naiveMAE_linearExtrapolation_pctPoints": 112.04
+  },
+  "bestByBrier": "logistic_regression"
+}

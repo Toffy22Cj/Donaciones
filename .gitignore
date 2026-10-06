@@ -27,3 +27,8 @@ buildNumber.properties
 *.iml
 .vscode/
 *.swp
+
+# Python ML Component
+paxfide-predictor/.venv/
+paxfide-predictor/__pycache__/
+paxfide-predictor/*.pyc

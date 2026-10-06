@@ -1,0 +1,35 @@
+[
+  {
+    "kind": "ESTIMATE",
+    "disclaimer": "Estimación estadística. No es un hecho verificable del sistema de trazabilidad.",
+    "campaignRef": "cmp-00000",
+    "t": 0.15,
+    "probabilityReachTarget": 0.9448,
+    "estimatedFinalPctOfTarget": 0.9632,
+    "modelVersion": "baseline-0.1.0",
+    "datasetVersion": "synthetic-v1",
+    "synthetic": true
+  },
+  {
+    "kind": "ESTIMATE",
+    "disclaimer": "Estimación estadística. No es un hecho verificable del sistema de trazabilidad.",
+    "campaignRef": "cmp-00000",
+    "t": 0.25,
+    "probabilityReachTarget": 0.9991,
+    "estimatedFinalPctOfTarget": 0.9943,
+    "modelVersion": "baseline-0.1.0",
+    "datasetVersion": "synthetic-v1",
+    "synthetic": true
+  },
+  {
+    "kind": "ESTIMATE",
+    "disclaimer": "Estimación estadística. No es un hecho verificable del sistema de trazabilidad.",
+    "campaignRef": "cmp-00001",
+    "t": 0.15,
+    "probabilityReachTarget": 0.9964,
+    "estimatedFinalPctOfTarget": 2.2903,
+    "modelVersion": "baseline-0.1.0",
+    "datasetVersion": "synthetic-v1",
+    "synthetic": true
+  }
+]
