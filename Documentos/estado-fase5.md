@@ -29,10 +29,9 @@ Este documento registra el cierre histórico de la Fase 5, su posterior auditor�
 
 *Nota documental post-auditoría*: Los archivos físicos de los ADR-028 a ADR-032 han sido incorporados en `Documentos/` mediante reconstrucción histórica rigurosa.
 
-**Estado del catálogo tras C5** (verificado contra `feat/fase5-a7-1-a7-2`, `develop` local y `origin/develop`):
-- **Colisiones 033–037 (Fase 5 ↔ Fase 6): PENDIENTES de decisión humana.** ADR-033 a ADR-036 existen dos veces (Fase 5: saga de registro, pending allocation, HumanActor, reversión administrativa; Fase 6: Convocatoria, Identidad, Blockchain, IA) y ADR-037 (APIs/Frontend, Fase 6) está marcado como "número tentativo". En este documento los números 033–036 se refieren siempre a los ADR de Fase 5. No se ha renumerado nada.
-- **ADR-038** (`develop` local, no publicado, `b4f04cb`/`ad130d7`): **SUPERSEDIDO**. Su decisión (añadir `fundId` a `registerPhysicalAsset`) se implementó de otra forma en A3/C3 y su §4 dependía de `RedundantDomainActionException`, eliminada por A7.1. El envelope vigente quedó documentado en ADR-033. No se porta.
-- **ADR-039** (`develop` local, no publicado, `5c480c5`): **PENDIENTE DE RESOLVER NUMÉRICAMENTE**. Su contenido (no-op idempotente para redundancia exacta) coincide en sustancia con la implementación vigente de A7.1 (`e10a3ca`), pero cita como evidencia la variante no canónica `04ad840` y el número 039 está reservado como candidato para Fase 6 en `plan-correccion-fase5-e-ia.md`. A7.1 no tiene todavía un ADR publicado.
+**Estado del catálogo tras C5** (verificado):
+- **Colisiones 033–037 (Fase 5 ↔ Fase 6): ✅ RESUELTAS.** Los ADR de la Fase 6 han sido renumerados correctamente (037 a 041) y ya no existen conflictos con los ADR de la Fase 5 (033 a 036).
+- **ADR-038** (Identidad Administrator), **ADR-039** (Blockchain Merkle), **ADR-040** (IA Convocatoria Audit Facts) y **ADR-041** (API Frontend) ya tienen su numeración definitiva.
 - **ADR-042**: primer número libre en todas las ramas y no reservado; usado para A7.2.
 - La reconstrucción alternativa de ADR-028 a ADR-032 presente en `develop` local (`cd56d22`, otros nombres de archivo) es material histórico descartado: los originales existen en `Documentos/`.
 
@@ -414,7 +413,7 @@ Históricamente, con la ejecución de la Tarea 5.11 (hito `87af002`), la Fase 5 
   - *`requestAllocation` sin `authorize()`:* Diferido para revisión futura por no tener entrypoint externo.
   - *`FundCommandService.reverseAllocation()`:* Entrypoint interno de compensación sin `authorize()`. ADR-036 lo contempla como SystemActor, pero el código no restringe el tipo en runtime y no existe entrypoint HTTP/humano actual.
   - *Derivación de organizationRef para ExternalActor:* Sin mecanismo de webhook para derivarlo.
-- **ADRs relevantes de Fase 5:** ADR-034, ADR-035, ADR-036 — Reversión Administrativa de Asignación (**Approved**); ADR-033 (**Aprobado parcialmente**). *Aviso de Colisión Documental*: ver §1 — colisiones 033–037 pendientes de decisión humana, ADR-038 supersedido, ADR-039 pendiente de numeración, ADR-042 creado (A7.2).
+- **ADRs relevantes de Fase 5:** ADR-034, ADR-035, ADR-036 — Reversión Administrativa de Asignación (**Approved**); ADR-033 (**Aprobado parcialmente**). *Nota*: la colisión documental de la Fase 6 ha sido resuelta (ADRs 037-041).
 - *(estado posterior)*: de las deudas anteriores, el productor real de Outbox quedó cerrado (A3/C3) y `requestAllocation` tiene `authorize()` (A2). Las restantes siguen vigentes; ver §12.8.
 
 ### 12.2. Auditoría Posterior de Fase 5
@@ -544,6 +543,5 @@ Rama: `feat/fase5-a7-1-a7-2`, sobre la base remota `842c5e3` (merge de `origin/d
    - A7.2 sigue **cerrado**; esta es una deuda residual documentada, no una reapertura.
 8. **Redelivery del retry (riesgo aceptado / no demostrado):** si un evento se vuelve a entregar (solo ocurre tras un reinicio sin avance del checkpoint), `ProjectionEventSource` guarda el documento de retry con su id determinista (`eventId_handlerName`). Eso lo reconstruye con `firstAttemptAt` y `retryCount = 0` reiniciados. Una proyección en `PAUSED` sigue en cuarentena. No se ha demostrado que esto viole hoy el contrato de ADR-042; queda como riesgo aceptado.
 
-**Decisiones humanas pendientes (no resueltas en C5/C6, sin renumeración):**
-- Colisiones ADR-033 a ADR-037 entre Fase 5 y Fase 6, y el rango destino de la renumeración de Fase 6 (la propuesta 037–041 de `plan-correccion-fase5-e-ia.md` ya no es aplicable tal cual).
-- Número definitivo del ADR de A7.1: reutilizar el contenido de ADR-039 con un número libre, o redactarlo de nuevo contra `e10a3ca`.
+**Decisiones humanas resueltas:**
+- Colisiones ADR-033 a ADR-037 entre Fase 5 y Fase 6 resueltas (ADRs Fase 6 asignados al rango 037–041).

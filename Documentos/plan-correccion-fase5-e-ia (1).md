@@ -6,14 +6,20 @@
 
 ---
 
-## ✅ Colisión de numeración de ADR entre Fase 5 y Fase 6 (RESUELTO)
+## 🔴 Hallazgo crítico, resolver antes que cualquier otro ítem: colisión de numeración de ADR entre Fase 5 y Fase 6
 
-**Hallazgo:** los ADR-033 a ADR-036 de **Fase 5** usaban los mismos números que los de **Fase 6**.
+**Hallazgo:** los ADR-033 a ADR-036 de **Fase 5** (saga de registro de activos, visibilidad de pending allocation, HumanActor, reversión administrativa) usan exactamente los mismos números que los ADR-033 a ADR-036 de **Fase 6** generados en esta sesión (Convocatoria, Identidad, Blockchain, IA respectivamente) — dos conjuntos de decisiones completamente distintas con la misma numeración. El propio documento de Fase 5 lo admite: *"Aviso de Colisión Documental: Existe una colisión de numeración para ADR-033 a ADR-036 introducida posteriormente por el trabajo de Fase 6."*
 
-**Estado:** **✅ CERRADO**.
-- Los documentos de la Fase 6 fueron renumerados correctamente del 037 al 041 (`ADR-037-convocatoria-ledger-assignment-donationintent.md`, `ADR-038-identidad-platform-administrator-verificacion-organization.md`, `ADR-039-blockchain-merkle-producer-integrity-verification.md`, `ADR-040-ia-convocatoria-audit-facts.md`, `ADR-041-api-frontend-contratos-http.md`).
-- El ADR para orquestación centralizada de reintentos se asignó al número 042.
-- La colisión ya no existe en el repositorio.
+**Por qué es urgente y no solo una deuda documental:** cualquier referencia futura a "ADR-035" es ambigua sin contexto — podría significar HumanActor (Fase 5) o el diseño de MerkleBatch (Fase 6, Blockchain). Ya generamos cinco ADR de Fase 6 en esta sesión con esta numeración en conflicto.
+
+**Acción:**
+1. Confirmar el número real más alto del catálogo de ADR existente (Fase 5 llega hasta ADR-036 según la fuente más reciente — verificar que no haya nada más entre ADR-036 y el inicio de Fase 6 antes de asumir el siguiente número disponible).
+2. Renumerar los cinco ADR de Fase 6 generados en esta sesión a partir del siguiente número libre confirmado (candidato, sujeto a confirmación: ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend).
+3. Actualizar cualquier referencia cruzada entre esos cinco documentos que cite el número antiguo.
+
+**Criterio de éxito:** un único catálogo de ADR sin números duplicados, confirmado contra el repositorio real.
+
+**Responsable sugerido:** quien mantenga el catálogo de ADR — es una corrección administrativa urgente, no requiere debate de arquitectura.
 
 ---
 
@@ -21,48 +27,34 @@
 
 | Bloque | Ítems | Bloquea Fase 6 |
 |---|---|---|
-| Colisión de ADR | 1 hallazgo crítico — ✅ RESUELTO (Renumerados a 037-041) | No bloquea |
-| A — Fase 5 / Core / Identity | 6 hallazgos (5 originales + A6 nuevo) — ✅ todos cerrados (C1–C6), con deudas explícitas | Ya no — ver estado por ítem |
+| Colisión de ADR | 1 hallazgo crítico | Sí — ambigüedad activa en cualquier referencia nueva a ADR-033/034/035/036 |
+| A — Fase 5 / Core / Identity | 6 hallazgos (5 originales + A6 nuevo) | Sí — 2 de ellos bloquean directamente trabajo de Blockchain y Convocatoria |
 | B — IA / ADR-036 (Fase 6) | 3 decisiones estructurales + 1 contradicción + 4 verificaciones técnicas | No bloquea otras capas, sí bloquea completar el diseño de `ConvocatoriaAuditFacts` |
 
 ---
 
 ## Bloque A — Fase 5 (confirmado por dos auditorías independientes)
 
-### A1. Contexto de test roto — `MongoUnanchoredEventAdapterTest` — ✅ CERRADO
+### A1. Contexto de test roto — `MongoUnanchoredEventAdapterTest` (PRIORIDAD MÁXIMA, bloquea Blockchain hoy mismo)
 
-**Estado:** **CERRADO** (Resuelto en commit `793d4b8`).
+**Hallazgo:** el test de Blockchain (`crypto`/`core`) no puede arrancar su contexto de Spring porque escanea de más y arrastra `FundCommandService`, que depende de `IdentityPrincipalPort` — un bean que el test no provee.
 
-**Hallazgo original:** el test de Blockchain (`crypto`/`core`) no podía arrancar su contexto de Spring porque escaneaba de más y arrastraba `FundCommandService`, que dependía de `IdentityPrincipalPort` — un bean que el test no proveía.
+**Evidencia:** `No qualifying bean of type 'com.traceability.contracts.authorization.IdentityPrincipalPort' available` — confirmado en dos ejecuciones distintas, una de ellas dentro del reactor completo (`core FAILURE`, `identity`/`app` `SKIPPED`).
 
-**Evidencia previa:** `No qualifying bean of type 'com.traceability.contracts.authorization.IdentityPrincipalPort' available` en ejecuciones históricas.
+**Causa raíz real:** no es que falte implementar `IdentityPrincipalPort` — es que el test usa un `@SpringBootApplication(scanBasePackages="com.traceability.core")` demasiado amplio, el mismo patrón de sobre-escaneo ya detectado dos veces hoy en Blockchain (con `HashPort` y con la clave de OpenAI).
 
-**Causa raíz real:** sobre-escaneo de contexto de Spring mediante `@SpringBootApplication(scanBasePackages="com.traceability.core")`.
+**Acción:**
+1. Acotar el contexto del test a lo que realmente ejercita — usar `@ContextConfiguration(classes = {MongoUnanchoredEventAdapter.class, ...})` o un slice equivalente, en vez de `@SpringBootApplication` escaneando todo `core`.
+2. **No** proveer un mock de `IdentityPrincipalPort` para "hacer arrancar" el contexto amplio — eso oculta el síntoma sin arreglar la causa (el test seguiría cargando cosas que no necesita).
+3. Verificar que el mismo patrón no está repetido en otros tests de `crypto`/`core` que hoy "funcionan por casualidad" con el contexto amplio.
 
-**Solución aplicada (commit `793d4b8`):**
-1. Se acotó el contexto del test restringiendo el escaneo al slice necesario: `@SpringBootApplication(scanBasePackages = "com.traceability.core.infrastructure.persistence.mongo")` y `@EnableMongoRepositories(basePackages = "com.traceability.core.infrastructure.persistence.mongo")`.
-2. Se especificó la clase de configuración de prueba explícitamente: `@SpringBootTest(classes = MongoUnanchoredEventAdapterTest.TestConfig.class)`.
-3. Se proveyeron únicamente los beans de infraestructura requeridos: `@MockBean HashPort` y `@MockBean EventCanonicalMapper`.
-4. Ningún mock innecesario de `IdentityPrincipalPort` fue añadido en el test.
+**Criterio de éxito:** `mvn test -pl core,crypto,app` completo en verde, con el mismo desglose por clase que ya usamos toda la sesión — sin necesidad de ningún mock de `IdentityPrincipalPort`.
 
-**Evidencia de validación (24-09-2026):**
-Ejecución: `mvn test -pl core -am -Dtest=MongoUnanchoredEventAdapterTest -Dsurefire.failIfNoSpecifiedTests=false`
-Salida:
-```
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.032 s -- in com.traceability.core.infrastructure.persistence.mongo.MongoUnanchoredEventAdapterTest
-[INFO] Results:
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
+**Responsable sugerido:** quien mantenga la infraestructura de tests de `core`/`crypto` — es un arreglo de configuración, no de lógica de negocio, estimable en horas, no días.
 
 ---
 
-### A2. Autorización ausente en cuatro métodos (PRIORIDAD ALTA, antes de exponer HTTP) — ✅ CERRADO
-
-**Estado:** **CERRADO** (A2 `7be6751`; regresión de `reverseAllocation` revertida en `8356373`; C2 `c07f994`).
-- `requestAllocation`, `confirmAllocation` y `deliverAsset` invocan `authorize(...)` con `REQUEST_ALLOCATION`, `CONFIRM_ALLOCATION` y `DELIVER_ASSET` (matriz en `estado-fase5.md` §9.5).
-- `reverseAllocation` queda **sin** `authorize()` por diseño (ADR-036 §2: compensación interna de la saga como `SystemActor`). C2 lo documenta en código y añade un test de integración que ejercita la compensación real de `AssetRegisteredSagaPolicy` (asignación revertida, `SystemActor` persistido, sin llamadas de autorización).
-- Deuda aceptada: `reverseAllocation` no restringe en runtime el tipo de actor; mientras no exista entrypoint humano no es explotable.
+### A2. Autorización ausente en cuatro métodos (PRIORIDAD ALTA, antes de exponer HTTP) — VERIFICACIÓN PENDIENTE, no cerrar sin evidencia nueva
 
 **Hallazgo original (ambas auditorías, con cita de código real):** `requestAllocation`, `confirmAllocation`, `reverseAllocation` (en `FundCommandService`) y `deliverAsset` (en `PhysicalAssetCommandService`) reciben un `actorRef`/`HumanActor` como parámetro pero nunca invocan `authorize`/`resolvePrincipal` sobre él — a diferencia de `registerFund`, `clearFundsGenesis`, `reverseAllocationAdministratively`, `registerPhysicalAsset` y `splitPhysicalAsset`, que sí lo hacen correctamente.
 
@@ -83,9 +75,7 @@ Salida:
 
 ---
 
-### A6. Contradicción interna en la propia "documentación actualizada" — camino de autorización E2E (PRIORIDAD ALTA, resolver junto con A2) — ✅ CERRADO
-
-**Estado:** **CERRADO** (`fc8cbc7`; cableado real reforzado en C1 `8a36894`). Afirmación única y verdadera: la secuencia `IdentityPrincipalPortImpl → OrganizationBoundaryPolicy → RoleAuthorizationPolicy → Aggregate` funciona hoy con el contexto de producción de `app`, demostrada por `HumanActorIdentityIntegrationTest` para `registerFund` (éxito, rol insuficiente, otra organización). **No** existe camino HTTP de escritura: el test entra directamente al `CommandService`. La nota de la Tarea 5.9 en `plan-ejecucion-agentes-fase5.md` se marcó como superada.
+### A6. Contradicción interna en la propia "documentación actualizada" — camino de autorización E2E (PRIORIDAD ALTA, resolver junto con A2)
 
 **Hallazgo:** `plan-ejecucion-agentes-fase5.md` (Tarea 5.9, nota arquitectónica) dice textualmente: *"la secuencia Boundary -> Role -> Aggregate no tiene actualmente un camino E2E ejecutable dentro de CommandService"*. En el mismo conjunto de documentos, `estado-fase5.md` marca **NUEVA-5 como COMPLETADA**, describiéndola como el cableado real de `IdentityPrincipalPort`/`OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` para `HumanActor` en los `*CommandService`.
 
@@ -111,30 +101,9 @@ Salida:
 
 **Responsable sugerido:** Core.
 
-**Estado A7.1: ✅ CERRADO técnicamente, con deuda explícita** (`e10a3ca`; la variante `04ad840` de `develop` local no es la canónica).
-- La redundancia exacta es un no-op de dominio (cero eventos). El Application Service continúa hasta `appendAndOutbox(emptyList, ..., commandId)`, donde `tryClaim` deduplica el mismo `commandId` y registra uno distinto como procesado. Se eliminaron las seis clases `Redundant*`, y `CommandRetryTemplate` solo reintenta ante `ConcurrencyConflictException`.
-- Criterio cumplido para `Fund`: `ProcessedCommandIdempotencyIntegrationTest` (escenario A: mismo `commandId`; B: `commandId` distinto y redundante; C: transición inválida sigue fallando).
-- **Deuda explícita — `PhysicalAsset.deliver` (✅ cerrada en C7; ver `estado-fase5.md` §12.8):** la comparación de redundancia exacta no incluye `beneficiaryRef` (el agregado no lo guarda en su estado). Una segunda entrega con otro beneficiario y los demás parámetros iguales se acepta como no-op en lugar de rechazarse. Además, compara con `equals` sin tolerar nulos en `evidenceRef`/`deliveredAt`, que el payload no valida. No hay test de integración de `deliverAsset` redundante con `ProcessedCommand`.
-- **ADR:** la decisión no tiene ADR publicado. ADR-039 (solo en `develop` local) la describe, pero está pendiente de resolver su numeración (ver hallazgo de colisión).
-
-**Estado A7.2: ✅ CERRADO** (`e4404e5` + C4 `20ba931`; decisión formalizada en **ADR-042**). Los handlers ya no gestionan reintentos. `ProjectionEventSource` hace el primer intento, clasifica el error y solo avanza el checkpoint con el retry persistido. `ProjectionRetryScheduler` hace a lo sumo un intento por documento en cada ejecución, con ventana de 4 h y cuarentena. `resumeProjection` conserva el evento si falla. Cubierto por `ProjectionEventSourceTest` y `ProjectionRetrySchedulerTest`. `hallazgo-framework-retry-projections.md` queda marcado como cerrado.
-
-**Deuda técnica posterior de A7.2 — DEUDA FUERA DE ALCANCE (A7.2 no se reabre):**
-- C4 (`20ba931`) resolvió el bucle de reintentos del scheduler y la pérdida del evento en `resumeProjection`.
-- C7 (`107cfb4`) verificó, con una sonda de integración contra MongoDB real, qué pasa cuando falla la persistencia del retry:
-  - el checkpoint **no** avanza y no hay salto silencioso ni pérdida silenciosa confirmada;
-  - pero la tarea del change stream termina, y las proyecciones quedan detenidas hasta reiniciar o volver a suscribirse;
-  - tras el reinicio, el evento puede volver a entregarse.
-- La parada del change stream requiere una política explícita de resuscripción o reinicio, que queda para trabajo posterior.
-- Riesgo asociado, aceptado y no demostrado: al volver a entregarse, el documento de retry se reconstruye con `firstAttemptAt`/`retryCount` reiniciados.
-- Detalle: `estado-fase5.md` §12.8, deudas 7 y 8.
-
 ---
 
-### A3. Outbox sin productor real de negocio (PRIORIDAD MEDIA-ALTA, bloquea la confianza en `STRICT` de Convocatoria) — ✅ CERRADO
-
-**Estado:** **CERRADO** (`01a9f60` + `d30cd00`; contrato alineado en C3 `014d101`). `registerPhysicalAsset` produce el `OutboxMessage` de `ASSET_REGISTRATION_SAGA` en la misma operación que el evento de génesis. El envelope es `correlationId = fundId`, payload `{allocationId, fundId}` y un `messageId` propio. `Phase5EndToEndIntegrationTest.testD2_isolated_AssetRegisteredSagaPolicy_confirmAllocation` demuestra productor → Outbox → `OutboxSagaCoordinator` → `AssetRegisteredSagaPolicy` → `Fund` confirmado, sin inyección manual. Desde C3 el comando además valida el `Fund` (existencia y `organizationRef`, ADR-029 §2.1), con tests negativos. ADR-033 fue actualizado en C5.
-*Alcance:* es **un** productor real. Validar "carga real" para `STRICT` de Convocatoria sigue siendo trabajo de Fase 6.
+### A3. Outbox sin productor real de negocio (PRIORIDAD MEDIA-ALTA, bloquea la confianza en `STRICT` de Convocatoria)
 
 **Hallazgo:** el mecanismo transaccional de Outbox existe y está probado en aislamiento, pero **ningún comando de negocio real** produce un mensaje — los 14 puntos de invocación pasan lista vacía. Solo `OutboxSagaCoordinator` construye mensajes, y únicamente para reconstruir reintentos/cuarentena de algo que ya debería haber existido.
 
@@ -151,48 +120,32 @@ Salida:
 
 ---
 
-### A4. ADR-028 a ADR-032 ausentes del repositorio — ✅ CERRADO (Reconstrucción Histórica)
+### A4. ADR-028 a ADR-032 ausentes del repositorio (PRIORIDAD MEDIA)
 
-**Estado:** **CERRADO** (Reconstrucción histórica completada).
+**Hallazgo:** cinco documentos de decisión arquitectónica citados como aprobados por `estado-fase5.md` no existen físicamente. El propio documento se contradice: los da por "consolidados" en una sección y por "pendientes de incorporar" en otra.
 
-**Hallazgo original:** cinco documentos de decisión arquitectónica citados como aprobados por `estado-fase5.md` no existían físicamente en `Documentos/`.
+**Por qué te importa para Fase 6:** ADR-034 (Identidad, diseñado en esta sesión) referencia la taxonomía de `ActorRef`/`HumanAccount` de "ADR-031" como ya cerrada. Si ese documento no existe formalmente, esa referencia no tiene respaldo verificable.
 
-**Acción ejecutada:**
-1. Se reconstruyeron fielmente los 5 ADRs a partir de la evidencia textual de código Java, pruebas unitarias/arquitectura, historial Git y registros de `estado-fase5.md` y `plan-ejecucion-agentes-fase5.md`:
-   - `Documentos/ADR-028-relacion-organization-fund.md`
-   - `Documentos/ADR-029-organization-physicalasset-donacion-especie.md`
-   - `Documentos/ADR-030-actorref-ubicacion-persistencia.md`
-   - `Documentos/ADR-031-taxonomia-actorref.md`
-   - `Documentos/ADR-032-autorizacion-comandos-core-matriz.md`
-2. Los documentos reflejan estrictamente lo que el código y el repositorio implementan, marcados como "Reconstrucción histórica (Aprobada en Fase 5)".
-3. No se alteró la numeración de los ADRs 033-036 existentes ni los de Fase 6.
+**Acción:**
+1. Determinar si esas decisiones existen en algún otro formato (actas de reunión, comentarios de PR) que permita reconstruirlas fielmente, o si hay que redecidirlas desde cero.
+2. Redactar los ADR faltantes con evidencia real de lo que el código ya implementa (no al revés — no adaptar el código a lo que "debería" haber dicho el ADR).
+3. Resolver también la discrepancia de nombre `HumanActor` (código) vs. `HumanAccount` (documentación, incluido nuestro ADR-034) — decidir cuál es el nombre canónico y corregir el otro.
 
-**Criterio de éxito:** Los 5 ADRs existen físicamente en el repositorio con evidencia demostrable en código.
+**Criterio de éxito:** los 5 ADR existen en el repositorio, con estado real verificado contra código, y la discrepancia de nombre queda resuelta en un solo sentido.
+
+**Responsable sugerido:** quien lidere Identidad/documentación de Fase 5.
 
 ---
 
-### A5. Manejo de errores silencioso — ✅ CERRADO
+### A5. Manejo de errores silencioso (PRIORIDAD BAJA)
 
-**Estado:** **CERRADO**.
+**Hallazgo:** `DonationProjectionHandler.java` tiene un `catch (Exception ignored) {}` que traga el tipo real de la excepción — un fallo real queda invisible.
 
-**Hallazgo original:** `DonationProjectionHandler.java` tenía un `catch (Exception ignored) {}` dentro de `enqueueForRetry` que tragaba cualquier excepción de deserialización o resolución, dejando el fallo invisible y el documento erróneamente en estado `PENDING`.
+**Acción:** reemplazar por manejo explícito, nombrando el tipo de excepción esperado y registrando (log) cualquier tipo inesperado en vez de descartarlo silenciosamente — mismo principio que ya aplicamos toda la sesión ("toda condición de fallo tiene su propia excepción nombrada").
 
-**Acción ejecutada:**
-1. Se reemplazó el `catch (Exception ignored) {}` por captura explícita y tipada:
-   - `catch (IllegalArgumentException e)`: cuando el payload es inválido, corrupto o de tipo desconocido, se registra con `log.error` con metadatos completos (`streamId`, `eventId`, `eventType`, `schemaVersion`) y se establece inmediatamente `retryDoc.setStatus("QUARANTINED")`, evitando ciclos infinitos de reintento sobre payloads venenosos.
-   - `catch (org.springframework.dao.DataAccessException e)`: para errores transitorios de acceso a MongoDB durante la resolución de dependencias, se registra con `log.warn` y se conserva el estado `PENDING` para permitir que el `ProjectionRetryScheduler` reintente cuando la base de datos se recupere.
-   - `catch (Exception e)`: para cualquier otro error inesperado, se registra con `log.error` y se asigna `QUARANTINED`.
-2. Se agregó la prueba unitaria focalizada `DonationProjectionHandlerExceptionHandlingTest` con 4 casos de prueba verificando que los payloads inválidos son puestos en cuarentena y los fallos transitorios se mantienen pendientes.
+**Criterio de éxito:** el `catch` genérico desaparece; existe un test que demuestra que un fallo real dentro de ese bloque es visible (log, métrica, o propagación), no silencioso.
 
-**Evidencia de validación:**
-Ejecución: `mvn test -pl core -am -Dtest=DonationProjectionHandlerExceptionHandlingTest -Dsurefire.failIfNoSpecifiedTests=false`
-Salida:
-```
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.418 s -- in com.traceability.core.application.projection.DonationProjectionHandlerExceptionHandlingTest
-[INFO] Results:
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
+**Responsable sugerido:** Core.
 
 ---
 
@@ -207,11 +160,6 @@ Salida:
 **Criterio de éxito:** una sola interfaz confirmada por código, con el otro nombre retirado formalmente de la documentación que lo citaba.
 
 **Responsable sugerido:** quien lidere IA/Convocatoria — no es Blockchain.
-
-**✅ CERRADO.** Verificado contra código real de `contracts`: solo existía
-`AuditFactsPort` (donación individual). Se formalizó `CampaignAuditFactsPort`/
-`CampaignAuditFactsDTO` como interfaz nueva y separada. Detalle completo en
-`ADR-040` §8. Rama: `feat/contracts-campaign-auditfacts-port`.
 
 ---
 
@@ -257,7 +205,8 @@ Salida:
 
 ```
 HOY, antes que cualquier otra cosa:
-  Colisión de ADR (RESUELTO - ADRs 037-042 correctamente asignados)
+  Colisión de ADR (renumerar los 5 documentos de Fase 6 — es rápido y evita
+  que se genere más trabajo referenciando números ambiguos)
 
 Inmediato (esta semana):
   A1 (arregla el bloqueo de hoy mismo, libera Blockchain y el reactor completo)
