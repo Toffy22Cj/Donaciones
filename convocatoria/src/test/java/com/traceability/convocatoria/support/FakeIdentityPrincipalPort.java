@@ -17,7 +17,7 @@ public class FakeIdentityPrincipalPort implements IdentityPrincipalPort {
     private final Map<String, AuthorizationPrincipal> principals = new ConcurrentHashMap<>();
 
     public void register(String accountId, String organizationId, AuthorizationRole... roles) {
-        principals.put(accountId, new AuthorizationPrincipal(accountId, organizationId, Set.of(roles)));
+        principals.put(accountId, new AuthorizationPrincipal(accountId, organizationId, Set.of(roles), null));
     }
 
     public void clear() {
