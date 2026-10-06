@@ -1,0 +1,112 @@
+====================================================================================================
+S1a REVOKE(A) || REVOKE(B), 2 admins, SIN documento dedicado (count() sobre accounts)
+  [sin singleton] intercalaciones=   252  resultados distintos=  3  -> ROTO: 250 intercalaciones violan invariantes
+        resultado: ['LastAdmin', 'OK']  x1
+        resultado: ['OK', 'LastAdmin']  x1
+        resultado: ['OK', 'OK']  x250
+        CONTRAEJEMPLO: ['I2 cero Platform Administrators']
+          resultados=['OK', 'OK']  planificación=[0, 0, 0, 0, 1, 0, 1, 1, 1, 1]
+          estado final={'acct:A': {'auth': False, 'status': 'ACTIVE'}, 'acct:B': {'auth': False, 'status': 'ACTIVE'}}
+====================================================================================================
+S1  REVOKE(A) || REVOKE(B), 2 admins, CON documento dedicado
+  [Claude #9 (singleton + $gt:1)] intercalaciones=  4326  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['LastAdmin', 'OK']  x889
+        resultado: ['OK', 'LastAdmin']  x889
+        resultado: ['OK', 'WriteConflict(propagado)']  x1274
+        resultado: ['WriteConflict(propagado)', 'OK']  x1274
+  [ChatGPT #9 (singleton + filtro en Account)] intercalaciones=  4326  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['LastAdmin', 'OK']  x889
+        resultado: ['OK', 'LastAdmin']  x889
+        resultado: ['OK', 'WriteConflict(propagado)']  x1274
+        resultado: ['WriteConflict(propagado)', 'OK']  x1274
+====================================================================================================
+S2  GRANT(C) || GRANT(C) sobre la misma cuenta — ¿contador inflado? (crítica de ChatGPT a #9)
+  [D0 precondición FUERA de la transacción] intercalaciones= 15780  resultados distintos=  5  -> ROTO: 6538 intercalaciones violan invariantes
+        resultado: ['AlreadyGranted', 'OK']  x1
+        resultado: ['OK', 'AlreadyGranted']  x1
+        resultado: ['OK', 'OK']  x6538
+        resultado: ['OK', 'WriteConflict(propagado)']  x4620
+        resultado: ['WriteConflict(propagado)', 'OK']  x4620
+        CONTRAEJEMPLO: ['I1 contador=3 != admins reales=2']
+          resultados=['OK', 'OK']  planificación=[0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1]
+          estado final={'acct:A': {'auth': True, 'status': 'ACTIVE'}, 'acct:C': {'auth': True, 'status': 'ACTIVE'}, 'state': {'count': 3}}
+  [D0 + update condicional de ChatGPT (defensa en profundidad)] intercalaciones= 15780  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['AlreadyGranted', 'OK']  x3270
+        resultado: ['OK', 'AlreadyGranted']  x3270
+        resultado: ['OK', 'WriteConflict(propagado)']  x4620
+        resultado: ['WriteConflict(propagado)', 'OK']  x4620
+  [Claude #9 ($set + $inc, chequeo dentro)] intercalaciones=  4326  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['AlreadyGranted', 'OK']  x889
+        resultado: ['OK', 'AlreadyGranted']  x889
+        resultado: ['OK', 'WriteConflict(propagado)']  x1274
+        resultado: ['WriteConflict(propagado)', 'OK']  x1274
+  [ChatGPT #9 (update condicional en Account)] intercalaciones=  4326  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['AlreadyGranted', 'OK']  x889
+        resultado: ['OK', 'AlreadyGranted']  x889
+        resultado: ['OK', 'WriteConflict(propagado)']  x1274
+        resultado: ['WriteConflict(propagado)', 'OK']  x1274
+====================================================================================================
+S3  GRANT(C) || REVOKE(C) (C ya admin, 2 admins) — hueco #3
+  [Claude] intercalaciones=   210  resultados distintos=  2  -> OK (0 contraejemplos)
+        resultado: ['AlreadyGranted', 'OK']  x209
+        resultado: ['OK', 'OK']  x1
+  [ChatGPT] intercalaciones=   210  resultados distintos=  2  -> OK (0 contraejemplos)
+        resultado: ['AlreadyGranted', 'OK']  x209
+        resultado: ['OK', 'OK']  x1
+====================================================================================================
+S4  REVOKE(A) || DEACTIVATE(B), 2 admins — hueco A (código actual de DeactivateAccount)
+  [Deactivate ACTUAL (sin guarda)] intercalaciones=   210  resultados distintos=  1  -> ROTO: 210 intercalaciones violan invariantes
+        resultado: ['OK', 'OK']  x210
+        CONTRAEJEMPLO: ["I6 admin INACTIVO contado en el contador (bloqueo latente): ['acct:B']", "I3 BLOQUEO: ningún administrador ACTIVO (admins=['acct:B'])"]
+          resultados=['OK', 'OK']  planificación=[0, 0, 0, 0, 0, 0, 1, 1, 1, 1]
+          estado final={'acct:A': {'auth': False, 'status': 'ACTIVE'}, 'acct:B': {'auth': True, 'status': 'INACTIVE'}, 'state': {'count': 1}}
+  [Deactivate con guarda propuesta] intercalaciones=    84  resultados distintos=  1  -> OK (0 contraejemplos)
+        resultado: ['OK', 'PlatformAdminDeactivation']  x84
+====================================================================================================
+S5  GRANT(C) || DEACTIVATE(C) — ¿puede quedar un admin INACTIVO?
+  [GRANT sin exigir ACTIVE + guarda en deactivate] intercalaciones=   279  resultados distintos=  4  -> ROTO: 135 intercalaciones violan invariantes
+        resultado: ['OK', 'OK']  x135
+        resultado: ['OK', 'PlatformAdminDeactivation']  x1
+        resultado: ['OK', 'WriteConflict(propagado)']  x63
+        resultado: ['WriteConflict(propagado)', 'OK']  x80
+        CONTRAEJEMPLO: ["I6 admin INACTIVO contado en el contador (bloqueo latente): ['acct:C']"]
+          resultados=['OK', 'OK']  planificación=[0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+          estado final={'acct:A': {'auth': True, 'status': 'ACTIVE'}, 'acct:C': {'auth': True, 'status': 'INACTIVE'}, 'state': {'count': 2}}
+  [FULL: GRANT exige ACTIVE + guarda] intercalaciones=   279  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['InactiveAccount', 'OK']  x135
+        resultado: ['OK', 'PlatformAdminDeactivation']  x1
+        resultado: ['OK', 'WriteConflict(propagado)']  x63
+        resultado: ['WriteConflict(propagado)', 'OK']  x80
+====================================================================================================
+S5b GRANT sobre cuenta YA INACTIVA (secuencial)
+  [GRANT sin exigir ACTIVE (propuesta de ambas IAs)] intercalaciones=     1  resultados distintos=  1  -> ROTO: 1 intercalaciones violan invariantes
+        resultado: ['OK']  x1
+        CONTRAEJEMPLO: ["I6 admin INACTIVO contado en el contador (bloqueo latente): ['acct:C']"]
+          resultados=['OK']  planificación=[0, 0, 0, 0, 0, 0]
+          estado final={'acct:A': {'auth': True, 'status': 'ACTIVE'}, 'acct:C': {'auth': True, 'status': 'INACTIVE'}, 'state': {'count': 2}}
+  [GRANT exige ACTIVE] intercalaciones=     1  resultados distintos=  1  -> OK (0 contraejemplos)
+        resultado: ['InactiveAccount']  x1
+====================================================================================================
+S6  BOOTSTRAP || BOOTSTRAP concurrentes
+  [Claude #5] intercalaciones=   812  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['AlreadyBootstrapped', 'OK']  x181
+        resultado: ['OK', 'AlreadyBootstrapped']  x181
+        resultado: ['OK', 'WriteConflict(propagado)']  x225
+        resultado: ['WriteConflict(propagado)', 'OK']  x225
+  [ChatGPT #5 (+ chequeo cuenta ya admin)] intercalaciones=   812  resultados distintos=  4  -> OK (0 contraejemplos)
+        resultado: ['AlreadyBootstrapped', 'OK']  x181
+        resultado: ['OK', 'AlreadyBootstrapped']  x181
+        resultado: ['OK', 'WriteConflict(propagado)']  x225
+        resultado: ['WriteConflict(propagado)', 'OK']  x225
+====================================================================================================
+S7  BOOTSTRAP sobre cuenta que YA tiene autoridad y sin estado (inconsistencia previa)
+  [Claude #5 (no mira auth previa de otras cuentas)] intercalaciones=     1  resultados distintos=  1  -> ROTO: 1 intercalaciones violan invariantes
+        resultado: ['OK']  x1
+        CONTRAEJEMPLO: ['I1 contador=1 != admins reales=2']
+          resultados=['OK']  planificación=[0, 0, 0, 0, 0]
+          estado final={'acct:A': {'auth': True, 'status': 'ACTIVE'}, 'acct:B': {'auth': True, 'status': 'ACTIVE'}, 'state': {'count': 1}}
+  [ChatGPT #5] intercalaciones=     1  resultados distintos=  1  -> ROTO: 1 intercalaciones violan invariantes
+        resultado: ['OK']  x1
+        CONTRAEJEMPLO: ['I1 contador=1 != admins reales=2']
+          resultados=['OK']  planificación=[0, 0, 0, 0, 0]
+          estado final={'acct:A': {'auth': True, 'status': 'ACTIVE'}, 'acct:B': {'auth': True, 'status': 'ACTIVE'}, 'state': {'count': 1}}

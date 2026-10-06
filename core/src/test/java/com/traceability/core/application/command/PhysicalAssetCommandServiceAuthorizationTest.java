@@ -86,7 +86,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         mockAsset(assetId, orgId);
 
         HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.EMPLOYEE));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.EMPLOYEE), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertDoesNotThrow(() -> {
@@ -104,7 +104,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
 
         HumanActor actor = new HumanActor("user1");
         // Needs EMPLOYEE, give REPRESENTATIVE
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.REPRESENTATIVE));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.REPRESENTATIVE), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertThatThrownBy(() -> {
@@ -121,7 +121,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         mockAsset(assetId, orgId);
 
         HumanActor actor = new HumanActor("user1");
-        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", "DIFFERENT-ORG", Set.of(AuthorizationRole.EMPLOYEE));
+        AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", "DIFFERENT-ORG", Set.of(AuthorizationRole.EMPLOYEE), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertThatThrownBy(() -> {

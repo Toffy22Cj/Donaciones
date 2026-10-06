@@ -19,4 +19,5 @@ public class AccountDocument {
     private String passwordHash;
     private String status;
     private String organizationId; // nullable
+    private String platformAuthority; // nullable
 }

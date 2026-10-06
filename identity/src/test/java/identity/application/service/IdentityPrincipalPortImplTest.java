@@ -5,8 +5,10 @@ import com.traceability.contracts.authorization.AuthorizationRole;
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.exception.AccountNotFoundException;
+import identity.domain.exception.InactiveAccountException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
+import identity.domain.model.AccountStatus;
 import identity.domain.model.Email;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
@@ -26,6 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,6 +73,29 @@ class IdentityPrincipalPortImplTest {
         assertEquals(accountId.value(), principal.accountId());
         assertNull(principal.organizationId());
         assertEquals(0, principal.roles().size());
+        assertNull(principal.platformAuthority());
+    }
+
+    @Test
+    void resolvePrincipal_AccountWithPlatformAuthority() {
+        AccountId accountId = AccountId.generate();
+        Account account = Account.reconstitute(
+                accountId,
+                new Email("admin@example.com"),
+                new PasswordHash("hash"),
+                AccountStatus.ACTIVE,
+                null,
+                identity.domain.model.PlatformAuthority.ADMINISTRATOR
+        );
+
+        when(accountRepositoryPort.findById(accountId)).thenReturn(account);
+
+        AuthorizationPrincipal principal = identityPrincipalPortImpl.resolvePrincipal(accountId.value());
+
+        assertEquals(accountId.value(), principal.accountId());
+        assertNull(principal.organizationId());
+        assertEquals(0, principal.roles().size());
+        assertEquals(com.traceability.contracts.authorization.PlatformAuthority.ADMINISTRATOR, principal.platformAuthority());
     }
 
     @Test
@@ -90,6 +118,7 @@ class IdentityPrincipalPortImplTest {
         assertEquals(employeeId.value(), principal.accountId());
         assertEquals(org.getOrganizationId().value(), principal.organizationId());
         assertEquals(Set.of(AuthorizationRole.EMPLOYEE, AuthorizationRole.ADMINISTRATOR), principal.roles());
+        assertNull(principal.platformAuthority());
     }
 
     @Test
@@ -110,6 +139,7 @@ class IdentityPrincipalPortImplTest {
         assertEquals(accountId.value(), principal.accountId());
         assertEquals(org.getOrganizationId().value(), principal.organizationId());
         assertEquals(true, principal.roles().isEmpty());
+        assertNull(principal.platformAuthority());
     }
 
     @Test
@@ -120,5 +150,43 @@ class IdentityPrincipalPortImplTest {
         assertThrows(AccountNotFoundException.class, () -> {
             identityPrincipalPortImpl.resolvePrincipal(accountId.value());
         });
+    }
+
+    @Test
+    void resolvePrincipal_InactiveAccountWithoutOrganization_Throws() {
+        AccountId accountId = AccountId.generate();
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
+        account.deactivate();
+
+        when(accountRepositoryPort.findById(accountId)).thenReturn(account);
+
+        assertThrows(InactiveAccountException.class, () -> {
+            identityPrincipalPortImpl.resolvePrincipal(accountId.value());
+        });
+
+        verify(organizationRepositoryPort, never()).findById(any());
+    }
+
+    @Test
+    void resolvePrincipal_InactiveAccountWithOrganization_Throws() {
+        AccountId repId = AccountId.generate();
+        AccountId employeeId = AccountId.generate();
+
+        Organization org = Organization.createOrganization(OrganizationType.FOUNDATION, repId);
+        org.addEmployee(employeeId);
+        org.assignAdministrator(employeeId);
+
+        Account account = Account.createAccount(new Email("emp@example.com"), new PasswordHash("hash"));
+        account.joinOrganization(org.getOrganizationId());
+        account.deactivate();
+
+        when(accountRepositoryPort.findById(employeeId)).thenReturn(account);
+        lenient().when(organizationRepositoryPort.findById(org.getOrganizationId())).thenReturn(org);
+
+        assertThrows(InactiveAccountException.class, () -> {
+            identityPrincipalPortImpl.resolvePrincipal(employeeId.value());
+        });
+
+        verify(organizationRepositoryPort, never()).findById(any());
     }
 }

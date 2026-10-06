@@ -5,10 +5,10 @@ import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.AuditLogPort;
 import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
-import identity.domain.exception.AccountNotFoundException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationType;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class CreateOrganizationService {
@@ -35,7 +36,9 @@ public class CreateOrganizationService {
         this.retryHelper = retryHelper;
     }
 
-    public Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
+    public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
+
         return retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(initialRepresentativeAccountId);
 
@@ -49,10 +52,10 @@ public class CreateOrganizationService {
             organizationRepository.save(organization);
             accountRepository.save(account);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
+            AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
                     Instant.now(),
-                    initialRepresentativeAccountId,
+                    actor,
                     initialRepresentativeAccountId,
                     organization.getOrganizationId(),
                     AuditAction.ORGANIZATION_CREATED,

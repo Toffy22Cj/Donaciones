@@ -3,6 +3,7 @@ package identity.domain.model;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotMemberOfOrganizationException;
 import identity.domain.exception.AccountNotRepresentativeException;
+import identity.domain.exception.InvalidVerificationTransitionException;
 import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.SelfTransferNotAllowedException;
 import identity.domain.exception.TransferTargetNotMemberException;
@@ -10,6 +11,7 @@ import identity.domain.exception.TransferTargetNotMemberException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -17,19 +19,38 @@ public class Organization {
     private final OrganizationId organizationId;
     private final OrganizationType type;
     private final List<Membership> members;
+    private VerificationStatus verificationStatus;
+    private InformationRequestMessage verificationInformationRequest;
 
-    private Organization(OrganizationId organizationId, OrganizationType type, List<Membership> initialMembers) {
+    private Organization(OrganizationId organizationId,
+                         OrganizationType type,
+                         List<Membership> initialMembers,
+                         VerificationStatus verificationStatus,
+                         InformationRequestMessage verificationInformationRequest) {
         this.organizationId = organizationId;
         this.type = type;
         this.members = new ArrayList<>(initialMembers);
+        this.verificationStatus = verificationStatus;
+        this.verificationInformationRequest = verificationInformationRequest;
     }
 
     /**
      * Uso exclusivo de adaptadores de persistencia — NUNCA invocar desde Application Services ni tests de dominio.
      * No aplica ninguna regla de negocio de creación.
      */
-    public static Organization reconstitute(OrganizationId organizationId, OrganizationType type, List<Membership> members) {
-        return new Organization(organizationId, type, members);
+    public static Organization reconstitute(OrganizationId organizationId,
+                                            OrganizationType type,
+                                            List<Membership> members,
+                                            VerificationStatus verificationStatus,
+                                            InformationRequestMessage verificationInformationRequest) {
+        Objects.requireNonNull(verificationStatus, "verificationStatus must not be null");
+        if (verificationStatus == VerificationStatus.NEEDS_MORE_INFORMATION && verificationInformationRequest == null) {
+            throw new IllegalArgumentException("verificationInformationRequest must be present when verificationStatus is NEEDS_MORE_INFORMATION");
+        }
+        if (verificationStatus != VerificationStatus.NEEDS_MORE_INFORMATION && verificationInformationRequest != null) {
+            throw new IllegalArgumentException("verificationInformationRequest must be null when verificationStatus is not NEEDS_MORE_INFORMATION");
+        }
+        return new Organization(organizationId, type, members, verificationStatus, verificationInformationRequest);
     }
 
     public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
@@ -40,7 +61,7 @@ public class Organization {
             throw new IllegalArgumentException("Initial Representative AccountId cannot be null");
         }
         Membership initialMembership = new Membership(initialRepresentativeAccountId, Set.of(Role.REPRESENTATIVE));
-        return new Organization(OrganizationId.generate(), type, List.of(initialMembership));
+        return new Organization(OrganizationId.generate(), type, List.of(initialMembership), VerificationStatus.PENDING_VERIFICATION, null);
     }
 
     public OrganizationId getOrganizationId() {
@@ -53,6 +74,14 @@ public class Organization {
 
     public List<Membership> getMembers() {
         return Collections.unmodifiableList(members);
+    }
+
+    public VerificationStatus getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public InformationRequestMessage getVerificationInformationRequest() {
+        return verificationInformationRequest;
     }
 
     private Optional<Membership> findMembership(AccountId accountId) {
@@ -166,5 +195,30 @@ public class Organization {
             // It has other roles, so we can safely remove REPRESENTATIVE
             currentRepMembership.removeRole(Role.REPRESENTATIVE);
         }
+    }
+
+    public void verify() {
+        if (this.verificationStatus == VerificationStatus.VERIFIED || this.verificationStatus == VerificationStatus.REJECTED) {
+            throw new InvalidVerificationTransitionException(this.verificationStatus, VerificationCommand.VERIFY);
+        }
+        this.verificationStatus = VerificationStatus.VERIFIED;
+        this.verificationInformationRequest = null;
+    }
+
+    public void reject() {
+        if (this.verificationStatus == VerificationStatus.VERIFIED || this.verificationStatus == VerificationStatus.REJECTED) {
+            throw new InvalidVerificationTransitionException(this.verificationStatus, VerificationCommand.REJECT);
+        }
+        this.verificationStatus = VerificationStatus.REJECTED;
+        this.verificationInformationRequest = null;
+    }
+
+    public void requestInformation(InformationRequestMessage message) {
+        Objects.requireNonNull(message, "message must not be null");
+        if (this.verificationStatus == VerificationStatus.VERIFIED || this.verificationStatus == VerificationStatus.REJECTED) {
+            throw new InvalidVerificationTransitionException(this.verificationStatus, VerificationCommand.REQUEST_INFORMATION);
+        }
+        this.verificationStatus = VerificationStatus.NEEDS_MORE_INFORMATION;
+        this.verificationInformationRequest = message;
     }
 }

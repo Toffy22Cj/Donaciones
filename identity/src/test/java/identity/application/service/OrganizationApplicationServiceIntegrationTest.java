@@ -7,6 +7,7 @@ import identity.domain.exception.AccountNotFoundException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.Email;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
@@ -55,6 +56,8 @@ import static org.mockito.Mockito.*;
 })
 class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
 
+    private final AuditActor testActor = new AuditActor.AccountAuditActor(AccountId.generate());
+
     @Autowired
     private CreateOrganizationService createOrganizationService;
     
@@ -88,6 +91,9 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
     @MockitoSpyBean
     private AuditLogPort auditLogPort;
 
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
     @BeforeEach
     void setUp() {
         // Any setup if needed
@@ -98,7 +104,7 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
         Account rep = Account.createAccount(new Email("rep@test.com"), new PasswordHash("hash"));
         accountRepository.save(rep);
 
-        Organization org = createOrganizationService.createOrganization(OrganizationType.COMPANY, rep.getAccountId());
+        Organization org = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
 
         assertNotNull(org);
         assertEquals(OrganizationType.COMPANY, org.getType());
@@ -113,18 +119,18 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
     void testAssignAdministrator_Idempotent_NoAuditLog() {
         Account rep = Account.createAccount(new Email("rep2@test.com"), new PasswordHash("hash"));
         accountRepository.save(rep);
-        Organization org = createOrganizationService.createOrganization(OrganizationType.FOUNDATION, rep.getAccountId());
+        Organization org = createOrganizationService.createOrganization(testActor, OrganizationType.FOUNDATION, rep.getAccountId());
 
         reset(auditLogPort); // Reset audit port since createOrganization already logged
 
         // Re-assign representative as administrator (which is a different role, so first time it mutates)
-        assignAdministratorService.assignAdministrator(org.getOrganizationId(), rep.getAccountId());
+        assignAdministratorService.assignAdministrator(testActor, org.getOrganizationId(), rep.getAccountId());
         verify(auditLogPort, times(1)).record(argThat(log -> log.action() == AuditAction.ADMINISTRATOR_ASSIGNED));
 
         reset(auditLogPort);
 
         // Assign again - should be no-op
-        assignAdministratorService.assignAdministrator(org.getOrganizationId(), rep.getAccountId());
+        assignAdministratorService.assignAdministrator(testActor, org.getOrganizationId(), rep.getAccountId());
         verify(auditLogPort, never()).record(any());
     }
 
@@ -133,7 +139,7 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
         AccountId nonExistentId = AccountId.generate();
 
         assertThrows(AccountNotFoundException.class, () -> 
-            createOrganizationService.createOrganization(OrganizationType.COMPANY, nonExistentId)
+            createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, nonExistentId)
         );
 
         // Verify that findById was only called exactly once, meaning no retries were attempted
@@ -144,7 +150,7 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
     void testConcurrency_WriteConflictIsRetried() throws InterruptedException, java.util.concurrent.BrokenBarrierException {
         Account rep = Account.createAccount(new Email("rep3@test.com"), new PasswordHash("hash"));
         accountRepository.save(rep);
-        Organization org = createOrganizationService.createOrganization(OrganizationType.COMPANY, rep.getAccountId());
+        Organization org = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
         
         Account emp1 = Account.createAccount(new Email("emp1@test.com"), new PasswordHash("hash"));
         Account emp2 = Account.createAccount(new Email("emp2@test.com"), new PasswordHash("hash"));
@@ -186,7 +192,7 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
             try {
                 readyLatch.countDown();
                 startLatch.await();
-                addEmployeeService.addEmployee(org.getOrganizationId(), emp1.getAccountId());
+                addEmployeeService.addEmployee(testActor, org.getOrganizationId(), emp1.getAccountId());
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -198,7 +204,7 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
             try {
                 readyLatch.countDown();
                 startLatch.await();
-                addEmployeeService.addEmployee(org.getOrganizationId(), emp2.getAccountId());
+                addEmployeeService.addEmployee(testActor, org.getOrganizationId(), emp2.getAccountId());
             } catch (Throwable t) {
                 error.set(t);
             } finally {
@@ -241,15 +247,15 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
     void testTransferRepresentativeAndRemove_NullifiesAccountOrgId() {
         Account rep = Account.createAccount(new Email("rep4@test.com"), new PasswordHash("hash"));
         accountRepository.save(rep);
-        Organization org = createOrganizationService.createOrganization(OrganizationType.COMPANY, rep.getAccountId());
+        Organization org = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
         
         Account successor = Account.createAccount(new Email("suc@test.com"), new PasswordHash("hash"));
         accountRepository.save(successor);
-        addEmployeeService.addEmployee(org.getOrganizationId(), successor.getAccountId());
+        addEmployeeService.addEmployee(testActor, org.getOrganizationId(), successor.getAccountId());
 
         // Now rep only has REPRESENTATIVE role, and successor is an EMPLOYEE.
         // Transferring will remove rep completely.
-        transferRepresentativeAndRemoveService.transferRepresentativeAndRemove(org.getOrganizationId(), rep.getAccountId(), successor.getAccountId());
+        transferRepresentativeAndRemoveService.transferRepresentativeAndRemove(testActor, org.getOrganizationId(), rep.getAccountId(), successor.getAccountId());
 
         Organization updatedOrg = organizationRepository.findById(org.getOrganizationId());
         assertEquals(1, updatedOrg.getMembers().size()); // Only successor remains
@@ -260,4 +266,86 @@ class OrganizationApplicationServiceIntegrationTest extends BaseMongoIntegration
         Account updatedSuccessor = accountRepository.findById(successor.getAccountId());
         assertEquals(org.getOrganizationId(), updatedSuccessor.getOrganizationId());
     }
+
+    @Test
+    void createOrganization_persistsPendingVerificationExplicitly() {
+        Account rep = Account.createAccount(new Email("rep.verify@test.com"), new PasswordHash("hash"));
+        accountRepository.save(rep);
+
+        Organization organization = createOrganizationService.createOrganization(testActor, OrganizationType.FOUNDATION, rep.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("PENDING_VERIFICATION", rawDoc.getString("verificationStatus"));
+    }
+
+    @Test
+    void addEmployee_onVerifiedOrganization_preservesVerificationStatus() {
+        Account rep = Account.createAccount(new Email("rep.addemp@test.com"), new PasswordHash("hash"));
+        accountRepository.save(rep);
+        Organization organization = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
+
+        mongoTemplate.updateFirst(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.springframework.data.mongodb.core.query.Update.update("verificationStatus", "VERIFIED"),
+                "organizations"
+        );
+
+        Account emp = Account.createAccount(new Email("emp.verify@test.com"), new PasswordHash("hash"));
+        accountRepository.save(emp);
+
+        addEmployeeService.addEmployee(testActor, organization.getOrganizationId(), emp.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("VERIFIED", rawDoc.getString("verificationStatus"));
+
+        java.util.List<org.bson.Document> members = rawDoc.getList("members", org.bson.Document.class);
+        assertNotNull(members);
+        assertTrue(members.stream().anyMatch(m -> emp.getAccountId().value().equals(m.getString("accountId"))));
+    }
+
+    @Test
+    void assignAdministrator_onNeedsMoreInformationOrganization_preservesStatusAndMessage() {
+        Account rep = Account.createAccount(new Email("rep.admin@test.com"), new PasswordHash("hash"));
+        accountRepository.save(rep);
+        Organization organization = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, rep.getAccountId());
+
+        Account emp = Account.createAccount(new Email("emp.admin@test.com"), new PasswordHash("hash"));
+        accountRepository.save(emp);
+        addEmployeeService.addEmployee(testActor, organization.getOrganizationId(), emp.getAccountId());
+
+        mongoTemplate.updateFirst(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                new org.springframework.data.mongodb.core.query.Update()
+                        .set("verificationStatus", "NEEDS_MORE_INFORMATION")
+                        .set("verificationInformationRequest", "Falta el RUT"),
+                "organizations"
+        );
+
+        assignAdministratorService.assignAdministrator(testActor, organization.getOrganizationId(), emp.getAccountId());
+
+        org.bson.Document rawDoc = mongoTemplate.findOne(
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("_id").is(organization.getOrganizationId().value())),
+                org.bson.Document.class,
+                "organizations"
+        );
+        assertNotNull(rawDoc);
+        assertEquals("NEEDS_MORE_INFORMATION", rawDoc.getString("verificationStatus"));
+        assertEquals("Falta el RUT", rawDoc.getString("verificationInformationRequest"));
+    }
 }
+

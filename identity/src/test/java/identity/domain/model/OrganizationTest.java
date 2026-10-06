@@ -4,6 +4,7 @@ import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotMemberOfOrganizationException;
 import identity.domain.exception.AccountNotRepresentativeException;
 import identity.domain.exception.CannotRemoveLastRoleException;
+import identity.domain.exception.InvalidVerificationTransitionException;
 import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.SelfTransferNotAllowedException;
 import identity.domain.exception.TransferTargetNotMemberException;
@@ -25,6 +26,8 @@ class OrganizationTest {
         Membership membership = org.getMembers().get(0);
         assertEquals(repId, membership.getAccountId());
         assertTrue(membership.hasRole(Role.REPRESENTATIVE));
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, org.getVerificationStatus());
+        assertNull(org.getVerificationInformationRequest());
     }
 
     @Test
@@ -281,13 +284,212 @@ class OrganizationTest {
         
         java.util.List<Membership> members = java.util.List.of(repMembership, empMembership);
 
-        Organization org = Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members);
+        Organization organization = Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, VerificationStatus.PENDING_VERIFICATION, null);
 
-        assertEquals(orgId, org.getOrganizationId());
-        assertEquals(OrganizationType.FOUNDATION, org.getType());
-        assertEquals(2, org.getMembers().size());
+        assertEquals(orgId, organization.getOrganizationId());
+        assertEquals(OrganizationType.FOUNDATION, organization.getType());
+        assertEquals(2, organization.getMembers().size());
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
         
-        assertTrue(org.getMembers().contains(repMembership));
-        assertTrue(org.getMembers().contains(empMembership));
+        assertTrue(organization.getMembers().contains(repMembership));
+        assertTrue(organization.getMembers().contains(empMembership));
+    }
+
+    @Test
+    void transition_fromPendingVerification_toVerified_viaVerify() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.verify();
+
+        assertEquals(VerificationStatus.VERIFIED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void transition_fromPendingVerification_toRejected_viaReject() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.reject();
+
+        assertEquals(VerificationStatus.REJECTED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void transition_fromPendingVerification_toNeedsMoreInformation_viaRequestInformation() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        InformationRequestMessage message = new InformationRequestMessage("Falta RUT");
+        organization.requestInformation(message);
+
+        assertEquals(VerificationStatus.NEEDS_MORE_INFORMATION, organization.getVerificationStatus());
+        assertEquals(message, organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void transition_fromNeedsMoreInformation_toVerified_viaVerify_clearsMessage() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.requestInformation(new InformationRequestMessage("Falta RUT"));
+        organization.verify();
+
+        assertEquals(VerificationStatus.VERIFIED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void transition_fromNeedsMoreInformation_toRejected_viaReject_clearsMessage() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.requestInformation(new InformationRequestMessage("Falta RUT"));
+        organization.reject();
+
+        assertEquals(VerificationStatus.REJECTED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void transition_fromNeedsMoreInformation_selfTransition_replacesMessage() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        InformationRequestMessage firstMessage = new InformationRequestMessage("Primer requerimiento");
+        InformationRequestMessage secondMessage = new InformationRequestMessage("Segundo requerimiento");
+
+        organization.requestInformation(firstMessage);
+        assertEquals(firstMessage, organization.getVerificationInformationRequest());
+
+        organization.requestInformation(secondMessage);
+        assertEquals(VerificationStatus.NEEDS_MORE_INFORMATION, organization.getVerificationStatus());
+        assertEquals(secondMessage, organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void invalidTransition_fromVerified_onVerify_throwsExceptionAndStateIntact() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.verify();
+
+        InvalidVerificationTransitionException ex = assertThrows(
+                InvalidVerificationTransitionException.class,
+                organization::verify
+        );
+        assertEquals(VerificationStatus.VERIFIED, ex.getCurrentStatus());
+        assertEquals(VerificationCommand.VERIFY, ex.getCommand());
+        assertEquals(VerificationStatus.VERIFIED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void invalidTransition_fromVerified_onReject_throwsExceptionAndStateIntact() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.verify();
+
+        InvalidVerificationTransitionException ex = assertThrows(
+                InvalidVerificationTransitionException.class,
+                organization::reject
+        );
+        assertEquals(VerificationStatus.VERIFIED, ex.getCurrentStatus());
+        assertEquals(VerificationCommand.REJECT, ex.getCommand());
+        assertEquals(VerificationStatus.VERIFIED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void invalidTransition_fromVerified_onRequestInformation_throwsExceptionAndStateIntact() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.verify();
+
+        InformationRequestMessage message = new InformationRequestMessage("Falta poder notarial");
+        InvalidVerificationTransitionException ex = assertThrows(
+                InvalidVerificationTransitionException.class,
+                () -> organization.requestInformation(message)
+        );
+        assertEquals(VerificationStatus.VERIFIED, ex.getCurrentStatus());
+        assertEquals(VerificationCommand.REQUEST_INFORMATION, ex.getCommand());
+        assertEquals(VerificationStatus.VERIFIED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void invalidTransition_fromRejected_onVerify_throwsExceptionAndStateIntact() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.reject();
+
+        InvalidVerificationTransitionException ex = assertThrows(
+                InvalidVerificationTransitionException.class,
+                organization::verify
+        );
+        assertEquals(VerificationStatus.REJECTED, ex.getCurrentStatus());
+        assertEquals(VerificationCommand.VERIFY, ex.getCommand());
+        assertEquals(VerificationStatus.REJECTED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void invalidTransition_fromRejected_onReject_throwsExceptionAndStateIntact() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.reject();
+
+        InvalidVerificationTransitionException ex = assertThrows(
+                InvalidVerificationTransitionException.class,
+                organization::reject
+        );
+        assertEquals(VerificationStatus.REJECTED, ex.getCurrentStatus());
+        assertEquals(VerificationCommand.REJECT, ex.getCommand());
+        assertEquals(VerificationStatus.REJECTED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void invalidTransition_fromRejected_onRequestInformation_throwsExceptionAndStateIntact() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.reject();
+
+        InformationRequestMessage message = new InformationRequestMessage("Falta poder notarial");
+        InvalidVerificationTransitionException ex = assertThrows(
+                InvalidVerificationTransitionException.class,
+                () -> organization.requestInformation(message)
+        );
+        assertEquals(VerificationStatus.REJECTED, ex.getCurrentStatus());
+        assertEquals(VerificationCommand.REQUEST_INFORMATION, ex.getCommand());
+        assertEquals(VerificationStatus.REJECTED, organization.getVerificationStatus());
+        assertNull(organization.getVerificationInformationRequest());
+    }
+
+    @Test
+    void requestInformation_withNullMessage_throwsNullPointerException() {
+        Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        assertThrows(NullPointerException.class, () -> organization.requestInformation(null));
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, organization.getVerificationStatus());
+    }
+
+    @Test
+    void reconstitute_withNullStatus_throwsNullPointerException() {
+        OrganizationId orgId = OrganizationId.generate();
+        java.util.List<Membership> members = java.util.List.of(new Membership(AccountId.generate(), java.util.Set.of(Role.REPRESENTATIVE)));
+        assertThrows(NullPointerException.class, () ->
+                Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, null, null)
+        );
+    }
+
+    @Test
+    void reconstitute_withInvalidStatusMessagePair_throwsIllegalArgumentException() {
+        OrganizationId orgId = OrganizationId.generate();
+        java.util.List<Membership> members = java.util.List.of(new Membership(AccountId.generate(), java.util.Set.of(Role.REPRESENTATIVE)));
+        InformationRequestMessage msg = new InformationRequestMessage("Mensaje");
+
+        // NEEDS_MORE_INFORMATION without message
+        assertThrows(IllegalArgumentException.class, () ->
+                Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, VerificationStatus.NEEDS_MORE_INFORMATION, null)
+        );
+
+        // PENDING_VERIFICATION with message
+        assertThrows(IllegalArgumentException.class, () ->
+                Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, VerificationStatus.PENDING_VERIFICATION, msg)
+        );
+
+        // VERIFIED with message
+        assertThrows(IllegalArgumentException.class, () ->
+                Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, VerificationStatus.VERIFIED, msg)
+        );
+
+        // REJECTED with message
+        assertThrows(IllegalArgumentException.class, () ->
+                Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, VerificationStatus.REJECTED, msg)
+        );
     }
 }

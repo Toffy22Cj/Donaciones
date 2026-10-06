@@ -5,45 +5,53 @@ import identity.application.port.out.AuditLogPort;
 import identity.application.port.out.OrganizationRepositoryPort;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
+import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collections;
+import java.util.Objects;
 
 @Service
 public class RemoveEmployeeService {
 
     private final OrganizationRepositoryPort organizationRepository;
     private final AuditLogPort auditLogPort;
+    private final MongoTransactionRetryHelper retryHelper;
 
-    public RemoveEmployeeService(OrganizationRepositoryPort organizationRepository, AuditLogPort auditLogPort) {
+    public RemoveEmployeeService(OrganizationRepositoryPort organizationRepository, 
+                                 AuditLogPort auditLogPort,
+                                 MongoTransactionRetryHelper retryHelper) {
         this.organizationRepository = organizationRepository;
         this.auditLogPort = auditLogPort;
+        this.retryHelper = retryHelper;
     }
 
-    @Transactional
-    public void removeEmployee(OrganizationId organizationId, AccountId accountId) {
-        Organization organization = organizationRepository.findById(organizationId);
+    public void removeEmployee(AuditActor actor, OrganizationId organizationId, AccountId accountId) {
+        Objects.requireNonNull(actor, "actor must not be null");
 
-        boolean mutated = organization.removeEmployee(accountId);
+        retryHelper.executeWithRetry(() -> {
+            Organization organization = organizationRepository.findById(organizationId);
 
-        if (mutated) {
-            organizationRepository.save(organization);
+            boolean mutated = organization.removeEmployee(accountId);
 
-            AuditLogEntry auditLog = new AuditLogEntry(
-                    UlidCreator.getUlid().toString(),
-                    Instant.now(),
-                    accountId, 
-                    accountId,
-                    organizationId,
-                    AuditAction.EMPLOYEE_REMOVED,
-                    Map.of()
-            );
-            auditLogPort.record(auditLog);
-        }
+            if (mutated) {
+                organizationRepository.save(organization);
+
+                AuditLogEntry auditLog = AuditLogEntry.record(
+                        UlidCreator.getUlid().toString(),
+                        Instant.now(),
+                        actor,
+                        accountId, 
+                        organizationId,
+                        AuditAction.EMPLOYEE_REMOVED,
+                        Collections.emptyMap()
+                );
+                auditLogPort.record(auditLog);
+            }
+        });
     }
 }

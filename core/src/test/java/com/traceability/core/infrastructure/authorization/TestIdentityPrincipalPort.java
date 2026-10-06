@@ -13,7 +13,7 @@ public class TestIdentityPrincipalPort implements IdentityPrincipalPort {
     private boolean wasCalled = false;
 
     public void addPrincipal(String accountId, String organizationId, Set<AuthorizationRole> roles) {
-        accounts.put(accountId, new AuthorizationPrincipal(accountId, organizationId, roles));
+        accounts.put(accountId, new AuthorizationPrincipal(accountId, organizationId, roles, null));
     }
 
     public boolean wasCalled() {

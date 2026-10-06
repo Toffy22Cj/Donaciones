@@ -128,4 +128,9 @@ class ApplicationContextLoadTest {
                 .anyMatch(msg -> streamId.equals(msg.sourceAggregateId()) && "domain_event".equals(msg.sagaType()));
         assertThat(foundInOutbox).isTrue();
     }
+
+    @Test
+    void platformAdminBootstrapRunner_beanDoesNotExist_whenFlagDisabled() {
+        assertThat(context.getBeansOfType(com.traceability.app.bootstrap.PlatformAdminBootstrapRunner.class)).isEmpty();
+    }
 }

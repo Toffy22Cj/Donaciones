@@ -22,7 +22,7 @@ class RoleAuthorizationPolicyTest {
 
     @Test
     void testAuthorize_ValidAdministrator() {
-        AuthorizationPrincipal admin = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.ADMINISTRATOR));
+        AuthorizationPrincipal admin = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.ADMINISTRATOR), null);
 
         assertDoesNotThrow(() -> policy.authorize(admin, CommandType.REGISTER_FUND));
         assertDoesNotThrow(() -> policy.authorize(admin, CommandType.CLEAR_FUNDS_AS_GENESIS));
@@ -31,7 +31,7 @@ class RoleAuthorizationPolicyTest {
 
     @Test
     void testAuthorize_ValidEmployee() {
-        AuthorizationPrincipal employee = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.EMPLOYEE));
+        AuthorizationPrincipal employee = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.EMPLOYEE), null);
 
         assertDoesNotThrow(() -> policy.authorize(employee, CommandType.REGISTER_PHYSICAL_ASSET));
         assertDoesNotThrow(() -> policy.authorize(employee, CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION));
@@ -45,25 +45,25 @@ class RoleAuthorizationPolicyTest {
 
     @Test
     void testAuthorize_RolesEmpty() {
-        AuthorizationPrincipal emptyRoles = new AuthorizationPrincipal("acc-1", "org-1", Collections.emptySet());
+        AuthorizationPrincipal emptyRoles = new AuthorizationPrincipal("acc-1", "org-1", Collections.emptySet(), null);
         assertThrows(InsufficientRoleException.class, () -> policy.authorize(emptyRoles, CommandType.REGISTER_FUND));
     }
 
     @Test
     void testAuthorize_RolesNull() {
-        AuthorizationPrincipal nullRoles = new AuthorizationPrincipal("acc-1", "org-1", null);
+        AuthorizationPrincipal nullRoles = new AuthorizationPrincipal("acc-1", "org-1", null, null);
         assertThrows(InsufficientRoleException.class, () -> policy.authorize(nullRoles, CommandType.REGISTER_FUND));
     }
 
     @Test
     void testAuthorize_IncorrectRole() {
-        AuthorizationPrincipal employee = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.EMPLOYEE));
+        AuthorizationPrincipal employee = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.EMPLOYEE), null);
         assertThrows(InsufficientRoleException.class, () -> policy.authorize(employee, CommandType.REGISTER_FUND));
 
-        AuthorizationPrincipal admin = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.ADMINISTRATOR));
+        AuthorizationPrincipal admin = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.ADMINISTRATOR), null);
         assertThrows(InsufficientRoleException.class, () -> policy.authorize(admin, CommandType.REGISTER_PHYSICAL_ASSET));
 
-        AuthorizationPrincipal representative = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.REPRESENTATIVE));
+        AuthorizationPrincipal representative = new AuthorizationPrincipal("acc-1", "org-1", Set.of(AuthorizationRole.REPRESENTATIVE), null);
         assertThrows(InsufficientRoleException.class, () -> policy.authorize(representative, CommandType.REGISTER_FUND));
         assertThrows(InsufficientRoleException.class, () -> policy.authorize(representative, CommandType.REGISTER_PHYSICAL_ASSET));
     }
