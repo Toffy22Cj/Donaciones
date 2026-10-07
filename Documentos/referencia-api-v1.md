@@ -34,11 +34,13 @@
 | `POST /platform/organizations/{organizationId}/verify` | JWT + autoridad de plataforma | — | `200 {organizationId, verificationStatus: "VERIFIED"}` | 403; 404 inexistente; 409 si ya `VERIFIED`/`REJECTED` (DD-48) |
 | `POST /platform/organizations/{organizationId}/reject` | ídem | — | `200 {…, verificationStatus: "REJECTED"}` | ídem |
 | `POST /platform/organizations/{organizationId}/request-information` | ídem | `{message}` (1–2000) | `200 {…, verificationStatus: "NEEDS_MORE_INFORMATION"}` | 403 (antes de validar); 400 mensaje vacío o largo; 404; 409 |
+| `GET /platform/organizations` (cola de verificación, §3.1) | ídem | `?status=PENDING_VERIFICATION\|NEEDS_MORE_INFORMATION` (sin él, las dos), `?cursor=` | `200 {items: [{organizationId, name?, type, verificationStatus, informationRequest?}], nextCursor?}`, 20 por página, por orden de creación, `no-store`; sin miembros ni emails (DD-69) | 400 `status` o cursor (el del descubrimiento no vale aquí); 403 |
 
 ## 3. Organización (panel)
 
 | Método y ruta | Auth | Respuestas | Errores |
 |---|---|---|---|
+| `POST /organizations` (crear organización, R9, §3.1) | JWT, cualquier cuenta activa sin organización; cuerpo `{type: FOUNDATION\|COMPANY, name}` (1–200) | `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`; quien la crea queda como `REPRESENTATIVE` (DD-68) | 400 `type` o `name`; 409 `AccountAlreadyBelongsToOrganization` |
 | `GET /organizations/{organizationId}/campaigns` | `ADMINISTRATOR` de la organización | `200 {items: [{campaignRef, publicCode, title, status, visibility, currency?, targetAmount?, targetPolicy?, clearedAmount?, responsibles: [{accountId, actingRole}], assignedEmployeeCount}]}`, una página de 100 (DD-49) | 403 |
 | `GET /organizations/{organizationId}/members` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-55) | `200 {items: [{accountId, roles, status}]}`, sin email | 403 |
 | `GET /organizations/{organizationId}/funds` | `ADMINISTRATOR` o `EMPLOYEE` (DD-31) | `200 {items: [{fundId, campaignRef?, currency, clearedAmount, availableAmount, allocations: [{allocationId, amount, status}]}]}`, una página de 200; sin `donorRef` | 403 |
