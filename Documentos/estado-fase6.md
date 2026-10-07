@@ -10,7 +10,7 @@
 | Capa | En `develop` | Abierto |
 |---|---|---|
 | Convocatoria | Primer corte + confirmación/aplicación de fondos del módulo (barrera `APPLY_FUNDS`, `FUNDING_REJECTED`, consulta de recuperables). Commit `81cf87c`, fusionado en PR #29. `app → convocatoria` con `OrganizationVerificationAdapter` real (`e269985`) | Orquestador de aplicación de fondos, disparo y scheduler (`app`); T1 y P8 en `core`; P1–P7, R3, R4; ~~aprobación de Enmienda 2 y ADR-045~~ **aprobadas por Carlos el 2026-10-07** (§0.4); **decisión de producto pendiente:** valor de `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` (provisional `PT72H` solo en `dev`/tests, §0.4) |
-| Identidad | ADR-038 tareas 1–8 fusionadas (`aebedb2`): `HumanActor`, Platform Administrator con bootstrap, verificación de `Organization`, reintentos C+ | JWT/autenticación HTTP (ADR-038 §2.7), endpoints de plataforma, `AccountNotFoundException` en `contracts`, deuda ADR-038 §9.4 |
+| Identidad | ADR-038 tareas 1–8 fusionadas (`aebedb2`): `HumanActor`, Platform Administrator con bootstrap, verificación de `Organization`, reintentos C+ | ~~JWT/autenticación HTTP (ADR-038 §2.7)~~ **hecho en B3** (§0.8), endpoints de plataforma, `AccountNotFoundException` en `contracts`, deuda ADR-038 §9.4 |
 | Blockchain | Productor de `MerkleBatch` (Fases 1–3), `IntegrityVerificationPort`, recuperación automática de batches `COLLECTING` abandonados, partición contigua por presupuesto, `leafHashes` persistidos, `verifyAllAnchored` en streaming | **B-9:** la verificación no recalcula `eventHash` desde el payload ni comprueba la cadena `previousHash`. **B-10:** `COLLECTING` sin tope ni estado de salida (bloqueo por cabeza de cola; riesgo latente: un batch ilegible detiene `produceBatch`). Propuesta en `ADR-039-enmienda-1-blockchain.md` (BORRADOR). Además: migración de batches legacy, `correlationId` de scheduler, límite/paginación explícita de `verifyAllAnchored` (§4) |
 | IA | Pipeline de donación individual (`DonorReportGenerator` sobre `AuditFactsPort`). `CampaignAuditFactsPort`/`CampaignAuditFactsDTO` como contrato | Productor y consumidor de `CampaignAuditFactsPort` — bloqueados por ADR-040 C2–C5; C8 |
 | APIs + Frontend | Solo los 3 endpoints públicos de Fase 3 | Todos los endpoints de Fase 6 (ADR-041) |
@@ -91,6 +91,18 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Puerto obligatorio:** sin implementación, la aplicación no arranca.
 - **Desbloquea** B5 (agregación de la narrativa de convocatoria, criterios 14 y 19) y la herencia en la saga de la división (B1-bis, criterio 15).
 - **Pendiente:** H1 con activos en especie (Q4 de la enmienda); la proyección de los activos del Camino B, que siguen ignorados aunque ya lleven `campaignRef`.
+
+### 0.8 B3 — login y autenticación JWT (2026-10-07, `feat/b3-jwt`)
+
+- **ADR-047 APROBADO** y `plan-b3-jwt.md` APROBADO, con la condición de Q1: lista explícita de rutas públicas.
+- **Qué hace:**
+  - `POST /api/v1/auth/login` (ID-01): 400 / 401 uniforme / 500 / `{token}`.
+  - JWT HS256 con Nimbus 10.10, solo en `api`. El secreto no tiene valor por defecto y se valida con *fail-fast*. Lleva `kid` y admite una clave anterior hasta `accept-until`, avisando al arrancar.
+  - El verificador sigue el orden de ADR-047 D5.
+  - **Filtro *deny-by-default*** sobre `/api/v1/**`. `PublicRoutes` es la única lista pública: seguimiento, login, registro, CV-07, descubrimiento, intención con JWT opcional, narrativa y webhook. Una ruta no canónica nunca es pública. `resolvePrincipal` se ejecuta en cada request, y cualquier fallo da el mismo 401.
+- **Identidad:** `AuthenticateAccountPortImpl` con hash ficticio. Los tres fallos son la misma excepción y cuestan lo mismo.
+- **Desbloquea** los criterios 4 y 6, y que B6 construya el `HumanActor` desde el atributo `authorizationPrincipal`.
+- **Pendiente:** refresh, límite de intentos (DH-56, riesgo aceptado), `AccountNotFoundException` en `contracts` (el filtro trata por tipo genérico los fallos de `resolvePrincipal` y propaga los de acceso a datos).
 
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
