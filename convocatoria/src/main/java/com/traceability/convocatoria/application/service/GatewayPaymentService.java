@@ -63,16 +63,45 @@ public class GatewayPaymentService {
 
     /** Segunda barrera de E3-Q1: el proveedor simulado se rechaza con la política desactivada, venga de donde venga. */
     public void requireProviderAllowed(String paymentProvider) {
-        // B6-b
+        if (PaymentProviders.SIMULATED.equals(paymentProvider) && !allowSimulatedPayments) {
+            throw new SimulatedPaymentsNotAllowedException("SIMULATED payments are disabled");
+        }
     }
 
     public Outcome confirmGatewayPayment(String paymentProvider, String paymentSessionId, String providerEventId,
                                          long amount, String currency) {
-        throw new UnsupportedOperationException("B6-b");
+        DonationIntent intent = correlate(paymentProvider, paymentSessionId, providerEventId);
+        if (intent.getAmount() != amount || !intent.getCurrency().equals(currency)) {
+            throw new PaymentEventMismatchException("Payment event does not match DonationIntent " + intent.getIntentId());
+        }
+        Instant now = clock.instant();
+        if (intent.getStatus() == DonationIntentStatus.PENDING) {
+            DonationIntent.Confirmation confirmation = DonationIntent.Confirmation.of(paymentProvider, now,
+                    intent.getPaymentMethod(), providerEventId);
+            if (donationIntents.confirmGatewayIfPending(intent.getIntentId(), confirmation, providerEventId)) {
+                return Outcome.CONFIRMED;
+            }
+            intent = donationIntents.findById(intent.getIntentId()).orElseThrow();
+        }
+        return switch (intent.getStatus()) {
+            case FAILED, EXPIRED_UNKNOWN -> unacceptable(intent, paymentProvider, providerEventId, now);
+            default -> Outcome.DUPLICATE;
+        };
     }
 
     public FailureOutcome failGatewayPayment(String paymentProvider, String paymentSessionId, String providerEventId) {
-        throw new UnsupportedOperationException("B6-b");
+        DonationIntent intent = correlate(paymentProvider, paymentSessionId, providerEventId);
+        if (intent.getStatus() == DonationIntentStatus.PENDING
+                && donationIntents.failIfPending(intent.getIntentId(), providerEventId, clock.instant())) {
+            return FailureOutcome.FAILED;
+        }
+        DonationIntentStatus status = donationIntents.findById(intent.getIntentId()).orElseThrow().getStatus();
+        if (status == DonationIntentStatus.FAILED) {
+            return FailureOutcome.ALREADY_FAILED;
+        }
+        log.warn("Payment failure ignored: DonationIntent {} is {} (provider {})", intent.getIntentId(), status,
+                paymentProvider);
+        return FailureOutcome.IGNORED;
     }
 
     /** Contador de confirmaciones no aceptables desde el arranque (D4), expuesto por JMX en {@code app}. */

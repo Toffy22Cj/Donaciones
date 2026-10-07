@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Responde 200 sin cuerpo a todo evento procesado, incluidos los duplicados y los no aceptables: nunca el
  * {@code trackingCode} (la respuesta va al proveedor, no al donante).
  */
+@RestController
 @ConditionalOnProperty(name = "traceability.demo.simulated-payments", havingValue = "true")
 public class SimulatedPaymentWebhookController {
 

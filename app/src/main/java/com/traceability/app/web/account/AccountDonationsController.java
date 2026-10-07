@@ -17,6 +17,7 @@ import java.util.List;
  * el seudónimo de la cuenta sin crearlo: una cuenta que nunca donó tiene el historial vacío. Ninguna respuesta lleva
  * el seudónimo ni el {@code donorRef} (ADR-048 §7).
  */
+@RestController
 public class AccountDonationsController {
 
     /** Tope de la página única del historial de la demo (DD-21). */

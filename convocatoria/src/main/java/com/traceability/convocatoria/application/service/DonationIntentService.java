@@ -108,7 +108,14 @@ public class DonationIntentService {
      * transacción y solo su hash entra en la intención; se devuelve en claro únicamente a la llamada que la creó.
      */
     public CreateDonationIntentWithAccessResult createDonationIntentWithAccess(CreateDonationIntentCommand command) {
-        throw new UnsupportedOperationException("B6-b");
+        String statusToken = StatusTokens.generate();
+        String statusTokenHash = StatusTokens.hash(statusToken);
+        Map<String, String> result = create(command, statusTokenHash);
+        String intentId = result.get("intentId");
+        boolean createdNow = donationIntents.findById(intentId)
+                .map(i -> statusTokenHash.equals(i.getAccess().statusTokenHash())).orElse(false);
+        return new CreateDonationIntentWithAccessResult(intentId, result.get("fundId"),
+                createdNow ? statusToken : null, result.get("paymentRedirectUrl"));
     }
 
     /** Creación común; con {@code statusTokenHash} {@code null} es la de antes de la Enmienda 3 (sin sesión ni token). */

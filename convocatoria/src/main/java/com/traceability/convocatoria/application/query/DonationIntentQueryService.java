@@ -28,12 +28,19 @@ public class DonationIntentQueryService implements DonationIntentReadPort {
 
     @Override
     public Optional<IntentStatusView> findForStatusToken(String intentId, String statusToken) {
-        return Optional.empty();
+        if (intentId == null || statusToken == null) {
+            return Optional.empty();
+        }
+        return donationIntents.findById(intentId)
+                .filter(i -> StatusTokens.matches(statusToken, i.getAccess().statusTokenHash()))
+                .filter(i -> clock.instant().isBefore(i.getAccess().statusTokenExpiresAt()))
+                .map(i -> new IntentStatusView(i.getIntentId(), i.getStatus().name(), i.getFundId(),
+                        i.getApplicationTracking().fundsAppliedAt()));
     }
 
     @Override
     public List<DonationView> findByDonorRef(String donorRef, int limit) {
-        return List.of();
+        return donationIntents.findByDonorRef(donorRef, limit).stream().map(this::view).toList();
     }
 
     private DonationView view(DonationIntent i) {

@@ -24,17 +24,19 @@ public class DonorPseudonymService implements DonorPseudonymPort {
 
     @Override
     public String pseudonymFor(String accountId) {
-        throw new UnsupportedOperationException("B6-b");
+        String account = requireAccount(accountId);
+        return retryHelper.executeWithRetry(() -> pseudonyms.findOrInsert(account, UUID.randomUUID().toString()));
     }
 
     @Override
     public Optional<String> existingPseudonymFor(String accountId) {
-        return Optional.empty();
+        return pseudonyms.find(requireAccount(accountId));
     }
 
     /** Derecho de supresión (ADR-048 §3): el procedimiento operativo queda fuera de este corte; el diseño lo permite. */
     public boolean forget(String accountId) {
-        return false;
+        String account = requireAccount(accountId);
+        return retryHelper.executeWithRetry(() -> pseudonyms.delete(account));
     }
 
     private static String requireAccount(String accountId) {

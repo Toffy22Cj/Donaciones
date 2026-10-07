@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
  * de la cuenta; sin JWT, {@code anon:} + un UUID nuevo. Ni el {@code donorRef} ni el {@code statusToken} se registran
  * en ningún log.
  */
+@RestController
 public class DonationIntentController {
 
     public static final String INTENT_TOKEN_HEADER = "Intent-Token";
