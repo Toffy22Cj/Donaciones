@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Plan B6-a §2.6, test 11: toda subclase concreta de {@code ConvocatoriaDomainException} está traducida o en la lista
+ * Planes B6-a §2.6 (test 11) y B6-b: toda subclase concreta de {@code ConvocatoriaDomainException} está traducida o en la lista
  * explícita de "fuera de B6-a" con su motivo. Una excepción nueva sin decidir rompe el build en vez de acabar en un 500
  * silencioso.
  */
@@ -26,24 +26,17 @@ class ConvocatoriaApiErrorMappingsExhaustivenessTest {
             Map.entry("AssignmentAlreadyRemovedException", "retirar responsable: sin ruta en la demo"),
             Map.entry("CampaignAlreadyClosedException", "cerrar convocatoria: sin ruta en la demo"),
             Map.entry("CampaignAlreadyHasDonationsException", "editar configuración: sin ruta en la demo"),
-            Map.entry("CampaignClosedException", "CV-11 (B6-b)"),
-            Map.entry("CampaignFundingLimitExceededException", "aplicación de fondos (B6-b)"),
-            Map.entry("CashDonationIntentNotSupportedException", "CV-11 (B6-b)"),
-            Map.entry("CloseOnTargetCloseNotSupportedException", "CV-11 (B6-b)"),
+            Map.entry("CampaignFundingLimitExceededException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
             Map.entry("ConfigurationChangeOnClosedCampaignException", "editar configuración: sin ruta en la demo"),
             Map.entry("ConfigurationVersionConflictException", "editar configuración: sin ruta en la demo"),
-            Map.entry("DonationCurrencyMismatchException", "CV-11 (B6-b)"),
-            Map.entry("DonationIntentExpiredException", "confirmación (B6-b)"),
-            Map.entry("DonationIntentNotConfirmedException", "aplicación de fondos (B6-b)"),
-            Map.entry("DonationIntentNotFoundException", "B6-b"),
-            Map.entry("DonationTypeNotAcceptedException", "CV-11 (B6-b)"),
+            Map.entry("DonationIntentExpiredException", "confirmación manual: fuera de la demo"),
+            Map.entry("DonationIntentNotConfirmedException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
+            Map.entry("DonationIntentNotFoundException", "ninguna ruta de B6 la lanza (solo una carrera interna)"),
             Map.entry("GatewayIntentManualConfirmationNotAllowedException", "confirmación manual: fuera de la demo"),
-            Map.entry("IncompleteConfirmationException", "confirmación (B6-b)"),
-            Map.entry("InvalidDonationAmountException", "CV-11 (B6-b)"),
-            Map.entry("InvalidFundingAmountException", "aplicación de fondos (B6-b)"),
+            Map.entry("IncompleteConfirmationException", "confirmación manual: fuera de la demo"),
+            Map.entry("InvalidFundingAmountException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
             Map.entry("LastResponsibleRemovalWithoutReplacementException", "retirar responsable: sin ruta en la demo"),
             Map.entry("MonetaryTermsChangeNotSupportedException", "editar configuración: sin ruta en la demo"),
-            Map.entry("PaymentMethodNotAcceptedException", "CV-11 (B6-b)"),
             Map.entry("ReplacementActingRoleRequiredException", "retirar responsable: sin ruta en la demo"),
             Map.entry("ResponsibleAssignmentNotFoundException", "retirar responsable: sin ruta en la demo"));
 

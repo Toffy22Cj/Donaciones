@@ -8,6 +8,10 @@ import com.traceability.convocatoria.application.command.CampaignReference;
 import com.traceability.convocatoria.application.command.ConfirmDonationIntentCommand;
 import com.traceability.convocatoria.application.command.CreateDonationIntentCommand;
 import com.traceability.convocatoria.application.command.CreateDonationIntentResult;
+import com.traceability.convocatoria.application.command.CreateDonationIntentWithAccessResult;
+import com.traceability.convocatoria.application.port.out.PaymentProviderPort;
+import com.traceability.convocatoria.domain.exception.PaymentProviderUnavailableException;
+import com.traceability.convocatoria.domain.model.StatusTokens;
 import com.traceability.convocatoria.application.idempotency.CommandType;
 import com.traceability.convocatoria.application.idempotency.IdempotentCommandExecutor;
 import com.traceability.convocatoria.application.port.out.ConvocatoriaAuditLogPort;
@@ -54,6 +58,8 @@ public class DonationIntentService {
     private final ConvocatoriaAuditLogPort auditLog;
     private final Duration bankTransferExpiration;
     private final Clock clock;
+    private ObjectProvider<PaymentProviderPort> paymentProviders;
+    private GatewayPaymentService gatewayPayments;
 
     public DonationIntentService(IdempotentCommandExecutor executor,
                                  OrganizationVerificationPort organizationVerificationPort,
@@ -73,6 +79,13 @@ public class DonationIntentService {
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
+    /** Proveedor de pago y política de {@code SIMULATED} (Enmienda 3 de ADR-037, D2 y D3). */
+    @org.springframework.beans.factory.annotation.Autowired
+    void setGatewayCollaborators(ObjectProvider<PaymentProviderPort> paymentProviders, GatewayPaymentService gatewayPayments) {
+        this.paymentProviders = paymentProviders;
+        this.gatewayPayments = gatewayPayments;
+    }
+
     /** Resolución interna {@code publicCode → campaignRef + organizationRef} (ADR-037 §2.6). */
     public CampaignReference resolvePublicCode(String publicCode) {
         Convocatoria convocatoria = loadByPublicCode(publicCode);
@@ -85,16 +98,53 @@ public class DonationIntentService {
      * {@code commandId}: un duplicado devuelve {@code intentId} y {@code fundId} originales (ID).
      */
     public CreateDonationIntentResult createDonationIntent(CreateDonationIntentCommand command) {
-        Map<String, String> result = executor.execute(command.commandId(), CommandType.CREATE_DONATION_INTENT, () -> {
+        Map<String, String> result = create(command, null);
+        return new CreateDonationIntentResult(result.get("intentId"), result.get("fundId"));
+    }
+
+    /**
+     * CV-11 con la sesión del proveedor ({@code GATEWAY}) y la credencial de consulta (Enmienda 3 de ADR-037, D3 y
+     * D6). El {@code donorRef} llega ya resuelto por {@code app} (ADR-048). El {@code statusToken} se genera fuera de la
+     * transacción y solo su hash entra en la intención; se devuelve en claro únicamente a la llamada que la creó.
+     */
+    public CreateDonationIntentWithAccessResult createDonationIntentWithAccess(CreateDonationIntentCommand command) {
+        throw new UnsupportedOperationException("B6-b");
+    }
+
+    /** Creación común; con {@code statusTokenHash} {@code null} es la de antes de la Enmienda 3 (sin sesión ni token). */
+    private Map<String, String> create(CreateDonationIntentCommand command, String statusTokenHash) {
+        return executor.execute(command.commandId(), CommandType.CREATE_DONATION_INTENT, () -> {
             Convocatoria convocatoria = loadByPublicCode(command.publicCode());
             OrganizationVerification.requireVerified(convocatoria.getOrganizationRef(),
                     organizationVerificationPort.isVerified(convocatoria.getOrganizationRef()));
             Instant now = clock.instant();
             Instant expiresAt = command.paymentMethod() == PaymentMethod.BANK_TRANSFER
                     ? now.plus(bankTransferExpiration) : null;
-            DonationIntent intent = DonationIntent.create(UUID.randomUUID().toString(), UUID.randomUUID().toString(),
-                    convocatoria, command.donorRef(), command.amount(), command.currency(), command.paymentMethod(),
-                    expiresAt);
+            String intentId = UUID.randomUUID().toString();
+            Map<String, String> out = new java.util.HashMap<>();
+            DonationIntent intent;
+            if (statusTokenHash == null) {
+                intent = DonationIntent.create(intentId, UUID.randomUUID().toString(), convocatoria,
+                        command.donorRef(), command.amount(), command.currency(), command.paymentMethod(), expiresAt);
+            } else {
+                PaymentProviderPort.PaymentSession session = null;
+                if (command.paymentMethod() == PaymentMethod.GATEWAY) {
+                    // valida la convocatoria antes de abrir una sesión en el proveedor
+                    convocatoria.assertAcceptsDonationIntent(command.paymentMethod(), command.currency());
+                    PaymentProviderPort provider = paymentProviders.getIfAvailable();
+                    if (provider == null) {
+                        throw new PaymentProviderUnavailableException("No payment provider is configured");
+                    }
+                    session = provider.createSession(intentId, command.amount(), command.currency());
+                    gatewayPayments.requireProviderAllowed(session.paymentProvider());
+                    out.put("paymentRedirectUrl", session.redirectUrl());
+                }
+                intent = DonationIntent.create(intentId, UUID.randomUUID().toString(), convocatoria,
+                        command.donorRef(), command.amount(), command.currency(), command.paymentMethod(), expiresAt,
+                        session == null ? null : session.paymentProvider(),
+                        session == null ? null : session.paymentSessionId(),
+                        statusTokenHash, now.plus(StatusTokens.TTL));
+            }
             donationIntents.insert(intent);
             auditLog.append(new ConvocatoriaAuditEntry(UUID.randomUUID().toString(),
                     ConvocatoriaAuditAction.DONATION_INTENT_CREATED, convocatoria.getCampaignRef(), command.donorRef(),
@@ -103,9 +153,10 @@ public class DonationIntentService {
                             "paymentMethod", intent.getPaymentMethod().name(),
                             "confirmationSource", intent.getConfirmationSource().name(),
                             "configurationVersion", String.valueOf(intent.getConfigurationVersion()))));
-            return Map.of("intentId", intent.getIntentId(), "fundId", intent.getFundId());
+            out.put("intentId", intent.getIntentId());
+            out.put("fundId", intent.getFundId());
+            return out;
         });
-        return new CreateDonationIntentResult(result.get("intentId"), result.get("fundId"));
     }
 
     /**

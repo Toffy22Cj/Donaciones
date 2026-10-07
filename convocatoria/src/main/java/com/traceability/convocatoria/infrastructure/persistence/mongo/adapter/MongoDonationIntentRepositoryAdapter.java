@@ -208,4 +208,42 @@ public class MongoDonationIntentRepositoryAdapter implements DonationIntentRepos
         }
         return ops;
     }
+
+    @Override
+    public Optional<DonationIntent> findByPaymentSessionId(String paymentSessionId) {
+        return Optional.ofNullable(mongoTemplate.findOne(Query.query(Criteria.where("paymentSessionId").is(paymentSessionId)),
+                DonationIntentDocument.class)).map(DonationIntentMapper::toDomain);
+    }
+
+    @Override
+    public boolean confirmGatewayIfPending(String intentId, DonationIntent.Confirmation confirmation,
+                                           String providerEventId) {
+        Query query = Query.query(Criteria.where("_id").is(intentId)
+                .and("status").is(DonationIntentStatus.PENDING.name()));
+        Update update = new Update()
+                .set("status", DonationIntentStatus.CONFIRMED.name())
+                .set("confirmedBy", confirmation.confirmedBy())
+                .set("confirmedAt", confirmation.confirmedAt())
+                .set("confirmationPaymentMethod", confirmation.paymentMethod().name())
+                .set("confirmationReference", confirmation.reference())
+                .set("providerEventId", providerEventId);
+        return mongoTemplate.updateFirst(query, update, DonationIntentDocument.class).getMatchedCount() == 1;
+    }
+
+    @Override
+    public boolean failIfPending(String intentId, String providerEventId, Instant failedAt) {
+        Query query = Query.query(Criteria.where("_id").is(intentId)
+                .and("status").is(DonationIntentStatus.PENDING.name()));
+        Update update = new Update().set("status", DonationIntentStatus.FAILED.name())
+                .set("providerEventId", providerEventId).set("failedAt", failedAt);
+        return mongoTemplate.updateFirst(query, update, DonationIntentDocument.class).getMatchedCount() == 1;
+    }
+
+    @Override
+    public List<DonationIntent> findByDonorRef(String donorRef, int limit) {
+        Query query = Query.query(Criteria.where("donorRef").is(donorRef))
+                .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
+        return mongoTemplate.find(query, DonationIntentDocument.class).stream().map(DonationIntentMapper::toDomain)
+                .toList();
+    }
 }

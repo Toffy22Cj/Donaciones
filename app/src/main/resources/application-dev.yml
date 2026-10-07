@@ -10,3 +10,9 @@ traceability:
     jwt:
       # SOLO DESARROLLO — nunca un valor productivo (ADR-047 D3). Producción exige JWT_SIGNING_SECRET.
       signing-secret: dev-only-jwt-signing-secret-not-for-production
+  # Proveedor de pago simulado y su webhook (Enmienda 3 de ADR-037, D2; plan B6-b): SOLO dev/demo. Fuera de estos
+  # perfiles la propiedad es false, el proveedor y la ruta no existen y convocatoria rechaza SIMULATED (E3-Q1).
+  # El secreto de firma no tiene valor por defecto: sin TRACEABILITY_DEMO_WEBHOOK_SECRET (>= 32 bytes) no arranca.
+  demo:
+    simulated-payments: true
+    webhook-secret: ${TRACEABILITY_DEMO_WEBHOOK_SECRET}

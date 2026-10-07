@@ -18,6 +18,8 @@ class PublicRoutesTest {
                         "GET /api/v1/public/campaigns PUBLIC",
                         "POST /api/v1/public/campaigns/{publicCode}/donation-intents OPTIONAL_JWT",
                         "GET /api/v1/public/campaigns/{publicCode}/narrative PUBLIC",
+                        // Enmienda 3 de ADR-037, D6 (APROBADA): consulta de la intención con Intent-Token
+                        "GET /api/v1/public/donation-intents/{intentId} PUBLIC",
                         "POST /api/v1/webhooks/payments PUBLIC");
     }
 

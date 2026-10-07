@@ -34,6 +34,8 @@ public final class PublicRoutes {
             new Route("GET", "/api/v1/public/campaigns/{publicCode}", Access.PUBLIC),
             new Route("POST", "/api/v1/public/campaigns/{publicCode}/donation-intents", Access.OPTIONAL_JWT),
             new Route("GET", "/api/v1/public/campaigns/{publicCode}/narrative", Access.PUBLIC),
+            // Enmienda 3 de ADR-037, D6: el acceso lo da la cabecera Intent-Token, que valida el controlador (plan B6-b)
+            new Route("GET", "/api/v1/public/donation-intents/{intentId}", Access.PUBLIC),
             // firma del proveedor (simulado en la demo), nunca JWT
             new Route("POST", "/api/v1/webhooks/payments", Access.PUBLIC));
 
