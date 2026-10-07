@@ -1,7 +1,7 @@
 # Ficha CV-01 — `POST /api/v1/organizations/{organizationId}/campaigns` (crear convocatoria)
 
 **Naturaleza:** ficha de contrato HTTP, con el mismo método y las mismas etiquetas que las fichas de contratos API de Fase 6 (§0 de ese documento) y que `ficha-N1-quien-soy.md`. **No es normativa**, no es un ADR, no modifica ninguna fuente y **no autoriza código**.
-**Estado: ABIERTO** — quedan 4 elementos sin respaldo (Q-CV01-12 a Q-CV01-15, §5). Las 11 decisiones Q-CV01-1 a Q-CV01-11 están registradas (§9). Aun cerrando las 4 preguntas, la ficha solo podría llegar a **CONGELADO (pendiente de incorporación normativa)**: el prefijo `/api/v1` (DH-01), `ProblemDetail` (DH-02), los códigos 401/403 (DH-51) y la ficha transversal T son [DHR] en borrador hasta que se apruebe la Enmienda 1 de ADR-041.
+**Estado: CONGELADO (pendiente de incorporación normativa)** — Q-CV01-12 a Q-CV01-15 y el formato del `publicCode` (Q-CV01-10a) **respondidos por Carlos el 2026-10-07** (§9). No puede pasar de CONGELADO porque el prefijo `/api/v1` (DH-01), `ProblemDetail` (DH-02), los códigos 401/403 (DH-51) y la ficha transversal T son [DHR] en borrador hasta que se apruebe la Enmienda 1 de ADR-041.
 **Fecha:** 2026-10-07 (decisiones del 2026-10-06).
 **Origen:** `Documentos/propuesta-apis-fase6.md` §5 (CV-01 es la siguiente ficha) y §6.
 
@@ -117,6 +117,8 @@ Todos con `ProblemDetail` (RFC 7807) [DHR] DH-02.
 
 ### Q-CV01-12 — Estructura del cuerpo
 
+> **Respondida (2026-10-07): (b) anidado.** Ver §9.
+
 Ninguna fuente fija si la configuración versionada viaja plana o anidada. El comando actual del caso de uso la recibe anidada (`configuration{...}`), pero eso es [IMPL] y no respalda nada.
 
 | Opción | Ventaja | Inconveniente |
@@ -125,6 +127,8 @@ Ninguna fuente fija si la configuración versionada viaja plana o anidada. El co
 | (b) **Anidado**: `title`, `description`, `visibility`, `startDate`, `endDate` arriba; `acceptedDonationTypes`, `acceptedPaymentMethods`, `currency`, `targetAmount`, `targetPolicy`, `onTargetReached` dentro de `configuration` | Refleja qué parte es versionada y podrá reutilizarse en la futura ficha de edición de configuración | Un nivel más para el cliente |
 
 ### Q-CV01-13 — Medios de pago en una convocatoria solo `IN_KIND`
+
+> **Respondida (2026-10-07): (a) 400.** Ver §9.
 
 La Enmienda 1 §3.1 hace obligatorio `acceptedPaymentMethods` solo con `MONETARY`, pero no dice qué pasa si llega en una convocatoria solo `IN_KIND`. El código lo **acepta y lo guarda** (reportado en `implementation_plan.md` §16), mientras que sí rechaza `currency`, `targetAmount`, `targetPolicy` y `onTargetReached` en ese caso.
 
@@ -135,6 +139,8 @@ La Enmienda 1 §3.1 hace obligatorio `acceptedPaymentMethods` solo con `MONETARY
 
 ### Q-CV01-14 — `visibility` obligatoria o con valor por defecto
 
+> **Respondida (2026-10-07): (a) obligatoria.** Ver §9.
+
 ADR-037 §2.1 define la visibilidad, pero ninguna fuente dice si es obligatoria. El dominio **no valida** que venga informada: un valor nulo se guardaría.
 
 | Opción | Consecuencia |
@@ -144,6 +150,8 @@ ADR-037 §2.1 define la visibilidad, pero ninguna fuente dice si es obligatoria.
 | (c) Por defecto `PUBLIC` | Riesgo: una convocatoria pensada como privada aparecería en el descubrimiento por omisión |
 
 ### Q-CV01-15 — Longitud máxima de `description`
+
+> **Respondida (2026-10-07): (a) 5000 caracteres.** Ver §9.
 
 R1 la hace opcional, sin límite. El código tampoco lo limita. Un campo libre sin tope en un endpoint de escritura es superficie de abuso de tamaño de payload.
 
@@ -216,7 +224,8 @@ Verificado por lectura en `develop` HEAD `0d4f428`, sin ejecutar tests. **Ningun
 | Q-CV01-10 | (a) Generación criptográficamente segura, ≥128 bits de entropía, no derivada de datos de la convocatoria | 2026-10-06 | §3.2; deuda D-3 |
 | Q-CV01-10a | Sí al requisito; formato concreto (p. ej. 26 caracteres con el alfabeto actual) sujeto a revisar `paxfide-mobile`. La decisión es la entropía, no el número 26 | 2026-10-06 | §3.2, §6 |
 | Q-CV01-11 | (a) `title` máximo 200 caracteres como contrato | 2026-10-06 | §3.1 |
-| Q-CV01-12 | — | — | Pendiente |
-| Q-CV01-13 | — | — | Pendiente |
-| Q-CV01-14 | — | — | Pendiente |
-| Q-CV01-15 | — | — | Pendiente |
+| Q-CV01-12 | (b) **Anidado:** `title`, `description`, `visibility`, `startDate` y `endDate` arriba; la configuración versionada dentro de `configuration` | 2026-10-07 | §3.1 |
+| Q-CV01-13 | (a) **Rechazar con 400** `acceptedPaymentMethods` en una convocatoria solo `IN_KIND`, igual que el resto de campos monetarios | 2026-10-07 | §3.1, §3.4; deuda nueva **D-7** (el dominio hoy los acepta y los guarda) |
+| Q-CV01-14 | (a) **`visibility` obligatoria**; si falta → 400, con excepción nombrada en el dominio | 2026-10-07 | §3.1, §3.4; deuda nueva **D-8** (el dominio hoy guardaría un nulo) |
+| Q-CV01-15 | (a) **`description` de 5000 caracteres como máximo**; si se excede → 400, con excepción nombrada en el dominio | 2026-10-07 | §3.1, §3.4; deuda nueva **D-9** |
+| Q-CV01-10a (formato) | **Aprobado:** 26 caracteres con el alfabeto actual de 32 símbolos (`0-9`, `A-Z` sin `I`, `L`, `O`, `U`): 130 bits. Los códigos de 50 bits ya generados no importan, porque no hay datos reales | 2026-10-07 | §3.2; corrige la deuda **D-3** (`PUBLIC_CODE_LENGTH` y `CreateConvocatoriaIntegrationTest.java:68`) |
