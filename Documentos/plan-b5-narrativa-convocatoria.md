@@ -1,6 +1,6 @@
 # Plan B5 — Narrativa de convocatoria (criterios 14 y 19)
 
-**Estado:** **EN EJECUCIÓN** bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P1.3. Las preguntas Q-DIA-1 a 6 de `propuesta-d-ia.md` se deciden con su recomendación, como `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-33 a DD-38). El plan entero es DD-39.
+**Estado:** **HECHO** (2026-10-07; evidencia `evidencia-fase6/b5-narrativa-convocatoria-7d32202-2026-10-07.txt`). Era **EN EJECUCIÓN** bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P1.3. Las preguntas Q-DIA-1 a 6 de `propuesta-d-ia.md` se deciden con su recomendación, como `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-33 a DD-38). El plan entero es DD-39.
 **Condiciones obligatorias de Carlos (no son delegadas):**
 1. el LLM solo recibe hechos deterministas, sin PII ni identificadores internos;
 2. cada afirmación de la narrativa pasa la validación de *grounding*; si no la pasa, **no se publica**: la respuesta dice "narrativa no disponible", nunca texto sin validar;

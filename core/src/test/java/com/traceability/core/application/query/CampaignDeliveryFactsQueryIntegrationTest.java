@@ -79,6 +79,7 @@ class CampaignDeliveryFactsQueryIntegrationTest {
     @Autowired private StubCampaignInKindEligibilityPort campaigns;
     @Autowired private MongoTemplate mongoTemplate;
     @Autowired private CampaignDeliveryFactsQuery query;
+    @Autowired private com.traceability.core.application.port.out.CampaignAssetDirectoryPort directory;
 
     @BeforeEach
     void setup() {
@@ -102,21 +103,29 @@ class CampaignDeliveryFactsQueryIntegrationTest {
     void sumsDeliveredUnits_ofCaminoA_caminoB_andSplitChildren_andCountsDistinctRecipients() {
         // Camino A: 10 unidades; se dividen 3 en un hijo, que hereda CAMP-1. Padre (7) a BEN-1, hijo (3) a BEN-2.
         String parent = registerCaminoA("CAMP-1", "10");
+        java.util.List<String> mine = new java.util.ArrayList<>(java.util.List.of(parent));
         String child = assets.splitPhysicalAsset(UUID.randomUUID().toString(), parent, new BigDecimal("3"),
                 new HumanActor(EMPLOYEE));
         assets.createSplitChild(parent, child);
+        mine.add(child);
         deliver(parent, "BEN-1");
         deliver(child, "BEN-2");
         // Camino B: 5 unidades a BEN-1 (receptor repetido).
-        deliver(registerCaminoB("CAMP-1", "5"), "BEN-1");
+        String caminoB = registerCaminoB("CAMP-1", "5");
+        mine.add(caminoB);
+        deliver(caminoB, "BEN-1");
 
         // Fuera: no entregado, otra convocatoria y sin convocatoria.
-        dispatch(registerCaminoB("CAMP-1", "100"));
+        String notDelivered = registerCaminoB("CAMP-1", "100");
+        mine.add(notDelivered);
+        dispatch(notDelivered);
         deliver(registerCaminoB("CAMP-2", "100"), "BEN-3");
         deliver(registerCaminoB(null, "100"), "BEN-4");
 
         CampaignDeliveryFactsQuery.DeliveryFacts facts = query.deliveriesOf("CAMP-1");
 
+        assertThat(directory.findAssetIdsByCampaign("CAMP-1")).as("el índice filtra por convocatoria")
+                .containsExactlyInAnyOrderElementsOf(mine);
         assertThat(facts.unitsDelivered()).isEqualByComparingTo("15");
         assertThat(facts.distinctRecipients()).isEqualTo(2);
         assertThat(facts.readAt()).isNotNull();

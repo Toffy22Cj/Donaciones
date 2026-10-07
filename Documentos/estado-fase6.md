@@ -178,6 +178,37 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.19 B5 — narrativa de convocatoria (2026-10-07, `feat/b5-narrativa-convocatoria`) — HECHO
+
+- **Qué hace** (`plan-b5-narrativa-convocatoria.md`): `GET /api/v1/public/campaigns/{publicCode}/narrative`: `200 AVAILABLE` con el texto validado, `202 PENDING` mientras se genera, `200 UNAVAILABLE` con "Narrativa no disponible" si no pasa el grounding o falla el proveedor; siempre con los hechos públicos (`clearedAmount`, unidades entregadas, receptores distintos).
+  - `core`: `CampaignDeliveryFactsQuery` lee del event store los activos de la convocatoria (Camino A, Camino B e hijos de una división) e índice `(eventType, payload.campaignRef)`. Ningún evento, hash ni Merkle cambia.
+  - `convocatoria`: `CampaignFundingFactsQuery`. `contracts`: `CampaignAuditFactsDTO` con `currency` y un instante por fuente.
+  - `ai`: `CampaignNarrativeGenerator` (caché en memoria por hash de los hechos), `CampaignGroundingValidator`, prompt solo con números y estados.
+  - `app`: `CampaignAuditFactsProducer` y la ruta.
+- **Condiciones de Carlos, con test:** el LLM solo recibe hechos deterministas (nunca título, descripción ni ids); sin grounding no se publica; "receptores distintos", nunca familias ni hogares; *prompt injection* en el título y la descripción con un LLM simulado: no llega al prompt, y una respuesta que la obedece no se publica.
+- **¿LLM real en la demo?** Solo con `SPRING_AI_OPENAI_API_KEY` en el entorno; sin ella, "Narrativa no disponible".
+- **Decisiones:** Q-DIA-1 a 6 de `propuesta-d-ia.md` = DD-33 a DD-38, más DD-39, `PENDIENTE DE RATIFICACIÓN`.
+- **Golden path:** criterios **14 y 19** en el recorrido → **15 de 19**.
+- **Evidencia:** `evidencia-fase6/b5-narrativa-convocatoria-7d32202-2026-10-07.txt`. Reactor **1172 tests**; 12 mutaciones, 12 muertas (una tras añadir un test del directorio).
+
+### 0.18 P1.2 — criterio 13 por HTTP (2026-10-07, `feat/p1-narrativa-individual`) — HECHO
+
+- **Qué hace:** el recorrido (`GoldenPathHttpIntegrationTest`) pide la narrativa individual por HTTP con el `trackingCode` real y exige `AVAILABLE` con `source: LLM_GENERATED`. El LLM es simulado (un `LlmClientPort` de test que cita solo hechos presentes); la validación de grounding y el resto del pipeline son los reales. Solo test: el código ya lo cumplía.
+- **¿LLM real en la demo?** Solo si existe la variable de entorno `SPRING_AI_OPENAI_API_KEY`; sin ella cada intento cae al fallback (`FALLBACK_TEMPLATE`). La clave es de Carlos y nunca está en el repositorio.
+- **Hallazgo H-P12-1:** `GroundingValidatorImpl` (narrativa individual) **acepta una respuesta sin ninguna cita**: un texto sin hechos citados pasa como "grounded". La narrativa de convocatoria (B5) lo rechaza. No se corrige aquí: cambia el comportamiento de la narrativa individual aprobada; queda para decisión de Carlos.
+- **Golden path:** **13 de 19** criterios.
+- **Evidencia:** `evidencia-fase6/p1-narrativa-individual-532749f-2026-10-07.txt`. Reactor **1147 tests**; 2 mutaciones, 2 muertas.
+
+### 0.17 P1.1 — Camino A por HTTP (2026-10-07, `feat/p1-camino-a-http`) — HECHO
+
+- **Qué hace** (`plan-p1-camino-a-http.md`):
+  - `GET /api/v1/organizations/{organizationId}/funds` (`ADMINISTRATOR` o `EMPLOYEE`): los fondos de la organización, leídos del event store, con disponible y asignaciones; sin `donorRef`.
+  - `POST /api/v1/funds/{fundId}/allocations` y `POST .../allocations/{allocationId}/confirm` (`ADMINISTRATOR`, `Command-Id`): id de asignación determinista; reenvío idéntico sin efecto; `Command-Id` de otro comando → 409; fondo inexistente → el mismo 403.
+  - El criterio 7 del recorrido usa el **Camino A solo por HTTP**; el Camino B queda como escenario adicional. **Cierra H-B6C-1 y H-B6D-1.**
+- **Decisiones:** DD-29 a DD-32, `PENDIENTE DE RATIFICACIÓN`.
+- **Golden path:** sigue en **12 de 19** criterios (el 7 ya sin atajos).
+- **Evidencia:** `evidencia-fase6/p1-camino-a-http-34abe94-2026-10-07.txt`. Reactor **1147 tests**; 7 mutaciones, 7 muertas.
+
 ### 0.16 Segunda autorización de Carlos (2026-10-07), sección 0 — HECHO
 
 - **Ratificadas** DD-01 a DD-28, salvo **DD-18**, que Carlos sustituye: el reenvío de CV-11 emite un `statusToken` **nuevo** y anula el anterior. Implementado, con test HTTP y de módulo.

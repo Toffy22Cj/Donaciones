@@ -1,6 +1,6 @@
 # Propuesta D-IA — ADR-040: C2, C3, C4, C5 y C8 (narrativa de convocatoria)
 
-**Estado:** **PROPUESTO** (2026-10-07). Redactado bajo la autorización de trabajo autónomo de Carlos, que pidió esta propuesta "SOLO como documento PROPUESTO, sin código de B5". **No decide nada:** cada punto es una recomendación con su pregunta en §6. No autoriza código.
+**Estado:** **DECIDIDO POR DELEGACIÓN** (2026-10-07) — la segunda autorización de Carlos (P1.3) pidió decidir §6 con estas recomendaciones: Q-DIA-1 a Q-DIA-6 = DD-33 a DD-38, `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]`; implementado en B5 (`plan-b5-narrativa-convocatoria.md`). Antes: **PROPUESTO** (2026-10-07). Redactado bajo la autorización de trabajo autónomo de Carlos, que pidió esta propuesta "SOLO como documento PROPUESTO, sin código de B5". **No decide nada:** cada punto es una recomendación con su pregunta en §6. No autoriza código.
 **Desbloquea, si se aprueba:** B5 (productor y consumidor de `CampaignAuditFactsPort`) y, con él, los criterios 14 y 19 de `golden-path.md` §8.
 **Hechos:** verificados en `develop` tras #63 (B6-b), con cita.
 

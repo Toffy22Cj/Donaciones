@@ -85,12 +85,16 @@ class FundCommandServiceAuthorizationTest {
         HumanActor actor = new HumanActor("user1");
         AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.ADMINISTRATOR), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
+        // el publicador real devuelve true cuando escribe; un mock devolvería false (= reclamo ajeno, plan P1.1)
+        when(eventPublisher.appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any())).thenReturn(true);
 
         assertDoesNotThrow(() -> {
             service.requestAllocation("cmd-1", fundId, "alloc-1", 100L, actor);
         });
 
-        verify(eventPublisher).appendAndOutbox(eq(fundId), eq("Fund"), any(Long.class), any(), eq(actor), any(), eq("cmd-1"));
+        // Plan P1.1: el reclamo guarda el resultado REQUEST_ALLOCATION:fundId:allocationId
+        verify(eventPublisher).appendAndOutbox(eq(fundId), eq("Fund"), any(Long.class), any(), eq(actor), any(), eq("cmd-1"),
+                eq("REQUEST_ALLOCATION:" + fundId + ":alloc-1"));
     }
 
     @Test
@@ -109,6 +113,7 @@ class FundCommandServiceAuthorizationTest {
         }).isInstanceOf(InsufficientRoleException.class);
 
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());
+        verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any());
     }
 
     // --- confirmAllocation ---
