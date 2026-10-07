@@ -38,9 +38,9 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             FundsClearedPayload.class, FundsClearedV2Payload.class,
             AllocationRequestedPayload.class, AllocationConfirmedPayload.class, AllocationReversedPayload.class,
             FundsRefundedPayload.class,
-            AssetRegisteredPayload.class, AssetRegisteredV2Payload.class,
+            AssetRegisteredPayload.class, AssetRegisteredV2Payload.class, AssetRegisteredV3Payload.class,
             AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetCustodyTransferredPayload.class,
-            AssetSplitPayload.class, AssetSplitV2Payload.class, AssetSplitCompensatedPayload.class,
+            AssetSplitPayload.class, AssetSplitV2Payload.class, AssetSplitV3Payload.class, AssetSplitCompensatedPayload.class,
             AssetDepletedPayload.class, AssetDeliveredPayload.class);
 
     @Override
@@ -230,7 +230,8 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             AssetProjectionRouting.Registration p = registration.get();
             DonationProjectionDocument.LogisticsProjection log = new DonationProjectionDocument.LogisticsProjection(
                 assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(),
-                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED", null
+                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED", null,
+                p.campaignRef() // D7: solo del payload v3 del propio activo
             );
             update.push("logistics", log);
         } else if (payload instanceof AssetDispatchedPayload p) {
@@ -242,6 +243,9 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
+        } else if (payload instanceof AssetSplitV3Payload p) {
+            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
+            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitV2Payload p) {
             update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
             update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
@@ -298,7 +302,8 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 transition.setCustodian(p.receiverRef());
             }
-        } else if (payload instanceof AssetSplitV2Payload || payload instanceof AssetSplitPayload) {
+        } else if (payload instanceof AssetSplitV3Payload || payload instanceof AssetSplitV2Payload
+                || payload instanceof AssetSplitPayload) {
             transition.setStatus("SPLIT");
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             transition.setCustodian(p.newCustodianRef());

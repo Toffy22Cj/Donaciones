@@ -157,6 +157,21 @@ class DonationProjectionIntegrationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void historicalV1Registration_isProjectedWithoutCampaign() {
+        projectionHandler.handleEvent(buildEvent("fund-v1c", "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 1000, "campaignRef", "CAMP-F")));
+        projectionHandler.handleEvent(buildEvent("fund-v1c", "Fund", 2, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-v1c", "requestedAmount", 500)));
+        projectionHandler.handleEvent(buildEvent("asset-v1c", "PhysicalAsset", 1, "ASSET_REGISTERED",
+                Map.of("assetId", "asset-v1c", "allocationId", "alloc-v1c", "quantity", 10)));
+
+        org.bson.Document doc = mongoTemplate.findById("fund-v1c", org.bson.Document.class, "donation_projections");
+        org.bson.Document logistics = ((List<org.bson.Document>) doc.get("logistics", List.class)).get(0);
+        // D-CAMPAIGN (D5/D7): el campaignRef del activo nunca se infiere del Fund; un registro v1/v2 queda sin convocatoria.
+        // El caso positivo (v3 con campaignRef) lo cubre ProjectionChangeStreamE2ETest.
+        assertNull(logistics.get("campaignRef"));
+    }
+
+    @Test
     void testAssetSplit() {
         // 1. FUND_REGISTERED
         projectionHandler.handleEvent(buildEvent("fund-1", "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 1000)));

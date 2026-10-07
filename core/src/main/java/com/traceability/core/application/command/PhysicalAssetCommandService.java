@@ -15,6 +15,12 @@ import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
+import com.traceability.contracts.campaign.CampaignInKindEligibilityPort;
+import com.traceability.contracts.campaign.InKindEligibility;
+import com.traceability.core.application.exception.InKindCampaignClosedException;
+import com.traceability.core.application.exception.InKindCampaignNotFoundException;
+import com.traceability.core.application.exception.InKindCampaignOfOtherOrganizationException;
+import com.traceability.core.application.exception.InKindNotAcceptedByCampaignException;
 import com.traceability.core.application.authorization.CommandType;
 import com.traceability.core.domain.event.HumanActor;
 import org.springframework.stereotype.Service;
@@ -28,6 +34,8 @@ import java.util.stream.Collectors;
 @Service
 public class PhysicalAssetCommandService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PhysicalAssetCommandService.class);
+
     private final CommandRetryTemplate retryTemplate;
     private final ProcessedCommandRepositoryPort processedCommandRepository;
     private final EventStorePort eventStore;
@@ -35,6 +43,7 @@ public class PhysicalAssetCommandService {
     private final RoleAuthorizationPolicy roleAuthorizationPolicy;
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
     private final IdentityPrincipalPort identityPrincipalPort;
+    private final CampaignInKindEligibilityPort campaignInKindEligibility;
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
             ProcessedCommandRepositoryPort processedCommandRepository,
@@ -42,7 +51,8 @@ public class PhysicalAssetCommandService {
             TransactionalEventPublisher eventPublisher,
             RoleAuthorizationPolicy roleAuthorizationPolicy,
             OrganizationBoundaryPolicy organizationBoundaryPolicy,
-            IdentityPrincipalPort identityPrincipalPort) {
+            IdentityPrincipalPort identityPrincipalPort,
+            CampaignInKindEligibilityPort campaignInKindEligibility) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
@@ -50,6 +60,7 @@ public class PhysicalAssetCommandService {
         this.roleAuthorizationPolicy = roleAuthorizationPolicy;
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
         this.identityPrincipalPort = identityPrincipalPort;
+        this.campaignInKindEligibility = campaignInKindEligibility;
     }
 
     private void authorize(ActorRef actorRef, String organizationRef, CommandType commandType) {
@@ -123,8 +134,12 @@ public class PhysicalAssetCommandService {
         }
 
         retryTemplate.execute(() -> {
-            assertOrganizationMatchesFund(fundId, organizationRef);
+            Fund fund = assertOrganizationMatchesFund(fundId, organizationRef);
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET);
+            // ADR-029 Enmienda 1, D2: el campaignRef es el del Fund, nunca del llamador. Decisión escrita
+            // (plan-d-campaign.md §3.2): no se comprueba que la convocatoria siga OPEN; gastar fondos ya
+            // recaudados tras el cierre es legítimo (ADR-037 §2.6bis, D1).
+            String campaignRef = fund.getCampaignRef();
 
             String assetId = UUID.randomUUID().toString();
 
@@ -140,7 +155,8 @@ public class PhysicalAssetCommandService {
                     allocationId,
                     sourceAllocationId,
                     organizationRef,
-                    null // donorRef: null en Camino A
+                    null, // donorRef: null en Camino A
+                    campaignRef
             );
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
@@ -170,7 +186,27 @@ public class PhysicalAssetCommandService {
         });
     }
 
-    private void assertOrganizationMatchesFund(String fundId, String organizationRef) {
+    /**
+     * Rechaza un {@code campaignRef} que no admite esta donación en especie, con su excepción nombrada. El motivo real
+     * va al log interno; hacia fuera, "no existe" y "otra organización" comparten el mismo mensaje.
+     */
+    private void assertCampaignAcceptsInKind(String campaignRef, String organizationRef) {
+        InKindEligibility eligibility = campaignInKindEligibility.checkInKindEligibility(campaignRef, organizationRef);
+        if (eligibility == InKindEligibility.ELIGIBLE) {
+            return;
+        }
+        log.info("In-kind registration rejected: campaignRef={} organizationRef={} reason={}",
+                campaignRef, organizationRef, eligibility);
+        throw switch (eligibility) {
+            case CAMPAIGN_NOT_FOUND -> new InKindCampaignNotFoundException(campaignRef);
+            case OTHER_ORGANIZATION -> new InKindCampaignOfOtherOrganizationException(campaignRef);
+            case CAMPAIGN_CLOSED -> new InKindCampaignClosedException(campaignRef);
+            case IN_KIND_NOT_ACCEPTED -> new InKindNotAcceptedByCampaignException(campaignRef);
+            case ELIGIBLE -> new IllegalStateException("unreachable");
+        };
+    }
+
+    private Fund assertOrganizationMatchesFund(String fundId, String organizationRef) {
         List<DomainEvent> fundEvents = eventStore.loadStream(fundId);
         if (fundEvents.isEmpty()) {
             throw new com.traceability.core.application.exception.InvalidFundReferenceException("Fund " + fundId + " does not exist for Asset Registration (Path A)");
@@ -181,10 +217,11 @@ public class PhysicalAssetCommandService {
             throw new CrossOrganizationAccessException(
                     "organizationRef '" + organizationRef + "' does not match organizationRef '" + fundOrganizationRef + "' of Fund " + fundId + " (ADR-029, Path A)");
         }
+        return fund;
     }
 
     /**
-     * Tarea 5.4 — Camino B: registra un PhysicalAsset directamente por donación en especie.
+     * Tarea 5.4 — Camino B sin convocatoria (equivale a {@code campaignRef = null}).
      */
     public void registerPhysicalAssetFromDonation(String commandId,
             String organizationRef,
@@ -195,6 +232,26 @@ public class PhysicalAssetCommandService {
             String custodianRef,
             String currentLocation,
             com.traceability.core.domain.event.ActorRef actorRef) {
+        registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
+                custodianRef, currentLocation, null, actorRef);
+    }
+
+    /**
+     * Tarea 5.4 — Camino B: registra un PhysicalAsset directamente por donación en especie, con convocatoria
+     * opcional (ADR-029 Enmienda 1, D3). Orden: autorizar → validar el {@code campaignRef} con
+     * {@link CampaignInKindEligibilityPort} → persistir. Autorizar primero impide que un actor sondee si un
+     * {@code campaignRef} existe en otra organización; un rechazo no deja eventos ni reclamo del {@code commandId}.
+     */
+    public void registerPhysicalAssetFromDonation(String commandId,
+            String organizationRef,
+            String donorRef,
+            String assetType,
+            BigDecimal quantity,
+            String unitOfMeasure,
+            String custodianRef,
+            String currentLocation,
+            String campaignRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
             return;
@@ -204,6 +261,9 @@ public class PhysicalAssetCommandService {
 
         retryTemplate.execute(() -> {
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION);
+            if (campaignRef != null) {
+                assertCampaignAcceptsInKind(campaignRef, organizationRef);
+            }
 
             String assetId = UUID.randomUUID().toString();
 
@@ -220,7 +280,8 @@ public class PhysicalAssetCommandService {
                     null,
                     organizationRef,
                     donorRef,
-                    donationRef
+                    donationRef,
+                    campaignRef
             );
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();

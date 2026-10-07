@@ -78,7 +78,19 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **PR 2** (reconstrucción operativa por JMX), que necesita antes una **enmienda de ADR-042** (mecanismo nuevo, regla 3.5). Sin entornos con datos reales, no es urgente.
   - **Historial público de los activos del Camino B:** da 404 hasta que se decida dónde se proyecta una donación en especie (Q3 de la Enmienda 1 de ADR-029, con C5 de ADR-040).
   - Deuda de ADR-042: guardar `aggregateType` en la cuarentena y hacer configurable la ventana de 4 horas.
-- **Siguiente bloque:** implementación de D-CAMPAIGN (`plan-d-campaign.md`, PROPUESTO).
+- **Siguiente bloque:** implementación de D-CAMPAIGN (`plan-d-campaign.md`).
+
+### 0.7 D-CAMPAIGN implementada (2026-10-07)
+
+- **Qué hace:**
+  - `PhysicalAsset` lleva `campaignRef` en `ASSET_REGISTERED`/`ASSET_SPLIT` **3.0**; la 1.0 y la 2.0 se leen sin convocatoria.
+  - **Camino A:** heredado del `Fund`, sin comprobar `OPEN` (decisión escrita).
+  - **Camino B:** opcional y validado con `CampaignInKindEligibilityPort` (`contracts`, implementado por `convocatoria`) **después de autorizar**. Los rechazos tienen excepción nombrada, y "no existe" y "otra organización" dan la misma respuesta externa.
+  - **División:** hereda del padre.
+  - **Proyecciones:** la 3.0 está declarada, y `campaignRef` por activo en `LogisticsProjection`.
+  - **Puerto obligatorio:** sin implementación, la aplicación no arranca.
+- **Desbloquea** B5 (agregación de la narrativa de convocatoria, criterios 14 y 19) y la herencia en la saga de la división (B1-bis, criterio 15).
+- **Pendiente:** H1 con activos en especie (Q4 de la enmienda); la proyección de los activos del Camino B, que siguen ignorados aunque ya lleven `campaignRef`.
 
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 

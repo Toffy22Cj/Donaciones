@@ -1,6 +1,6 @@
 # Plan D-CAMPAIGN — `campaignRef` en `PhysicalAsset` (implementación de la Enmienda 1 de ADR-029)
 
-**Estado:** **APROBADO — Carlos, 2026-10-07** (regla 3.4), con Q1–Q4 según la recomendación y los ajustes de §8, ya incorporados en el texto.
+**Estado:** **APROBADO — Carlos, 2026-10-07** (regla 3.4), con Q1–Q4 según la recomendación y los ajustes de §8, ya incorporados en el texto. **Implementado el 2026-10-07** en `feat/d-campaign-campaignref`. Una diferencia con el texto: el adaptador de `convocatoria` va en la capa de aplicación (`CampaignInKindEligibilityService`, con el patrón de `IdentityPrincipalPortImpl`), no en `infrastructure`, porque usa el puerto de persistencia del módulo y no Mongo directamente.
 **Origen:** `ADR-029-enmienda-1-campaignref.md`, **APROBADA — Carlos, 2026-10-07**, con Q1–Q5 según la recomendación. Este plan no reabre ninguna decisión de la enmienda; solo fija cómo se implementa.
 **Desbloquea:** B5 (narrativa de convocatoria, criterio 14) y B1-bis (herencia en la división, criterio 15).
 **Revisión:** cubierto por la excepción a la regla 3.2 (`reglas-equipo-y-agentes.md` §3.2); la evidencia de tests sustituye al segundo revisor.

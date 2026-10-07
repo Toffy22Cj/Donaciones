@@ -69,8 +69,8 @@
    extraída y las referencias heredadas (organizationRef, donorRef, donationRef,
    campaignRef). El guion de la demo ESPERA a que el hijo exista antes de seguir.
    Padre e hijo recorren el paso 5 por separado hasta DELIVERED.
-   Estado (2026-10-07): la saga del hijo NO existe y PhysicalAsset no tiene
-   campaignRef (ver §5, nota de 2026-10-07).
+   Estado (2026-10-07): la saga del hijo NO existe (B1-bis). PhysicalAsset ya
+   tiene campaignRef (D-CAMPAIGN, ASSET_SPLIT 3.0 lo hereda del padre).
 
 5. Ciclo logístico
    DISPATCH → RECEIVE → DELIVER. beneficiaryRef se sella en DELIVER (ADR-014).
@@ -130,7 +130,7 @@
 >
 > **Nota del 2026-10-07 (verificado en `develop`):** hay tres huecos para cumplir §8.
 > - **Saga del hijo de la división:** `PhysicalAssetCommandService.splitPhysicalAsset` no escribe mensaje de outbox y `SplitPhysicalAssetSagaPolicy` no existe, así que el hijo nunca se crea (criterios 15–19).
-> - **`campaignRef`:** ningún `PhysicalAsset` lo tiene. Sin él, la narrativa de convocatoria cuenta cero unidades (criterio 14, aunque no haya división).
+> - **`campaignRef`:** ~~ningún `PhysicalAsset` lo tiene~~. *Resuelto el 2026-10-07 (D-CAMPAIGN, ADR-029 Enmienda 1): los activos nuevos llevan `campaignRef` en `ASSET_REGISTERED`/`ASSET_SPLIT` 3.0. En el Camino A se hereda del `Fund`; en el Camino B lo recibe el comando y lo valida `convocatoria`; en la división se hereda del padre. Para el criterio 14 falta la agregación de la narrativa (B5).*
 > - **Donación con cuenta e historial autenticado (criterios 4 y 6):** dependen del JWT (no existe) y de `GET /account/donations`, que no existe y cuya relación `accountId` ↔ `donorRef` no está verificada.
 >
 > Ver `plan-cierre-fase6-codigo.md` (D-SPLIT, D-CAMPAIGN, D-API).

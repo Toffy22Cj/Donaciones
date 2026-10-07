@@ -63,7 +63,8 @@ class PhysicalAssetCommandServiceAuthorizationTest {
             eventPublisher,
             roleAuthorizationPolicy,
             organizationBoundaryPolicy,
-            identityPrincipalPort
+            identityPrincipalPort,
+            new com.traceability.core.support.StubCampaignInKindEligibilityPort()
         );
     }
 

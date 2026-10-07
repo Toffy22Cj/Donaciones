@@ -34,6 +34,8 @@ public class PhysicalAsset extends AggregateRoot {
     private String organizationRef;
     private String donorRef;
     private String donationRef;
+    /** Convocatoria del activo (ADR-029 Enmienda 1). Inmutable; {@code null} = sin convocatoria. */
+    private String campaignRef;
 
     // final delivery metadata for idempotency checking.
     // finalBeneficiaryRef is only replayed from ASSET_DELIVERED to compare redeliveries; it never
@@ -56,11 +58,25 @@ public class PhysicalAsset extends AggregateRoot {
         return asset;
     }
 
+    /** Camino A sin convocatoria (equivale a {@code campaignRef = null}). */
     public static PhysicalAsset register(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef) {
+        return register(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null);
+    }
+
+    /**
+     * Camino A. Escribe {@code ASSET_REGISTERED} 3.0 (ADR-029 Enmienda 1, D1). {@code campaignRef} es el del
+     * {@code Fund} (D2): lo resuelve el servicio de aplicación, nunca el llamador; puede ser {@code null}.
+     */
+    public static PhysicalAsset register(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String campaignRef) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -80,17 +96,33 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV2Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
-                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null));
+                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null,
+                campaignRef));
         return asset;
     }
 
+    /** Camino B sin convocatoria (equivale a {@code campaignRef = null}). */
     public static PhysicalAsset create(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef, String donationRef) {
+        return create(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef, null);
+    }
+
+    /**
+     * Camino B. Escribe {@code ASSET_REGISTERED} 3.0 (ADR-029 Enmienda 1, D1). {@code campaignRef} lo recibe el comando
+     * y lo valida el servicio de aplicación contra {@code convocatoria} antes de llegar aquí (D3); puede ser
+     * {@code null}.
+     */
+    public static PhysicalAsset create(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String donationRef, String campaignRef) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -116,9 +148,10 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV2Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
-                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef));
+                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef,
+                campaignRef));
         return asset;
     }
 
@@ -186,11 +219,12 @@ public class PhysicalAsset extends AggregateRoot {
 
         BigDecimal previousQ = this.quantity;
 
-        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV2Payload(
+        // ADR-029 Enmienda 1, D4: el hijo hereda también el campaignRef del padre (3.0).
+        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV3Payload(
                 childAssetId, extractedQuantity, this.unitOfMeasure, previousQ,
                 previousQ.subtract(extractedQuantity), this.lifecycleStatus.name(),
                 this.currentLocation, this.custodianRef, this.rootAssetRef,
-                this.organizationRef, this.donorRef, this.donationRef));
+                this.organizationRef, this.donorRef, this.donationRef, this.campaignRef));
 
         if (this.quantity.compareTo(BigDecimal.ZERO) == 0) {
             raiseEvent(PhysicalAssetEventType.ASSET_DEPLETED, new AssetDepletedPayload(previousQ));
@@ -239,6 +273,25 @@ public class PhysicalAsset extends AggregateRoot {
     @Override
     protected void apply(DomainEventPayload payload) {
         switch (payload) {
+            case AssetRegisteredV3Payload p -> {
+                this.assetId = p.assetId();
+                this.assetType = p.assetType();
+                this.quantity = p.quantity().setScale(4, RoundingMode.HALF_UP);
+                this.unitOfMeasure = p.unitOfMeasure();
+                this.lifecycleStatus = AssetLifecycleStatus.REGISTERED;
+                this.currentLocation = p.currentLocation();
+                this.lastKnownLocation = p.currentLocation();
+                this.custodianRef = p.custodianRef();
+                this.parentAssetRef = p.parentAssetRef();
+                this.rootAssetRef = p.rootAssetRef();
+                this.allocationId = p.allocationId();
+                this.sourceAllocationId = p.sourceAllocationId();
+                this.organizationRef = p.organizationRef();
+                this.donorRef = p.donorRef();
+                this.donationRef = p.donationRef();
+                this.campaignRef = p.campaignRef();
+            }
+            // 1.0 y 2.0 (histórico): sin convocatoria, nunca se infiere (ADR-029 Enmienda 1, D5/D6).
             case AssetRegisteredV2Payload p -> {
                 this.assetId = p.assetId();
                 this.assetType = p.assetType();
@@ -284,6 +337,11 @@ public class PhysicalAsset extends AggregateRoot {
             }
             case AssetCustodyTransferredPayload p -> {
                 this.custodianRef = p.newCustodianRef();
+            }
+            case AssetSplitV3Payload p -> {
+                this.splitsBeforeCompensation.put(p.childAssetId(),
+                        AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
+                this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetSplitV2Payload p -> {
                 this.splitsBeforeCompensation.put(p.childAssetId(),
@@ -349,6 +407,10 @@ public class PhysicalAsset extends AggregateRoot {
 
     public String getDonorRef() {
         return donorRef;
+    }
+
+    public String getCampaignRef() {
+        return campaignRef;
     }
 
     public String getDonationRef() {

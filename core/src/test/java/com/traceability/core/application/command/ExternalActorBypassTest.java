@@ -42,7 +42,8 @@ class ExternalActorBypassTest {
                 eventPublisher,
                 roleAuthorizationPolicy,
                 organizationBoundaryPolicy,
-                identityPrincipalPort
+                identityPrincipalPort,
+                new com.traceability.core.support.StubCampaignInKindEligibilityPort()
         );
     }
 
