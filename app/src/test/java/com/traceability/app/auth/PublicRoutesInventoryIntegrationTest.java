@@ -62,7 +62,11 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/physical-assets/{assetRef}/deliver",
             "GET /api/v1/physical-assets/{assetRef}",
             // B6-b: historial de la cuenta (ADR-048; plan-b6-b-donacion-pago-http.md §1.3)
-            "GET /api/v1/account/donations");
+            "GET /api/v1/account/donations",
+            // P1.1: Camino A por HTTP (plan-p1-camino-a-http.md §2.2)
+            "GET /api/v1/organizations/{organizationId}/funds",
+            "POST /api/v1/funds/{fundId}/allocations",
+            "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

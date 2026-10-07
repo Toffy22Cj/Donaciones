@@ -5,6 +5,7 @@ import com.traceability.core.application.authorization.InsufficientRoleException
 import com.traceability.core.application.command.ConcurrencyRetryExhaustedException;
 import com.traceability.core.application.exception.CampaignNotEligibleForInKindDonationException;
 import com.traceability.core.application.exception.CommandIdReusedException;
+import com.traceability.core.application.exception.FundNotFoundException;
 import com.traceability.core.application.exception.PhysicalAssetNotFoundException;
 import com.traceability.core.application.exception.ConcurrencyConflictException;
 import com.traceability.core.domain.shared.exceptions.AggregateNotFoundException;
@@ -37,6 +38,8 @@ public class CoreApiErrorMappings implements ApiErrorMappings {
                 // Plan B6-c, DD-12 [DECISIÓN DELEGADA — pendiente de ratificar por Carlos]: un activo inexistente responde
                 // igual que uno de otra organización, para no revelar qué ids existen (Q-B60-6 rige con el 403)
                 new ApiErrorMapping(PhysicalAssetNotFoundException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
+                // Plan P1.1, DD-30: un fondo inexistente responde como uno ajeno
+                new ApiErrorMapping(FundNotFoundException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
                 new ApiErrorMapping(AggregateNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 // title = nombre de la regla, derivado de la subclase (null)
                 new ApiErrorMapping(DomainInvariantViolationException.class, HttpStatus.CONFLICT, null),

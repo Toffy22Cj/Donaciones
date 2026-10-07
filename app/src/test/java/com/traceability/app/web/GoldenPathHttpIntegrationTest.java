@@ -7,10 +7,8 @@ import com.traceability.app.application.payments.SimulatedWebhookSignature;
 import com.traceability.app.web.donation.DonationIntentController;
 import com.traceability.app.web.donation.SimulatedPaymentWebhookController;
 import com.traceability.contracts.authentication.TokenIssuerPort;
-import com.traceability.core.application.command.FundCommandService;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.domain.event.DomainEvent;
-import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
 import identity.application.service.AddEmployeeService;
 import identity.application.service.AssignAdministratorService;
@@ -52,9 +50,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Plan B6-d: el recorrido de la demo por HTTP, de punta a punta, contra Tomcat real y todos los módulos reales
  * (golden path §2, pasos 1–5 y 7 sin narrativa ni anclaje). Criterios de §8 cubiertos: 1, 2, 3, 4, 5, 6, 7 (Camino A),
- * 8, 9, 15, 16 y 17. Dos datos no los da ninguna ruta y el test los toma por servicio o de la base de datos, como
- * hallazgos: la asignación del Camino A (H-B6C-1) y el {@code fundId} que el empleado necesita para registrarlo
- * (H-B6D-1).
+ * 8, 9, 15, 16 y 17. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
+ * y H-B6D-1).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
@@ -87,7 +84,6 @@ class GoldenPathHttpIntegrationTest {
     @Autowired private AddEmployeeService employees;
     @Autowired private AssignAdministratorService administrators;
     @Autowired private BootstrapPlatformAuthorityService bootstrap;
-    @Autowired private FundCommandService funds;
     @Autowired private EventStorePort eventStore;
     @Autowired private SimulatedWebhookSignature signature;
     @Autowired private MongoTemplate mongoTemplate;
@@ -207,12 +203,16 @@ class GoldenPathHttpIntegrationTest {
         assertThat(history.get(0).get("intentId").asText()).isEqualTo(withAccount.get("intentId").asText());
         assertThat(history.get(0).has("trackingCode")).isTrue();
 
-        // Paso 4, Camino A (criterio 7): el empleado registra un activo comprado con el Fund de la donación anónima.
-        // H-B6D-1: ninguna ruta da el fundId; H-B6C-1: la asignación no tiene ruta
-        String fundId = mongoTemplate.getCollection("donation_intents")
-                .find(new Document("_id", anonymous.get("intentId").asText())).first().getString("fundId");
-        String allocationId = UUID.randomUUID().toString();
-        funds.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 50_000L, new SystemActor("golden-path"));
+        // Paso 4, Camino A (criterio 7), solo por HTTP (plan P1.1): el administrador ve los fondos de la organización y
+        // pide una asignación sobre el de la donación anónima; el empleado registra el activo comprado con ella
+        JsonNode orgFunds = ok(send("GET", "/api/v1/organizations/" + orgId + "/funds", admin, null), 200).get("items");
+        assertThat(orgFunds).hasSize(2);
+        JsonNode anonymousFund = java.util.stream.StreamSupport.stream(orgFunds.spliterator(), false)
+                .filter(f -> f.get("clearedAmount").asText().equals("60000")).findFirst().orElseThrow();
+        String fundId = anonymousFund.get("fundId").asText();
+        assertThat(orgFunds.toString()).doesNotContain("donorRef").doesNotContain("anon:").doesNotContain("acct:");
+        String allocationId = ok(send("POST", "/api/v1/funds/" + fundId + "/allocations", admin, "{\"amount\":\"50000\"}"), 201)
+                .get("allocationId").asText();
         JsonNode parent = ok(send("POST", "/api/v1/physical-assets/register", employee, """
                 {"fundId":"%s","assetType":"BLANKET","quantity":"10","unitOfMeasure":"UNITS","custodianRef":"cust-1",
                  "currentLocation":"warehouse-1","allocationId":"%s"}""".formatted(fundId, allocationId)), 201);

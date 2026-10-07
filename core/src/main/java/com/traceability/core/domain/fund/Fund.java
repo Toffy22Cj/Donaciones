@@ -33,6 +33,8 @@ public class Fund extends AggregateRoot {
     // Transitory collections for sagas and idempotency
     private final Map<String, Long> activeAllocations = new HashMap<>();
     private final Map<String, AllocationStatus> allocationStatus = new HashMap<>();
+    /** Importe pedido por asignación, conservado tras confirmar o revertir (lectura de fondos, plan P1.1). */
+    private final Map<String, Long> allocationAmounts = new java.util.LinkedHashMap<>();
     private final Set<String> processedRefunds = new HashSet<>();
 
     // Protected constructor for rehydration via AggregateRoot
@@ -217,6 +219,7 @@ public class Fund extends AggregateRoot {
                 this.pendingAllocationAmount += p.requestedAmount();
                 this.activeAllocations.put(p.allocationId(), p.requestedAmount());
                 this.allocationStatus.put(p.allocationId(), AllocationStatus.REQUESTED);
+                this.allocationAmounts.put(p.allocationId(), p.requestedAmount());
             }
             case AllocationConfirmedPayload p -> {
                 long originalAmount = this.activeAllocations.remove(p.allocationId());
@@ -248,6 +251,15 @@ public class Fund extends AggregateRoot {
     public long getPendingAllocationAmount() { return pendingAllocationAmount; }
     public long getAllocatedAmount() { return allocatedAmount; }
     public long getRefundedAmount() { return refundedAmount; }
+
+    /** Asignaciones en orden de petición: id → (importe pedido, estado). Solo lectura (plan P1.1). */
+    public java.util.List<AllocationView> getAllocations() {
+        return allocationAmounts.entrySet().stream()
+                .map(e -> new AllocationView(e.getKey(), e.getValue(), allocationStatus.get(e.getKey())))
+                .toList();
+    }
+
+    public record AllocationView(String allocationId, long amount, AllocationStatus status) {}
     
     // Package-private setter for testing rehydration correctly if needed
     void setFundId(String fundId) { this.fundId = fundId; }
