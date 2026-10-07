@@ -12,6 +12,8 @@ import java.util.Map;
 
 @Document(collection = "event_store")
 @CompoundIndex(name = "idx_stream_sequence", def = "{'streamId': 1, 'sequence': 1}", unique = true)
+// Plan B5 (DD-33): búsqueda de los activos de una convocatoria por su génesis; solo un índice, ningún cambio de evento
+@CompoundIndex(name = "idx_event_type_campaign", def = "{'eventType': 1, 'payload.campaignRef': 1}")
 @Data
 @Builder
 @NoArgsConstructor

@@ -441,6 +441,11 @@ public class PhysicalAsset extends AggregateRoot {
         return quantity;
     }
 
+    /** Beneficiario sellado en {@code ASSET_DELIVERED} (ADR-014); {@code null} si no está entregado. */
+    public String getFinalBeneficiaryRef() {
+        return finalBeneficiaryRef;
+    }
+
     public String getUnitOfMeasure() {
         return unitOfMeasure;
     }

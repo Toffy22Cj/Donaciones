@@ -50,7 +50,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Plan B6-d: el recorrido de la demo por HTTP, de punta a punta, contra Tomcat real y todos los módulos reales
  * (golden path §2, pasos 1–5 y 7 sin narrativa ni anclaje). Criterios de §8 cubiertos: 1, 2, 3, 4, 5, 6, 7 (Camino A),
- * 8, 9, 13 (narrativa individual con LLM simulado y grounding real), 15, 16 y 17. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
+ * 8, 9, 13 (narrativa individual con LLM simulado y grounding real), 14 y 19 (narrativa de convocatoria, plan B5), 15,
+ * 16 y 17. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
  * y H-B6D-1).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
@@ -90,6 +91,26 @@ class GoldenPathHttpIntegrationTest {
                                         com.traceability.ai.domain.narrative.FactType.LIFECYCLE_STATUS, "DELIVERED")))
                         : new com.traceability.ai.domain.narrative.LlmNarrativeResponse(
                                 "Tu donación está en camino.", List.of());
+            };
+        }
+
+        /** LLM simulado de la narrativa de convocatoria (criterios 14 y 19): cita los hechos que recibe. */
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        com.traceability.ai.application.port.out.CampaignLlmClientPort simulatedCampaignLlmClient() {
+            return (facts, version) -> {
+                String cleared = com.traceability.ai.domain.narrative.CampaignNarrativeFacts.plain(facts.clearedAmount());
+                String units = com.traceability.ai.domain.narrative.CampaignNarrativeFacts.plain(facts.unitsDelivered());
+                String recipients = Long.toString(facts.distinctRecipients());
+                return new com.traceability.ai.domain.narrative.CampaignLlmNarrativeResponse(
+                        "Se recaudaron " + cleared + " " + facts.currency() + "; se entregaron " + units
+                                + " unidades a " + recipients + " receptores distintos.",
+                        List.of(new com.traceability.ai.domain.narrative.CampaignCitedFact(
+                                        com.traceability.ai.domain.narrative.CampaignFactType.CLEARED_AMOUNT, cleared),
+                                new com.traceability.ai.domain.narrative.CampaignCitedFact(
+                                        com.traceability.ai.domain.narrative.CampaignFactType.UNITS_DELIVERED, units),
+                                new com.traceability.ai.domain.narrative.CampaignCitedFact(
+                                        com.traceability.ai.domain.narrative.CampaignFactType.DISTINCT_RECIPIENTS, recipients)));
             };
         }
     }
@@ -287,5 +308,18 @@ class GoldenPathHttpIntegrationTest {
         }, n -> n.get("content").asText().contains("entregados"));
         assertThat(narrative.get("status").asText()).isEqualTo("AVAILABLE");
         assertThat(narrative.get("source").asText()).isEqualTo("LLM_GENERATED");
+
+        // Criterios 14 y 19 (plan B5): la narrativa pública de la convocatoria pasa el grounding real y cuenta las
+        // unidades del padre (6) y del hijo (4); los dos se entregaron al mismo receptor
+        JsonNode campaignNarrative = until("campaign narrative", () -> {
+            HttpResponse<String> r = send("GET", "/api/v1/public/campaigns/" + publicCode + "/narrative", null, null);
+            return r.statusCode() == 200 ? json.readTree(r.body()) : null;
+        }, n -> n.get("status").asText().equals("AVAILABLE"));
+        assertThat(campaignNarrative.get("source").asText()).isEqualTo("LLM_GENERATED");
+        assertThat(campaignNarrative.get("content").asText())
+                .isEqualTo("Se recaudaron 100000 COP; se entregaron 10 unidades a 1 receptores distintos.");
+        assertThat(campaignNarrative.get("facts").get("clearedAmount").asText()).isEqualTo("100000");
+        assertThat(campaignNarrative.get("facts").get("unitsDelivered").asText()).isEqualTo("10");
+        assertThat(campaignNarrative.get("facts").get("distinctRecipients").asLong()).isEqualTo(1);
     }
 }
