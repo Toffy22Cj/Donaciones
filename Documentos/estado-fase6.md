@@ -104,9 +104,9 @@ Decisiones humanas tomadas durante la implementación (2026-10-01): G1 — quita
 
 Esta es la cifra vigente del módulo. Las de 168 y 190 se conservan arriba como registro de ejecuciones anteriores. No se ejecutó el reactor completo.
 
-**Bloqueado fuera de `convocatoria`:** orquestador de la aplicación (ledger + génesis + outbox en una transacción), disparo inmediato y scheduler de ADR-043 (`app`): `app` no puede componer `convocatoria` sin una implementación de producción de `OrganizationVerificationPort` (ADR-038), porque `ConvocatoriaLifecycleService` y `DonationIntentService` la requieren y `app` escanea `com.traceability`. También T1 y P8 en `core`.
+**Bloqueado fuera de `convocatoria`:** orquestador de la aplicación (ledger + génesis + outbox en una transacción), disparo inmediato y scheduler de ADR-043 (`app`): bloqueados por T1 y P8 en `core`. *Actualización 2026-10-07:* el bloqueo de composición por `OrganizationVerificationPort` quedó resuelto — `app` ya depende de `convocatoria` y compone el adaptador de producción (`OrganizationVerificationAdapter`, lee `Organization.verificationStatus` de `identity`); el contexto completo arranca.
 
-**No cubierto por este corte (sigue abierto):** orquestador de la aplicación de fondos y su test de reintento de transacción completa (Enmienda 2 §3.2, ADR-043, §13.3 del plan); T1 en `core`; adaptador real de `OrganizationVerificationPort` (ADR-038); webhook (P3); efectivo (P5); P1, P2, P4, P6, P7; R3 (solicitud de cambio); R4 (`CLOSE_ON_TARGET` + `CLOSE`); índice de referencia de pago, sin el cual la confirmación manual de `BANK_TRANSFER` no es desplegable.
+**No cubierto por este corte (sigue abierto):** orquestador de la aplicación de fondos y su test de reintento de transacción completa (Enmienda 2 §3.2, ADR-043, §13.3 del plan); T1 en `core`; webhook (P3); efectivo (P5); P1, P2, P4, P6, P7; R3 (solicitud de cambio); R4 (`CLOSE_ON_TARGET` + `CLOSE`); índice de referencia de pago, sin el cual la confirmación manual de `BANK_TRANSFER` no es desplegable.
 
 ## 4. Pendiente — Blockchain
 

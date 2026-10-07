@@ -53,3 +53,9 @@ traceability:
   security:
     tracking-code-secret: ${TRACKING_CODE_SECRET}
     asset-ref-secret: ${ASSET_REF_SECRET}
+
+convocatoria:
+  donation-intent:
+    # Duración de la intención BANK_TRANSFER: parámetro de implementación sin valor decidido
+    # (implementation_plan.md §9). Sin default a propósito: debe fijarse por entorno.
+    bank-transfer-expiration: ${CONVOCATORIA_BANK_TRANSFER_EXPIRATION}

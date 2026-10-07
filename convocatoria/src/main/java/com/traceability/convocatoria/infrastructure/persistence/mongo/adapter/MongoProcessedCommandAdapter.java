@@ -27,8 +27,11 @@ import java.util.Optional;
  * {@code _id = {commandType, commandId}} (subdocumento) en la misma colección y con el mismo reclamo atómico. Un
  * {@code _id} de tipo documento nunca es igual a uno de tipo texto, así que ninguna clave de cliente puede ocupar una
  * de sistema (ADR-037 Enmienda 2 §3.3).
+ * <p>
+ * Nombre de bean explícito: {@code core} tiene una clase homónima ({@code MongoProcessedCommandAdapter}) y ambas
+ * conviven en el contexto de {@code app}.
  */
-@Component
+@Component("convocatoriaProcessedCommandAdapter")
 public class MongoProcessedCommandAdapter implements ProcessedCommandPort {
 
     private final MongoTemplate mongoTemplate;

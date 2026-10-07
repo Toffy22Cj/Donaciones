@@ -37,6 +37,11 @@
             <artifactId>identity</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.traceability</groupId>
+            <artifactId>convocatoria</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot Data MongoDB -->
         <dependency>
