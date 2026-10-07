@@ -64,4 +64,8 @@ Columnas: id · fecha UTC · bloque · pregunta · opciones · elegida · motivo
 
 | id | Fecha UTC | Bloque | Pregunta | Opciones | Elegida | Motivo | ¿Reversible? | Estado |
 |---|---|---|---|---|---|---|---|---|
+| DD-29 | 2026-10-07T19:30Z | P1.1 | Id de una asignación pedida por HTTP | lo envía el cliente / aleatorio / determinista | **UUIDv5(NS_ALLOCATION, fundId:commandId)** | Como Q9 para los activos: el reenvío devuelve el mismo id sin guardar nada | Sí (cambiar el espacio de nombres solo afecta a reenvíos) | PENDIENTE DE RATIFICACIÓN |
+| DD-30 | 2026-10-07T19:30Z | P1.1 | Fondo inexistente en una ruta protegida | 404 / el mismo 403 | **El mismo 403** (`FundNotFoundException`) | DD-01 y DD-12 (ratificadas): sin oráculo de existencia | Sí | PENDIENTE DE RATIFICACIÓN |
+| DD-31 | 2026-10-07T19:30Z | P1.1 | Lectura de los fondos de una organización: fuente, roles y campos | proyección de donaciones / event store | **Event store** (génesis con `organizationRef`), `ADMINISTRATOR` o `EMPLOYEE`; campos `fundId`, `campaignRef`, `currency`, `clearedAmount`, `availableAmount` y asignaciones; **sin `donorRef`**; una página de 200 | La proyección no guarda la organización; el empleado necesita el `fundId` para el Camino A (H-B6D-1); el donante nunca sale | Sí | PENDIENTE DE RATIFICACIÓN |
+| DD-32 | 2026-10-07T19:30Z | P1.1 | ¿Confirmación manual de una asignación por HTTP? | no / sí | **Sí**, `ADMINISTRATOR`, idempotente; la saga del registro sigue confirmando sola | Carlos pidió los endpoints de `requestAllocation` y `confirmAllocation`; repetirla no tiene efecto | Sí | PENDIENTE DE RATIFICACIÓN |
 
