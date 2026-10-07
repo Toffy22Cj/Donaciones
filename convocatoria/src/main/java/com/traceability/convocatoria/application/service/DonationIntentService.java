@@ -105,7 +105,9 @@ public class DonationIntentService {
     /**
      * CV-11 con la sesión del proveedor ({@code GATEWAY}) y la credencial de consulta (Enmienda 3 de ADR-037, D3 y
      * D6). El {@code donorRef} llega ya resuelto por {@code app} (ADR-048). El {@code statusToken} se genera fuera de la
-     * transacción y solo su hash entra en la intención; se devuelve en claro únicamente a la llamada que la creó.
+     * transacción y solo su hash entra en la intención. Un reenvío con el mismo {@code commandId} emite un token
+     * <b>nuevo</b> y anula el anterior: siempre hay un solo token válido (DD-18, sustituida por Carlos el 2026-10-07;
+     * el reintento típico es una respuesta perdida, y un donante anónimo perdería su {@code trackingCode}).
      */
     public CreateDonationIntentWithAccessResult createDonationIntentWithAccess(CreateDonationIntentCommand command) {
         String statusToken = StatusTokens.generate();
@@ -114,8 +116,10 @@ public class DonationIntentService {
         String intentId = result.get("intentId");
         boolean createdNow = donationIntents.findById(intentId)
                 .map(i -> statusTokenHash.equals(i.getAccess().statusTokenHash())).orElse(false);
+        boolean issued = createdNow
+                || donationIntents.rotateStatusToken(intentId, statusTokenHash, clock.instant().plus(StatusTokens.TTL));
         return new CreateDonationIntentWithAccessResult(intentId, result.get("fundId"),
-                createdNow ? statusToken : null, result.get("paymentRedirectUrl"));
+                issued ? statusToken : null, result.get("paymentRedirectUrl"));
     }
 
     /** Creación común; con {@code statusTokenHash} {@code null} es la de antes de la Enmienda 3 (sin sesión ni token). */

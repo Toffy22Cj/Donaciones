@@ -134,4 +134,26 @@ class DonationIntentAccessIntegrationTest extends AbstractConvocatoriaServiceInt
                 gatewayPayments.confirmGatewayPayment(PROVIDER, session, "evt-1", 250, "COP"));
         assertEquals("evt-1", donationIntents.findById(r.intentId()).orElseThrow().getProviderEventId());
     }
+
+    @Test
+    void aRepeatedCreation_rotatesTheStatusToken_andOnlyTheNewOneIsValid() {
+        // DD-18 sustituida por Carlos (2026-10-07): token nuevo en el reenvío, un solo token válido (Enmienda 3 D6)
+        CreateDonationIntentCommand command = new CreateDonationIntentCommand(newCommandId(), campaign.getPublicCode(),
+                "anon:d", 250, "COP", PaymentMethod.GATEWAY);
+        CreateDonationIntentWithAccessResult first = service.createDonationIntentWithAccess(command);
+        clock.set(NOW.plus(Duration.ofHours(1)));
+
+        CreateDonationIntentWithAccessResult second = service.createDonationIntentWithAccess(command);
+
+        assertEquals(first.intentId(), second.intentId());
+        assertNotNull(second.statusToken());
+        assertFalse(second.statusToken().equals(first.statusToken()));
+        DonationIntent stored = donationIntents.findById(first.intentId()).orElseThrow();
+        assertEquals(StatusTokens.hash(second.statusToken()), stored.getAccess().statusTokenHash());
+        assertEquals(NOW.plus(Duration.ofHours(25)), stored.getAccess().statusTokenExpiresAt());
+        assertTrue(reads.findForStatusToken(first.intentId(), first.statusToken()).isEmpty());
+        assertTrue(reads.findForStatusToken(first.intentId(), second.statusToken()).isPresent());
+        verify(provider, org.mockito.Mockito.times(1)).createSession(anyString(), anyLong(), anyString());
+    }
+
 }

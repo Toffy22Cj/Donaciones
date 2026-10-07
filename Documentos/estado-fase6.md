@@ -178,6 +178,13 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.16 Segunda autorización de Carlos (2026-10-07), sección 0 — HECHO
+
+- **Ratificadas** DD-01 a DD-28, salvo **DD-18**, que Carlos sustituye: el reenvío de CV-11 emite un `statusToken` **nuevo** y anula el anterior. Implementado, con test HTTP y de módulo.
+- **`IllegalArgumentException` → 500.** Solo las validaciones con nombre dan 400. Ningún test dependía del 400 anterior.
+- **Criterio de avance:** "N de 19 criterios del golden path cumplidos por HTTP". Hoy, **12 de 19** (1–9 y 15–17).
+- **Evidencia:** `evidencia-fase6/s0-dd18-iae-021f766-2026-10-07.txt`. Reactor **1142 tests**; 3 mutaciones, 3 muertas.
+
 ### 0.15 B6-d — seguimiento de punta a punta (2026-10-07, `feat/b6-d-seguimiento-http`) — HECHO; B6 completo salvo la narrativa de convocatoria
 
 - **Qué hace:**
