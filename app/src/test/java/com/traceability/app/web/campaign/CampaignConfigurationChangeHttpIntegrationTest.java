@@ -297,11 +297,13 @@ class CampaignConfigurationChangeHttpIntegrationTest {
         String ref = campaign(BOTH).get("campaignRef").asText();
         String requestId = ok(request(adminA, ref, 1, MONETARY_ONLY), 201).get("requestId").asText();
         String forbidden = title(request(employee, ref, 1, BOTH));
+        String sibling = campaign(BOTH).get("campaignRef").asText(); // misma organización, otra convocatoria
         for (HttpResponse<String> r : List.of(
                 request(employee, ref, 1, BOTH), request(representative, ref, 1, BOTH), request(otherAdmin, ref, 1, BOTH),
                 request(adminA, UUID.randomUUID().toString(), 1, BOTH), edit(employee, ref, 1, BOTH),
                 decide(employee, ref, requestId, "approve"), decide(otherAdmin, ref, requestId, "approve"),
                 decide(adminB, ref, UUID.randomUUID().toString(), "approve"),
+                decide(adminB, sibling, requestId, "approve"), decide(adminB, sibling, requestId, "reject"),
                 send("GET", "/api/v1/campaigns/" + ref + "/configuration-change-requests", employee, null),
                 send("GET", "/api/v1/campaigns/" + ref + "/configuration-change-requests", otherAdmin, null))) {
             assertThat(r.statusCode()).as(r.body()).isEqualTo(403);
