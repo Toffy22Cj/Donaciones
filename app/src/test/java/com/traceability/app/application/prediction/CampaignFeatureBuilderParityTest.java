@@ -48,11 +48,12 @@ class CampaignFeatureBuilderParityTest {
                 Outcome outcome = !"CONFIRMED".equals(i.get("status").asText()) ? Outcome.FAILED
                         : i.get("rejectedByPolicy").asBoolean() ? Outcome.FUNDING_REJECTED : Outcome.CONFIRMED;
                 int donorKey = donorKeys.computeIfAbsent(i.get("donorRef").asText(), k -> donorKeys.size());
-                intents.add(new IntentOutcome(outcome, (long) i.get("amount").asDouble(), donorKey,
+                // el dataset sintético está en pesos; el backend guarda unidades mínimas (COP: exponente 2)
+                intents.add(new IntentOutcome(outcome, (long) i.get("amount").asDouble() * 100, donorKey,
                         outcome == Outcome.CONFIRMED ? at(i.get("dayFraction").asDouble() * duration) : null));
             }
             CampaignPredictionData data = new CampaignPredictionData("cmp", "org", "OPEN",
-                    c.get("visibility").asText(), c.get("targetPolicy").asText(), (long) c.get("targetAmount").asDouble(),
+                    c.get("visibility").asText(), c.get("targetPolicy").asText(), (long) c.get("targetAmount").asDouble() * 100, "COP",
                     START, at(duration), c.get("paymentMethodsEnabled").asInt(), c.get("orgPriorCampaigns").asLong(),
                     intents, false);
 

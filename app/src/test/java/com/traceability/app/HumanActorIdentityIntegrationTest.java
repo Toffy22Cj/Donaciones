@@ -81,24 +81,24 @@ class HumanActorIdentityIntegrationTest {
         assertNotNull(identityPrincipalPort);
 
         // 1. Create Organization 1
-        Account org1Creator = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
+        Account org1Creator = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!Pass123!");
         org1 = createOrganizationService.createOrganization(testActor, OrganizationType.FOUNDATION, org1Creator.getAccountId());
 
         // 2. Add an Administrator to Org 1
-        org1Admin = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
+        org1Admin = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!Pass123!");
         addEmployeeService.addEmployee(testActor, org1.getOrganizationId(), org1Admin.getAccountId());
         assignAdministratorService.assignAdministrator(testActor, org1.getOrganizationId(), org1Admin.getAccountId());
 
         // 3. Add an Employee (non-admin) to Org 1
-        org1Employee = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
+        org1Employee = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!Pass123!");
         addEmployeeService.addEmployee(testActor, org1.getOrganizationId(), org1Employee.getAccountId());
 
         // 4. Create Organization 2
-        Account org2Creator = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
+        Account org2Creator = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!Pass123!");
         org2 = createOrganizationService.createOrganization(testActor, OrganizationType.COMPANY, org2Creator.getAccountId());
 
         // 5. Add an Administrator to Org 2
-        org2Admin = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
+        org2Admin = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!Pass123!");
         addEmployeeService.addEmployee(testActor, org2.getOrganizationId(), org2Admin.getAccountId());
         assignAdministratorService.assignAdministrator(testActor, org2.getOrganizationId(), org2Admin.getAccountId());
 
