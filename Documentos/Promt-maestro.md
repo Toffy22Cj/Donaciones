@@ -1,5 +1,7 @@
 # Plan de Ejecución para Agentes de Código — Fase 2: Implementación
 
+> *Nota (2026-10-07, auditoría IA-1): documento histórico, no se reescribe. La "Tarea 12 (ai: NarrativeGenerator)" se implementó con el nombre `DonorReportGenerator` (`ai/.../application/service/DonorReportGenerator.java`); no existe ninguna clase `NarrativeGenerator`.*
+
 **Proyecto:** Motor de Trazabilidad Verificable de Donaciones (nombre comercial provisional, no usar en código: package base `com.traceability`)
 **Fase:** 2 — Implementación (la Fase 1, Domain Design & Architecture Blueprint, está formalmente cerrada con 16 ADRs)
 **Audiencia de este documento:** agentes de código autónomos (Claude Code, Cursor, o equivalente) y los ingenieros que los supervisan.
