@@ -105,6 +105,41 @@ class ProjectionChangeStreamE2ETest {
         assertNoQuarantine(fundId);
     }
 
+    /**
+     * H-CI-1: el alta de la proyección es UNA escritura. Antes era save (importes a 0) + update, y un lector podía ver
+     * el estado intermedio. El primer cambio que registra Mongo para el fondo ya trae los importes.
+     */
+    @Test
+    void theFirstWriteOfANewDonationProjection_alreadyCarriesTheAmounts() {
+        String fundId = UUID.randomUUID().toString();
+        List<Document> changes = new java.util.ArrayList<>();
+        try (com.mongodb.client.MongoChangeStreamCursor<com.mongodb.client.model.changestream.ChangeStreamDocument<Document>> cursor =
+                     mongoTemplate.getCollection("donation_projections")
+                             .watch(List.of(com.mongodb.client.model.Aggregates.match(
+                                     com.mongodb.client.model.Filters.eq("documentKey._id", fundId))))
+                             .fullDocument(com.mongodb.client.model.changestream.FullDocument.UPDATE_LOOKUP)
+                             .cursor()) {
+            funds.clearFundsGenesis(cmd(), fundId, new OrganizationRef(ORG), "CAMP-1", "DONOR-1", "COP", 1500L,
+                    "SRC-1", ACTOR);
+            await(() -> donationRead.findByFundId(fundId).filter(m -> m.clearedAmount() == 1500L));
+            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+            while (changes.isEmpty() && System.nanoTime() < deadline) {
+                com.mongodb.client.model.changestream.ChangeStreamDocument<Document> change = cursor.tryNext();
+                if (change != null) {
+                    changes.add(new Document("op", change.getOperationType().getValue())
+                            .append("doc", change.getFullDocument()));
+                }
+            }
+        }
+        assertThat(changes).as("primer cambio de la proyección").isNotEmpty();
+        Document first = changes.get(0);
+        assertThat(first.getString("op")).isEqualTo("insert");
+        Document snapshot = first.get("doc", Document.class).get("financialSnapshot", Document.class);
+        assertThat(snapshot.get("originalAmount", Number.class).longValue()).isEqualTo(1500L);
+        assertThat(snapshot.get("clearedAmount", Number.class).longValue()).isEqualTo(1500L);
+        assertThat(first.get("doc", Document.class).getString("status")).isEqualTo("ACTIVE");
+    }
+
     @Test
     void laterClearing_doesNotOverwriteOriginalAmount() {
         String fundId = UUID.randomUUID().toString();

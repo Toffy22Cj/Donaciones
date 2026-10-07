@@ -1,0 +1,21 @@
+# §3.2 — administradores de plataforma: fase roja y mutaciones
+tests (rojo): 7210bda; código verde: 40fb150
+
+## Fase roja (implementación apartada con git stash)
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 27.12 s <<< FAILURE! -- in com.traceability.app.web.platform.PlatformAdministratorsHttpIntegrationTest
+[{"type":"about:blank","title":"NotFound","status":404,"detail":"The resource was not found."}] 
+expected: 201
+ but was: 404
+[ERROR]   PlatformAdministratorsHttpIntegrationTest.grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator:119 [{"type":"about:blank","title":"NotFound","status":404,"detail":"The resource was not found."}] 
+expected: 201
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- revocar al último: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- lista con cuentas sin autoridad: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- lista sin autoridad de plataforma: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- valida antes de autorizar: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- inexistente sin traducir: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- inactiva sin traducir: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- ya concedida como 400: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+- lista en caché: MUERTA  grantRevokeAndList_withTheMostRestrictiveAnswers_andNeverWithoutAnAdministrator
+Restauración verificada contra HEAD. Mutaciones vivas: 0

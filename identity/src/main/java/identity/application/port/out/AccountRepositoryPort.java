@@ -53,5 +53,7 @@ public interface AccountRepositoryPort {
      * @return true if at least one account has platformAuthority != null, false otherwise
      */
     boolean existsAnyWithPlatformAuthority();
-}
 
+    /** Cuentas con autoridad de plataforma, por {@code accountId}, como mucho {@code limit}. */
+    java.util.List<Account> findPlatformAdministrators(int limit);
+}

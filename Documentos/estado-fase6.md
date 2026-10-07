@@ -178,6 +178,26 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.25 Tercera autorización de Carlos (2026-10-07T22:10Z): organizaciones, usuarios, empleados y administradores
+
+- **Alcance:** la aplicación debe tener completas las funciones de organizaciones, usuarios, empleados, administradores de organización y administrador de plataforma. Cierre: 21 de octubre. Orden: crear organización (R9) y cola de verificación → administradores de plataforma → miembros e invitaciones por correo → "mis convocatorias" del empleado → edición de la configuración con aprobación (enmienda de ADR-037).
+- **ADR-049** (correo e invitaciones), aprobado como decisión delegada (DD-60). Decisiones del agente: DD-60 a DD-67 (`decisiones-delegadas-2026-10.md` §4).
+- **Deuda registrada — confirmación manual de pagos (transferencia y efectivo): FUERA** por decisión de Carlos. Motivos:
+  1. **P1:** el diseño de la confirmación independiente no está cerrado; falta decidir quién confirma y con qué autoridad (`auditoria-cierre-f1-f2.md`, R9; Q-v2-6).
+  2. **Referencia de pago:** no hay ninguna referencia que ligue un ingreso real (extracto o recibo) con una `DonationIntent`.
+  3. **Riesgo de abuso:** una confirmación manual sin control dual crea dinero en el sistema con la palabra de una sola persona.
+
+  Mientras tanto, las convocatorias solo cobran por la pasarela (simulada en `dev`).
+
+### 0.24b Hallazgo H-CI-1 (2026-10-07T23:10Z): alta no atómica de las proyecciones de `core`
+
+`scripts/ci-local.sh` sobre una rama que solo cambiaba documentos y un test de `convocatoria` falló en `core`, en `ProjectionChangeStreamE2ETest.clearFundsGenesis_isProjectedWithAmountsCurrencyAndCampaign` (`expected 1500, but was 0`).
+
+- **Causa raíz:** al crear una proyección, `DonationProjectionHandler` hacía dos escrituras: `save` del documento vacío (importes a 0) y después `update` con el evento. Durante un instante, un lector veía la donación con importe 0. El historial de un activo nacía vacío del mismo modo. Bajo carga (varias ejecuciones de Maven a la vez), el test lo vio.
+- **Corrección** (`fix/proyeccion-donacion-alta-atomica`): el alta es un único `upsert` (`$setOnInsert` del estado), y el historial, un `upsert` con `$push`.
+- **Test de regresión determinista:** un *change stream* sobre `donation_projections` comprueba que el primer cambio del fondo es un `insert` con los importes. Con el código anterior falla siempre (0 en vez de 1500).
+- Los demás `save` de `core/application/projection` crean documentos completos en una sola escritura.
+
 ### 0.24 Decisiones de Carlos (2026-10-07T21:41Z): Ganache como evidencia, CI local y demo local
 
 - **Anclaje (criterios 10, 11, 12 y 18):** se cierran con la evidencia de la **cadena local (Ganache)**. La testnet pública pasa a ser **opcional** (`runbook-anclaje-testnet.md`). Motivo: no depender de *faucets*, cuotas ni disponibilidad de la red el día de la demo. **Limitación aceptada:** un anclaje en Ganache es real en la cadena local, pero no lo pueden verificar terceros. Anotado en `golden-path.md` §8 y `plan-cierre-fase6-codigo.md`.

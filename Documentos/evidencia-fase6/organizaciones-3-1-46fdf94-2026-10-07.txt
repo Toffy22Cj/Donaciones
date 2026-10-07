@@ -1,0 +1,17 @@
+# §3.1 — crear organización y cola de verificación: fase roja y mutaciones
+commit verde: 46fdf94 (tests en a322c1b, antes del código)
+
+## Fase roja (implementación apartada con git stash; tests de a322c1b)
+Tests run: 6, Failures: 6 — OrganizationRegistrationAndQueueHttpIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- la cola no exige autoridad de plataforma: MUERTA  onlyThePlatformAdministrator_readsTheQueue_everyoneElseGetsTheSame403
+- la cola incluye verificadas: MUERTA  theQueue_filtersByPendingStatus_andShowsThePlatformsOwnRequest; theQueue_listsPendingOrganizations_page_by_page_withAnOpaqueCursor_andWithoutMembers
+- cursor sin propósito: MUERTA  anAlteredOrForeignCursor_is400_andTheCursorsOfTheQueueAndOfTheDiscoveryAreNotInterchangeable
+- sin página siguiente: MUERTA  theQueue_listsPendingOrganizations_page_by_page_withAnOpaqueCursor_andWithoutMembers
+- valida antes de autorizar: MUERTA  onlyThePlatformAdministrator_readsTheQueue_everyoneElseGetsTheSame403
+- estado no pendiente aceptado: MUERTA  theQueue_filtersByPendingStatus_andShowsThePlatformsOwnRequest
+- nombre sin tope: MUERTA  createOrganization_validatesTypeAndName_andRequiresAuthentication
+- sin no-store: MUERTA  theQueue_listsPendingOrganizations_page_by_page_withAnOpaqueCursor_andWithoutMembers
+- 409 sin traducción: MUERTA  anyRegisteredUser_createsAnOrganization_asItsRepresentative_pendingVerification
+Restauración verificada contra HEAD. Mutaciones vivas: 0
