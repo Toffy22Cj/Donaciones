@@ -99,29 +99,74 @@ public class PhysicalAssetCommandService {
     public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef,
             String locationRef, String evidenceRef, Instant deliveredAt,
             com.traceability.core.domain.event.ActorRef actorRef) {
+        transition(commandId, assetId, CommandType.DELIVER_ASSET, actorRef,
+                asset -> asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt));
+    }
+
+    /** D-ASSET (plan B6-c §2.1): despacho, con el mismo patrón que {@link #deliverAsset}. */
+    public void dispatchAsset(String commandId, String assetId, String carrierRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        transition(commandId, assetId, CommandType.DISPATCH_PHYSICAL_ASSET, actorRef, asset -> asset.dispatch(carrierRef));
+    }
+
+    /** D-ASSET (plan B6-c §2.1): recepción en una instalación. */
+    public void receiveAsset(String commandId, String assetId, String facilityLocation, String receiverRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        transition(commandId, assetId, CommandType.RECEIVE_PHYSICAL_ASSET, actorRef,
+                asset -> asset.receive(facilityLocation, receiverRef));
+    }
+
+    /**
+     * Transición de un activo existente bajo el reclamo {@code commandId}, que guarda el resultado
+     * {@code TIPO:assetId} (DD-11): un reenvío del mismo comando es un no-op; el de otro comando, un
+     * {@link com.traceability.core.application.exception.CommandIdReusedException}.
+     */
+    private void transition(String commandId, String assetId, CommandType commandType,
+            com.traceability.core.domain.event.ActorRef actorRef, java.util.function.Consumer<PhysicalAsset> change) {
+        String outcome = outcome(commandType, assetId);
         if (processedCommandRepository.exists(commandId)) {
+            assertSameCommand(commandId, outcome);
             return;
         }
-
-        retryTemplate.execute(() -> {
-            List<DomainEvent> events = eventStore.loadStream(assetId);
-            List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
-            PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, payloads, events.size());
+        boolean written = retryTemplate.execute(() -> {
+            PhysicalAsset asset = loadExisting(assetId);
             long expectedVersion = asset.getVersion();
-
-            authorize(actorRef, asset.getOrganizationRef(), CommandType.DELIVER_ASSET);
-
-            asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt);
-
-            List<DomainEvent> newEvents = asset.getUncommittedEvents();
-            if (!newEvents.isEmpty()) {
-                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, newEvents, actorRef, null,
-                        commandId);
-            } else {
-                eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion, java.util.Collections.emptyList(), actorRef, null, commandId);
-            }
-            return null;
+            authorize(actorRef, asset.getOrganizationRef(), commandType);
+            change.accept(asset);
+            return eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion,
+                    asset.getUncommittedEvents(), actorRef, null, commandId, outcome);
         });
+        if (!written) {
+            assertSameCommand(commandId, outcome);
+        }
+    }
+
+    private static String outcome(CommandType commandType, String assetId) {
+        return commandType.name() + ":" + assetId;
+    }
+
+    /** El reclamo existente es de este mismo comando, o el {@code commandId} se reutilizó (DD-11). */
+    private void assertSameCommand(String commandId, String expectedOutcome) {
+        String actual = processedCommandRepository.findOutcome(commandId).orElse(null);
+        if (!expectedOutcome.equals(actual)) {
+            throw new com.traceability.core.application.exception.CommandIdReusedException(commandId);
+        }
+    }
+
+    /** Carga un activo que debe existir (DD-12). */
+    private PhysicalAsset loadExisting(String assetId) {
+        List<DomainEvent> events = eventStore.loadStream(assetId);
+        if (events.isEmpty()) {
+            throw new com.traceability.core.application.exception.PhysicalAssetNotFoundException(assetId);
+        }
+        return PhysicalAsset.rehydrate(assetId, events.stream().map(DomainEvent::payload).collect(Collectors.toList()),
+                events.size());
+    }
+
+    /** Resultado de un registro, leído del activo ya escrito (el original si es un duplicado). */
+    private RegisteredAsset registered(String assetId) {
+        PhysicalAsset asset = loadExisting(assetId);
+        return new RegisteredAsset(assetId, asset.getDonationRef(), asset.getCampaignRef());
     }
 
     /**
@@ -130,7 +175,7 @@ public class PhysicalAssetCommandService {
      * del Fund: como la saga que iba a resolverlo fue descartada (ADR-034), aquí se valida contra el
      * Fund cargado y se rechaza cualquier discrepancia antes de autorizar o persistir.
      */
-    public void registerPhysicalAsset(String commandId,
+    public RegisteredAsset registerPhysicalAsset(String commandId,
             String fundId,
             String organizationRef,
             String assetType,
@@ -142,23 +187,24 @@ public class PhysicalAssetCommandService {
             String sourceAllocationId,
             com.traceability.core.domain.event.ActorRef actorRef) {
 
+        String assetId = com.traceability.core.domain.physicalasset.AssetIds.of(organizationRef, commandId);
+        String outcome = outcome(CommandType.REGISTER_PHYSICAL_ASSET, assetId);
         if (processedCommandRepository.exists(commandId)) {
-            return;
+            assertSameCommand(commandId, outcome);
+            return registered(assetId);
         }
 
         if (fundId == null || fundId.isBlank()) {
             throw new com.traceability.core.application.exception.InvalidFundReferenceException("fundId cannot be null or empty for Asset Registration (Path A)");
         }
 
-        retryTemplate.execute(() -> {
+        RegisteredAsset result = retryTemplate.execute(() -> {
             Fund fund = assertOrganizationMatchesFund(fundId, organizationRef);
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET);
             // ADR-029 Enmienda 1, D2: el campaignRef es el del Fund, nunca del llamador. Decisión escrita
             // (plan-d-campaign.md §3.2): no se comprueba que la convocatoria siga OPEN; gastar fondos ya
             // recaudados tras el cierre es legítimo (ADR-037 §2.6bis, D1).
             String campaignRef = fund.getCampaignRef();
-
-            String assetId = UUID.randomUUID().toString();
 
             PhysicalAsset asset = PhysicalAsset.register(
                     assetId,
@@ -191,16 +237,23 @@ public class PhysicalAssetCommandService {
                     clock.instant()
             );
 
-            eventPublisher.appendAndOutbox(
+            boolean written = eventPublisher.appendAndOutbox(
                     assetId,
                     "PhysicalAsset",
                     0, // génesis → expectedVersion = 0
                     newEvents,
                     actorRef,
                     List.of(sagaMessage),
-                    commandId);
-            return null;
+                    commandId,
+                    outcome);
+            return written ? new RegisteredAsset(assetId, asset.getDonationRef(), asset.getCampaignRef()) : null;
         });
+        if (result != null) {
+            return result;
+        }
+        // otro llamador ganó el reclamo en paralelo: es este mismo comando o uno distinto (DD-11)
+        assertSameCommand(commandId, outcome);
+        return registered(assetId);
     }
 
     /**
@@ -240,7 +293,7 @@ public class PhysicalAssetCommandService {
     /**
      * Tarea 5.4 — Camino B sin convocatoria (equivale a {@code campaignRef = null}).
      */
-    public void registerPhysicalAssetFromDonation(String commandId,
+    public RegisteredAsset registerPhysicalAssetFromDonation(String commandId,
             String organizationRef,
             String donorRef,
             String assetType,
@@ -249,7 +302,7 @@ public class PhysicalAssetCommandService {
             String custodianRef,
             String currentLocation,
             com.traceability.core.domain.event.ActorRef actorRef) {
-        registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
+        return registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
                 custodianRef, currentLocation, null, actorRef);
     }
 
@@ -259,7 +312,7 @@ public class PhysicalAssetCommandService {
      * {@link CampaignInKindEligibilityPort} → persistir. Autorizar primero impide que un actor sondee si un
      * {@code campaignRef} existe en otra organización; un rechazo no deja eventos ni reclamo del {@code commandId}.
      */
-    public void registerPhysicalAssetFromDonation(String commandId,
+    public RegisteredAsset registerPhysicalAssetFromDonation(String commandId,
             String organizationRef,
             String donorRef,
             String assetType,
@@ -270,19 +323,20 @@ public class PhysicalAssetCommandService {
             String campaignRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
 
+        String assetId = com.traceability.core.domain.physicalasset.AssetIds.of(organizationRef, commandId);
+        String outcome = outcome(CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION, assetId);
         if (processedCommandRepository.exists(commandId)) {
-            return;
+            assertSameCommand(commandId, outcome);
+            return registered(assetId);
         }
 
         String donationRef = UUID.randomUUID().toString();
 
-        retryTemplate.execute(() -> {
+        RegisteredAsset result = retryTemplate.execute(() -> {
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION);
             if (campaignRef != null) {
                 assertCampaignAcceptsInKind(campaignRef, organizationRef);
             }
-
-            String assetId = UUID.randomUUID().toString();
 
             PhysicalAsset asset = PhysicalAsset.create(
                     assetId,
@@ -303,16 +357,23 @@ public class PhysicalAssetCommandService {
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
 
-            eventPublisher.appendAndOutbox(
+            boolean written = eventPublisher.appendAndOutbox(
                     assetId,
                     "PhysicalAsset",
                     0, // génesis → expectedVersion = 0
                     newEvents,
                     actorRef,
                     List.of(),
-                    commandId);
-            return null;
+                    commandId,
+                    outcome);
+            return written ? new RegisteredAsset(assetId, asset.getDonationRef(), asset.getCampaignRef()) : null;
         });
+        if (result != null) {
+            return result;
+        }
+        // otro llamador ganó el reclamo en paralelo: es este mismo comando o uno distinto (DD-11)
+        assertSameCommand(commandId, outcome);
+        return registered(assetId);
     }
 
     /**
@@ -331,17 +392,14 @@ public class PhysicalAssetCommandService {
             com.traceability.core.domain.event.ActorRef actorRef) {
 
         String childAssetId = com.traceability.core.domain.physicalasset.SplitChildIds.of(assetId, commandId);
+        String outcome = outcome(CommandType.SPLIT_PHYSICAL_ASSET, childAssetId);
         if (processedCommandRepository.exists(commandId)) {
+            assertSameCommand(commandId, outcome);
             return childAssetId;
         }
 
-        retryTemplate.execute(() -> {
-            List<DomainEvent> events = eventStore.loadStream(assetId);
-            List<DomainEventPayload> payloads = events.stream()
-                    .map(DomainEvent::payload)
-                    .collect(Collectors.toList());
-
-            PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, payloads, events.size());
+        boolean written = retryTemplate.execute(() -> {
+            PhysicalAsset asset = loadExisting(assetId);
             long expectedVersion = asset.getVersion();
 
             authorize(actorRef, asset.getOrganizationRef(), CommandType.SPLIT_PHYSICAL_ASSET);
@@ -360,16 +418,19 @@ public class PhysicalAssetCommandService {
                     now,
                     now);
 
-            eventPublisher.appendAndOutbox(
+            return eventPublisher.appendAndOutbox(
                     assetId,
                     "PhysicalAsset",
                     expectedVersion,
                     asset.getUncommittedEvents(),
                     actorRef,
                     List.of(sagaMessage),
-                    commandId);
-            return null;
+                    commandId,
+                    outcome);
         });
+        if (!written) {
+            assertSameCommand(commandId, outcome);
+        }
         return childAssetId;
     }
 

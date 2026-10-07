@@ -441,6 +441,10 @@ public class PhysicalAsset extends AggregateRoot {
         return quantity;
     }
 
+    public String getUnitOfMeasure() {
+        return unitOfMeasure;
+    }
+
     public String getCurrentLocation() {
         return currentLocation;
     }

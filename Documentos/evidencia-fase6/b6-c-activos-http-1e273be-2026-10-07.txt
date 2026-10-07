@@ -1,0 +1,45 @@
+# B6-c — evidencia sobre feat/b6-c-activos-http en 1e273be (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: 303927f0b29011c8f7d013829b614729fccfcee3670cfc1516aaf559854ed371
+# Línea base: develop 1ad0a56 = 1070 tests (PR #60). Ahora: 1089 (core +11, app +8).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 122, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 215, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 92, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes (esqueleto, b6ca74b)
+[ERROR] Tests run: 11, Failures: 2, Errors: 8, Skipped: 0, Time elapsed: 11.08 s <<< FAILURE! -- in com.traceability.core.application.command.AssetHttpCommandsIntegrationTest
+[ERROR] Tests run: 8, Failures: 6, Errors: 1, Skipped: 0, Time elapsed: 7.237 s <<< FAILURE! -- in com.traceability.app.web.asset.PhysicalAssetHttpIntegrationTest
+
+# Después: core completo y tests HTTP
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.542 s -- in com.traceability.app.web.asset.PhysicalAssetHttpIntegrationTest
+
+# Mutaciones (scripts/mutaciones.py; restauración con git checkout verificada contra HEAD)
+- sin autorización en las transiciones (dispatch/receive/deliver): MUERTA  dispatch_requiresTheEmployeeRole_andTheOrganization_withoutWriting
+- id aleatorio en el registro del Camino B: MUERTA  registerFromDonation_returnsTheDeterministicId_andADuplicateReturnsTheSameResultWithoutWriting
+- aceptar un Command-Id reutilizado: MUERTA  aCommandIdAlreadyUsedByAnotherCommand_isRejected_withoutWriting; aCommandIdClaimedWithoutOutcome_isNotTreatedAsADuplicate
+- activo inexistente sin excepción propia: MUERTA  anAssetThatDoesNotExist_isANamedFailure_inEveryCommandAndRead
+- lectura sin exigir EMPLOYEE: MUERTA  reads_requireTheEmployeeRoleAndTheOrganization
+- lectura sin frontera de organización: MUERTA  reads_requireTheEmployeeRoleAndTheOrganization
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+- activo inexistente traducido a 404: MUERTA  otherOrganization_andNonexistentAsset_giveTheSame403_byteForByte
+- donorRef sin el formato opaco anon:: MUERTA  aDonorRefSentByTheClient_isIgnored_theServerGeneratesAnOpaqueOne
+- Command-Id reutilizado traducido a 200/otro estado (sin traducción): MUERTA  theSameCommandId_givesTheSameStatusAndBody_andAnotherCommandWithIt_is409
+- Location del split ausente: MUERTA  goldenPath_registerInKind_split_waitForTheChild_andDeliverBoth
+- vista operacional con la cantidad sin escala del dominio: MUERTA  goldenPath_registerInKind_split_waitForTheChild_andDeliverBoth; theOperationalView_hasNoDonorNorGenealogy
+Restauración verificada contra HEAD. Mutaciones vivas: 0
