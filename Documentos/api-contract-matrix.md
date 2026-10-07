@@ -84,8 +84,10 @@ No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide s
 | QR | Payload | Destino (ruta UX) | Acceso |
 |---|---|---|---|
 | Campaign | `publicCode` | `/c/{publicCode}` | Público |
-| Tracking | `trackingCode` | `/tracking/{trackingCode}` | Público |
+| Tracking | URL `/tracking`, **sin el código** | `/tracking` (el donante introduce el `trackingCode`; la web lo envía solo en `Authorization: Bearer`) | Público |
 | Asset | `assetRef` | `/assets/{assetRef}` | Autenticado — entrada a acción de `EMPLOYEE`, no lectura pública |
+
+*Enmienda S-05 (Carlos, 2026-10-07):* el QR de seguimiento apunta a `/tracking` **sin el código**. El `trackingCode` es un secreto bearer (ADR-041 §2.7; C2/H1): en una URL quedaría en el historial del navegador, en registros de servidores intermedios y en la cabecera `Referer`. *Texto anterior de la fila: payload `trackingCode`, destino `/tracking/{trackingCode}`.*
 
 `/assets/{assetRef}` es ruta UX cerrada; el contrato HTTP subyacente que resuelve qué acción mostrar es el siguiente. Renderización de la imagen PNG/SVG queda como implementación pendiente (frontend o endpoint de presentación puro, sin lógica de dominio) — no bloquea nada.
 
