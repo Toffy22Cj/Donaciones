@@ -10,6 +10,10 @@ import java.time.Instant;
 @Service
 public class FallbackNarrativeTemplateService {
 
+    /** El fallback no lo produce ningún modelo: se guarda con este identificador en lugar del modelo configurado. */
+    public static final String MODEL_IDENTIFIER = "FALLBACK";
+
+
     private final AiNarrativeProperties properties;
 
     public FallbackNarrativeTemplateService(AiNarrativeProperties properties) {
@@ -30,7 +34,7 @@ public class FallbackNarrativeTemplateService {
         return new DonorReportDTO(
             text,
             NarrativeSource.FALLBACK_TEMPLATE,
-            "FALLBACK",
+            MODEL_IDENTIFIER,
             properties.getPromptTemplateVersion(),
             sourceFactsHash,
             facts.auditFactsSequence(),
