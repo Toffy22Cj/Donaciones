@@ -60,7 +60,7 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|
-| `GET /public/campaigns` | pública | `?cursor=` | `200 {items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; solo `PUBLIC` y `OPEN`, **nunca `PRIVATE_LINK`** (DD-52, DD-53) | 400 cursor |
+| `GET /public/campaigns` | pública | `?cursor=` | `200 {items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; cursor opaco (DD-58); solo `PUBLIC` y `OPEN`, **nunca `PRIVATE_LINK`** (DD-52) | 400 cursor |
 | `GET /public/campaigns/{publicCode}` (CV-07) | pública | — | `200 {organizationName, title, description?, status, startDate, endDate, acceptedDonationTypes, acceptedPaymentMethods?, currency?, targetAmount?, clearedAmount?}` | 404 |
 | `GET /public/campaigns/{publicCode}/narrative` | pública | — | `200 {status: "AVAILABLE", content, source: "LLM_GENERATED", facts}`; `202 {status: "PENDING", facts}`; `200 {status: "UNAVAILABLE", content: "Narrativa no disponible", facts}`. `facts = {status, currency?, targetAmount?, clearedAmount?, unitsDelivered, distinctRecipients}` (B5, DD-39) | 404 |
 | `POST /public/campaigns/{publicCode}/donation-intents` (CV-11) | JWT **opcional**, `Command-Id` | `{amount, currency, paymentMethod}` | `201 {intentId, statusToken, paymentRedirectUrl}`; un reenvío emite un `statusToken` nuevo y anula el anterior (DD-18 sustituida) | 400; 404; 409 reglas de la convocatoria |
