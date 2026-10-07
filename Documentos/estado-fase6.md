@@ -164,6 +164,20 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Sigue abierta Q-B60-6** (404 uniforme frente a DH-51 y Q-CV01-6): rige el 403.
 - **Evidencia:** `evidencia-fase6/b6-0-base-http-2363fda-2026-10-07.txt`. Reactor 1070 tests en verde; 13 mutaciones, 13 muertas.
 
+### 0.12 B6-c — activos y división por HTTP (2026-10-07, `feat/b6-c-activos-http`) — HECHO
+
+- **Proceso:** autorización de trabajo autónomo de Carlos (2026-10-07), excepción temporal a las reglas 1 y 3.4. Plan `plan-b6-c-activos-http.md` redactado y ejecutado por el agente; **todas sus decisiones están `PENDIENTE DE RATIFICACIÓN`** en `decisiones-delegadas-2026-10.md` (DD-08 a DD-16).
+- **Qué hace:**
+  - **D-ASSET:** `dispatchAsset`/`receiveAsset` en `PhysicalAssetCommandService`, con `DISPATCH_`/`RECEIVE_PHYSICAL_ASSET` (`EMPLOYEE`).
+  - **Q9:** el registro A y B usa el id `UUIDv5(NS_ASSET, organizationRef:commandId)` y devuelve `RegisteredAsset`; un duplicado devuelve lo mismo sin escribir.
+  - **`Command-Id` de otro comando** → 409 `CommandIdReused` (cada comando de activo guarda `TIPO:assetId` en su reclamo; DD-11).
+  - **Activo inexistente** → `PhysicalAssetNotFoundException`, con el mismo 403 que "otra organización" (DD-12, Q-B60-6 con el 403).
+  - **Ocho rutas** en `api` (`PhysicalAssetController`): registro A y B (201), división (202 + `Location`), estado de la división, dispatch, receive, deliver y la vista operacional (matriz §4b, leída del event store, DD-13).
+  - **Camino B:** el `donorRef` lo genera el servidor (`anon:` + UUID); el cliente no lo envía (DD-09). La organización sale del JWT (DD-10). `deliveredAt` es la hora del servidor (DD-15).
+  - `scripts/mutaciones.py` admite argumentos extra de Maven, para mutar `api` y matar con un test de `app`.
+- **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
+- **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.
