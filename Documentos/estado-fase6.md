@@ -178,6 +178,14 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.23 P4 y cierre de la segunda autorización (2026-10-07)
+
+- **P4 (solo documento):** `ADR-042-enmienda-1-reconstruccion-jmx.md`, **PROPUESTA**: operación JMX `rebuildProjections()` para B-PROJ PR 2 (alcance, secuencia con `finally`, sin abortar por un evento, candado de una sola ejecución, sin HTTP). No autoriza código. Nada de B4.
+- **Golden path:** **19 de 19** criterios en `GoldenPathHttpIntegrationTest` — 15 por HTTP (1–9, 13–17, 19) y 4 por los procesos internos del sistema sin ruta (10, 11, 12, 18) en una cadena local. Testnet pendiente de Carlos (`runbook-anclaje-testnet.md`).
+- **Reactor en `develop` tras P2:** **1194 tests**, 0 fallos (core 325, crypto 50, ai 39, api 123, identity 268, convocatoria 236, app 153).
+- **Decisiones nuevas:** DD-29 a DD-56, todas `PENDIENTE DE RATIFICACIÓN` (`decisiones-delegadas-2026-10.md` §3).
+- **Hallazgos abiertos:** H-P12-1, H-P14-1, H-P2-1 a H-P2-4.
+
 ### 0.22 P2 — endpoints del panel y públicos (2026-10-07, `feat/p2-endpoints`) — HECHO
 
 - **Hechos los 8** (`fichas-p2-endpoints.md`): `GET /me` (ficha N1 tal cual); `POST /auth/register`; `GET /organizations/{id}/campaigns`; cerrar convocatoria (`CLOSED` terminal); CV-03 y retirar responsable; descubrimiento público `GET /public/campaigns` (solo `?cursor=`, nunca `PRIVATE_LINK`); activos y miembros de la organización (ID-12); rechazar y pedir información a una organización (409 sobre un estado final).
