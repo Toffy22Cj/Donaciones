@@ -35,7 +35,7 @@ Con las cuatro capas de dominio de Fase 6 revisadas (Convocatoria, Identidad, Bl
 | `POST /platform/organizations/{id}/verify` | DISEÑO CERRADO | `VERIFY` sobre `Organization` ya `VERIFIED` sin definir (ADR-038 §7, ítem 4) |
 | `POST /platform/administrators` / `DELETE .../{accountId}` | DISEÑO CERRADO | `GRANT`/`REVOKE` repetidos sin resolver; mecanismo de concurrencia de `PlatformAuthorityState` no verificado (ADR-038 §7) |
 | `POST /auth/login` | CONTRATO CERRADO | Fallo de `TokenIssuerPort.issue()` no documentado (ADR-038 §7) |
-| `GET /public/campaigns/{publicCode}/narrative` | CONTRATO DEFINIDO | **Contradicción `AuditFactsPort`/`CampaignAuditFactsPort` sin resolver (ADR-040, C1)** |
+| `GET /public/campaigns/{publicCode}/narrative` | CONTRATO DEFINIDO | Contrato `CampaignAuditFactsPort` cerrado (ADR-040, C1); productor sin implementar — bloqueado por ADR-040 C2–C5 |
 | Los cinco endpoints de `PhysicalAsset` | CONTRATO DEFINIDO / bloqueado | `HumanAccount` + integración P7 (`golden-path.md` §5, no reabierto aquí) |
 
 Ningún endpoint de esta tabla requiere una decisión nueva de esta capa — todos heredan bloqueos ya identificados en ADRs anteriores.
@@ -99,7 +99,7 @@ Pruebas críticas de seguridad: exclusión de campos del `ReadModel` verificada 
 
 ### 7-B. Huecos heredados que esta capa solo hace visibles (no resuelve)
 
-Idempotencia de `clearFundsGenesis` (ADR-037) · `VERIFY` sobre `VERIFIED` y `GRANT`/`REVOKE` repetidos (ADR-038) · fallo de `TokenIssuerPort.issue()` (ADR-038) · contradicción `AuditFactsPort`/`CampaignAuditFactsPort` (ADR-040) · `HumanAccount`+P7 para `PhysicalAsset` (`golden-path.md`, no de esta sesión).
+Idempotencia de `clearFundsGenesis` (ADR-037) · `VERIFY` sobre `VERIFIED` y `GRANT`/`REVOKE` repetidos (ADR-038) · fallo de `TokenIssuerPort.issue()` (ADR-038) · productor de `CampaignAuditFactsPort` sin implementar (ADR-040 C2–C5; C1 ya cerrado) · `HumanAccount`+P7 para `PhysicalAsset` (`golden-path.md`, no de esta sesión).
 
 Ningún punto de §7 bloquea trabajo paralelo en esta capa (contratos ya cerrados pueden implementarse); los de 7-B bloquean específicamente los endpoints listados en §2.3 hasta que sus ADRs de origen se resuelvan.
 

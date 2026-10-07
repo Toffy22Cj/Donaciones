@@ -45,8 +45,8 @@ Convocatoria + CampaignFundingLedger + fuentes deterministas de impacto
      ↓
 ConvocatoriaAuditFacts
      ↓
-AuditFactsPort (mismo contrato, sin modificar)
-     ↓
+CampaignAuditFactsPort + CampaignAuditFactsDTO (contrato propio en contracts — ADR-040 C1;
+     ↓                    AuditFactsPort queda intacto para donación individual)
 NarrativeGenerator (mismo pipeline, sin modificar)
 ```
 
@@ -87,4 +87,4 @@ Fuera de arquitectura (infraestructura/negocio, no bloquea el diseño)
 
 ## 5. Nota de procedencia
 
-Narrativa de donación individual, `AuditFactsPort`, `NarrativeGenerator` y todo su pipeline (grounding, sanitización, fallback, cache) ya existían, implementados y probados, antes de esta conversación (Fase 2). `ConvocatoriaAuditFacts` es diseño nuevo de esta sesión, sin código todavía — reutiliza el contrato y el pipeline existentes sin modificarlos.
+Narrativa de donación individual, `AuditFactsPort`, `NarrativeGenerator` y todo su pipeline (grounding, sanitización, fallback, cache) ya existían, implementados y probados, antes de esta conversación (Fase 2). `ConvocatoriaAuditFacts` es diseño nuevo de esta sesión, sin código todavía — reutiliza el pipeline existente sin modificarlo, pero con su propio contrato (`CampaignAuditFactsPort`, ADR-040 C1): `AuditFactsPort` no se modifica ni se reutiliza para convocatorias.

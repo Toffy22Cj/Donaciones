@@ -18,7 +18,7 @@ Las cinco capas de diseño conceptual de Fase 6 quedaron cerradas con review for
 | Convocatoria + Ledger + Assignment + DonationIntent | ADR-037 + Enmienda 1 (aprobada) | Cerrado para el primer corte (`implementation_plan.md` rev. 2.2); P1–P7 y R4 abiertos | **`clearFundsGenesis` idempotencia verificada**. **Primer corte implementado y verificado (2026-10-01), sin commit — ver §3bis**. Resto pendiente |
 | Identidad (HumanActor, Platform Admin, verificación Organization, JWT) | ADR-038 | Approved — diseño conceptual; §7 cerrado (2026-09-30); enmiendas de implementación en ADR-038 §9; enmienda ADR-026 aplicada | **Implementado y verificado** en `feat/identity-adr-038` (último commit `2b2a68a`): tareas 1–8, sin JWT ni endpoints HTTP. Pendiente de merge a `develop` |
 | Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-039 (tentativo) | 12/12 cerrado | **Productor (Fase 1-3) y `IntegrityVerificationPort` implementados y verificados.** |
-| IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — 3 decisiones estructurales (A/B/C) y una contradicción de nomenclatura de puerto (C1) siguen abiertas | Contradicción persiste como interfaces "fantasma" (`CampaignAuditFactsPort` vs `AuditFactsPort`) en `contracts` |
+| IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — C1 (nomenclatura de puerto) cerrado; 3 decisiones estructurales (A/B/C = C2–C4) y el productor (C5) siguen abiertos | `CampaignAuditFactsPort` + `CampaignAuditFactsDTO` definidos en `contracts` (puerto separado y deliberado, ADR-040 §2.1/§8). Sin implementación ni consumidor todavía: bloqueado por C2–C5. `AuditFactsPort` (donación individual) intacto |
 | APIs + Frontend | ADR-041 (tentativo) | 12/12 cerrado — mapeo endpoint↔hueco de dominio consolidado | Sin código de esta sesión |
 
 *Nota de la consolidación (2026-10-03), fila Convocatoria:*
@@ -130,7 +130,7 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
 
   Ver ADR-037 §7.1 y la Enmienda 2 §6.
 - **Identidad**: ADR-038 implementado en `feat/identity-adr-038` (detalle en §7 de este documento y en ADR-038 §9). Pendiente: merge a `develop`, emisión de JWT/autenticación HTTP (§2.7), endpoints de plataforma y la deuda técnica de ADR-038 §9.4.
-- **IA**: contradicción sin resolver entre `AuditFactsPort` (`ia-resumen.md`) y `CampaignAuditFactsPort` (`api-contract-matrix.md`) — requiere verificación de código antes de considerar el contrato cerrado. (Actualmente ambas interfaces existen en `contracts` sin resolución clara).
+- **IA**: contradicción C1 `AuditFactsPort`/`CampaignAuditFactsPort` **cerrada** (ADR-040 §7-A, §8): son dos contratos distintos por diseño (donación individual vs. agregado de convocatoria, Interface Segregation Principle). `CampaignAuditFactsPort` no es una interfaz fantasma sino un contrato pendiente de implementar; su implementación (productor en `core`, consumidor en `ai`) queda bloqueada por C2–C5.
 - **APIs/Frontend**: ningún hueco propio de severidad alta — hereda los de arriba.
 - **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanActor`+P7, entre otros; el modelo de identidad de ADR-038 ya está implementado, falta su exposición HTTP).
 
