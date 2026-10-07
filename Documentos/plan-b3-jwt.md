@@ -1,6 +1,6 @@
 # Plan B3 — Login y autenticación JWT (implementación de ADR-038 §2.7 y ADR-047)
 
-**Estado:** **PROPUESTO** (2026-10-07). Necesita la aprobación de Carlos antes de cualquier código (regla 3.4).
+**Estado:** **APROBADO — Carlos, 2026-10-07** (Q1 con la condición de la lista explícita de rutas públicas, §2.3.1; Q2 y Q3 sí).
 **Origen:**
 - ADR-038 §2.7 (aprobado): puertos `authenticate`, `resolvePrincipal` e `issue`.
 - **ADR-047 (APROBADO — Carlos, 2026-10-07):**
@@ -63,7 +63,7 @@
   4. `exp`, con la tolerancia;
   5. devuelve el `sub`.
 - **`JwtAuthFilter`** (`OncePerRequestFilter`, ordenado después de `TrackingCodeAuthFilter`):
-  - Se aplica a `/api/v1/**`, **excepto** `/api/v1/donations/tracking/**` (de `TrackingCodeAuthFilter`; ADR-041: los mecanismos no son intercambiables) y `POST /api/v1/auth/login`.
+  - Se aplica a todo `/api/v1/**` (*deny-by-default*) **salvo las rutas de la lista explícita de §2.3.1**, que es la única fuente de verdad.
   - Lee `Authorization: Bearer`, verifica el token y llama a `IdentityPrincipalPort.resolvePrincipal(sub)` en **cada** request.
   - Deja el `AuthorizationPrincipal` como atributo de la request. B6 construirá desde él el `HumanActor`.
   - **Cualquier** fallo da 401 con **el mismo** `ProblemDetail`: token ausente o mal formado, `alg` no permitido, `kid` desconocido, firma inválida, caducado, cuenta `INACTIVE` o inexistente.
@@ -74,6 +74,25 @@
   - `TokenIssuanceException` → **500**, nunca 401 (ID01-D4);
   - éxito → `{"token": "..."}` (`api-contract-matrix.md:45`).
 - **Logs (ADR-047 D7):** nunca el token, ni el secreto, ni la cabecera `Authorization`. El `kid` y el motivo interno del rechazo sí, solo en DEBUG.
+
+#### 2.3.1 Rutas públicas: lista explícita y completa (condición de Q1)
+
+Una sola constante, `PublicRoutes` (en `api`), con método HTTP + patrón. El filtro JWT la consulta y nada más decide qué es público. Origen: `api-contract-matrix.md` y el golden path.
+
+| Método y ruta (bajo `/api/v1`) | Autenticación propia | Uso en la demo | Existe hoy |
+|---|---|---|---|
+| `GET /donations/tracking/**` | `TrackingCodeAuthFilter` (ADR-041) | seguimiento e historial | sí |
+| `POST /auth/login` | ninguna | criterio 4 | B3 |
+| `POST /auth/register` | ninguna | alta de donante | no (B6) |
+| `GET /public/campaigns/{publicCode}` | ninguna | CV-07, detalle de convocatoria | no (B6) |
+| `GET /public/campaigns` | ninguna | descubrimiento | no |
+| `POST /public/campaigns/{publicCode}/donation-intents` | **JWT opcional** (ver abajo) | criterio 3 (sin cuenta) y criterio 4 (con cuenta) | no (B6) |
+| `GET /public/campaigns/{publicCode}/narrative` | ninguna | narrativa pública | no (B5) |
+| `POST /webhooks/payments` | firma del proveedor (simulado en la demo), nunca JWT | confirmación del pago | no (B6) |
+
+- **JWT opcional** (solo en `donation-intents`): sin cabecera `Authorization` → anónimo (criterio 3). **Con** cabecera → se verifica exactamente igual que en una ruta protegida, y un token inválido da 401; **nunca** se degrada a anónimo en silencio. Con token válido se deja el `AuthorizationPrincipal` (criterio 4).
+- Las rutas que aún no existen se incluyen ya, para que el criterio 3 no falle cuando entre B6 sobre un filtro *deny-by-default*.
+- Toda ruta pública nueva exige editar esta tabla y `PublicRoutes` en el mismo PR.
 
 ### 2.4 `app`
 
@@ -102,6 +121,8 @@
 | 12 | Separación: un token de seguimiento en una ruta JWT → 401, y un JWT en la ruta de seguimiento → 401 | `app` |
 
 **Además:**
+- **Inventario de rutas (condición de Q1):** un test en `app` recorre todos los *handlers* registrados (`RequestMappingHandlerMapping`) y comprueba que cada ruta bajo `/api/v1` está **o** en `PublicRoutes` **o** en una lista explícita `ProtectedRoutes` del propio test. Una ruta nueva en ninguna de las dos hace fallar el build hasta que alguien decida. Para cada ruta pública existente, una request sin `Authorization` no recibe el 401 del filtro JWT; para cada protegida, sí.
+- `donation-intents` (cuando exista, o con un controlador de prueba): sin cabecera → anónimo; con token inválido → 401; con token válido → principal presente.
 - Campos vacíos en el login → 400.
 - Login correcto → token con exactamente `sub`, `iat`, `exp` y `kid`.
 - Las reglas ArchUnit de `identity` y `api` siguen en verde.
@@ -130,10 +151,10 @@
 - `GET /account/donations` y la relación `accountId` ↔ `donorRef` (D-API, criterio 6).
 - Construir `HumanActor` en los endpoints de negocio (B6).
 
-## 6. Preguntas para Carlos
+## 6. Decisiones de Carlos
 
 | # | Pregunta | Recomendación |
 |---|---|---|
-| Q1 | ¿El filtro JWT protege por defecto **todo** `/api/v1/**` salvo las excepciones (seguimiento y login), o solo las rutas que se vayan marcando? | Todo salvo excepciones (*deny by default*): un endpoint nuevo nunca queda abierto por olvido. Hoy no rompe nada, porque los únicos endpoints existentes son los de seguimiento |
-| Q2 | ¿Respuesta del login solo `{token}` o también `expiresAt`? | Solo `{token}`, como fija la matriz de contratos. El cliente no decodifica el JWT (ADR-043) y ante un 401 vuelve a pedir login |
-| Q3 | ¿Un único PR multimódulo? | Sí, como D-CAMPAIGN: el contrato y su implementación van juntos |
+| Q1 | ¿*Deny-by-default* sobre `/api/v1/**`? | **Sí — Carlos, 2026-10-07, con condición:** lista explícita y completa de rutas públicas (§2.3.1: CV-07, intención sin cuenta, webhook simulado, narrativa, registro, login y seguimiento) y test de inventario que falle ante una ruta sin clasificar |
+| Q2 | ¿Respuesta del login solo `{token}`? | **Sí — Carlos, 2026-10-07** |
+| Q3 | ¿Un único PR multimódulo? | **Sí — Carlos, 2026-10-07** |
