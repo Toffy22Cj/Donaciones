@@ -15,6 +15,7 @@ import org.bson.types.Decimal128;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
@@ -186,6 +187,13 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             // proyección con importes a 0 (hallazgo H-CI-1, visto como fallo intermitente de
             // ProjectionChangeStreamE2ETest bajo carga)
             update.setOnInsert("status", projection.getStatus());
+            // la forma completa que escribía el save anterior, sin pisar lo que el propio evento escribe
+            setOnInsertIfUntouched(update, "allocations", new java.util.ArrayList<>());
+            setOnInsertIfUntouched(update, "logistics", new java.util.ArrayList<>());
+            setOnInsertIfUntouched(update, "auditMetadata.assetLastProcessedSequences", new org.bson.Document());
+            for (String amount : List.of("originalAmount", "clearedAmount", "pendingAllocationAmount", "refundedAmount")) {
+                setOnInsertIfUntouched(update, "financialSnapshot." + amount, 0L);
+            }
             mongoTemplate.upsert(query, update, DonationProjectionDocument.class);
         } else {
             mongoTemplate.updateFirst(query, update, DonationProjectionDocument.class);
@@ -345,5 +353,12 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     }
     public static class ProjectionPausedException extends RuntimeException {
         public ProjectionPausedException(String message) { super(message); }
+    }
+
+    /** {@code $setOnInsert} solo si el evento no escribe ya esa ruta (Mongo rechaza dos operadores sobre la misma). */
+    private static void setOnInsertIfUntouched(Update update, String path, Object value) {
+        if (!update.modifies(path)) {
+            update.setOnInsert(path, value);
+        }
     }
 }

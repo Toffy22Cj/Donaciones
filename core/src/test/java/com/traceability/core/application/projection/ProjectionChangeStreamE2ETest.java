@@ -138,6 +138,13 @@ class ProjectionChangeStreamE2ETest {
         assertThat(snapshot.get("originalAmount", Number.class).longValue()).isEqualTo(1500L);
         assertThat(snapshot.get("clearedAmount", Number.class).longValue()).isEqualTo(1500L);
         assertThat(first.get("doc", Document.class).getString("status")).isEqualTo("ACTIVE");
+        // la misma forma que tenía el alta en dos pasos: listas vacías e importes a 0, nunca campos ausentes
+        Document doc = first.get("doc", Document.class);
+        assertThat(doc.get("allocations", List.class)).isEmpty();
+        assertThat(doc.get("logistics", List.class)).isEmpty();
+        assertThat(snapshot.get("pendingAllocationAmount", Number.class).longValue()).isZero();
+        assertThat(snapshot.get("refundedAmount", Number.class).longValue()).isZero();
+        assertThat(doc.get("auditMetadata", Document.class).get("assetLastProcessedSequences", Document.class)).isEmpty();
     }
 
     @Test
