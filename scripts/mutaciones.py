@@ -27,7 +27,10 @@ def git(*args):
 
 
 def failing_tests(output):
-    return sorted({line.split("]")[-1].split(" -- ")[0].strip().split(".")[-1]
+    # "[ERROR] paquete.Clase.metodo(Tipo)[1] -- Time…": se corta solo el primer "]" (el del nivel de log); los tests
+    # parametrizados llevan otro "]" en el nombre
+    return sorted({line.split("]", 1)[-1].split(" -- ")[0].strip().split("(")[0].split(".")[-1]
+                   + ("[" + line.split(" -- ")[0].rsplit("[", 1)[-1] if line.split(" -- ")[0].endswith("]") else "")
                    for line in output.splitlines()
                    if ("<<< FAILURE!" in line or "<<< ERROR!" in line) and "Tests run" not in line})
 

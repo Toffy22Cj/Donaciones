@@ -146,6 +146,24 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
 **Mutaciones:** `scripts/mutaciones.py` restaura siempre con `git checkout -- <archivo>` (nunca desde una copia en memoria), se niega a empezar con cambios sin commit en los archivos a mutar y verifica al final que todo vuelve a HEAD. Motivo: en B1-bis, una restauración desde una copia guardada después de una primera edición dejó código mutado. Se detectó y la evidencia sigue siendo válida (el código final coincide con `ff7bfbc`), pero la próxima vez podría no notarse.
 
+### 0.11 B6-0 — base HTTP (2026-10-07, `feat/b6-0-base-http`) — HECHO
+
+- **Plan:** `plan-b6-0-base-http.md`, APROBADO por Carlos (Q1–Q3, con las respuestas Q-B60-1 a 5 unificadas en #57) y marcado HECHO tras la evidencia.
+- **Qué hace** (paquete `com.traceability.api.web`):
+  - **`@CurrentActor`**: `HumanActor`, `AuthorizationPrincipal` u `Optional` de ellos, leídos del atributo de `JwtAuthFilter`. Un parámetro obligatorio sin principal da 500, nunca un actor nulo. **`CurrentActorRouteValidator`** impide arrancar con un actor obligatorio en una ruta de `PublicRoutes` (pública o de JWT opcional), con un tipo no admitido o con un `@CommandId` que no sea `String`.
+  - **`@CommandId`**: UUID canónico obligatorio, en minúsculas (Q-B60-3). Si falta o no es válido: 400 sin llamar al caso de uso.
+  - **`ApiExceptionHandler`**, el único manejador (Q-B60-4): cada módulo aporta un bean `ApiErrorMappings` (`api` y `core`, de momento), y si dos declaran la misma excepción, la aplicación no arranca. Gana la traducción de la superclase más cercana; las excepciones de Spring con `ErrorResponse` conservan su código.
+  - **Cuerpos fijos** con forma de `ProblemDetail` y sin `instance`, porque Spring la rellenaría con la ruta y la ruta puede llevar ids. El mismo 403 para las dos excepciones de autorización (Q-B60-5) y el mismo 409 para todas las de convocatoria en especie.
+  - **500:** el cuerpo lleva un `correlationId`. El log guarda la clase, las clases de las causas, el `correlationId` y la primera línea de la pila, sin mensajes ni traza.
+  - **ArchUnit** en `api` y en `app.web`: ningún controlador recibe la request ni lee el atributo del principal o la cabecera `Authorization`. Los controladores de `app.web` no tocan infraestructura ni Spring Data. Cada regla tiene controladores de prueba que demuestran que detecta lo que debe. `app` gana `archunit-junit5` (test).
+- **Hallazgos:**
+  - **El módulo compila sin `-parameters`**: un `@PathVariable` sin nombre lanza un `IllegalArgumentException` de Spring, y la tabla lo convierte en un 400 sin log. Los controladores de B6-a a B6-d deben nombrar sus variables. Riesgo general: un `IllegalArgumentException` interno se ve como un error del cliente.
+  - El validador solo existe en una aplicación servlet; el contexto sin web del test de arranque de `app` no lo carga.
+  - `scripts/mutaciones.py` no nombraba los tests parametrizados (cortaba por el `]` equivocado); corregido.
+- **Sin cambios:** las rutas de Fase 3 y el login (tests existentes en verde).
+- **Sigue abierta Q-B60-6** (404 uniforme frente a DH-51 y Q-CV01-6): rige el 403.
+- **Evidencia:** `evidencia-fase6/b6-0-base-http-2363fda-2026-10-07.txt`. Reactor 1070 tests en verde; 13 mutaciones, 13 muertas.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.

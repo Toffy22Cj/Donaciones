@@ -1,6 +1,7 @@
 # Plan B6-0 — Base HTTP para los endpoints de la demo
 
-**Estado:** **APROBADO — Carlos, 2026-10-07** (Q1–Q3 de §6 y las respuestas Q-B60-1 a 5 de un plan paralelo, incorporadas en §7). **Es el único plan de B6-0**: manda este, el del repositorio. Queda una pregunta abierta (§7, Q-B60-6) que solo afecta a una fila de la tabla de errores.
+**Estado:** **HECHO** (2026-10-07, `feat/b6-0-base-http`; evidencia `evidencia-fase6/b6-0-base-http-2363fda-2026-10-07.txt`, `estado-fase6.md` §0.11). Dos precisiones de la implementación: (1) cada módulo aporta **un** bean `ApiErrorMappings` con su lista de `ApiErrorMapping`, para que el error de arranque por duplicado nombre los dos módulos; (2) el cuerpo tiene la forma de `ProblemDetail` pero **sin `instance`**, porque Spring la rellenaría con la ruta de la petición, que puede llevar ids. Q-B60-6 sigue abierta (rige el 403).
+**Aprobación:** **APROBADO — Carlos, 2026-10-07** (Q1–Q3 de §6 y las respuestas Q-B60-1 a 5 de un plan paralelo, incorporadas en §7). **Es el único plan de B6-0**: manda este, el del repositorio. Queda una pregunta abierta (§7, Q-B60-6) que solo afecta a una fila de la tabla de errores.
 **Origen:** `propuesta-d-api.md` (APROBADO — Carlos, 2026-10-07): A1 (controladores en `api` o en `app.web`), A9 (`Command-Id`), Q10 (B6 en cinco PR; este es el primero).
 **Desbloquea:** B6-a, B6-b, B6-c y B6-d, que solo añaden controladores sobre esta base.
 **Revisión:** cubierto por la excepción a la regla 3.2.
