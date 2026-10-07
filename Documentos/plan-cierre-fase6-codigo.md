@@ -167,7 +167,7 @@ B0 (decisiones, todas en paralelo)
 
 ## Prioridad según la fecha de la demo
 
-Con la división (D-SPLIT, B1-bis) y `campaignRef` (D-CAMPAIGN), el alcance creció. **Fecha interna de cierre: objetivo provisional miércoles 2026-10-21** (propuesta del revisor, dos semanas desde el 2026-10-07; quedan unos 8 bloques de código), **con revisión intermedia el miércoles 2026-10-14**, en la que Carlos decide qué pasa a limitación conocida. Pendiente de que Carlos la confirme o la sustituya. Con esa fecha, el orden de corte si no se llega a todo es:
+Con la división (D-SPLIT, B1-bis) y `campaignRef` (D-CAMPAIGN), el alcance creció. **Fecha interna de cierre: miércoles 2026-10-21 — CONFIRMADA por Carlos, 2026-10-07**, con revisión intermedia el miércoles 2026-10-14, en la que Carlos decide qué pasa a limitación conocida. Con esa fecha, el orden de corte si no se llega a todo es:
 
 1. **Imprescindible — cadena del dinero:** D-P8 → B1 → B2, y de B6 lo mínimo para el paso 3 del recorrido (CV-01, CV-07, CV-11, webhook simulado).
 2. **Imprescindible — cadena de la narrativa:** D-CAMPAIGN → `campaignRef` en `core` → B5 (criterio 14).
