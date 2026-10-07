@@ -58,7 +58,7 @@ class ProjectionEventSourceTest {
                 checkpointRepository,
                 retryRepository,
                 canonicalMapper,
-                assetIndexRepository,
+                mock(com.traceability.core.application.projection.AssetProjectionRouting.class),
                 projectionRepository
         );
     }

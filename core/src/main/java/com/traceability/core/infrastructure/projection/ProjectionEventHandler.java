@@ -1,6 +1,9 @@
 package com.traceability.core.infrastructure.projection;
 
+import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
+
+import java.util.Set;
 
 /**
  * Interface for all projection handlers.
@@ -22,4 +25,20 @@ public interface ProjectionEventHandler {
      * @return the handler name
      */
     String getHandlerName();
+
+    /**
+     * Payloads que este manejador trata (B-PROJ). Junto con {@link #ignoredPayloads()} debe cubrir cada clase de
+     * {@code EventPayloadRegistry}; lo comprueba {@code ProjectionPayloadContractTest}.
+     */
+    default Set<Class<? extends DomainEventPayload>> handledPayloads() {
+        return Set.of();
+    }
+
+    /**
+     * Payloads que este manejador ignora de forma explícita: en los manejadores con secuencia, avanzan la secuencia
+     * sin cambiar datos.
+     */
+    default Set<Class<? extends DomainEventPayload>> ignoredPayloads() {
+        return Set.of();
+    }
 }

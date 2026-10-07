@@ -1,5 +1,6 @@
 package com.traceability.core.infrastructure.projection;
 
+import com.traceability.core.application.projection.AssetProjectionRouting;
 import com.traceability.core.application.projection.DonationProjectionHandler;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import com.traceability.core.infrastructure.projection.mongo.documents.ProjectionCheckpointDocument;
@@ -8,11 +9,8 @@ import com.traceability.core.infrastructure.projection.mongo.documents.Projectio
 import com.traceability.core.infrastructure.projection.mongo.repositories.ProjectionRetryRepository;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationProjectionDocument;
 import com.traceability.core.infrastructure.projection.mongo.repositories.DonationProjectionRepository;
-import com.traceability.core.infrastructure.projection.mongo.documents.AssetIndexDocument;
-import com.traceability.core.infrastructure.projection.mongo.repositories.AssetIndexRepository;
 import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.domain.event.DomainEventPayload;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.Instant;
@@ -40,7 +38,7 @@ public class ProjectionEventSource {
     private final ProjectionCheckpointRepository checkpointRepository;
     private final ProjectionRetryRepository retryRepository;
     private final EventCanonicalMapper canonicalMapper;
-    private final AssetIndexRepository assetIndexRepository;
+    private final AssetProjectionRouting assetRouting;
     private final DonationProjectionRepository projectionRepository;
 
     private static final Logger log = LoggerFactory.getLogger(ProjectionEventSource.class);
@@ -52,7 +50,7 @@ public class ProjectionEventSource {
                                  ProjectionCheckpointRepository checkpointRepository,
                                  ProjectionRetryRepository retryRepository,
                                  EventCanonicalMapper canonicalMapper,
-                                 AssetIndexRepository assetIndexRepository,
+                                 AssetProjectionRouting assetRouting,
                                  DonationProjectionRepository projectionRepository) {
         this.mongoTemplate = mongoTemplate;
         this.messageListenerContainer = messageListenerContainer;
@@ -60,7 +58,7 @@ public class ProjectionEventSource {
         this.checkpointRepository = checkpointRepository;
         this.retryRepository = retryRepository;
         this.canonicalMapper = canonicalMapper;
-        this.assetIndexRepository = assetIndexRepository;
+        this.assetRouting = assetRouting;
         this.projectionRepository = projectionRepository;
     }
 
@@ -167,7 +165,7 @@ public class ProjectionEventSource {
             } else {
                 try {
                     DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-                    projectionId = resolveProjectionId(eventDoc.getStreamId(), payload);
+                    projectionId = assetRouting.resolveProjectionId(eventDoc.getStreamId(), payload, false);
                 } catch (IllegalArgumentException ex) {
                     log.error("Failed to deserialize event payload for streamId={}, eventId={}, eventType={}, schemaVersion={}: {}",
                             eventDoc.getStreamId(), eventDoc.getEventId(), eventDoc.getEventType(), eventDoc.getSchemaVersion(), ex.getMessage(), ex);
@@ -208,24 +206,5 @@ public class ProjectionEventSource {
             return false; // Retryable
         }
         return true; // NullPointerException, IllegalArgumentException, ProjectionPausedException, etc are permanent
-    }
-
-    private String resolveProjectionId(String assetId, DomainEventPayload payload) {
-        AssetIndexDocument index = assetIndexRepository.findById(assetId).orElse(null);
-        if (index != null) {
-            return index.getProjectionId();
-        }
-
-        if (payload instanceof AssetRegisteredPayload regPayload) {
-            if (regPayload.parentAssetRef() == null) {
-                return null;
-            } else {
-                AssetIndexDocument parentIndex = assetIndexRepository.findById(regPayload.parentAssetRef()).orElse(null);
-                if (parentIndex != null) {
-                    return parentIndex.getProjectionId();
-                }
-            }
-        }
-        return null;
     }
 }

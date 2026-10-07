@@ -641,8 +641,8 @@ eventHash (String): El hash resultante de canonicalizar este evento.
 --------------------------------------------------------------------------------
 2. Invariantes del Dominio (Las Reglas Inquebrantables)
 Para que el módulo core acepte instanciar y persistir un TraceabilityEvent, deben cumplirse matemáticamente estas reglas antes de tocar cualquier infraestructura:
-Invariante de Secuencia: El sequence de un nuevo evento debe ser exactamente lastSequence + 1. No se permiten saltos. El evento génesis siempre tiene sequence = 0.
-Invariante de Integridad Relacional: Si sequence > 0, el previousHash no puede ser nulo o vacío. Si sequence == 0, el previousHash debe ser un valor "Génesis" predefinido (ej. un string de ceros o un hash semilla constante).
+Invariante de Secuencia: El sequence de un nuevo evento debe ser exactamente lastSequence + 1. No se permiten saltos. El evento génesis siempre tiene sequence = 0. **[Superado — D-SEQ, 2026-10-07: la génesis es `sequence = 1`; ver documento maestro, glosario "sequence" y §8.1.]**
+Invariante de Integridad Relacional: Si sequence > 0, el previousHash no puede ser nulo o vacío. Si sequence == 0, el previousHash debe ser un valor "Génesis" predefinido (ej. un string de ceros o un hash semilla constante). **[Superado — D-SEQ: es el evento con `sequence = 1` el que lleva `previousHash = GENESIS`.]**
 Invariante de Inmutabilidad Temporal: occurredAt nunca puede ser posterior a recordedAt. El evento no puede viajar al futuro.
 Invariante del Payload Ciego: El payload no debe contener campos de identidad directa (nombres, cédulas). Cualquier referencia a un actor externo debe hacerse mediante un identificador opaco (beneficiaryRef).
 --------------------------------------------------------------------------------

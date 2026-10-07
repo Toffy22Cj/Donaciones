@@ -156,7 +156,7 @@ core/src/main/java/com/traceability/core/
 - **ADR-014 — Separación Custodia/Beneficiario y Continuidad de Ubicación.** En `ASSET_DELIVERED`, `beneficiaryRef` se sella solo en el payload, nunca sobrescribe `custodianRef`. En `ASSET_DISPATCHED`, `currentLocation` se copia a `lastKnownLocation` antes de quedar transitorio — el sistema nunca "pierde" el último nodo confirmado.
 
 ### IV. Modelo de Lectura (CQRS) y Orden de Eventos
-- **ADR-010 — Cuarentena de Eventos Fuera de Orden.** Si `incomingSequence > lastProcessedSequence + 1`: `RETRY_PENDING` con backoff exponencial. Tras 4 horas: `QUARANTINED`, alerta operativa, esa proyección específica se pausa sin bloquear otros streams. Reanudación manual (`resumeProjection`) reprocesa en orden estricto de sequence.
+- **ADR-010 — Cuarentena de Eventos Fuera de Orden.** Un stream sin procesar tiene `lastProcessedSequence = 0` (génesis = 1, enmienda D-SEQ, 2026-10-07). Si `incomingSequence > lastProcessedSequence + 1`: `RETRY_PENDING` con backoff exponencial. Tras 4 horas: `QUARANTINED`, alerta operativa, esa proyección específica se pausa sin bloquear otros streams. Reanudación manual (`resumeProjection`) reprocesa en orden estricto de sequence.
 - **ADR-011 — Índice de Resolución (asset_index).** Índice técnico reconstruible (`assetId → projectionId`, donde `projectionId = fundId` estrictamente), NUNCA fuente de verdad.
 - **ADR-015 — Arquitectura Desacoplada de la Capa de Lectura.** Cuatro componentes con responsabilidades distintas: `DonationProjection` (vista de usuario), `AssetHistoryProjection` (historial detallado), `asset_index` (índice técnico), `DonationAuditFacts` (hechos deterministas, único documento que `ai` puede leer, vía `AuditFactsPort`). El LLM nunca es fuente de verdad y nunca accede directamente al Event Store ni a documentos internos de `core`.
 - **ADR-017 (implícito, emergente en Tarea 10/11) — Framework de Proyección Genérico.** `ProjectionEventSource` y `ProjectionRetryScheduler` son genéricos, no acoplados a un handler específico. Cualquier proyector nuevo implementa la interfaz común `ProjectionEventHandler` (`handleEvent`, `getHandlerName`) y se registra en la lista inyectada; el enrutamiento de reintentos usa el campo `handlerName` en el documento de retry. Cada handler mantiene su propio checkpoint de secuencia por stream, independiente de los demás.
@@ -310,6 +310,8 @@ availableAmount = clearedAmount - pendingAllocationAmount - allocatedAmount - re
 5. Adaptador consulta previousHash del evento N exacto (no "el más reciente")
 6. Índice único (streamId, sequence) en MongoDB rechaza colisiones →
    ConcurrencyConflictException (nunca reintento automático en el adaptador)
+   Génesis (enmienda D-SEQ, Carlos, 2026-10-07): un stream nuevo tiene N = 0, así que
+   su primer evento es sequence = 1, con previousHash = GENESIS
 7. Application Handler recarga y reevalúa el comando completo, no solo reescribe
 ```
 
@@ -533,7 +535,7 @@ Idempotencia de `clearFundsGenesis` ante reenvío del mismo `commandId`: verific
 
 **schemaVersion:** número de versión del payload de un tipo de evento, que permite evolucionar la estructura de eventos futuros sin romper la interpretación de eventos históricos ya persistidos (upcasting).
 
-**sequence:** número entero monótono creciente que ordena los eventos dentro de un stream específico (nunca se usa timestamp para ordenar el dominio). La restricción `(streamId, sequence)` es única en la base de datos.
+**sequence:** número entero monótono creciente que ordena los eventos dentro de un stream específico (nunca se usa timestamp para ordenar el dominio). La restricción `(streamId, sequence)` es única en la base de datos. **El primer evento de un stream tiene `sequence = 1` y `previousHash = GENESIS`; cada evento siguiente, el anterior + 1, sin huecos** (enmienda D-SEQ, Carlos, 2026-10-07: es lo que hace el event store desde su implementación; los documentos que decían 0 quedan superados).
 
 **sourceAllocationId:** ver `allocationId`.
 

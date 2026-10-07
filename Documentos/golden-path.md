@@ -31,7 +31,7 @@
        inicia intención de donación (monto X) → redirige a pasarela de pago
        webhook confirma pago → clearFundsGenesis(organizationRef, campaignRef,
          donorRef, currency, amount, sourceRef, commandId, actorRef)
-       → Fund nace ya CLEARED (sequence=0, sin estado PLEDGED intermedio)
+       → Fund nace ya CLEARED (sequence=1, la génesis de todo stream, sin estado PLEDGED intermedio)
          + CampaignFundingLedger actualizado (misma transacción)
        → trackingCode calculado inmediatamente tras el éxito de clearFundsGenesis
          (HMAC sobre fundId ya confirmado)

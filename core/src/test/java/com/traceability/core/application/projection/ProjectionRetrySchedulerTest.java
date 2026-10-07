@@ -37,7 +37,8 @@ class ProjectionRetrySchedulerTest {
         scheduler = new ProjectionRetryScheduler(
                 retryRepository,
                 List.of(handler),
-                projectionRepository
+                projectionRepository,
+                new UndeclaredPayloadMonitor()
         );
     }
 

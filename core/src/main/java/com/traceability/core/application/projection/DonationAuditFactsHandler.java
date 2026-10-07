@@ -8,13 +8,10 @@ import com.traceability.core.domain.fund.payloads.FundsRefundedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
-import com.traceability.core.infrastructure.projection.mongo.documents.AssetIndexDocument;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationAuditFactsDocument;
 import com.traceability.core.infrastructure.projection.mongo.properties.AuditThresholdProperties;
-import com.traceability.core.infrastructure.projection.mongo.repositories.AssetIndexRepository;
 import com.traceability.core.infrastructure.projection.mongo.repositories.DonationAuditFactsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
@@ -22,37 +19,73 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
+/**
+ * Hechos de auditoría por donación ({@code donation_audit_facts}, ADR-040). B-PROJ: génesis = secuencia 1 ("nada
+ * procesado" = 0), registro v1/v2 vía {@link AssetProjectionRouting} y Camino B ignorado. Va después de
+ * {@link DonationProjectionHandler}, del que usa el {@code asset_index}.
+ */
 @Service
 @Slf4j
+@Order(10)
 public class DonationAuditFactsHandler implements ProjectionEventHandler {
+
+    private static final Set<Class<? extends DomainEventPayload>> HANDLED = Set.of(
+            FundsRefundedPayload.class,
+            AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetDeliveredPayload.class);
+
+    /** El resto del registro: avanzan la secuencia sin hechos de auditoría. */
+    private static final Set<Class<? extends DomainEventPayload>> IGNORED = ignoredFromRegistry();
 
     private final MongoTemplate mongoTemplate;
     private final EventCanonicalMapper canonicalMapper;
-    private final AssetIndexRepository assetIndexRepository;
     private final DonationAuditFactsRepository auditFactsRepository;
     private final AuditThresholdProperties thresholds;
+    private final AssetProjectionRouting routing;
+    private final UndeclaredPayloadMonitor undeclaredPayloads;
 
     public DonationAuditFactsHandler(MongoTemplate mongoTemplate,
                                      EventCanonicalMapper canonicalMapper,
-                                     AssetIndexRepository assetIndexRepository,
                                      DonationAuditFactsRepository auditFactsRepository,
-                                     AuditThresholdProperties thresholds) {
+                                     AuditThresholdProperties thresholds,
+                                     AssetProjectionRouting routing,
+                                     UndeclaredPayloadMonitor undeclaredPayloads) {
         this.mongoTemplate = mongoTemplate;
         this.canonicalMapper = canonicalMapper;
-        this.assetIndexRepository = assetIndexRepository;
         this.auditFactsRepository = auditFactsRepository;
         this.thresholds = thresholds;
+        this.routing = routing;
+        this.undeclaredPayloads = undeclaredPayloads;
+    }
+
+    private static Set<Class<? extends DomainEventPayload>> ignoredFromRegistry() {
+        Set<Class<? extends DomainEventPayload>> ignored =
+                new HashSet<>(com.traceability.core.application.event.EventPayloadRegistry.registeredPayloads().values());
+        ignored.removeAll(HANDLED);
+        return Set.copyOf(ignored);
     }
 
     @Override
     public String getHandlerName() {
         return "DonationAuditFactsHandler";
+    }
+
+    @Override
+    public Set<Class<? extends DomainEventPayload>> handledPayloads() {
+        return HANDLED;
+    }
+
+    @Override
+    public Set<Class<? extends DomainEventPayload>> ignoredPayloads() {
+        return IGNORED;
     }
 
     @Override
@@ -74,7 +107,9 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
 
     private void processFundEvent(TraceabilityEventDocument eventDoc, String fundId, long incomingSequence) {
         DonationAuditFactsDocument doc = auditFactsRepository.findById(fundId).orElse(null);
-        long lastProcessed = doc != null ? doc.getAuditMetadata().getFundLastProcessedSequence() : -1;
+        boolean isNew = doc == null;
+        // Génesis = secuencia 1 (D-SEQ): "nada procesado" es 0.
+        long lastProcessed = isNew ? 0 : doc.getAuditMetadata().getFundLastProcessedSequence();
 
         if (incomingSequence <= lastProcessed) {
             return; // Duplicate
@@ -90,6 +125,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
         }
 
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
+        undeclaredPayloads.checkDeclared(this, payload);
         Update update = new Update();
         update.set("auditMetadata.fundLastProcessedSequence", incomingSequence);
         update.set("generatedAt", Instant.now());
@@ -107,7 +143,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             shouldUpdate = false; // We don't care about other Fund events for audit facts currently
         }
 
-        if (doc.getAuditMetadata().getFundLastProcessedSequence() == 0 && auditFactsRepository.findById(fundId).isEmpty()) {
+        if (isNew) {
             auditFactsRepository.save(doc);
         }
         
@@ -117,8 +153,12 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
 
     private void processPhysicalAssetEvent(TraceabilityEventDocument eventDoc, String assetId, long incomingSequence) {
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-        
-        String fundId = resolveFundId(assetId, payload);
+        if (routing.isInKindAsset(assetId, payload)) {
+            return; // Camino B: ignorado de forma explícita, antes de crear ningún documento (plan-b-proj.md §3.2)
+        }
+        undeclaredPayloads.checkDeclared(this, payload);
+
+        String fundId = routing.resolveProjectionId(assetId, payload, false);
         if (fundId == null) {
             throw new DonationProjectionHandler.MissingDependencyException("Cannot resolve fundId for asset " + assetId);
         }
@@ -132,7 +172,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             auditFactsRepository.save(doc);
         }
 
-        long lastProcessed = doc.getAuditMetadata().getAssetLastProcessedSequences().getOrDefault(assetId, -1L);
+        long lastProcessed = doc.getAuditMetadata().getAssetLastProcessedSequences().getOrDefault(assetId, 0L);
         if (incomingSequence <= lastProcessed) {
             return; // Duplicate
         }
@@ -222,27 +262,5 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             }
         }
         return -1;
-    }
-
-    private String resolveFundId(String assetId, DomainEventPayload payload) {
-        AssetIndexDocument index = assetIndexRepository.findById(assetId).orElse(null);
-        if (index != null) {
-            return index.getProjectionId();
-        }
-
-        if (payload instanceof AssetRegisteredPayload regPayload) {
-            if (regPayload.parentAssetRef() == null) {
-                // For root assets, we might need to rely on the AssetIndex being populated by DonationProjectionHandler
-                // Since DonationProjectionHandler and AuditFactsHandler run asynchronously, there's a race condition.
-                // We should throw MissingDependencyException to wait for DonationProjectionHandler to populate the index.
-                return null; 
-            } else {
-                AssetIndexDocument parentIndex = assetIndexRepository.findById(regPayload.parentAssetRef()).orElse(null);
-                if (parentIndex != null) {
-                    return parentIndex.getProjectionId();
-                }
-            }
-        }
-        return null;
     }
 }

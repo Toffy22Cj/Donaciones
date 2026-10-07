@@ -52,7 +52,7 @@ Se incorporan a ADR-039 los cuatro cambios de §1.1 tal como están en `develop`
 ### 2.2 Verificación recalculada (B-9)
 
 1. **Resolver la contradicción.** Prevalece la línea 52 de ADR-039: la verificación recalcula cada `eventHash` desde el payload con `EventCanonicalMapper` (`core`) y `HashPort` (`contracts`), lo compara con el guardado y después recalcula la raíz. La línea 65 se limita al **productor**: construir las hojas con el `eventHash` persistido sigue siendo correcto allí.
-2. **Cadena.** Además comprueba `previousHash[n] == eventHash[n-1]` dentro de la cobertura de cada stream, y entre el primer evento de la cobertura y el último evento anterior a ella, si existe. Así se detecta el reemplazo de un evento con recálculo en cascada de los siguientes.
+2. **Cadena.** Además comprueba `previousHash[n] == eventHash[n-1]` dentro de la cobertura de cada stream, y entre el primer evento de la cobertura y el último evento anterior a ella, si existe. El primer evento de un stream es la secuencia 1 y su `previousHash` es `GENESIS` (enmienda D-SEQ, 2026-10-07). Así se detecta el reemplazo de un evento con recálculo en cascada de los siguientes.
 3. **Forma canónica.**
    - Todo evento se valida primero con la forma actual.
    - Si un evento con `recordedAt` anterior a 2026-09-16 (corte de `0579f41`) no coincide, se prueba la **forma heredada** (con `actorRef` como `String`). `recordedAt` entra en el hash, así que es una señal confiable.

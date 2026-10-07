@@ -50,6 +50,14 @@ public class EventPayloadRegistry {
     }
 
     /**
+     * Todas las entradas registradas, {@code (eventType, schemaVersion) → clase}, de solo lectura. Las usa el test de
+     * contrato de las proyecciones (B-PROJ): cada manejador debe declarar cada clase como tratada o ignorada.
+     */
+    public static Map<EventKey, Class<? extends DomainEventPayload>> registeredPayloads() {
+        return Map.copyOf(registry);
+    }
+
+    /**
      * Gets the concrete payload class for a given event type and schema version.
      */
     public static Class<? extends DomainEventPayload> getClassForType(String eventType, String schemaVersion) {
