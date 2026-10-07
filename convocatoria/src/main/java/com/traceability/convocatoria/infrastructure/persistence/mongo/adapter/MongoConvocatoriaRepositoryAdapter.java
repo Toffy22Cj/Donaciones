@@ -76,4 +76,21 @@ public class MongoConvocatoriaRepositoryAdapter implements ConvocatoriaRepositor
             update.set(field, value);
         }
     }
+
+    @Override
+    public java.util.List<Convocatoria> findByOrganizationRef(String organizationRef, int limit) {
+        Query query = Query.query(Criteria.where("organizationRef").is(organizationRef))
+                .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
+        return mongoTemplate.find(query, ConvocatoriaDocument.class).stream().map(ConvocatoriaMapper::toDomain).toList();
+    }
+
+    @Override
+    public java.util.List<Convocatoria> findPublicOpenAfter(String afterPublicCode, int limit) {
+        Criteria criteria = Criteria.where("visibility").is("PUBLIC").and("status").is("OPEN");
+        if (afterPublicCode != null) {
+            criteria = criteria.and("publicCode").gt(afterPublicCode);
+        }
+        Query query = Query.query(criteria).with(org.springframework.data.domain.Sort.by("publicCode")).limit(limit);
+        return mongoTemplate.find(query, ConvocatoriaDocument.class).stream().map(ConvocatoriaMapper::toDomain).toList();
+    }
 }

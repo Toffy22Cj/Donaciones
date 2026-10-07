@@ -23,8 +23,6 @@ class ConvocatoriaApiErrorMappingsExhaustivenessTest {
 
     /** Excepciones que ninguna ruta de B6-a puede lanzar, con el bloque que deberá traducirlas. */
     static final Map<String, String> OUT_OF_B6A = Map.ofEntries(
-            Map.entry("AssignmentAlreadyRemovedException", "retirar responsable: sin ruta en la demo"),
-            Map.entry("CampaignAlreadyClosedException", "cerrar convocatoria: sin ruta en la demo"),
             Map.entry("CampaignAlreadyHasDonationsException", "editar configuración: sin ruta en la demo"),
             Map.entry("CampaignFundingLimitExceededException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
             Map.entry("ConfigurationChangeOnClosedCampaignException", "editar configuración: sin ruta en la demo"),
@@ -35,10 +33,7 @@ class ConvocatoriaApiErrorMappingsExhaustivenessTest {
             Map.entry("GatewayIntentManualConfirmationNotAllowedException", "confirmación manual: fuera de la demo"),
             Map.entry("IncompleteConfirmationException", "confirmación manual: fuera de la demo"),
             Map.entry("InvalidFundingAmountException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
-            Map.entry("LastResponsibleRemovalWithoutReplacementException", "retirar responsable: sin ruta en la demo"),
-            Map.entry("MonetaryTermsChangeNotSupportedException", "editar configuración: sin ruta en la demo"),
-            Map.entry("ReplacementActingRoleRequiredException", "retirar responsable: sin ruta en la demo"),
-            Map.entry("ResponsibleAssignmentNotFoundException", "retirar responsable: sin ruta en la demo"));
+            Map.entry("MonetaryTermsChangeNotSupportedException", "editar configuración: sin ruta en la demo"));
 
     @Test
     void everyConcreteConvocatoriaException_isTranslatedOrExplicitlyOutOfB6a() {

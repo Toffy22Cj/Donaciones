@@ -30,6 +30,18 @@ public final class CampaignDtos {
     /** CV-02 (Q-B6A-3, DD-06): lo que guarda el ejecutor, así que un duplicado devuelve el mismo cuerpo. */
     public record AssignEmployeeResponse(String assignmentId) {}
 
+    /** CV-03 (P2.5): designar a un {@code ADMINISTRATOR} de la organización como responsable. */
+    public record DesignateAdministratorRequest(String administratorRef) {}
+
+    /** P2.5: retirar un responsable, con reemplazo opcional ({@code replacementActingRole} obligatorio si lo hay). */
+    public record RemoveResponsibleRequest(String replacementRef, String replacementActingRole) {}
+
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public record RemoveResponsibleResponse(String removedAssignmentId, String replacementAssignmentId) {}
+
+    /** P2.4: cerrar convocatoria. {@code CLOSED} es terminal. */
+    public record CloseCampaignResponse(String campaignRef, String status) {}
+
     /** CV-07 (plan B6-a §2.3; DD-03). Importes como texto (T-34); nulos omitidos (Q-B60-2). */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record PublicCampaignResponse(String organizationName, String title, String description, String status,
