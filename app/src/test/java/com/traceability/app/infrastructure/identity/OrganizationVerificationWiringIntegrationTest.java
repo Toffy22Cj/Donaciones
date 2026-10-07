@@ -83,7 +83,7 @@ class OrganizationVerificationWiringIntegrationTest {
     void bootstrapPlatformAdminOnce() {
         if (platformAdmin != null) return;
         String email = UUID.randomUUID() + "@platform.test";
-        createAccountService.createAccount(new Email(email), "Pass123!");
+        createAccountService.createAccount(new Email(email), "Pass123!Pass123!");
         AccountId adminId = bootstrapPlatformAuthorityService.bootstrap(email);
         platformAdmin = identityPrincipalPort.resolvePrincipal(adminId.value());
     }
@@ -143,7 +143,7 @@ class OrganizationVerificationWiringIntegrationTest {
     }
 
     private OrganizationId newOrganization() {
-        var representative = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!");
+        var representative = createAccountService.createAccount(new Email(UUID.randomUUID() + "@test.com"), "Pass123!Pass123!");
         return createOrganizationService
                 .createOrganization(testActor, OrganizationType.FOUNDATION, representative.getAccountId())
                 .getOrganizationId();

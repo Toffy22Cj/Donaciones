@@ -10,6 +10,7 @@ import identity.domain.model.AuditAction;
 import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Email;
+import identity.domain.model.PlainPassword;
 import identity.domain.model.PasswordHash;
 import org.springframework.stereotype.Service;
 
@@ -35,12 +36,14 @@ public class CreateAccountService {
     }
 
     public Account createAccount(Email email, String plainPassword) {
+        // H-P2-1: la política se comprueba antes de leer nada
+        PlainPassword password = new PlainPassword(plainPassword);
         return retryHelper.executeWithRetry(() -> {
             if (accountRepository.findByEmail(email).isPresent()) {
                 throw new DuplicateEmailException("Email is already registered");
             }
 
-            PasswordHash passwordHash = passwordHasher.hash(plainPassword);
+            PasswordHash passwordHash = passwordHasher.hash(password.value());
             Account newAccount = Account.createAccount(email, passwordHash);
 
             accountRepository.save(newAccount);

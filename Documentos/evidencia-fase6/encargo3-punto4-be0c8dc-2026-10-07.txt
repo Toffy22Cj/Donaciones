@@ -1,0 +1,21 @@
+# Encargo 3, punto (4): H-P2-1, H-P2-2, H-P2-4 y predictor (COP; test de punta a punta)
+commits: 5e404ed (correcciones), 3b7473f (test E2E del predictor), be0c8dc (integración con develop)
+
+## Fase roja (código apartado con git stash; extracto literal)
+[ERROR] Tests run: 9, Failures: 2, Errors: 0, Skipped: 0
+[ERROR] Tests run: 9, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 29.83 s <<< FAILURE! -- in com.traceability.app.web.P2EndpointsHttpIntegrationTest
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.close_isTerminal_andIdempotentWithTheSameCommandId
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.register_createsAnActiveAccountThatCanLogIn_andRejectsDuplicatesAndInvalidInput
+
+## Mutaciones de 5e404ed (scripts/mutaciones.py, salida literal)
+- contraseña de 8 caracteres: MUERTA  lessThanTwelveCharacters_isRejected_withoutEchoingIt[4]; lessThanTwelveCharacters_isRejected_withoutEchoingIt[5]; shortPasswords_areRejected_onCreationAndOnChange_withoutWritingAnything; twelveCharacters_isAccepted_countingCodePoints
+- cambio de contraseña sin política: MUERTA  shortPasswords_areRejected_onCreationAndOnChange_withoutWritingAnything
+- retirar en CLOSED permitido: MUERTA  close_isTerminal_andIdempotentWithTheSameCommandId
+- cualquier moneda: MUERTA  aCurrencyOtherThanCop_neverGetsAPrediction_withAnExplicitReason
+- log de la meta en unidades mínimas: MUERTA  amountsArriveInMinorUnits_andTheModelSeesPesos; featuresMatchTheTrainingDefinition
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+## Mutaciones del test de punta a punta (3b7473f), CampaignPredictionCopEndToEndTest
+- meta sin pasar a pesos (Math.log(target)): MUERTA  probabilidad esperada 0.0253, obtenida 8.0E-4
+- pagos fallidos ignorados (filtro FAILED → false): MUERTA  probabilidad esperada 0.0253, obtenida 0.0306
+Restauración con git checkout y comprobada contra HEAD.
