@@ -21,6 +21,9 @@ public class ApiBaseErrorMappings implements ApiErrorMappings {
         return List.of(
                 new ApiErrorMapping(InvalidCommandIdException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
                 new ApiErrorMapping(InvalidRequestFieldException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
+                // TR-D1 (Q-B60-1): el 404 del seguimiento con el ProblemDetail fijo
+                new ApiErrorMapping(com.traceability.api.application.controller.TrackedResourceNotFoundException.class,
+                        HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 new ApiErrorMapping(IllegalArgumentException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
                 new ApiErrorMapping(HttpMessageNotReadableException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
                 // un @PathVariable o @RequestParam que no convierte al tipo pedido

@@ -31,10 +31,12 @@ class AssetHistoryMapperTest {
 
     @Test
     void shouldMapCompleteDocument() {
+        // Como lo escribe la proyección real (DonationProjectionHandler.appendAssetHistory): status = estado del
+        // ciclo de vida, custodian = referencia del custodio. El fixture anterior los tenía intercambiados (H-B6D-2)
         AssetTransitionReadModel transition = new AssetTransitionReadModel(
                 "AssetRegisteredEvent",
-                "OK",
                 "REGISTERED",
+                "cust-1",
                 "LOC-1",
                 Instant.parse("2026-09-06T10:00:00Z")
         );
@@ -57,7 +59,19 @@ class AssetHistoryMapperTest {
         assertEquals("2026-09-06T10:00:00Z", tDto.timestamp());
         assertEquals("Zone A", tDto.locationZone());
         assertEquals(PublicCustodianCategory.UNCATEGORIZED, tDto.custodianCategory());
-        assertEquals("OK", tDto.status());
+        assertEquals("REGISTERED", tDto.status());
+    }
+
+    @Test
+    void transitionsThatAreNotLifecycleStates_andMissingCustodians_areUncategorized_neverAnError() {
+        when(locationReferenceService.resolveZone(Mockito.any())).thenReturn(Optional.empty());
+        for (String status : List.of("SPLIT", "SPLIT_COMPENSATED", "CUSTODY_TRANSFERRED")) {
+            AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(new AssetHistoryReadModel("asset-002", List.of(
+                    new AssetTransitionReadModel("ASSET_" + status, status, null, null, Instant.parse("2026-10-07T10:00:00Z")))));
+
+            assertEquals(PublicCustodianCategory.UNCATEGORIZED, dto.history().get(0).custodianCategory());
+        }
+        Mockito.verify(publicDonationMapper, Mockito.never()).mapCustodian("SPLIT");
     }
 
     @Test

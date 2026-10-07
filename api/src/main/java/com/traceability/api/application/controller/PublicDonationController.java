@@ -30,6 +30,6 @@ public class PublicDonationController {
         return donationReadPort.findByFundId(fundId)
                 .map(mapper::toPublicDTO)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(TrackedResourceNotFoundException::new);
     }
 }

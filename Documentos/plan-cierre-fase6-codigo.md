@@ -115,6 +115,8 @@
 
 ### B6. API del recorrido de la demo (dueño API/Convocatoria; tras D-API, B2 y B3)
 
+> **B6 HECHO salvo la narrativa de convocatoria (2026-10-07):** B6-0 (#58), B6-c (#61), B6-a (#62), B6-b (#63) y B6-d. El recorrido de la demo funciona por HTTP de punta a punta (criterios 1–9 y 15–17, `GoldenPathHttpIntegrationTest`). Quedan: la narrativa (B5, bloqueada por D-IA; propuesta en `propuesta-d-ia.md`), la semilla del perfil `demo` y los hallazgos H-B6C-1 y H-B6D-1. Hecho bajo la autorización de trabajo autónomo de Carlos; las decisiones están en `decisiones-delegadas-2026-10.md`.
+
 **Alcance según `propuesta-apis-fase6.md` §6:**
 - verificar organización;
 - **división de activo** (`POST /physical-assets/{assetRef}/split`, tras B1-bis) y su pantalla en `paxfide-web`;

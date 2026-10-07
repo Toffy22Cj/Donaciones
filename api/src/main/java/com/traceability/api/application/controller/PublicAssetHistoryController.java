@@ -82,7 +82,7 @@ public class PublicAssetHistoryController {
         return assetHistoryReadPort.getHistory(assetId)
                 .map(assetHistoryMapper::toDto)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build()); // In case history projection is missing, this is just a normal 404.
+                .orElseThrow(TrackedResourceNotFoundException::new); // In case history projection is missing, this is just a normal 404.
     }
 
     private ResponseEntity<ProblemDetail> buildUnauthorizedResponse() {
