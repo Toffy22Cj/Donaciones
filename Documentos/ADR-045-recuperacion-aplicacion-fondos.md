@@ -16,12 +16,12 @@
 
 ## 1. Context
 
-- [DECISIÓN APROBADA] Confirmar una `DonationIntent` y aplicar sus fondos son actos separados (F-1, F-2). La aplicación es un Acto 2 del sistema, en una transacción MongoDB del orquestador de `app`: reclamo `APPLY_FUNDS` + incremento del ledger + `clearFundsGenesis` + outbox (Enmienda 2 §3.2).
+- [DECISIÓN APROBADA] Confirmar una `DonationIntent` y aplicar sus fondos son actos separados (F-1, F-2). La aplicación es un Acto 2 del sistema, en una transacción MongoDB del orquestador de `app`: reclamo `APPLY_FUNDS` + incremento del ledger + `clearFundsGenesis` + outbox (Enmienda 2 §3.2). *Corrección del 2026-10-07, con conformidad de Carlos (D-P8, opción A, `propuesta-P8-outbox-genesis.md`):* **la Tx 2 no lleva mensaje de outbox**; queda en reclamo + ledger + `clearFundsGenesis`. El resto del ADR no cambia.
 - [DECISIÓN APROBADA] Recuperación automática con disparo inmediato y scheduler de respaldo en `app`; la consulta de recuperables pertenece a `convocatoria`; la seguridad con varias instancias la da la barrera, y el scheduler no añade una segunda lógica de negocio (D2, Enmienda 2 §5).
 - [ESTADO] Una intención aplicada **sigue en `CONFIRMED` para siempre**: la marca de aplicación es el reclamo en `convocatoria_processed_commands`, no un campo de la intención (`implementation_plan.md` §17.4).
 - [ESTADO] `findConfirmedPendingApplication(limit)` (`MongoDonationIntentRepositoryAdapter.java:80-114`) es una agregación: `match status = CONFIRMED` → `sort _id` → `$lookup` del reclamo → descarta reclamadas → `$lookup` del ledger → excluye `CLOSE_ON_TARGET + CLOSE` → `limit`. No hay índice en `donation_intents.status`. Su coste crece con el histórico.
 - [ESTADO] El orden es `_id`, es decir, fijo. Una intención que falla en cada intento aparece siempre en la misma posición del lote.
-- [ESTADO] Hoy no existen en `app` el orquestador, el disparo inmediato ni el scheduler. Bloqueos: T1 (`clearFundsGenesis` reintenta dentro de `retryTemplate`, `FundCommandService.java:83-97`) y P8 (la génesis no escribe outbox).
+- [ESTADO] Hoy no existen en `app` el orquestador, el disparo inmediato ni el scheduler. Bloqueos: T1 (`clearFundsGenesis` reintenta dentro de `retryTemplate`, `FundCommandService.java:83-97`) y P8 (la génesis no escribe outbox). *2026-10-07: P8 cerrado por D-P8 (opción A): no se escribe outbox; el único bloqueo de `core` que queda es T1.*
 - [DECISIÓN APROBADA] No se habilita el flujo con dinero real mientras P1 (registro de dinero no aceptable) siga fuera de corte (Enmienda 2 §4, D4).
 
 ### Problemas que este ADR debe resolver
@@ -143,7 +143,7 @@
 |---|---|---|
 | Aprobación de la Enmienda 2 de ADR-037 (con C1–C3) | — | Base normativa de este ADR |
 | T1: `clearFundsGenesis` sin reintento interno | `core` | Tx 2 |
-| P8: mensaje de outbox de la génesis | `core` | Tx 2 conforme a ADR-037 §2.3 |
+| P8: mensaje de outbox de la génesis | `core` | **Cerrado el 2026-10-07 (D-P8, opción A): sin outbox; no bloquea** |
 | Adaptador de producción de `OrganizationVerificationPort` | `app` | **Resuelto** en `e269985` |
 | P1: registro de dinero no aceptable | producto / `convocatoria` | Habilitar el scheduler en producción |
 | P3: webhook | `app` / `api` | Confirmación de intenciones de pasarela |

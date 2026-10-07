@@ -58,7 +58,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
   CONFIRMED ──▶ reclamo (APPLY_FUNDS, intentId)   ← barrera (convocatoria)
               + incremento del ledger por política           (convocatoria, ADR-037 §2.2)
               + clearFundsGenesis(commandId derivado, fundId de la intención)  (core)
-              + outbox                                       (core; §3.2)
+              + outbox  [retirado: D-P8 opción A, 2026-10-07]   (core; §3.2)
   barrera ya reclamada  → no-op (el resultado original se conserva)
   rechazo permanente    → rollback + CONFIRMED → FUNDING_REJECTED en otra transacción (§4)
   fallo transitorio     → rollback completo + reintento de la transacción entera (Enmienda 1 §6)
@@ -77,10 +77,10 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 
 - **[DECISIÓN]** La aplicación consume una intención `CONFIRMED`; una intención en otro estado no se aplica (F-1).
 - **[DECISIÓN]** La dispara el sistema (D6), por disparo inmediato o por el scheduler de respaldo (§5, ADR-045). No exige un segundo acto humano. En `core`, la génesis la ejecuta un `SystemActor`; `core` no comprueba roles para actores de sistema, así que **la autorización humana del movimiento de dinero es la de la confirmación** (§3.1).
-- **[DECISIÓN]** Ledger + génesis del `Fund` + outbox en **una** transacción MongoDB del orquestador de `app` (ADR-037 §2.3, sin cambios). `convocatoria` aporta la barrera y el incremento del ledger, uniéndose a la transacción externa y marcándola para rollback ante cualquier excepción; `core` aporta la génesis y el outbox.
+- *(2026-10-07: sin outbox, por D-P8 opción A; ver P8 abajo y ADR-037 §2.3.)* **[DECISIÓN]** Ledger + génesis del `Fund` + outbox en **una** transacción MongoDB del orquestador de `app` (ADR-037 §2.3, sin cambios). `convocatoria` aporta la barrera y el incremento del ledger, uniéndose a la transacción externa y marcándola para rollback ante cualquier excepción; `core` aporta la génesis y el outbox.
 - **[REQUISITO]** Ninguna pieza reintenta dentro de la transacción del orquestador (Enmienda 1 §6): `convocatoria` reclama la barrera sin reintento interno cuando hay transacción activa; `clearFundsGenesis` necesita un camino sin reintento interno (T1, `implementation_plan.md` §8).
 - **[REQUISITO]** El `commandId` de `clearFundsGenesis` se deriva de forma determinista de la intención (Enmienda 1 §5.3, sin cambios).
-- **[PENDIENTE] P8** Contenido del mensaje de outbox de la génesis: ADR-037 §2.3 lo exige, pero hoy `clearFundsGenesis` no escribe ninguno y ningún documento define cuál debe ser. Se decide en `core`.
+- **[CERRADO 2026-10-07 — **D-P8 (opción A) — Carlos, 2026-10-07**]** La génesis no escribe mensaje de outbox (`propuesta-P8-outbox-genesis.md`; enmienda de ADR-037 §2.3). Texto original del pendiente: **P8** Contenido del mensaje de outbox de la génesis: ADR-037 §2.3 lo exige, pero hoy `clearFundsGenesis` no escribe ninguno y ningún documento define cuál debe ser. Se decide en `core`.
 
 ### 3.3 Barrera de idempotencia
 
@@ -124,7 +124,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 |---|---|---|
 | Implementación de producción de `OrganizationVerificationPort` (ADR-038) | `identity`/`app` | `app → convocatoria`: orquestador, disparo inmediato, scheduler |
 | T1: `clearFundsGenesis` sin reintento interno | `core` | La transacción única del Acto 2 |
-| P8: mensaje de outbox de la génesis | `core` | Cumplimiento literal de ADR-037 §2.3 |
+| P8: mensaje de outbox de la génesis | `core` | **Cerrado el 2026-10-07 (opción A, sin outbox)** |
 | P3: webhook | `app`/`api` | Confirmación de intenciones de pasarela |
 | ADR-041 / `api-contract-matrix.md` | `api` | Estado público `FUNDING_REJECTED`; contrato HTTP de la confirmación manual (no definido) |
 | R4 | `convocatoria` | Intenciones `CONFIRMED` con `CLOSE_ON_TARGET + CLOSE` |
@@ -136,7 +136,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 
 | # | Pendiente | Dónde se decide |
 |---|---|---|
-| P8 | Contenido del mensaje de outbox de la génesis | `core` / enmienda de ADR-037 §2.3 |
+| P8 | ✅ Cerrado el 2026-10-07: la génesis no escribe outbox (opción A, Carlos; enmienda de ADR-037 §2.3) | — |
 | P9 | ✅ Resuelto (decisión humana del 2026-10-02, opción a): las intenciones `CONFIRMED` de convocatorias `CLOSE_ON_TARGET + CLOSE` quedan fuera de la cola automática mientras R4 no exista; ni `FUNDING_REJECTED` ni reintento indefinido. R4 deberá definir cómo vuelven a ser elegibles | — |
 | P10 | Formato completo de la entrada de audit log de `FUNDING_REJECTED`. Motivo y fecha en la misma transacción ya son requisito (C2, §4) | Enmienda posterior |
 | P1, P3, R4 | Sin cambios (Enmienda 1 §8) | — |

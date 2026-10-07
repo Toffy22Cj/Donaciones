@@ -50,6 +50,8 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Golden path y criterio de cierre de la Fase 6:** **`ASSET_SPLIT` entra en la demo — Carlos, 2026-10-07.** `golden-path.md` incorpora §7 (consultas y evidencia) y §8 (criterios de aceptación 1–19), tomados de la copia del proyecto que nunca se había commiteado. Manda el §3 del repositorio, con las exclusiones añadidas. **La Fase 6 se cierra cuando se cumplen los criterios 1–19 con evidencia real.**
 - **Huecos verificados en el código para ese criterio:** la saga que crea el hijo de una división no existe, y ningún `PhysicalAsset` tiene `campaignRef` (sin él, la narrativa de convocatoria cuenta cero unidades). Ver `plan-cierre-fase6-codigo.md`, D-SPLIT y D-CAMPAIGN.
 
+- **D-P8 cerrado — opción A (Carlos, 2026-10-07):** la génesis de `Fund` no escribe mensaje de outbox. Se enmendó ADR-037 §2.3, se corrigió ADR-045 §1 (con conformidad de Carlos) y se cerró P8 en la Enmienda 2. En la cadena del dinero, B1 queda solo en **T1**.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.
@@ -191,7 +193,7 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
 ## 6. Próximo paso sugerido
 
 *Actualización 2026-10-07 (cierre de decisiones, §0.4):* el orden vigente está en `plan-cierre-fase6-codigo.md` (PROPUESTO), con dos cadenas críticas:
-- **dinero:** D-P8 (`propuesta-P8-outbox-genesis.md`) → T1/P8 en `core` → orquestador de ADR-045 en `app` → endpoints de la demo → golden path;
+- **dinero:** ~~D-P8~~ (cerrado, opción A) → T1 en `core` → orquestador de ADR-045 en `app` → endpoints de la demo → golden path;
 - **narrativa de convocatoria:** D-CAMPAIGN (`campaignRef` en `PhysicalAsset`, enmienda de ADR-029) → implementación en `core` → IA C2–C5 → golden path.
 
 En paralelo: D-SPLIT (saga del hijo), D-JWT, la Enmienda 1 de ADR-039 y las fichas de API. El orden anterior (a)–(e) de esta sección queda sustituido.
