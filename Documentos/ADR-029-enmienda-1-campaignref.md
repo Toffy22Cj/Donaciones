@@ -69,6 +69,11 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
   - (b) Validar solo en el caso de uso de `app`/`api` antes de llamar a `core`. Más barata, pero `core` aceptaría cualquier `campaignRef` de otros llamadores (tests, futuros consumidores, `SystemActor`). Contradice el criterio de ADR-029 §2.1: el invariante no se delega en quien llama.
   - (c) Sin validación. **Desaconsejada:** un `campaignRef` inventado o de otra organización contaría unidades en la narrativa de otra convocatoria.
 - Como en ADR-037 Enmienda 1 §7.1, se **acepta** la ventana entre la comprobación y la escritura: una convocatoria que se cierre en ese intervalo puede recibir un último activo.
+- **Momento de referencia de la comprobación de `OPEN` (pregunta Q5, añadida el 2026-10-07 tras la revisión):** en el dinero, una intención creada con la convocatoria `OPEN` conserva su validez tras el cierre (ADR-037 §2.6bis, D1). En especie no hay un registro previo del acto de donación: el activo **es** el primer registro. Una donación entregada el último día y registrada dos días después, ya `CLOSED`, quedaría sin convocatoria con la regla de arriba. Opciones:
+  - **(a) `OPEN` en el momento del registro** (texto actual). Simple y sin datos declarados. **Limitación conocida que se deja escrita:** las donaciones registradas después del cierre quedan sin convocatoria.
+  - **(b) `OPEN` en el momento del acto de donación**, coherente con D1. Exige dos cosas que hoy no existen: (1) que el comando reciba la **fecha del acto**, un dato **declarado** por el operador e inverificable, y (2) que `convocatoria` conserve la **fecha de cierre** (`Convocatoria` no tiene `closedAt`: `Convocatoria.java:31-41`; solo queda en el audit log). Riesgo: con una fecha declarada, se podría asociar a una convocatoria cerrada un activo recibido mucho después. Mitigación posible: un plazo máximo de gracia tras el cierre (valor de producto) y la fecha declarada dentro del payload v3, con hash.
+  - **Recomendación del agente:** (a) en este corte, con la limitación escrita, y (b) como evolución si el caso aparece en producción. Decide Carlos.
+- **Riesgo aceptado, explícito:** la comprobación ocurre **antes** de la escritura y **fuera** de la transacción de `core` (el puerto consulta `convocatoria`, que es otro módulo). Si la convocatoria se cierra entre las dos, el activo queda asociado igualmente. Es una ventana pequeña y benigna: el activo es real y de la misma organización, y solo hay una convocatoria posible. No se cierra con bloqueos.
 - Ese mecanismo nuevo queda cubierto por esta enmienda cuando se apruebe (regla 3.5).
 
 ### D4. División: heredado del padre
@@ -126,7 +131,7 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 - **Ningún test lo detecta:** los tests de proyección no pasan eventos v2 por los manejadores (grep en `core/src/test`).
 - **Impacto:** el seguimiento público (Fase 3) de una donación aplicada por ADR-045 mostraría importe 0 y ningún activo. La narrativa individual y la de convocatoria no tendrían hechos. Afecta a los criterios del golden path que consultan la trazabilidad (§7.1, §7.3 y §7.4) y al 14.
 - **Hueco de diseño adicional:** la `DonationProjection` se indexa por `fundId`. Un activo del **Camino B** no tiene `Fund` ni `allocationId`, así que hoy no tiene proyección a la que pertenecer, ni siquiera con v1. Dónde se proyecta una donación en especie es una decisión de diseño (Fase 3/ADR-040 C5), no un arreglo.
-- **Propuesta:** un bloque nuevo **B-PROJ** en `core`, independiente de esta enmienda y previo a B5 y B7. Los manejadores tratan las versiones 1, 2 y 3. Tests de proyección con eventos reales de `clearFundsGenesis`, `registerPhysicalAsset` y `registerPhysicalAssetFromDonation`. El hueco del Camino B se decide aparte (pregunta Q3).
+- **Propuesta:** un bloque nuevo **B-PROJ** en `core`, independiente de esta enmienda y previo a B5 y B7. *Actualización 2026-10-07 tras la revisión:* B-PROJ pasa a ser una **corrección** (`fix/`) de lo ya fusionado, con prioridad sobre el resto; su plan está en `plan-b-proj.md`. El soporte de la versión 3 se añade con la implementación de D-CAMPAIGN. Los manejadores tratan las versiones 1, 2 y 3. Tests de proyección con eventos reales de `clearFundsGenesis`, `registerPhysicalAsset` y `registerPhysicalAssetFromDonation`. El hueco del Camino B se decide aparte (pregunta Q3).
 
 ## 7. Preguntas para Carlos
 
@@ -136,6 +141,7 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 | Q2 | ¿`campaignRef` del Camino B opcional (`null` = sin convocatoria)? | Sí: conserva la donación en especie sin convocatoria que ya existe |
 | Q3 | H-PROJ: ¿se abre B-PROJ ya, y quién decide dónde se proyecta un activo del Camino B? | Abrir B-PROJ ya (camino crítico de B5 y B7); el diseño del Camino B, con C5 de ADR-040 |
 | Q4 | H1 con activos en especie (§4) | Aceptar que H1 cuente solo intenciones en este corte y registrarlo como pendiente |
+| Q5 | ¿`OPEN` en el momento del registro o del acto de donación? (D3) | (a) registro, con la limitación escrita; (b) como evolución |
 
 ## 8. Consecuencias
 
