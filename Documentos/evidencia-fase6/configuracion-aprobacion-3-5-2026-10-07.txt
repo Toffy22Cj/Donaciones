@@ -1,0 +1,22 @@
+# §3.5 — configuración con solicitud y aprobación (Enmienda 4 de ADR-037): fase roja y mutaciones
+tests (rojo): 75c7e73; código verde: d60a53b
+
+## Fase roja (implementación apartada con git stash)
+[ERROR] Tests run: 5, Failures: 5, Errors: 0, Skipped: 0, Time elapsed: 23.91 s <<< FAILURE! -- in com.traceability.app.web.campaign.CampaignConfigurationChangeHttpIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- autoaprobación permitida: MUERTA  directEditBeforeTheFirstDonation_thenOnlyByARequestApprovedBySomeoneElse
+- un EMPLOYEE aprueba: MUERTA  onlyTheRightPeople_ofTheOrganization_getPastTheSame403
+- varias pendientes: MUERTA  directEditBeforeTheFirstDonation_thenOnlyByARequestApprovedBySomeoneElse
+- se quita MONETARY con intenciones: MUERTA  withDonations_monetaryCannotBeRemoved_andMonetaryTermsCannotChange
+- edición directa con donaciones: MUERTA  directEditBeforeTheFirstDonation_thenOnlyByARequestApprovedBySomeoneElse
+- listado sin autorización: MUERTA  onlyTheRightPeople_ofTheOrganization_getPastTheSame403
+- aprobar sin abrir el ledger: MUERTA  approvingTheAdditionOfMonetary_opensItsLedger_andTheCampaignStartsTakingMoney
+- pedir sin validar la versión: MUERTA  withDonations_monetaryCannotBeRemoved_andMonetaryTermsCannotChange
+- rechazar una no pendiente: MUERTA  ifTheConfigurationMovedOn_theApprovalFails_andTheRequestStaysPendingUntilWithdrawn
+- solicitud de otra convocatoria: VIVA  
+Restauración verificada contra HEAD. Mutaciones vivas: 1
+
+## Mutación viva en la primera pasada, matada con un caso nuevo del test de 403
+- solicitud de otra convocatoria: MUERTA  onlyTheRightPeople_ofTheOrganization_getPastTheSame403
+Restauración verificada contra HEAD. Mutaciones vivas: 0
