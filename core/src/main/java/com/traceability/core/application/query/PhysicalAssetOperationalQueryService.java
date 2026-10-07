@@ -32,14 +32,17 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
     private final IdentityPrincipalPort identityPrincipalPort;
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
     private final SplitResolutionReadPort splitResolutions;
+    private final com.traceability.core.application.port.out.AssetDirectoryPort assetDirectory;
 
     public PhysicalAssetOperationalQueryService(EventStorePort eventStore, IdentityPrincipalPort identityPrincipalPort,
                                                 OrganizationBoundaryPolicy organizationBoundaryPolicy,
-                                                SplitResolutionReadPort splitResolutions) {
+                                                SplitResolutionReadPort splitResolutions,
+                                                com.traceability.core.application.port.out.AssetDirectoryPort assetDirectory) {
         this.eventStore = eventStore;
         this.identityPrincipalPort = identityPrincipalPort;
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
         this.splitResolutions = splitResolutions;
+        this.assetDirectory = assetDirectory;
     }
 
     @Override
@@ -47,6 +50,26 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
         PhysicalAsset asset = loadAuthorized(assetId, actor);
         return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
                 asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef());
+    }
+
+    /** Una página, como los fondos de la organización (DD-31). */
+    static final int MAX_ASSETS = 200;
+
+    @Override
+    public List<PhysicalAssetOperationalView> listForOrganization(String organizationRef, HumanActor actor) {
+        AuthorizationPrincipal principal = identityPrincipalPort.resolvePrincipal(actor.accountId());
+        organizationBoundaryPolicy.assertBelongs(principal.organizationId(), organizationRef);
+        if (principal.roles() == null || (!principal.roles().contains(AuthorizationRole.ADMINISTRATOR)
+                && !principal.roles().contains(AuthorizationRole.EMPLOYEE))) {
+            throw new InsufficientRoleException("Listing assets requires ADMINISTRATOR or EMPLOYEE");
+        }
+        return assetDirectory.findAssetIdsByOrganization(organizationRef, MAX_ASSETS).stream().map(assetId -> {
+            List<DomainEvent> events = eventStore.loadStream(assetId);
+            PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, events.stream().map(DomainEvent::payload).toList(),
+                    events.size());
+            return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
+                    asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef());
+        }).toList();
     }
 
     @Override

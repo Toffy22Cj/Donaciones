@@ -16,4 +16,10 @@ public interface PhysicalAssetOperationalReadPort {
 
     /** Vacío si el padre (de la organización del actor) no tiene una división con ese hijo. */
     Optional<SplitResolutionStatus> findSplitStatus(String parentAssetId, String childAssetId, HumanActor actor);
+
+    /**
+     * Activos de la organización para el panel (P2.7): {@code ADMINISTRATOR} o {@code EMPLOYEE} de esa organización;
+     * los mismos campos que {@link #findOperationalView}, sin {@code donorRef}. Una página con tope de 200.
+     */
+    java.util.List<PhysicalAssetOperationalView> listForOrganization(String organizationRef, HumanActor actor);
 }

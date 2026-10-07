@@ -178,6 +178,15 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.22 P2 — endpoints del panel y públicos (2026-10-07, `feat/p2-endpoints`) — HECHO
+
+- **Hechos los 8** (`fichas-p2-endpoints.md`): `GET /me` (ficha N1 tal cual); `POST /auth/register`; `GET /organizations/{id}/campaigns`; cerrar convocatoria (`CLOSED` terminal); CV-03 y retirar responsable; descubrimiento público `GET /public/campaigns` (solo `?cursor=`, nunca `PRIVATE_LINK`); activos y miembros de la organización (ID-12); rechazar y pedir información a una organización (409 sobre un estado final).
+- **Fuera, por instrucción:** solicitud/aprobación de cambios de configuración (D3).
+- **Ninguna regla de dominio inventada:** todos los comandos existían; las lecturas nuevas solo leen. Huecos registrados: H-P2-1 (sin política de contraseña), H-P2-2 (sin `fullName`), H-P2-3 (el 409 del registro revela emails), H-P2-4 (retirar en `CLOSED` sin regla).
+- **Referencia:** `referencia-api-v1.md` (método, ruta, auth, cuerpo, respuestas y errores de toda la API implementada).
+- **Decisiones:** DD-48 a DD-56, `PENDIENTE DE RATIFICACIÓN`.
+- **Evidencia:** `evidencia-fase6/p2-endpoints-903c885-2026-10-07.txt`. Reactor **1194 tests**; 9 mutaciones, 9 muertas.
+
 ### 0.21 P3 — predictor de convocatorias en el backend (2026-10-07, `feat/p3-predictor`) — HECHO
 
 - **Qué hace** (`plan-p3-predictor.md`; norma propuesta `ADR-044-enmienda-1-prediccion-en-backend.md`, BORRADOR):

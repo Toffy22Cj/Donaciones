@@ -6,7 +6,12 @@ import com.traceability.api.web.ApiExceptionHandler;
 import com.traceability.app.web.campaign.PublicCampaignNotFoundException;
 import com.traceability.app.web.donation.IntentNotFoundException;
 import com.traceability.app.web.donation.InvalidWebhookSignatureException;
+import com.traceability.convocatoria.domain.exception.AssignmentAlreadyRemovedException;
+import com.traceability.convocatoria.domain.exception.CampaignAlreadyClosedException;
 import com.traceability.convocatoria.domain.exception.CampaignClosedException;
+import com.traceability.convocatoria.domain.exception.LastResponsibleRemovalWithoutReplacementException;
+import com.traceability.convocatoria.domain.exception.ReplacementActingRoleRequiredException;
+import com.traceability.convocatoria.domain.exception.ResponsibleAssignmentNotFoundException;
 import com.traceability.convocatoria.domain.exception.CashDonationIntentNotSupportedException;
 import com.traceability.convocatoria.domain.exception.CloseOnTargetCloseNotSupportedException;
 import com.traceability.convocatoria.domain.exception.DonationCurrencyMismatchException;
@@ -104,7 +109,13 @@ public class ConvocatoriaApiErrorMappings implements ApiErrorMappings {
                 conflict(PaymentMethodNotAcceptedException.class),
                 conflict(PaymentEventMismatchException.class),
                 conflict(SimulatedPaymentsNotAllowedException.class),
-                conflict(PaymentProviderUnavailableException.class));
+                conflict(PaymentProviderUnavailableException.class),
+                // P2.4 y P2.5 (segunda autorización): cerrar y retirar responsable
+                conflict(CampaignAlreadyClosedException.class),
+                conflict(AssignmentAlreadyRemovedException.class),
+                conflict(LastResponsibleRemovalWithoutReplacementException.class),
+                conflict(ResponsibleAssignmentNotFoundException.class),
+                badRequest(ReplacementActingRoleRequiredException.class));
     }
 
     private static ApiErrorMapping forbidden(Class<? extends Throwable> type) {
