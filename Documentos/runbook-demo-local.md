@@ -126,6 +126,7 @@ docker compose -f scripts/demo/docker-compose.yml down -v   # -v borra los datos
 | Síntoma | Causa | Qué hacer |
 |---|---|---|
 | El backend no arranca: `TRACKING_CODE_SECRET`, `TRACEABILITY_DEMO_WEBHOOK_SECRET` o la contraseña de la semilla | Variables no cargadas | `set -a; . scripts/demo/demo.env; set +a` en la misma terminal |
+| El backend no arranca: `TRACEABILITY_DISCOVERY_CURSOR_KEY` | Falta la clave del cursor del descubrimiento, no tiene 32 bytes en Base64 o coincide con otro secreto (DD-53: sin valor por defecto) | Cargar `demo.env`; para otra máquina, `openssl rand -base64 32`. El mensaje de error nunca muestra la clave |
 | `nonce too low` en el log del backend | Ganache reiniciada o contrato desplegado con la cuenta #0 | `down -v`, y repetir los pasos 1, 3 y 4 |
 | El recorrido espera mucho al anclaje | Intervalos por defecto | Comprobar `TRACEABILITY_ANCHOR_PRODUCER_INTERVAL_MS`, `CRYPTO_ANCHOR_SUBMIT_DELAY` y `CRYPTO_ANCHOR_POLL_DELAY` en `demo.env` |
 | `verificar-organizacion: 409` | La organización ya se verificó en otra ejecución | Es correcto; el guion lo acepta |
