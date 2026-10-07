@@ -86,6 +86,12 @@ public interface DonationIntentRepositoryPort {
     /** {@code PENDING → FAILED} (Enmienda 3 de ADR-037, D4), condicional. */
     boolean failIfPending(String intentId, String providerEventId, Instant failedAt);
 
+    /**
+     * Sustituye la credencial de consulta (DD-18 sustituida por Carlos, 2026-10-07): el hash anterior deja de valer.
+     * Solo en intenciones que ya tienen credencial.
+     */
+    boolean rotateStatusToken(String intentId, String statusTokenHash, Instant statusTokenExpiresAt);
+
     /** Historial de un donante (ADR-048), como mucho {@code limit}. */
     List<DonationIntent> findByDonorRef(String donorRef, int limit);
 }

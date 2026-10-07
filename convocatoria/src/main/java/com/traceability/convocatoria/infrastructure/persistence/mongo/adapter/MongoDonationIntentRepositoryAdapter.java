@@ -240,6 +240,13 @@ public class MongoDonationIntentRepositoryAdapter implements DonationIntentRepos
     }
 
     @Override
+    public boolean rotateStatusToken(String intentId, String statusTokenHash, Instant statusTokenExpiresAt) {
+        Query query = Query.query(Criteria.where("_id").is(intentId).and("statusTokenHash").exists(true));
+        Update update = new Update().set("statusTokenHash", statusTokenHash).set("statusTokenExpiresAt", statusTokenExpiresAt);
+        return mongoTemplate.updateFirst(query, update, DonationIntentDocument.class).getMatchedCount() == 1;
+    }
+
+    @Override
     public List<DonationIntent> findByDonorRef(String donorRef, int limit) {
         Query query = Query.query(Criteria.where("donorRef").is(donorRef))
                 .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
