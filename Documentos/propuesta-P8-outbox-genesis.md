@@ -1,6 +1,6 @@
 # Propuesta D-P8 — Mensaje de outbox de la génesis de `Fund`
 
-**Estado:** **DECIDIDO — opción A, Carlos, 2026-10-07.** Formalizado como enmienda de ADR-037 §2.3, con una corrección de ADR-045 §1 (con su conformidad) y P8 cerrado en la Enmienda 2. Lo redactó el agente a petición de Carlos.
+**Estado:** **DECIDIDO — opción A, Carlos, 2026-10-07. Confirmado por Carlos el 2026-10-07** tras la implementación de B2. Formalizado como enmienda de ADR-037 §2.3, con una corrección de ADR-045 §1 (con su conformidad) y P8 cerrado en la Enmienda 2. Lo redactó el agente a petición de Carlos.
 **Origen:** P8 en `ADR-037-enmienda-2-convocatoria.md` §3 y §7: "ADR-037 §2.3 lo exige, pero hoy `clearFundsGenesis` no escribe ninguno y ningún documento define cuál debe ser. Se decide en `core`."
 **Bloquea:** B1 de `plan-cierre-fase6-codigo.md`. Es el inicio de la cadena crítica del dinero: D-P8 → T1/P8 → orquestador de ADR-045 → API → golden path.
 

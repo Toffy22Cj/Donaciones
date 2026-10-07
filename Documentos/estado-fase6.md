@@ -52,6 +52,16 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
 - **D-P8 cerrado — opción A (Carlos, 2026-10-07):** la génesis de `Fund` no escribe mensaje de outbox. Se enmendó ADR-037 §2.3, se corrigió ADR-045 §1 (con conformidad de Carlos) y se cerró P8 en la Enmienda 2. En la cadena del dinero, B1 queda solo en **T1**.
 
+### 0.5 Decisiones y estado tras B2 (2026-10-07, Carlos)
+
+- **B2 (ADR-045) hecho:** T1 en `core` (#34), B2a en `convocatoria` (#35) y B2b en `app` (#36): orquestador de la Tx 2, disparo inmediato, scheduler de respaldo (deshabilitado por defecto) y JMX.
+- **D-P8 "sin outbox": confirmado por Carlos.**
+- **Excepción general a la regla 3.2 (`reglas-equipo-y-agentes.md` §3.2):** mientras Carlos trabaje en solitario sobre el backend, los PR se fusionan sin segundo revisor y la evidencia de tests sustituye a esa aprobación. Decisión consciente de Carlos. Primeros PR cubiertos: #35–#40.
+- **Enmienda 1 de ADR-029 (D-CAMPAIGN) APROBADA**, Q1–Q5 según la recomendación: puerto en `contracts`, `campaignRef` opcional en el Camino B, `OPEN` en el registro (limitación escrita), H1 solo con intenciones.
+- **ADR-047 (JWT) PROPUESTO**, Q1–Q5 pendientes.
+- **B-PROJ (`plan-b-proj.md`) APROBADO**, siguiente bloque. Las proyecciones no procesan ningún stream real: el event store numera la génesis como 1 y los manejadores la esperan en 0 (D-SEQ: se mantiene 1), y además ignoran los payloads v2. Sin entornos con datos reales. El PR 2 (reconstrucción por JMX) necesita antes una enmienda de ADR-042.
+- **Sin fecha de demo.** Orden por dependencias: B-PROJ PR 1 → D-CAMPAIGN → ADR-047 + B3 → D-SPLIT/B1-bis, D-API/B6, D-ASSET, D-IA/B5 → B-PROJ PR 2 y B4.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.
