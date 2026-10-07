@@ -40,6 +40,9 @@ public class CoreApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(PhysicalAssetNotFoundException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
                 // Plan P1.1, DD-30: un fondo inexistente responde como uno ajeno
                 new ApiErrorMapping(FundNotFoundException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
+                // Encargo 3, punto 5: un fondo sin organización (v1), independiente del anterior, con el mismo 403
+                new ApiErrorMapping(com.traceability.core.domain.fund.exceptions.FundNotAssociatedToOrganizationException.class,
+                        HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
                 new ApiErrorMapping(AggregateNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 // title = nombre de la regla, derivado de la subclase (null)
                 new ApiErrorMapping(DomainInvariantViolationException.class, HttpStatus.CONFLICT, null),
