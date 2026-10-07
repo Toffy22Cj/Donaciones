@@ -35,6 +35,9 @@
 | `POST /platform/organizations/{organizationId}/reject` | ídem | — | `200 {…, verificationStatus: "REJECTED"}` | ídem |
 | `POST /platform/organizations/{organizationId}/request-information` | ídem | `{message}` (1–2000) | `200 {…, verificationStatus: "NEEDS_MORE_INFORMATION"}` | 403 (antes de validar); 400 mensaje vacío o largo; 404; 409 |
 | `GET /platform/organizations` (cola de verificación, §3.1) | ídem | `?status=PENDING_VERIFICATION\|NEEDS_MORE_INFORMATION` (sin él, las dos), `?cursor=` | `200 {items: [{organizationId, name?, type, verificationStatus, informationRequest?}], nextCursor?}`, 20 por página, por orden de creación, `no-store`; sin miembros ni emails (DD-69) | 400 `status` o cursor (el del descubrimiento no vale aquí); 403 |
+| `GET /platform/administrators` (§3.2) | ídem | — | `200 {items: [{accountId, status}]}`, una página de 100, sin email, `no-store` | 403 |
+| `POST /platform/administrators` (§3.2) | ídem | `{accountId}` | `201 {accountId, platformAuthority: "ADMINISTRATOR"}` | 400; 403 (antes de validar); 404 cuenta inexistente; 409 `PlatformAuthorityAlreadyGranted`, `PlatformAuthorityTargetInactive` |
+| `POST /platform/administrators/{accountId}/revoke` (§3.2, DD-70) | ídem | — | `200 {accountId}` | 403; 404; 409 `PlatformAuthorityNotHeld`, `LastPlatformAdministrator` (nunca sin administradores) |
 
 ## 3. Organización (panel)
 

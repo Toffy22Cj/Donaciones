@@ -23,7 +23,8 @@ public class PlatformAuthorizationPolicy {
                  REQUEST_ORGANIZATION_INFORMATION,
                  GRANT_PLATFORM_AUTHORITY,
                  REVOKE_PLATFORM_AUTHORITY,
-                 READ_VERIFICATION_QUEUE ->
+                 READ_VERIFICATION_QUEUE,
+                 READ_PLATFORM_ADMINISTRATORS ->
                     principal.platformAuthority() == PlatformAuthority.ADMINISTRATOR;
         };
 

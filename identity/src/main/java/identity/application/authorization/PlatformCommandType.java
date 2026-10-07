@@ -10,5 +10,7 @@ public enum PlatformCommandType {
     GRANT_PLATFORM_AUTHORITY,
     REVOKE_PLATFORM_AUTHORITY,
     /** Cola de verificación: organizaciones pendientes (autorización (3) de Carlos, §3.1). */
-    READ_VERIFICATION_QUEUE
+    READ_VERIFICATION_QUEUE,
+    /** Lista de administradores de plataforma (autorización (3) de Carlos, §3.2). */
+    READ_PLATFORM_ADMINISTRATORS
 }
