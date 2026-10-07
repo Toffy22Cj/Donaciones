@@ -53,6 +53,16 @@ traceability:
   security:
     tracking-code-secret: ${TRACKING_CODE_SECRET}
     asset-ref-secret: ${ASSET_REF_SECRET}
+    # ADR-047: sin valor por defecto; la aplicación no arranca sin JWT_SIGNING_SECRET (>= 32 bytes)
+    jwt:
+      signing-secret: ${JWT_SIGNING_SECRET}
+      kid: ${JWT_SIGNING_KID:k1}
+      ttl: ${JWT_TTL:PT8H}
+      clock-skew: PT30S
+      # Rotación (D4): las tres van juntas; ACCEPT_UNTIL no puede pasar de arranque + ttl
+      previous-signing-secret: ${JWT_SIGNING_SECRET_PREVIOUS:}
+      previous-kid: ${JWT_SIGNING_KID_PREVIOUS:}
+      previous-accept-until: ${JWT_SIGNING_SECRET_PREVIOUS_ACCEPT_UNTIL:}
 
 convocatoria:
   donation-intent:

@@ -2,6 +2,10 @@ traceability:
   security:
     tracking-code-secret: dummy-tracking-code-secret-for-test
     asset-ref-secret: dummy-asset-ref-secret-for-test
+    jwt:
+      # Solo para tests; nunca un valor productivo (ADR-047 D3)
+      signing-secret: test-only-jwt-signing-secret-not-for-production
+      kid: test-k1
 
 convocatoria:
   donation-intent:
