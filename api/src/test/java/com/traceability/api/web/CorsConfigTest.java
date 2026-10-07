@@ -17,6 +17,13 @@ class CorsConfigTest {
     }
 
     @Test
+    void theCorsFilter_runsBeforeAnyOther_soAPreflightNeverReachesTheJwtFilter() {
+        // el filtro JWT es un @Component sin orden explícito (LOWEST_PRECEDENCE); el de CORS debe ir siempre antes
+        assertThat(new CorsConfig().corsFilter("http://localhost:5173").getOrder())
+                .isEqualTo(org.springframework.core.Ordered.HIGHEST_PRECEDENCE);
+    }
+
+    @Test
     void withoutTheVariable_noCrossOriginIsAllowed() {
         assertThat(CorsConfig.parseOrigins("")).isEmpty();
         assertThat(CorsConfig.parseOrigins(null)).isEmpty();
