@@ -1,0 +1,13 @@
+# §3.4 — mis convocatorias asignadas: fase roja y mutaciones
+test (rojo): ed9cb3a; código verde: e236e19
+
+## Fase roja (implementación apartada con git stash)
+Expecting Optional to contain a value but it was empty.
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 21.33 s <<< FAILURE! -- in com.traceability.app.web.campaign.MyAssignedCampaignsHttpIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- sin filtro de organización: MUERTA  eachResponsible_seesOnlyTheirOwnActiveAssignments_withTheirRoleAndTheCampaignStatus
+- asignaciones retiradas incluidas: MUERTA  eachResponsible_seesOnlyTheirOwnActiveAssignments_withTheirRoleAndTheCampaignStatus
+- sin no-store: MUERTA  eachResponsible_seesOnlyTheirOwnActiveAssignments_withTheirRoleAndTheCampaignStatus
+- papel equivocado: MUERTA  eachResponsible_seesOnlyTheirOwnActiveAssignments_withTheirRoleAndTheCampaignStatus
+Restauración verificada contra HEAD. Mutaciones vivas: 0
