@@ -16,4 +16,6 @@ public class OrganizationDocument {
     private List<MembershipDocument> members;
     private String verificationStatus;
     private String verificationInformationRequest;
+    /** Nombre público, opcional (plan B6-a, Q-B6A-1). */
+    private String name;
 }

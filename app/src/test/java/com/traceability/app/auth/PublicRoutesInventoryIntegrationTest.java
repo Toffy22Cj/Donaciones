@@ -46,8 +46,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 })
 class PublicRoutesInventoryIntegrationTest {
 
-    /** Rutas protegidas por JWT, decididas una a una ("MÉTODO /patrón"). Hoy no existe ninguna en {@code develop}. */
-    static final Set<String> PROTECTED = Set.of();
+    /** Rutas protegidas por JWT, decididas una a una ("MÉTODO /patrón"). */
+    static final Set<String> PROTECTED = Set.of(
+            // B6-a: convocatoria y verificación (plan-b6-a-convocatoria-http.md §2)
+            "POST /api/v1/organizations/{organizationId}/campaigns",
+            "POST /api/v1/campaigns/{campaignRef}/employees",
+            "POST /api/v1/platform/organizations/{organizationId}/verify");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

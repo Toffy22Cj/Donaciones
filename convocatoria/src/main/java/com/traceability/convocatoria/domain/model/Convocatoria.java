@@ -2,6 +2,9 @@ package com.traceability.convocatoria.domain.model;
 
 import com.traceability.convocatoria.domain.exception.CampaignAlreadyClosedException;
 import com.traceability.convocatoria.domain.exception.CampaignClosedException;
+import com.traceability.convocatoria.domain.exception.CampaignDateInPastException;
+import com.traceability.convocatoria.domain.exception.CampaignDescriptionTooLongException;
+import com.traceability.convocatoria.domain.exception.CampaignVisibilityRequiredException;
 import com.traceability.convocatoria.domain.exception.CampaignTitleRequiredException;
 import com.traceability.convocatoria.domain.exception.CampaignTitleTooLongException;
 import com.traceability.convocatoria.domain.exception.CashDonationIntentNotSupportedException;
@@ -12,6 +15,7 @@ import com.traceability.convocatoria.domain.exception.InvalidCampaignDateRangeEx
 import com.traceability.convocatoria.domain.exception.MonetaryTermsChangeNotSupportedException;
 import com.traceability.convocatoria.domain.exception.PaymentMethodNotAcceptedException;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -25,6 +29,10 @@ public final class Convocatoria {
 
     /** Longitud máxima de {@code title}: valor de implementación (R1), reportado en implementation_plan.md §16. */
     public static final int TITLE_MAX_LENGTH = 200;
+    /** Q-CV01-15 de la ficha CV-01 (deuda D-9). */
+    public static final int DESCRIPTION_MAX_LENGTH = 5000;
+    /** Q-CV01-9a de la ficha CV-01 (deuda D-2): tolerancia hacia el pasado al crear. */
+    public static final Duration DATE_TOLERANCE = Duration.ofMinutes(5);
 
     public static final long INITIAL_CONFIGURATION_VERSION = 1L;
 
@@ -71,6 +79,14 @@ public final class Convocatoria {
         }
         return new Convocatoria(campaignRef, organizationRef, publicCode, title, description, visibility,
                 startDate, endDate, ConvocatoriaStatus.OPEN, configuration, INITIAL_CONFIGURATION_VERSION);
+    }
+
+    /**
+     * Regla de creación (deuda D-2, Q-CV01-9a de la ficha CV-01): ninguna fecha anterior a {@code now − 5 min}. Solo
+     * al crear: no es una máquina de estados. Las fechas ausentes las rechaza {@link #create}.
+     */
+    public static void requireDatesNotInPast(Instant startDate, Instant endDate, Instant now) {
+
     }
 
     /** Uso exclusivo de adaptadores de persistencia: no aplica reglas de creación. */

@@ -37,6 +37,12 @@ public class CreateOrganizationService {
     }
 
     public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId) {
+        return createOrganization(actor, type, initialRepresentativeAccountId, null);
+    }
+
+    /** Con nombre público opcional (plan B6-a, Q-B6A-1; el nombre lo lee CV-07 por {@code OrganizationPublicNamePort}). */
+    public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId,
+                                           String name) {
         Objects.requireNonNull(actor, "actor must not be null");
 
         return retryHelper.executeWithRetry(() -> {
@@ -46,7 +52,7 @@ public class CreateOrganizationService {
                 throw new AccountAlreadyBelongsToOrganizationException("Account already belongs to an organization");
             }
 
-            Organization organization = Organization.createOrganization(type, initialRepresentativeAccountId);
+            Organization organization = Organization.createOrganization(type, initialRepresentativeAccountId, name);
             account.joinOrganization(organization.getOrganizationId());
 
             organizationRepository.save(organization);
