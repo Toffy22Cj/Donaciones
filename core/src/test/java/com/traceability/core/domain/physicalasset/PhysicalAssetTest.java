@@ -103,7 +103,7 @@ class PhysicalAssetTest {
         assertNull(asset.getDonorRef());
 
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV2Payload);
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV3Payload);
     }
 
     @Test
@@ -335,8 +335,8 @@ class PhysicalAssetTest {
         assertEquals("DONATION_100", asset.getDonationRef());
 
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV2Payload);
-        AssetRegisteredV2Payload payload = (AssetRegisteredV2Payload) asset.getUncommittedEvents().get(0).payload();
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV3Payload);
+        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) asset.getUncommittedEvents().get(0).payload();
         assertEquals("MEDICINE", payload.assetType());
         assertEquals("ORG_1", payload.organizationRef());
         assertEquals("DONOR_1", payload.donorRef());
@@ -383,11 +383,11 @@ class PhysicalAssetTest {
         DomainEventPayload payloadB = assetCaminoB.getUncommittedEvents().get(0).payload();
 
         // Same record class schema
-        assertEquals(AssetRegisteredV2Payload.class, payloadA.getClass());
-        assertEquals(AssetRegisteredV2Payload.class, payloadB.getClass());
+        assertEquals(AssetRegisteredV3Payload.class, payloadA.getClass());
+        assertEquals(AssetRegisteredV3Payload.class, payloadB.getClass());
 
-        AssetRegisteredV2Payload pA = (AssetRegisteredV2Payload) payloadA;
-        AssetRegisteredV2Payload pB = (AssetRegisteredV2Payload) payloadB;
+        AssetRegisteredV3Payload pA = (AssetRegisteredV3Payload) payloadA;
+        AssetRegisteredV3Payload pB = (AssetRegisteredV3Payload) payloadB;
 
         // Structural equality of components count/types, differing only in value for donationRef
         assertNull(pA.donationRef());
@@ -406,8 +406,8 @@ class PhysicalAssetTest {
         parent.split("A2", new java.math.BigDecimal("40.0000"));
 
         assertEquals(1, parent.getUncommittedEvents().size());
-        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV2Payload);
-        AssetSplitV2Payload payload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV3Payload);
+        AssetSplitV3Payload payload = (AssetSplitV3Payload) parent.getUncommittedEvents().get(0).payload();
 
         assertEquals("A2", payload.childAssetId());
         assertEquals(new java.math.BigDecimal("40.0000"), payload.extractedQuantity());
@@ -426,8 +426,8 @@ class PhysicalAssetTest {
         parent.split("A2", new java.math.BigDecimal("40.0000"));
 
         assertEquals(1, parent.getUncommittedEvents().size());
-        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV2Payload);
-        AssetSplitV2Payload payload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV3Payload);
+        AssetSplitV3Payload payload = (AssetSplitV3Payload) parent.getUncommittedEvents().get(0).payload();
 
         assertEquals("A2", payload.childAssetId());
         assertEquals(new java.math.BigDecimal("40.0000"), payload.extractedQuantity());
@@ -436,7 +436,7 @@ class PhysicalAssetTest {
         assertEquals("DONATION_100", payload.donationRef());
     }
 
-    // Valida que el evento AssetSplitV2Payload transporta organizationRef, donorRef y donationRef heredados
+    // Valida que el evento AssetSplitV3Payload transporta organizationRef, donorRef y donationRef heredados
     // y que un activo hijo puede instanciarse recibiendo esos metadatos de procedencia.
     // (Nota: La creación automática/orquestada del stream del activo hijo está pendiente de diseño e implementación).
     @Test
@@ -449,7 +449,7 @@ class PhysicalAssetTest {
 
         // When parent is split
         parent.split("CHILD_1", new java.math.BigDecimal("30.0000"));
-        AssetSplitV2Payload splitPayload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+        AssetSplitV3Payload splitPayload = (AssetSplitV3Payload) parent.getUncommittedEvents().get(0).payload();
 
         // And child aggregate is created using split event payload references
         PhysicalAsset child = PhysicalAsset.create(
