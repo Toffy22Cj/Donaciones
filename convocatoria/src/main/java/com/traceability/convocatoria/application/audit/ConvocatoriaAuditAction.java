@@ -10,5 +10,7 @@ public enum ConvocatoriaAuditAction {
     ADMINISTRATOR_DESIGNATED,
     RESPONSIBLE_REMOVED,
     CONVOCATORIA_CLOSED,
-    DONATION_INTENT_CREATED
+    DONATION_INTENT_CREATED,
+    /** Salida manual de la cuarentena de aplicación de fondos (ADR-045 §2.3). */
+    APPLICATION_QUARANTINE_RELEASED
 }
