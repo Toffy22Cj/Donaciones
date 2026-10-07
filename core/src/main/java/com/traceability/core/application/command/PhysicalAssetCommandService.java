@@ -44,6 +44,7 @@ public class PhysicalAssetCommandService {
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
     private final IdentityPrincipalPort identityPrincipalPort;
     private final CampaignInKindEligibilityPort campaignInKindEligibility;
+    private java.time.Clock clock = java.time.Clock.systemUTC();
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
             ProcessedCommandRepositoryPort processedCommandRepository,
@@ -61,6 +62,22 @@ public class PhysicalAssetCommandService {
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
         this.identityPrincipalPort = identityPrincipalPort;
         this.campaignInKindEligibility = campaignInKindEligibility;
+    }
+
+    /** Con reloj inyectable: la fecha de los mensajes de saga es la del coordinador (ADR-007/008 Enmienda 1). */
+    @org.springframework.beans.factory.annotation.Autowired
+    public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
+            ProcessedCommandRepositoryPort processedCommandRepository,
+            EventStorePort eventStore,
+            TransactionalEventPublisher eventPublisher,
+            RoleAuthorizationPolicy roleAuthorizationPolicy,
+            OrganizationBoundaryPolicy organizationBoundaryPolicy,
+            IdentityPrincipalPort identityPrincipalPort,
+            CampaignInKindEligibilityPort campaignInKindEligibility,
+            org.springframework.beans.factory.ObjectProvider<java.time.Clock> clock) {
+        this(retryTemplate, processedCommandRepository, eventStore, eventPublisher, roleAuthorizationPolicy,
+                organizationBoundaryPolicy, identityPrincipalPort, campaignInKindEligibility);
+        this.clock = clock.getIfAvailable(java.time.Clock::systemUTC);
     }
 
     private void authorize(ActorRef actorRef, String organizationRef, CommandType commandType) {
@@ -170,8 +187,8 @@ public class PhysicalAssetCommandService {
                     payloadJson,
                     com.traceability.core.application.saga.OutboxStatus.PENDING,
                     0,
-                    Instant.now(),
-                    Instant.now()
+                    clock.instant(),
+                    clock.instant()
             );
 
             eventPublisher.appendAndOutbox(
@@ -299,15 +316,23 @@ public class PhysicalAssetCommandService {
     }
 
     /**
-     * NUEVA-3 — Divide un PhysicalAsset existente.
+     * NUEVA-3 — Divide un PhysicalAsset existente (D-SPLIT S1 y S2; B1-bis).
+     *
+     * <p>El hijo nace de forma asíncrona: en la misma transacción que {@code ASSET_SPLIT} se escribe el mensaje de la
+     * saga {@code ASSET_SPLIT_SAGA}, que creará el hijo ({@link #createSplitChild}). El id del hijo es determinista
+     * ({@code SplitChildIds.of(assetId, commandId)}) y se calcula fuera del reintento: repetir el comando devuelve el
+     * mismo hijo sin guardar nada.
+     *
+     * @return el {@code childAssetId}
      */
     public String splitPhysicalAsset(String commandId,
             String assetId,
             BigDecimal splitQuantity,
             com.traceability.core.domain.event.ActorRef actorRef) {
 
+        String childAssetId = com.traceability.core.domain.physicalasset.SplitChildIds.of(assetId, commandId);
         if (processedCommandRepository.exists(commandId)) {
-            return null;
+            return childAssetId;
         }
 
         retryTemplate.execute(() -> {
@@ -321,33 +346,93 @@ public class PhysicalAssetCommandService {
 
             authorize(actorRef, asset.getOrganizationRef(), CommandType.SPLIT_PHYSICAL_ASSET);
 
-            String childAssetId = UUID.randomUUID().toString();
-
             asset.split(childAssetId, splitQuantity);
 
-            List<DomainEvent> newEvents = asset.getUncommittedEvents();
-            if (!newEvents.isEmpty()) {
-                eventPublisher.appendAndOutbox(
-                        assetId,
-                        "PhysicalAsset",
-                        expectedVersion,
-                        newEvents,
-                        actorRef,
-                        null,
-                        commandId);
-            }
+            Instant now = clock.instant();
+            com.traceability.core.application.saga.OutboxMessage sagaMessage = new com.traceability.core.application.saga.OutboxMessage(
+                    UUID.randomUUID().toString(),
+                    com.traceability.core.application.saga.SplitPhysicalAssetSagaPolicy.SAGA_TYPE,
+                    assetId,
+                    childAssetId,
+                    String.format("{\"parentAssetId\":\"%s\",\"childAssetId\":\"%s\"}", assetId, childAssetId),
+                    com.traceability.core.application.saga.OutboxStatus.PENDING,
+                    0,
+                    now,
+                    now);
+
+            eventPublisher.appendAndOutbox(
+                    assetId,
+                    "PhysicalAsset",
+                    expectedVersion,
+                    asset.getUncommittedEvents(),
+                    actorRef,
+                    List.of(sagaMessage),
+                    commandId);
             return null;
         });
-        return null;
+        return childAssetId;
     }
 
-    /** Skeleton B1-bis. */
+    /**
+     * Rama "crear el hijo" de la saga de la división, bajo la barrera {@code SPLIT_RESOLUTION:{childAssetId}} (plan
+     * B1-bis §2): el reclamo y la génesis del hijo se confirman en la misma transacción. Si el reclamo ya existe, no
+     * escribe nada y devuelve el resultado que lo ganó.
+     *
+     * @throws IllegalArgumentException si el padre no tiene un {@code ASSET_SPLIT} con ese hijo (fallo permanente)
+     */
     public com.traceability.core.application.saga.SplitResolution createSplitChild(String parentAssetId, String childAssetId) {
-        throw new UnsupportedOperationException("B1-bis: pendiente");
+        String claimKey = com.traceability.core.application.saga.SplitResolution.claimKey(childAssetId);
+        return retryTemplate.execute(() -> {
+            java.util.Optional<com.traceability.core.application.saga.SplitResolution> resolved = resolution(claimKey);
+            if (resolved.isPresent()) {
+                return resolved.get();
+            }
+            PhysicalAsset parent = load(parentAssetId);
+            PhysicalAsset child = PhysicalAsset.registerSplitChild(parent, childAssetId);
+            boolean written = eventPublisher.appendAndOutbox(childAssetId, "PhysicalAsset", 0,
+                    child.getUncommittedEvents(), SPLIT_SAGA_ACTOR, null, claimKey,
+                    com.traceability.core.application.saga.SplitResolution.CHILD_CREATED.name());
+            return written ? com.traceability.core.application.saga.SplitResolution.CHILD_CREATED : resolution(claimKey).orElseThrow();
+        });
     }
 
-    /** Skeleton B1-bis. */
+    /**
+     * Rama "compensar" de la saga de la división, bajo la misma barrera que {@link #createSplitChild}: reintegra al
+     * padre exactamente la cantidad extraída (D-SPLIT S4).
+     *
+     * @throws com.traceability.core.domain.physicalasset.exceptions.AssetTerminalStateException si el padre está
+     *         {@code DELIVERED}: compensar es imposible y la saga recupera hacia delante (Enmienda 1, D4)
+     */
     public com.traceability.core.application.saga.SplitResolution compensateSplitChild(String parentAssetId, String childAssetId) {
-        throw new UnsupportedOperationException("B1-bis: pendiente");
+        String claimKey = com.traceability.core.application.saga.SplitResolution.claimKey(childAssetId);
+        return retryTemplate.execute(() -> {
+            java.util.Optional<com.traceability.core.application.saga.SplitResolution> resolved = resolution(claimKey);
+            if (resolved.isPresent()) {
+                return resolved.get();
+            }
+            PhysicalAsset parent = load(parentAssetId);
+            long expectedVersion = parent.getVersion();
+            BigDecimal extracted = parent.findSplit(childAssetId).orElseThrow(() -> new IllegalArgumentException(
+                    "Asset " + parentAssetId + " has no split with child " + childAssetId)).extractedQuantity();
+            parent.compensateSplit(childAssetId, extracted);
+            boolean written = eventPublisher.appendAndOutbox(parentAssetId, "PhysicalAsset", expectedVersion,
+                    parent.getUncommittedEvents(), SPLIT_SAGA_ACTOR, null, claimKey,
+                    com.traceability.core.application.saga.SplitResolution.COMPENSATED.name());
+            return written ? com.traceability.core.application.saga.SplitResolution.COMPENSATED : resolution(claimKey).orElseThrow();
+        });
+    }
+
+    private static final com.traceability.core.domain.event.SystemActor SPLIT_SAGA_ACTOR =
+            new com.traceability.core.domain.event.SystemActor("SplitPhysicalAssetSagaPolicy");
+
+    private java.util.Optional<com.traceability.core.application.saga.SplitResolution> resolution(String claimKey) {
+        return processedCommandRepository.findOutcome(claimKey)
+                .map(com.traceability.core.application.saga.SplitResolution::valueOf);
+    }
+
+    private PhysicalAsset load(String assetId) {
+        List<DomainEvent> events = eventStore.loadStream(assetId);
+        return PhysicalAsset.rehydrate(assetId, events.stream().map(DomainEvent::payload).collect(Collectors.toList()),
+                events.size());
     }
 }

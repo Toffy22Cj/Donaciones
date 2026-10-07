@@ -1,11 +1,11 @@
 package com.traceability.core.infrastructure.persistence.mongo;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
@@ -26,4 +26,10 @@ public class OutboxMessageDocument {
     private int retryCount;
     private Instant createdAt;
     private Instant nextRetryAt;
+    // ADR-007/008 Enmienda 1
+    private Instant resolutionStartedAt;
+    private String lastFailureReason;
+    private String manualResolvedBy;
+    private String manualNote;
+    private Instant manualResolvedAt;
 }
