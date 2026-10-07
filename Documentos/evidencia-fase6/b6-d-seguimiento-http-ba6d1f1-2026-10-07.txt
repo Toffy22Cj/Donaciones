@@ -1,0 +1,41 @@
+# B6-d — evidencia sobre feat/b6-d-seguimiento-http en ba6d1f1 (2026-10-07), con develop (B6-b #63) incluido
+# mvn clean test -fae, Docker real. sha256 del log completo: bef69e2afbd958aa49750005c7ad26e6d7e53ae8c8f12d52489752aadd4b4072
+# Línea base: develop 7ab8ed6 = 1139 tests. Ahora: 1141 (api +1, app +1).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 235, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes: TR-D1 (commit 4ee5f48)
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 13.40 s <<< FAILURE! -- in com.traceability.api.application.controller.PublicDonationControllerIntegrationTest
+[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.563 s <<< FAILURE! -- in com.traceability.api.application.controller.PublicDonationControllerTest
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 3.681 s <<< FAILURE! -- in com.traceability.api.application.controller.PublicNarrativeControllerIntegrationTest
+# Antes: H-B6D-2 (fixture corregido, sin la corrección del mapper)
+[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 1.379 s <<< FAILURE! -- in com.traceability.api.application.mapper.AssetHistoryMapperTest
+# Antes: recorrido de la demo por HTTP (400 en el historial público, IllegalArgumentException: Unexpected lifecycleStatus: cust-1)
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 19.17 s <<< FAILURE! -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+
+# Mutaciones (scripts/mutaciones.py; restauración con git checkout verificada contra HEAD)
+- 404 del seguimiento sin cuerpo otra vez: MUERTA  shouldReturn404EndToEndWithValidTokenButMissingModel; shouldReturn404WhenFundIdDoesNotExist
+- 404 de la narrativa sin cuerpo: MUERTA  shouldReturn404WhenFundHasNoDonationProjection
+- TrackedResourceNotFound sin traducción (500): MUERTA  shouldReturn404EndToEndWithValidTokenButMissingModel; shouldReturn404WhenFundHasNoDonationProjection; shouldReturn404WhenFundIdDoesNotExist
+- historial: categoría desde la referencia del custodio: MUERTA  shouldMapCompleteDocument; transitionsThatAreNotLifecycleStates_andMissingCustodians_areUncategorized_neverAnError
+- historial: SPLIT pasado a mapCustodian: MUERTA  transitionsThatAreNotLifecycleStates_andMissingCustodians_areUncategorized_neverAnError
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+- historial: categoría desde la referencia del custodio (punta a punta): MUERTA  theDemoPath_fromVerificationToPublicTracking_overHttp
+Restauración verificada contra HEAD. Mutaciones vivas: 0

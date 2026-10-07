@@ -178,6 +178,19 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.15 B6-d — seguimiento de punta a punta (2026-10-07, `feat/b6-d-seguimiento-http`) — HECHO; B6 completo salvo la narrativa de convocatoria
+
+- **Qué hace:**
+  - **TR-D1:** el 404 del seguimiento con `ProblemDetail` fijo (Q-B60-1).
+  - **H-B6D-2:** el historial público de un activo (TR-03) **nunca había funcionado con datos reales**. El *mapper* pasaba la referencia del custodio donde se esperaba un estado del ciclo de vida: daba 500, y 400 desde B6-0. Corregido (DD-26).
+  - **Recorrido de la demo por HTTP** (`GoldenPathHttpIntegrationTest`): pasos 1 a 5 y el seguimiento público con el `trackingCode` real. Cumple los criterios **1–9 y 15–17** de §8 contra Tomcat real.
+- **Fuera:** la narrativa de convocatoria, porque B5 no está listo. La propuesta D-IA (ADR-040 C2–C5, C8) está en `propuesta-d-ia.md` como **PROPUESTO**.
+- **Hallazgos abiertos para la web:**
+  - **H-B6C-1:** la asignación del Camino A no tiene ruta.
+  - **H-B6D-1:** el empleado no tiene de dónde sacar el `fundId`.
+  - El test los toma por servicio o de la base de datos.
+- **Evidencia:** `evidencia-fase6/b6-d-seguimiento-http-ba6d1f1-2026-10-07.txt`. Reactor **1141 tests** en verde; 6 mutaciones, 6 muertas.
+
 ### 0.14 B6-b — donación y pago por HTTP (2026-10-07, `feat/b6-b-donacion-pago-http`) — HECHO
 
 - **Proceso:** autorización de trabajo autónomo de Carlos (2026-10-07). Implementa normas **aprobadas**: la Enmienda 3 de ADR-037 (completa, con E3-Q3 = un año) y ADR-048 (seudónimo aleatorio). Las decisiones de implementación DD-18 a DD-25 están `PENDIENTE DE RATIFICACIÓN`.
