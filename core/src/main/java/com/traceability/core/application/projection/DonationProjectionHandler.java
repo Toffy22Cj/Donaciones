@@ -231,7 +231,8 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             DonationProjectionDocument.LogisticsProjection log = new DonationProjectionDocument.LogisticsProjection(
                 assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(),
                 p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED", null,
-                p.campaignRef() // D7: solo del payload v3 del propio activo
+                p.campaignRef(), // D7: solo del payload v3 del propio activo
+                new java.util.HashMap<>()
             );
             update.push("logistics", log);
         } else if (payload instanceof AssetDispatchedPayload p) {

@@ -155,6 +155,16 @@ public class PhysicalAsset extends AggregateRoot {
         return asset;
     }
 
+    /** Skeleton B1-bis. */
+    public static PhysicalAsset registerSplitChild(PhysicalAsset parent, String childAssetId) {
+        throw new UnsupportedOperationException("B1-bis: pendiente");
+    }
+
+    /** Skeleton B1-bis. */
+    public java.util.Optional<SplitRecord> findSplit(String childAssetId) {
+        return java.util.Optional.empty();
+    }
+
     private void checkOrganizationAssigned() {
         if (this.organizationRef == null) {
             throw new PhysicalAssetNotAssociatedToOrganizationException(
@@ -415,5 +425,25 @@ public class PhysicalAsset extends AggregateRoot {
 
     public String getDonationRef() {
         return donationRef;
+    }
+
+    public String getAssetType() {
+        return assetType;
+    }
+
+    public String getAllocationId() {
+        return allocationId;
+    }
+
+    public String getSourceAllocationId() {
+        return sourceAllocationId;
+    }
+
+    public String getParentAssetRef() {
+        return parentAssetRef;
+    }
+
+    public String getRootAssetRef() {
+        return rootAssetRef;
     }
 }

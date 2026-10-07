@@ -88,6 +88,8 @@ public class DonationProjectionDocument {
         // Convocatoria del activo (ADR-029 Enmienda 1, D7): SOLO del payload v3 del propio activo; v1/v2 → null.
         // Nunca se infiere del Fund ni de la donación. Índice y agregación para la narrativa: B5 (ADR-040 C5).
         private String campaignRef;
+        // Estado previo a cada división, por childAssetId (D-SPLIT S6), como el agregado (splitsBeforeCompensation)
+        private Map<String, String> splitsBeforeCompensation;
     }
 
     @Data

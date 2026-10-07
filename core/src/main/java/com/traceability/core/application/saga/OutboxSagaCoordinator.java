@@ -24,9 +24,37 @@ public class OutboxSagaCoordinator {
     private final Map<String, SagaPolicy> policies;
     private final Duration quarantineWindow;
 
+    public static final String DEFAULT_EXECUTION_WINDOW = "PT24H";
+
+    private java.time.Clock clock = java.time.Clock.systemUTC();
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public OutboxSagaCoordinator(OutboxPort outboxPort,
+                                 List<SagaPolicy> policyList,
+                                 @Value("${saga.quarantine.window:" + DEFAULT_EXECUTION_WINDOW + "}") Duration quarantineWindow,
+                                 @Value("${saga.resolution.window:PT4H}") Duration resolutionWindow,
+                                 org.springframework.beans.factory.ObjectProvider<java.time.Clock> clock) {
+        this(outboxPort, policyList, quarantineWindow);
+        this.clock = clock.getIfAvailable(java.time.Clock::systemUTC);
+    }
+
+    public OutboxSagaCoordinator(OutboxPort outboxPort, List<SagaPolicy> policyList, Duration quarantineWindow,
+                                 Duration resolutionWindow, java.time.Clock clock) {
+        this(outboxPort, policyList, quarantineWindow);
+        this.clock = clock;
+    }
+
+    public Duration executionWindow() {
+        return quarantineWindow;
+    }
+
+    public Duration resolutionWindow() {
+        return Duration.ofHours(24);
+    }
+
     public OutboxSagaCoordinator(OutboxPort outboxPort, 
                                  List<SagaPolicy> policyList, 
-                                 @Value("${saga.quarantine.window:PT24H}") Duration quarantineWindow) {
+                                 Duration quarantineWindow) {
         this.outboxPort = outboxPort;
         this.quarantineWindow = quarantineWindow;
         this.policies = policyList.stream()

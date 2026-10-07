@@ -301,13 +301,13 @@ public class PhysicalAssetCommandService {
     /**
      * NUEVA-3 — Divide un PhysicalAsset existente.
      */
-    public void splitPhysicalAsset(String commandId,
+    public String splitPhysicalAsset(String commandId,
             String assetId,
             BigDecimal splitQuantity,
             com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
-            return;
+            return null;
         }
 
         retryTemplate.execute(() -> {
@@ -338,5 +338,16 @@ public class PhysicalAssetCommandService {
             }
             return null;
         });
+        return null;
+    }
+
+    /** Skeleton B1-bis. */
+    public com.traceability.core.application.saga.SplitResolution createSplitChild(String parentAssetId, String childAssetId) {
+        throw new UnsupportedOperationException("B1-bis: pendiente");
+    }
+
+    /** Skeleton B1-bis. */
+    public com.traceability.core.application.saga.SplitResolution compensateSplitChild(String parentAssetId, String childAssetId) {
+        throw new UnsupportedOperationException("B1-bis: pendiente");
     }
 }

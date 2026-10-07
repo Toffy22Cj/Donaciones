@@ -44,6 +44,31 @@ public class MongoOutboxPort implements OutboxPort {
         mongoTemplate.save(doc); // save performs an upsert if it exists
     }
 
+    @Override
+    public java.util.Optional<OutboxMessage> findById(String messageId) {
+        return java.util.Optional.empty();
+    }
+
+    @Override
+    public java.util.Optional<OutboxMessage> findBySagaTypeAndCorrelationId(String sagaType, String correlationId) {
+        return java.util.Optional.empty();
+    }
+
+    @Override
+    public List<OutboxMessage> findQuarantined(String sagaType, int limit) {
+        return List.of();
+    }
+
+    @Override
+    public long countQuarantined() {
+        return 0;
+    }
+
+    @Override
+    public boolean updateIfStatus(OutboxMessage message, OutboxStatus expected) {
+        return false;
+    }
+
     private OutboxMessageDocument toDocument(OutboxMessage msg) {
         return OutboxMessageDocument.builder()
                 .messageId(msg.messageId())

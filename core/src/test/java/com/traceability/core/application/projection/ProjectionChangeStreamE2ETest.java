@@ -154,6 +154,42 @@ class ProjectionChangeStreamE2ETest {
         assertNoQuarantine(assetId);
     }
 
+    // B1-bis, DoD 10 (criterio 17): el hijo REAL que crea la saga se proyecta en la misma donación y padre e hijo
+    // llegan a DELIVERED por separado.
+    @Test
+    void splitChild_createdByTheSaga_isProjectedInTheSameDonation_andBothAreDeliveredSeparately() {
+        String fundId = UUID.randomUUID().toString();
+        String allocationId = UUID.randomUUID().toString();
+        funds.clearFundsGenesis(cmd(), fundId, new OrganizationRef(ORG), "CAMP-SPLIT", "DONOR-1", "COP", 1000L,
+                "SRC-1", ACTOR);
+        funds.requestAllocation(cmd(), fundId, allocationId, 400L, ACTOR);
+        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.TEN, "KGS", "CUST-1", "WH-1",
+                allocationId, null, ACTOR);
+        String parentId = assetIdOfAllocation(allocationId);
+
+        String childId = assets.splitPhysicalAsset(cmd(), parentId, new BigDecimal("4"), ACTOR);
+        assets.createSplitChild(parentId, childId);
+
+        await(() -> Optional.ofNullable(logisticsStatus(fundId, childId)));
+        assertThat(logisticsField(fundId, childId, "parentAssetRef")).isEqualTo(parentId);
+        assertThat(logisticsField(fundId, childId, "campaignRef")).isEqualTo("CAMP-SPLIT");
+        assertThat(logisticsField(fundId, childId, "sourceAllocationId")).isEqualTo(allocationId);
+
+        for (String assetId : List.of(parentId, childId)) {
+            appendWithAggregate(assetId, asset -> asset.dispatch("CARRIER-1"));
+            appendWithAggregate(assetId, asset -> asset.receive("WH-2", "RECEIVER-1"));
+            assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "EVIDENCE-1", Instant.now(), ACTOR);
+        }
+
+        await(() -> Optional.of(historyStatuses(childId)).filter(h -> h.contains("DELIVERED")));
+        await(() -> Optional.of(historyStatuses(parentId)).filter(h -> h.contains("DELIVERED")));
+        assertThat(logisticsStatus(fundId, parentId)).isEqualTo("DELIVERED");
+        assertThat(logisticsStatus(fundId, childId)).isEqualTo("DELIVERED");
+        assertThat(donationRead.findByFundId(fundId).orElseThrow().logistics()).hasSize(2);
+        assertNoQuarantine(parentId);
+        assertNoQuarantine(childId);
+    }
+
     @Test
     void caminoA_registration_alwaysCarriesNullDonationRef() {
         String fundId = UUID.randomUUID().toString();

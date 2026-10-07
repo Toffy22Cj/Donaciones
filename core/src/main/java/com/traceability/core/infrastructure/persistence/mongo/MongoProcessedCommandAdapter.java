@@ -38,4 +38,14 @@ public class MongoProcessedCommandAdapter implements ProcessedCommandRepositoryP
             throw new com.traceability.core.application.exception.ConcurrencyConflictException("Write conflict claiming command " + commandId, e);
         }
     }
+
+    @Override
+    public boolean tryClaim(String commandId, String outcome) {
+        throw new UnsupportedOperationException("B1-bis: pendiente");
+    }
+
+    @Override
+    public java.util.Optional<String> findOutcome(String commandId) {
+        return java.util.Optional.empty();
+    }
 }
