@@ -1,6 +1,6 @@
 # Plan B3 — Login y autenticación JWT (implementación de ADR-038 §2.7 y ADR-047)
 
-**Estado:** **EN CURSO** (`feat/b3-jwt`; pasa a HECHO solo tras el reactor y las mutaciones en verde, regla §2.4). **APROBADO — Carlos, 2026-10-07** (Q1 con la condición de la lista explícita de rutas públicas, §2.3.1; Q2 y Q3 sí).
+**Estado:** **HECHO** (`feat/b3-jwt`, 2026-10-07): reactor completo en verde sobre `73d8253` y 12 + 2 mutaciones muertas (`evidencia-fase6/b3-jwt-73d8253-2026-10-07.txt`). **APROBADO — Carlos, 2026-10-07** (Q1 con la condición de la lista explícita de rutas públicas, §2.3.1; Q2 y Q3 sí).
 **Origen:**
 - ADR-038 §2.7 (aprobado): puertos `authenticate`, `resolvePrincipal` e `issue`.
 - **ADR-047 (APROBADO — Carlos, 2026-10-07):**
