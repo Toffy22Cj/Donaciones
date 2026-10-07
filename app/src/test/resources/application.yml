@@ -6,6 +6,9 @@ traceability:
       # Solo para tests; nunca un valor productivo (ADR-047 D3)
       signing-secret: test-only-jwt-signing-secret-not-for-production
       kid: test-k1
+  discovery:
+    # Solo para tests (32 bytes en Base64): "test-only-discovery-cursor-key!!"
+    cursor-key: dGVzdC1vbmx5LWRpc2NvdmVyeS1jdXJzb3Ita2V5ISE=
 
 convocatoria:
   donation-intent:
