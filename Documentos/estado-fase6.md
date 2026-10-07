@@ -148,7 +148,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
 ### 0.11 B6-0 — base HTTP (2026-10-07, `feat/b6-0-base-http`) — HECHO
 
-- **Plan:** `plan-b6-0-base-http.md`, APROBADO por Carlos (Q1–Q3, con las respuestas Q-B60-1 a 5 unificadas en #57). La línea de estado del plan pasa a HECHO cuando #57 esté en `develop`, para no chocar con ese PR.
+- **Plan:** `plan-b6-0-base-http.md`, APROBADO por Carlos (Q1–Q3, con las respuestas Q-B60-1 a 5 unificadas en #57) y marcado HECHO tras la evidencia.
 - **Qué hace** (paquete `com.traceability.api.web`):
   - **`@CurrentActor`**: `HumanActor`, `AuthorizationPrincipal` u `Optional` de ellos, leídos del atributo de `JwtAuthFilter`. Un parámetro obligatorio sin principal da 500, nunca un actor nulo. **`CurrentActorRouteValidator`** impide arrancar con un actor obligatorio en una ruta de `PublicRoutes` (pública o de JWT opcional), con un tipo no admitido o con un `@CommandId` que no sea `String`.
   - **`@CommandId`**: UUID canónico obligatorio, en minúsculas (Q-B60-3). Si falta o no es válido: 400 sin llamar al caso de uso.
