@@ -1,0 +1,52 @@
+# P1.1 Camino A por HTTP (fondos de la organización y asignaciones) en 34abe94 (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: 7b5bcd1c093de454d83cea9547ad5cd370cf6e173b85fcc7ad45e7a4eb9a9a6a
+# Línea base: develop (sección 0) = 1142 tests. Ahora: 1147 (app +5: FundHttpIntegrationTest).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 128, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes (commit rojo 3e9f830)
+[ERROR] Tests run: 5, Failures: 4, Errors: 1, Skipped: 0, Time elapsed: 15.56 s <<< FAILURE! -- in com.traceability.app.web.fund.FundHttpIntegrationTest
+[ERROR] com.traceability.app.web.fund.FundHttpIntegrationTest.requestAllocation_rejections -- Time elapsed: 0.800 s <<< FAILURE!
+[ERROR] com.traceability.app.web.fund.FundHttpIntegrationTest.requestAllocation_isDeterministicAndIdempotent_andReducesTheAvailableAmount -- Time elapsed: 0.070 s <<< FAILURE!
+[ERROR] com.traceability.app.web.fund.FundHttpIntegrationTest.theOrganizationFunds_listOnlyItsOwnFunds_withoutDonorData -- Time elapsed: 0.080 s <<< FAILURE!
+[ERROR] com.traceability.app.web.fund.FundHttpIntegrationTest.confirmAllocation_confirmsOnce -- Time elapsed: 0.064 s <<< ERROR!
+[ERROR] com.traceability.app.web.fund.FundHttpIntegrationTest.anotherOrganization_andAnUnknownOne_giveTheSame403 -- Time elapsed: 0.048 s <<< FAILURE!
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 8.208 s <<< FAILURE! -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+[ERROR] com.traceability.app.web.GoldenPathHttpIntegrationTest.theDemoPath_fromVerificationToPublicTracking_overHttp -- Time elapsed: 3.083 s <<< FAILURE!
+
+# Después (verde, del reactor)
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.999 s -- in com.traceability.core.application.command.FundCommandServiceClearFundsForPledgeIntegrationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.141 s -- in com.traceability.core.application.command.FundCommandServiceAuthorizationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.762 s -- in com.traceability.core.application.command.FundCommandServiceGenesisWithinTransactionIntegrationTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.781 s -- in com.traceability.core.application.command.FundCommandServiceAllocationIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.461 s -- in com.traceability.core.application.command.FundCommandServiceGenesisIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.477 s -- in com.traceability.app.auth.PublicRoutesInventoryIntegrationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.143 s -- in com.traceability.app.web.fund.FundHttpIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.925 s -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+
+# Mutaciones
+- allocationId aleatorio: MUERTA  requestAllocation_isDeterministicAndIdempotent_andReducesTheAvailableAmount
+- aceptar un Command-Id reutilizado: MUERTA  requestAllocation_rejections
+- listar fondos sin frontera de organización: MUERTA  anotherOrganization_andAnUnknownOne_giveTheSame403
+- fondo inexistente como 404: MUERTA  requestAllocation_rejections
+- asignación sin autorización: MUERTA  requestAllocation_rejections
+- lectura sin exigir rol: MUERTA  anotherOrganization_andAnUnknownOne_giveTheSame403
+- importe del cliente sin validar: MUERTA  requestAllocation_rejections
+Restauración verificada contra HEAD. Mutaciones vivas: 0
