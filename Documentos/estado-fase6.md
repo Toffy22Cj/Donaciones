@@ -9,7 +9,7 @@
 
 | Capa | En `develop` | Abierto |
 |---|---|---|
-| Convocatoria | Primer corte + confirmación/aplicación de fondos del módulo (barrera `APPLY_FUNDS`, `FUNDING_REJECTED`, consulta de recuperables). Commit `81cf87c`, fusionado en PR #29. `app → convocatoria` con `OrganizationVerificationAdapter` real (`e269985`) | Orquestador de aplicación de fondos, disparo y scheduler (`app`); T1 y P8 en `core`; P1–P7, R3, R4; aprobación de Enmienda 2 (BORRADOR) y de ADR-045 (recuperación de fondos, documento aún no subido, §0.1), con constancia de que su mecanismo se fusionó en PR #29 sin cumplir la regla 3.5; **decisión de producto pendiente:** valor de `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` (obligatoria y sin valor; `app` no arranca sin ella) |
+| Convocatoria | Primer corte + confirmación/aplicación de fondos del módulo (barrera `APPLY_FUNDS`, `FUNDING_REJECTED`, consulta de recuperables). Commit `81cf87c`, fusionado en PR #29. `app → convocatoria` con `OrganizationVerificationAdapter` real (`e269985`) | Orquestador de aplicación de fondos, disparo y scheduler (`app`); T1 y P8 en `core`; P1–P7, R3, R4; ~~aprobación de Enmienda 2 y ADR-045~~ **aprobadas por Carlos el 2026-10-07** (§0.4); **decisión de producto pendiente:** valor de `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` (provisional `PT72H` solo en `dev`/tests, §0.4) |
 | Identidad | ADR-038 tareas 1–8 fusionadas (`aebedb2`): `HumanActor`, Platform Administrator con bootstrap, verificación de `Organization`, reintentos C+ | JWT/autenticación HTTP (ADR-038 §2.7), endpoints de plataforma, `AccountNotFoundException` en `contracts`, deuda ADR-038 §9.4 |
 | Blockchain | Productor de `MerkleBatch` (Fases 1–3), `IntegrityVerificationPort`, recuperación automática de batches `COLLECTING` abandonados, partición contigua por presupuesto, `leafHashes` persistidos, `verifyAllAnchored` en streaming | **B-9:** la verificación no recalcula `eventHash` desde el payload ni comprueba la cadena `previousHash`. **B-10:** `COLLECTING` sin tope ni estado de salida (bloqueo por cabeza de cola; riesgo latente: un batch ilegible detiene `produceBatch`). Propuesta en `ADR-039-enmienda-1-blockchain.md` (BORRADOR). Además: migración de batches legacy, `correlationId` de scheduler, límite/paginación explícita de `verifyAllAnchored` (§4) |
 | IA | Pipeline de donación individual (`DonorReportGenerator` sobre `AuditFactsPort`). `CampaignAuditFactsPort`/`CampaignAuditFactsDTO` como contrato | Productor y consumidor de `CampaignAuditFactsPort` — bloqueados por ADR-040 C2–C5; C8 |
@@ -40,6 +40,15 @@ app:          [INFO] Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 tests por el adaptador de `OrganizationVerificationPort` (`e269985`) y los tests de recuperación de `COLLECTING`.
+
+### 0.4 Cierre de decisiones (2026-10-07, Carlos)
+
+- **ADR-045 APROBADO** (`ADR-045-recuperacion-aplicacion-fondos.md`, subido en `4b5e528`) y **Enmienda 2 de ADR-037 APROBADA** con C1–C3. Es una aprobación en parte retroactiva: el incumplimiento de la regla 3.5 del PR #29 sigue registrado. Autorizan el diseño; el código del orquestador, el disparo y el scheduler sigue bloqueado por T1/P8 (`plan-cierre-fase6-codigo.md`).
+- **Numeración:** recuperación de fondos → ADR-045; frontend web `paxfide-web` → **ADR-046** (repositorio `PaxFide`; antes ADR-042); ADR-044 reservado al predictivo; siguiente libre ADR-047 (`documento-maestro-proyecto.md` §5).
+- **I-5** (adaptador de `OrganizationVerificationPort` que se salta la capa de aplicación de `identity`): dueño **Carlos**.
+- **`CONVOCATORIA_BANK_TRANSFER_EXPIRATION`:** valor **provisional** `PT72H` (3 días) solo en el perfil `dev` (`app/src/main/resources/application-dev.yml`) y en tests; **sin valor por defecto en producción**. El valor de producto sigue pendiente. Criterio para fijarlo: plazo de compensación bancaria más el tiempo que tarda la organización en confirmar; descartar plazos de pocas horas.
+- **Golden path y criterio de cierre de la Fase 6:** **`ASSET_SPLIT` entra en la demo — Carlos, 2026-10-07.** `golden-path.md` incorpora §7 (consultas y evidencia) y §8 (criterios de aceptación 1–19), tomados de la copia del proyecto que nunca se había commiteado. Manda el §3 del repositorio, con las exclusiones añadidas. **La Fase 6 se cierra cuando se cumplen los criterios 1–19 con evidencia real.**
+- **Huecos verificados en el código para ese criterio:** la saga que crea el hijo de una división no existe, y ningún `PhysicalAsset` tiene `campaignRef` (sin él, la narrativa de convocatoria cuenta cero unidades). Ver `plan-cierre-fase6-codigo.md`, D-SPLIT y D-CAMPAIGN.
 
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
@@ -181,7 +190,12 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
 
 ## 6. Próximo paso sugerido
 
-*Actualización 2026-10-07:* (1) la contradicción de puerto en IA está cerrada y (3) el merge de Identidad está hecho. Orden vigente (revisado tras §0.3): (a) subir ADR-045 y aprobar o rechazar Enmienda 2 + ADR-045, con constancia del incumplimiento de la regla 3.5; (b) aprobar `ADR-039-enmienda-1-blockchain.md` (B-9/B-10) e implementarla; (c) T1 y P8 en `core`, y después el orquestador de aplicación de fondos en `app`; (d) JWT/autenticación HTTP y endpoints de Fase 6 (ADR-041); (e) decisiones C2–C5 de IA.
+*Actualización 2026-10-07 (cierre de decisiones, §0.4):* el orden vigente está en `plan-cierre-fase6-codigo.md` (PROPUESTO), con dos cadenas críticas:
+- **dinero:** D-P8 (`propuesta-P8-outbox-genesis.md`) → T1/P8 en `core` → orquestador de ADR-045 en `app` → endpoints de la demo → golden path;
+- **narrativa de convocatoria:** D-CAMPAIGN (`campaignRef` en `PhysicalAsset`, enmienda de ADR-029) → implementación en `core` → IA C2–C5 → golden path.
+
+En paralelo: D-SPLIT (saga del hijo), D-JWT, la Enmienda 1 de ADR-039 y las fichas de API. El orden anterior (a)–(e) de esta sección queda sustituido.
+
 
 Texto original: De los pendientes de mayor severidad, ninguno depende de otro para empezar. Orden por impacto en el Golden Path: (1) resolver la contradicción de puerto en IA, (2) completar pendientes de Convocatoria y core (T1, P8), (3) merge de Identidad a develop y endpoints HTTP.
 

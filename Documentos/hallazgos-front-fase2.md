@@ -1,9 +1,11 @@
 # Hallazgos del diseño de frontend web (`paxfide-web`) — explicados
 
+*Nota de numeración (2026-10-07, decisión de Carlos):* el ADR del frontend web `paxfide-web` se renumera de ADR-042 a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`, repositorio `Toffy22Cj/PaxFide`) por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`, que conserva su número. Las referencias de este documento se actualizaron.
+
 **Estado:** documento de hallazgos, no ADR. No toma decisiones de backend: explica cada problema, por qué lo es, qué bloquea y cómo se sabrá que está resuelto. Las opciones que aparecen son **opciones**, no elecciones.
 **Origen:** Fase 2 del frontend (`front-fase2.md`). Algunos hallazgos son nuevos de esta fase y otros son heredados de documentos anteriores; se indica en cada caso.
 **Fuentes:** `front-fase2.md`, `front-fase1.md`, `api-contract-matrix.md`, `ADR-041`, `golden-path.md`, `contract-wiring-review.md`, `identity-resumen.md`, `convocatoria-resumen.md`.
-**Numeración de ADR:** las referencias usan la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend; ADR-042 frontend web). Los archivos del catálogo que aún conserven la numeración anterior (033–037) se renombran según `plan-correccion-fase5-e-ia.md`.
+**Numeración de ADR:** las referencias usan la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend; ADR-046 frontend web). Los archivos del catálogo que aún conserven la numeración anterior (033–037) se renombran según `plan-correccion-fase5-e-ia.md`.
 
 ---
 
