@@ -121,6 +121,31 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Pendiente (B6):** el endpoint `POST .../split` (`202`) y `GET .../splits/{child}` sobre `SplitResolutionReadPort`.
 - **Evidencia:** `evidencia-fase6/b1bis-saga-division-ff7bfbc-2026-10-07.txt`.
 
+### 0.10 Tests transaccionales de `core` (2026-10-07, `fix/tests-transaccionales-core`)
+
+**Origen:** en B1-bis se vio que los tests de integración de `core` no tienen `MongoTransactionManager` salvo que lo declaren, y entonces `@Transactional` no tiene efecto (Spring Boot solo activa las transacciones si existe un gestor). En producción sí lo hay, porque lo define `app`.
+
+**Auditoría** (los 20 tests de `core` con contexto de Spring):
+
+| Test | ¿Afirma atomicidad, rollback o barrera? | ¿Tiene gestor? | Resultado |
+|---|---|---|---|
+| `MongoEventStoreAdapterTest.testTransactionalRollback` | Sí: evento y outbox revertidos | Sí | Corre con transacción; sonda añadida |
+| `ProcessedCommandIdempotencyIntegrationTest.rollback_on_conflict` | Sí: el reclamo se revierte | Sí | Corre con transacción; sonda añadida |
+| `FundCommandServiceGenesisWithinTransactionIntegrationTest` (T1) | Sí: un rollback externo no deja evento ni reclamo | Sí, y `Propagation.MANDATORY` | Corre con transacción; sonda añadida |
+| `SplitSagaIntegrationTest` (barrera, atomicidad, resolución manual) | Sí | Sí | Corre con transacción; sonda añadida |
+| `CampaignRefIntegrationTest` ("un rechazo no deja efectos") | No: el rechazo ocurre antes de cualquier escritura | No | No depende de una transacción |
+| Los otros 15 (`FundCommandService*`, `PhysicalAssetCommandService*`, `Phase5EndToEnd`, `RegisterPhysicalAssetFromDonation`, proyecciones, `MongoUnanchoredEventAdapterTest`, seguridad…) | No | No | Idempotencia por reclamo o escrituras simples, que no dependen de un rollback |
+
+**Ningún test de `core` afirmaba una garantía transaccional sin gestor**, así que no apareció ningún defecto oculto. Fuera de `core`: `app` (`TraceabilityInfrastructureConfig`) y `convocatoria` (`ConvocatoriaTestApplication`) aportan su gestor.
+
+**Protección añadida:** `core/src/test/.../support/TransactionProbe`. Envuelve `EventStorePort.append` y `ProcessedCommandRepositoryPort.tryClaim` y registra `TransactionSynchronizationManager.isActualTransactionActive()` en cada llamada. Los tests de la tabla con sonda llaman a `assertEveryWriteWasTransactional()`, que falla si no hubo escrituras o si alguna se hizo sin transacción. Comprobado:
+- quitando el `MongoTransactionManager`, fallan `MongoEventStoreAdapterTest.testTransactionalRollback`, `ProcessedCommandIdempotencyIntegrationTest.rollback_on_conflict` y cuatro tests de `SplitSagaIntegrationTest`;
+- en el de T1, `MANDATORY` y el `TransactionTemplate` ya lo impiden.
+
+**Regla para tests nuevos:** todo test que afirme atomicidad, rollback o una barrera declara `MongoTransactionManager`, importa `TransactionProbe.Config` y llama a `assertEveryWriteWasTransactional()`.
+
+**Mutaciones:** `scripts/mutaciones.py` restaura siempre con `git checkout -- <archivo>` (nunca desde una copia en memoria), se niega a empezar con cambios sin commit en los archivos a mutar y verifica al final que todo vuelve a HEAD. Motivo: en B1-bis, una restauración desde una copia guardada después de una primera edición dejó código mutado. Se detectó y la evidencia sigue siendo válida (el código final coincide con `ff7bfbc`), pero la próxima vez podría no notarse.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.

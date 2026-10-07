@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Testcontainers
+@org.springframework.context.annotation.Import(com.traceability.core.support.TransactionProbe.Config.class)
 class MongoEventStoreAdapterTest {
 
     @MockBean
@@ -117,6 +118,9 @@ class MongoEventStoreAdapterTest {
 
     @Autowired
     private TestRollbackService testRollbackService;
+
+    @Autowired
+    private com.traceability.core.support.TransactionProbe transactionProbe;
 
     @BeforeEach
     void setup() {
@@ -214,9 +218,11 @@ class MongoEventStoreAdapterTest {
         DomainEvent event = new DomainEvent(() -> "ASSET_REGISTERED", payload, Instant.now());
         OutboxMessage outboxMsg = new OutboxMessage("msg-1", "SAGA", "stream-rb", "corr-1", "{}", OutboxStatus.PENDING, 0, Instant.now(), Instant.now());
 
+        transactionProbe.reset();
         assertThrows(RuntimeException.class, () -> 
             testRollbackService.appendAndFail("stream-rb", event, outboxMsg)
         );
+        transactionProbe.assertEveryWriteWasTransactional();
 
         assertEquals(0, mongoTemplate.findAll(TraceabilityEventDocument.class).size());
         assertEquals(0, mongoTemplate.findAll(OutboxMessageDocument.class).size());
