@@ -69,6 +69,11 @@ public record ConvocatoriaConfiguration(
         return acceptedDonationTypes.contains(DonationType.MONETARY);
     }
 
+    /** Acepta donaciones en especie (ADR-029 Enmienda 1, D3: requisito del {@code campaignRef} de un activo). */
+    public boolean acceptsInKind() {
+        return acceptedDonationTypes.contains(DonationType.IN_KIND);
+    }
+
     /** Meta, política y moneda iguales: no existe operación para cambiarlas (implementation_plan.md §3.1). */
     boolean hasSameMonetaryTermsAs(ConvocatoriaConfiguration other) {
         return Objects.equals(currency, other.currency)
