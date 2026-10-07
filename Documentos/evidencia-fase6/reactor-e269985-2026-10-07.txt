@@ -1,0 +1,50 @@
+# Extracto literal — mvn clean test -fae sobre develop e269985 (2026-10-07)
+#
+# Fuente: log completo de la ejecución (884535 bytes), no versionado porque contiene la
+# configuración del proxy del sandbox (JAVA_TOOL_OPTIONS) y rutas del contenedor; revisado: sin claves ni secretos.
+# sha256 del log completo: 93e22638b0a67bfb9505094b2905aeb2bcee498e7f8773996a1e13fa7765e9a8
+# Extracción: líneas 'Building', bloque de surefire de contracts, bloques 'Results:' y 'Reactor Summary', copiadas sin
+# modificar; solo se omiten las líneas '[INFO]' vacías. El árbol de trabajo era e269985 con cambios únicamente en Documentos/
+# (sin cambios de código ni de tests).
+#
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] --- surefire:3.2.5:test (default-test) @ contracts ---
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Results:
+[INFO] Tests run: 229, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Results:
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Results:
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Results:
+[INFO] Tests run: 34, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Results:
+[INFO] Tests run: 261, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Results:
+[INFO] Tests run: 194, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Results:
+[INFO] Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  1.577 s]
+[INFO] contracts .......................................... SUCCESS [  1.403 s]
+[INFO] core ............................................... SUCCESS [02:19 min]
+[INFO] crypto ............................................. SUCCESS [ 32.370 s]
+[INFO] ai ................................................. SUCCESS [ 12.139 s]
+[INFO] api ................................................ SUCCESS [ 21.025 s]
+[INFO] identity ........................................... SUCCESS [02:01 min]
+[INFO] convocatoria ....................................... SUCCESS [ 22.928 s]
+[INFO] app ................................................ SUCCESS [01:10 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  07:02 min
+[INFO] Finished at: 2026-10-07T01:08:46Z
+[INFO] ------------------------------------------------------------------------

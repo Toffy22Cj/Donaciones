@@ -3,7 +3,9 @@
 **Estado:** BORRADOR — recoge decisiones humanas aprobadas el 2026-10-02 (§1.1). El texto lo redactó el agente y requiere aprobación humana explícita (§9) para ser normativo.
 **Fecha:** 2026-10-02.
 **ADR que enmienda:** ADR-037 (`ADR-037-convocatoria-ledger-assignment-donationintent.md`) y su Enmienda 1 (`ADR-037-enmienda-1-convocatoria.md`). "ADR-037 §X" y "Enmienda 1 §X" se refieren a esos archivos.
-**ADR asociado:** ADR-043 (recuperación automática de la aplicación de fondos), exigido por la regla 3.5 de `reglas-equipo-y-agentes.md`.
+*Nota de numeración (2026-10-07, dirección aprobada por Carlos):* este borrador citaba "ADR-043" en 6 lugares. Ese número lo ocupa `ADR-043-frontend-movil-paxfide-mobile.md` y el 044 está reservado al componente predictivo, así que el ADR de recuperación pasa a **ADR-045** (documento pendiente de subir al repositorio). Ver `auditoria-fase6-codigo-vs-documentacion.md` §10 y `documento-maestro-proyecto.md` §5.
+
+**ADR asociado:** ADR-045 (recuperación automática de la aplicación de fondos), exigido por la regla 3.5 de `reglas-equipo-y-agentes.md`.
 **Fuentes:** decisiones humanas del 2026-10-02 registradas en `convocatoria-resumen.md` §6.20; auditorías temporales `auditoria-c01-postcorreccion.md`, `auditoria-cierre-f1-f2.md`, `auditoria-flujo-confirmed-fondos-v3.md`, `debate-cierre-confirmed-fondos.md`, `auditoria-preimplementacion-cierre-convocatoria.md`, `auditoria-delimitacion-cierre-convocatoria.md` (evidencia, no normativa).
 
 ---
@@ -28,7 +30,7 @@ Se mantienen las etiquetas de la Enmienda 1 ([DECISIÓN], [REQUISITO], [PENDIENT
 | D4 | P1 (registro del dinero rechazado) sigue fuera de este corte |
 | D5 | La confirmación manual solo la ejecuta un `ADMINISTRATOR` de la organización; una intención de pasarela no se confirma manualmente; `confirmedBy` es el actor real |
 | D6 | La aplicación la dispara el sistema; no requiere un segundo acto humano |
-| D7 | Esta enmienda y ADR-043, antes del código |
+| D7 | Esta enmienda y ADR-045, antes del código |
 | Claves | El espacio de claves se separa solo para el comando de sistema: entre comandos de cliente se mantiene I1 (`implementation_plan.md` §7.1) |
 
 ---
@@ -42,7 +44,7 @@ Se mantienen las etiquetas de la Enmienda 1 ([DECISIÓN], [REQUISITO], [PENDIENT
 | Estados de `DonationIntent` | ADR-037 §2.6: `PENDING`, `CONFIRMED`, `FAILED`, `EXPIRED-UNKNOWN` | Se añade `FUNDING_REJECTED` (terminal) | §4 |
 | Flujo del webhook | ADR-037 §2.6 paso 3: correlación válida → `clearFundsGenesis` | Dos actos: confirmación y aplicación posterior (§3) | §3 |
 | Registro de comandos procesados | Enmienda 1 §3.5: comandos de escritura del módulo, `commandId` del cliente | Añade comandos de sistema con espacio de claves propio | §3.3 |
-| Recuperación | No existía | Disparo inmediato + scheduler de respaldo (ADR-043) | §5 |
+| Recuperación | No existía | Disparo inmediato + scheduler de respaldo (ADR-045) | §5 |
 
 ---
 
@@ -74,7 +76,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 ### 3.2 Aplicación posterior
 
 - **[DECISIÓN]** La aplicación consume una intención `CONFIRMED`; una intención en otro estado no se aplica (F-1).
-- **[DECISIÓN]** La dispara el sistema (D6), por disparo inmediato o por el scheduler de respaldo (§5, ADR-043). No exige un segundo acto humano. En `core`, la génesis la ejecuta un `SystemActor`; `core` no comprueba roles para actores de sistema, así que **la autorización humana del movimiento de dinero es la de la confirmación** (§3.1).
+- **[DECISIÓN]** La dispara el sistema (D6), por disparo inmediato o por el scheduler de respaldo (§5, ADR-045). No exige un segundo acto humano. En `core`, la génesis la ejecuta un `SystemActor`; `core` no comprueba roles para actores de sistema, así que **la autorización humana del movimiento de dinero es la de la confirmación** (§3.1).
 - **[DECISIÓN]** Ledger + génesis del `Fund` + outbox en **una** transacción MongoDB del orquestador de `app` (ADR-037 §2.3, sin cambios). `convocatoria` aporta la barrera y el incremento del ledger, uniéndose a la transacción externa y marcándola para rollback ante cualquier excepción; `core` aporta la génesis y el outbox.
 - **[REQUISITO]** Ninguna pieza reintenta dentro de la transacción del orquestador (Enmienda 1 §6): `convocatoria` reclama la barrera sin reintento interno cuando hay transacción activa; `clearFundsGenesis` necesita un camino sin reintento interno (T1, `implementation_plan.md` §8).
 - **[REQUISITO]** El `commandId` de `clearFundsGenesis` se deriva de forma determinista de la intención (Enmienda 1 §5.3, sin cambios).
@@ -107,7 +109,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 
 ## 5. Recuperación
 
-- **[DECISIÓN]** Disparo inmediato de la aplicación tras confirmar, y scheduler de respaldo que recupera intenciones `CONFIRMED` sin aplicar (D2). Detalle en ADR-043.
+- **[DECISIÓN]** Disparo inmediato de la aplicación tras confirmar, y scheduler de respaldo que recupera intenciones `CONFIRMED` sin aplicar (D2). Detalle en ADR-045.
 - **[DECISIÓN]** La consulta de intenciones recuperables pertenece a `convocatoria`: intenciones `CONFIRMED` sin reclamo `APPLY_FUNDS`, excluidas las de convocatorias `CLOSE_ON_TARGET + CLOSE` mientras R4 no exista (P9, opción a). Una intención `FUNDING_REJECTED` nunca vuelve a la cola. El scheduler pertenece a `app`.
 - **[REQUISITO]** Seguridad con varias instancias: la proporciona la barrera (§3.3); el scheduler no añade una segunda lógica de negocio.
 - **[ESTADO]** `convocatoria` no puede llamar a `app` (regla de arquitectura), así que el disparo inmediato lo hace el caso de uso de `app` que invoca la confirmación.
@@ -148,5 +150,5 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 ## 9. Aprobación
 
 - [ ] Aprobación humana explícita del texto de esta enmienda.
-- [ ] Aprobación humana de ADR-043.
+- [ ] Aprobación humana de ADR-045.
 - [ ] Apertura de las dependencias de §6 en sus módulos (no bloquea el código de `convocatoria`).

@@ -9,27 +9,41 @@
 
 | Capa | En `develop` | Abierto |
 |---|---|---|
-| Convocatoria | Primer corte + confirmación/aplicación de fondos del módulo (barrera `APPLY_FUNDS`, `FUNDING_REJECTED`, consulta de recuperables). Commit `81cf87c`, fusionado en PR #29. `app → convocatoria` con `OrganizationVerificationAdapter` real (`e269985`) | Orquestador de aplicación de fondos, disparo y scheduler (`app`); T1 y P8 en `core`; P1–P7, R3, R4; aprobación de Enmienda 2 (BORRADOR); documento de recuperación de fondos citado como "ADR-043" ausente y con número en colisión (§0.1); duración real de `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` |
+| Convocatoria | Primer corte + confirmación/aplicación de fondos del módulo (barrera `APPLY_FUNDS`, `FUNDING_REJECTED`, consulta de recuperables). Commit `81cf87c`, fusionado en PR #29. `app → convocatoria` con `OrganizationVerificationAdapter` real (`e269985`) | Orquestador de aplicación de fondos, disparo y scheduler (`app`); T1 y P8 en `core`; P1–P7, R3, R4; aprobación de Enmienda 2 (BORRADOR) y de ADR-045 (recuperación de fondos, documento aún no subido, §0.1), con constancia de que su mecanismo se fusionó en PR #29 sin cumplir la regla 3.5; **decisión de producto pendiente:** valor de `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` (obligatoria y sin valor; `app` no arranca sin ella) |
 | Identidad | ADR-038 tareas 1–8 fusionadas (`aebedb2`): `HumanActor`, Platform Administrator con bootstrap, verificación de `Organization`, reintentos C+ | JWT/autenticación HTTP (ADR-038 §2.7), endpoints de plataforma, `AccountNotFoundException` en `contracts`, deuda ADR-038 §9.4 |
-| Blockchain | Productor de `MerkleBatch` (Fases 1–3), `IntegrityVerificationPort`, recuperación automática de batches `COLLECTING` abandonados, partición contigua por presupuesto, `leafHashes` persistidos, `verifyAllAnchored` en streaming | Migración de batches legacy, `correlationId` de scheduler, límite/paginación explícita de `verifyAllAnchored` (§4) |
+| Blockchain | Productor de `MerkleBatch` (Fases 1–3), `IntegrityVerificationPort`, recuperación automática de batches `COLLECTING` abandonados, partición contigua por presupuesto, `leafHashes` persistidos, `verifyAllAnchored` en streaming | **B-9:** la verificación no recalcula `eventHash` desde el payload ni comprueba la cadena `previousHash`. **B-10:** `COLLECTING` sin tope ni estado de salida (bloqueo por cabeza de cola; riesgo latente: un batch ilegible detiene `produceBatch`). Propuesta en `ADR-039-enmienda-1-blockchain.md` (BORRADOR). Además: migración de batches legacy, `correlationId` de scheduler, límite/paginación explícita de `verifyAllAnchored` (§4) |
 | IA | Pipeline de donación individual (`DonorReportGenerator` sobre `AuditFactsPort`). `CampaignAuditFactsPort`/`CampaignAuditFactsDTO` como contrato | Productor y consumidor de `CampaignAuditFactsPort` — bloqueados por ADR-040 C2–C5; C8 |
 | APIs + Frontend | Solo los 3 endpoints públicos de Fase 3 | Todos los endpoints de Fase 6 (ADR-041) |
 
 Evidencia de tests de esta auditoría: §0.2.
 
-### 0.1 Colisión de número ADR-043
+### 0.1 Colisión de número ADR-043 — resuelta en numeración (2026-10-07)
 
-Los documentos de Convocatoria citan `ADR-043-recuperacion-aplicacion-fondos-convocatoria.md` (recuperación automática de la aplicación de fondos, Propuesto). Ese archivo **no está en el repositorio**; el ADR-043 presente es `ADR-043-frontend-movil-paxfide-mobile.md`. **Decisión humana pendiente:** renumerar uno de los dos y versionar el documento de recuperación. Hasta entonces, toda mención de "ADR-043" en este documento se refiere al de recuperación de fondos.
+Los documentos de Convocatoria citaban `ADR-043-recuperacion-aplicacion-fondos-convocatoria.md` (recuperación automática de la aplicación de fondos, Propuesto), que **no está en el repositorio**. El ADR-043 presente es `ADR-043-frontend-movil-paxfide-mobile.md`, y el 044 está reservado al componente predictivo en Python (documento fuera del repositorio).
+
+**Dirección aprobada por Carlos, 2026-10-07:** el ADR de recuperación de fondos pasa a ser **ADR-045**. La Enmienda 2 (BORRADOR vivo) ya está corregida. Los documentos cerrados conservan "ADR-043" como registro histórico; en ellos, y en las secciones históricas de este documento, "ADR-043" en contexto de recuperación de fondos significa ADR-045. **Pendiente:** subir ADR-044 y ADR-045 al repositorio y aprobarlos o rechazarlos.
 
 ### 0.2 Evidencia (ejecución de esta sesión)
 
-`mvn clean test -fae` del reactor completo (9 módulos) sobre `develop` `e269985`, Docker real (Testcontainers `mongo:6.0` replica set), 2026-10-07:
+`mvn clean test -fae` sobre `develop` `e269985` (árbol con cambios solo en `Documentos/`), Docker real, terminado el 2026-10-07T01:08:46Z. Extracto literal persistido en `evidencia-fase6/reactor-e269985-2026-10-07.txt` (`sha256` del log completo `93e22638b0a67bfb9505094b2905aeb2bcee498e7f8773996a1e13fa7765e9a8`). Resumen literal de Surefire por módulo:
 
-| Módulo | core | crypto | ai | api | identity | convocatoria | app | Total |
-|---|---|---|---|---|---|---|---|---|
-| Tests | 229 | 50 | 19 | 34 | 261 | 194 | 42 | **829** |
+```
+contracts:    [INFO] No tests to run.
+core:         [INFO] Tests run: 229, Failures: 0, Errors: 0, Skipped: 0
+crypto:       [INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+ai:           [INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+api:          [INFO] Tests run: 34, Failures: 0, Errors: 0, Skipped: 0
+identity:     [INFO] Tests run: 261, Failures: 0, Errors: 0, Skipped: 0
+convocatoria: [INFO] Tests run: 194, Failures: 0, Errors: 0, Skipped: 0
+app:          [INFO] Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
+              [INFO] BUILD SUCCESS
+```
 
-Todos con `Failures: 0, Errors: 0, Skipped: 0` — `BUILD SUCCESS`. `app` pasa de 27 a 42 tests por el adaptador de `OrganizationVerificationPort` (`e269985`) y los tests de recuperación de `COLLECTING`; el resto coincide con las cifras ya registradas.
+Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 tests por el adaptador de `OrganizationVerificationPort` (`e269985`) y los tests de recuperación de `COLLECTING`.
+
+### 0.3 Revisión externa de la auditoría (2026-10-07)
+
+Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.
 
 ## 1. Resumen de una línea
 
@@ -167,7 +181,7 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
 
 ## 6. Próximo paso sugerido
 
-*Actualización 2026-10-07:* (1) la contradicción de puerto en IA está cerrada y (3) el merge de Identidad está hecho. Orden vigente por impacto en el Golden Path: (a) resolver la colisión ADR-043 y aprobar Enmienda 2 + documento de recuperación; (b) T1 y P8 en `core`, y después el orquestador de aplicación de fondos en `app`; (c) JWT/autenticación HTTP y endpoints de Fase 6 (ADR-041); (d) decisiones C2–C5 de IA.
+*Actualización 2026-10-07:* (1) la contradicción de puerto en IA está cerrada y (3) el merge de Identidad está hecho. Orden vigente (revisado tras §0.3): (a) subir ADR-045 y aprobar o rechazar Enmienda 2 + ADR-045, con constancia del incumplimiento de la regla 3.5; (b) aprobar `ADR-039-enmienda-1-blockchain.md` (B-9/B-10) e implementarla; (c) T1 y P8 en `core`, y después el orquestador de aplicación de fondos en `app`; (d) JWT/autenticación HTTP y endpoints de Fase 6 (ADR-041); (e) decisiones C2–C5 de IA.
 
 Texto original: De los pendientes de mayor severidad, ninguno depende de otro para empezar. Orden por impacto en el Golden Path: (1) resolver la contradicción de puerto en IA, (2) completar pendientes de Convocatoria y core (T1, P8), (3) merge de Identidad a develop y endpoints HTTP.
 
