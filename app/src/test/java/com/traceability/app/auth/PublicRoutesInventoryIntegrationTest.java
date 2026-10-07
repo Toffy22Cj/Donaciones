@@ -80,7 +80,11 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm",
             // Tercera autorización, §3.1: crear organización y cola de verificación
             "POST /api/v1/organizations",
-            "GET /api/v1/platform/organizations");
+            "GET /api/v1/platform/organizations",
+            // §3.2: administradores de plataforma
+            "GET /api/v1/platform/administrators",
+            "POST /api/v1/platform/administrators",
+            "POST /api/v1/platform/administrators/{accountId}/revoke");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
