@@ -34,7 +34,7 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-from train_baseline import CATEGORICAL, NUMERIC, FEATURES, SEED
+from train_baseline import CATEGORICAL, NUMERIC, FEATURES, SEED, EXCLUDED_POLICIES
 
 # Paleta: status (riesgo) siempre con etiqueta de texto; serie y texto neutros.
 STATUS = {"ON_TRACK": "#0ca30c", "WATCH": "#fab219", "HIGH_RISK": "#d03b3b"}
@@ -87,7 +87,8 @@ def main() -> None:
     df = pd.read_csv(args.data / "snapshots.csv")
     intents = pd.read_csv(args.data / "donation_intents.csv")
     clf = joblib.load(args.models / "model_logistic_regression.joblib")
-    df_fit = df[df.alreadyReachedAtT == 0].reset_index(drop=True)
+    # Mismo filtro que train_baseline.py, para que la partición por convocatoria coincida (ADR-044 P7/D3).
+    df_fit = df[(df.alreadyReachedAtT == 0) & (~df.targetPolicy.isin(EXCLUDED_POLICIES))].reset_index(drop=True)
     qmodels, train_refs = quantile_models(df_fit[FEATURES], df_fit["label_finalPctOfTarget"].to_numpy(),
                                           df_fit["campaignRef"].to_numpy())
 

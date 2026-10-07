@@ -18,35 +18,35 @@
   },
   "items": [
     {
-      "campaignRef": "cmp-01072",
+      "campaignRef": "cmp-00742",
       "campaignName": "Kits de higiene La Boquilla",
-      "targetAmount": 3788000,
+      "targetAmount": 71139000,
       "currency": "COP",
       "targetPolicy": "FLEXIBLE",
-      "durationDays": 26,
+      "durationDays": 81,
       "latest": {
         "t": 0.5,
-        "pctRaisedAtT": 0.2875,
-        "probabilityReachTarget": 0.0139,
+        "pctRaisedAtT": 0.3406,
+        "probabilityReachTarget": 0.0124,
         "riskBand": "HIGH_RISK"
       },
       "history": [
         {
           "t": 0.15,
-          "pctRaisedAtT": 0.126,
-          "probabilityReachTarget": 0.0798,
+          "pctRaisedAtT": 0.1785,
+          "probabilityReachTarget": 0.0241,
           "riskBand": "HIGH_RISK"
         },
         {
           "t": 0.25,
-          "pctRaisedAtT": 0.1622,
-          "probabilityReachTarget": 0.0444,
+          "pctRaisedAtT": 0.2479,
+          "probabilityReachTarget": 0.0291,
           "riskBand": "HIGH_RISK"
         },
         {
           "t": 0.5,
-          "pctRaisedAtT": 0.2875,
-          "probabilityReachTarget": 0.0139,
+          "pctRaisedAtT": 0.3406,
+          "probabilityReachTarget": 0.0124,
           "riskBand": "HIGH_RISK"
         }
       ],
@@ -57,85 +57,85 @@
         },
         {
           "t": 0.05,
-          "pctRaised": 0.0662
+          "pctRaised": 0.0752
         },
         {
           "t": 0.1,
-          "pctRaised": 0.1055
+          "pctRaised": 0.1385
         },
         {
           "t": 0.15,
-          "pctRaised": 0.126
+          "pctRaised": 0.1785
         },
         {
           "t": 0.2,
-          "pctRaised": 0.134
+          "pctRaised": 0.2176
         },
         {
           "t": 0.25,
-          "pctRaised": 0.1622
+          "pctRaised": 0.2479
         },
         {
           "t": 0.3,
-          "pctRaised": 0.1823
+          "pctRaised": 0.2739
         },
         {
           "t": 0.35,
-          "pctRaised": 0.2148
+          "pctRaised": 0.29
         },
         {
           "t": 0.4,
-          "pctRaised": 0.247
+          "pctRaised": 0.3076
         },
         {
           "t": 0.45,
-          "pctRaised": 0.247
+          "pctRaised": 0.3233
         },
         {
           "t": 0.5,
-          "pctRaised": 0.2875
+          "pctRaised": 0.3406
         }
       ],
       "projection": {
         "atT": 0.5,
         "finalPctOfTarget": {
-          "p10": 0.5323,
-          "p50": 0.618,
-          "p90": 0.6348
+          "p10": 0.5953,
+          "p50": 0.6257,
+          "p90": 0.6959
         },
         "note": "El modelo estima solo el valor al cierre; la curva entre t y 1.0 es interpolación visual."
       }
     },
     {
-      "campaignRef": "cmp-00730",
+      "campaignRef": "cmp-01176",
       "campaignName": "Agua potable Nelson Mandela",
-      "targetAmount": 3941000,
+      "targetAmount": 14498000,
       "currency": "COP",
       "targetPolicy": "FLEXIBLE",
-      "durationDays": 38,
+      "durationDays": 34,
       "latest": {
         "t": 0.5,
-        "pctRaisedAtT": 0.5817,
-        "probabilityReachTarget": 0.6022,
+        "pctRaisedAtT": 0.6107,
+        "probabilityReachTarget": 0.5362,
         "riskBand": "WATCH"
       },
       "history": [
         {
           "t": 0.15,
-          "pctRaisedAtT": 0.3063,
-          "probabilityReachTarget": 0.6209,
-          "riskBand": "WATCH"
+          "pctRaisedAtT": 0.2952,
+          "probabilityReachTarget": 0.3235,
+          "riskBand": "HIGH_RISK"
         },
         {
           "t": 0.25,
-          "pctRaisedAtT": 0.4488,
-          "probabilityReachTarget": 0.7982,
-          "riskBand": "ON_TRACK"
+          "pctRaisedAtT": 0.3928,
+          "probabilityReachTarget": 0.3641,
+          "riskBand": "WATCH"
         },
         {
           "t": 0.5,
-          "pctRaisedAtT": 0.5817,
-          "probabilityReachTarget": 0.6022,
+          "pctRaisedAtT": 0.6107,
+          "probabilityReachTarget": 0.5362,
           "riskBand": "WATCH"
         }
       ],
@@ -146,85 +146,85 @@
         },
         {
           "t": 0.05,
-          "pctRaised": 0.1016
+          "pctRaised": 0.1688
         },
         {
           "t": 0.1,
-          "pctRaised": 0.1769
+          "pctRaised": 0.2433
         },
         {
           "t": 0.15,
-          "pctRaised": 0.3063
+          "pctRaised": 0.2952
         },
         {
           "t": 0.2,
-          "pctRaised": 0.3561
+          "pctRaised": 0.3411
         },
         {
           "t": 0.25,
-          "pctRaised": 0.4488
+          "pctRaised": 0.3928
         },
         {
           "t": 0.3,
-          "pctRaised": 0.4823
+          "pctRaised": 0.4748
         },
         {
           "t": 0.35,
-          "pctRaised": 0.5099
+          "pctRaised": 0.4816
         },
         {
           "t": 0.4,
-          "pctRaised": 0.5523
+          "pctRaised": 0.5651
         },
         {
           "t": 0.45,
-          "pctRaised": 0.5817
+          "pctRaised": 0.5677
         },
         {
           "t": 0.5,
-          "pctRaised": 0.5817
+          "pctRaised": 0.6107
         }
       ],
       "projection": {
         "atT": 0.5,
         "finalPctOfTarget": {
-          "p10": 0.8812,
-          "p50": 1.098,
-          "p90": 1.2401
+          "p10": 0.9432,
+          "p50": 1.0657,
+          "p90": 1.1756
         },
         "note": "El modelo estima solo el valor al cierre; la curva entre t y 1.0 es interpolación visual."
       }
     },
     {
-      "campaignRef": "cmp-01063",
+      "campaignRef": "cmp-00363",
       "campaignName": "Mercados para adultos mayores",
-      "targetAmount": 2745000,
+      "targetAmount": 10001000,
       "currency": "COP",
       "targetPolicy": "FLEXIBLE",
-      "durationDays": 63,
+      "durationDays": 16,
       "latest": {
         "t": 0.5,
-        "pctRaisedAtT": 0.9318,
-        "probabilityReachTarget": 0.9945,
+        "pctRaisedAtT": 0.8801,
+        "probabilityReachTarget": 0.9963,
         "riskBand": "ON_TRACK"
       },
       "history": [
         {
           "t": 0.15,
-          "pctRaisedAtT": 0.4229,
-          "probabilityReachTarget": 0.8718,
+          "pctRaisedAtT": 0.437,
+          "probabilityReachTarget": 0.8837,
           "riskBand": "ON_TRACK"
         },
         {
           "t": 0.25,
-          "pctRaisedAtT": 0.7239,
-          "probabilityReachTarget": 0.9938,
+          "pctRaisedAtT": 0.5368,
+          "probabilityReachTarget": 0.8996,
           "riskBand": "ON_TRACK"
         },
         {
           "t": 0.5,
-          "pctRaisedAtT": 0.9318,
-          "probabilityReachTarget": 0.9945,
+          "pctRaisedAtT": 0.8801,
+          "probabilityReachTarget": 0.9963,
           "riskBand": "ON_TRACK"
         }
       ],
@@ -235,51 +235,51 @@
         },
         {
           "t": 0.05,
-          "pctRaised": 0.1957
+          "pctRaised": 0.1742
         },
         {
           "t": 0.1,
-          "pctRaised": 0.3081
+          "pctRaised": 0.3114
         },
         {
           "t": 0.15,
-          "pctRaised": 0.4229
+          "pctRaised": 0.437
         },
         {
           "t": 0.2,
-          "pctRaised": 0.6004
+          "pctRaised": 0.4799
         },
         {
           "t": 0.25,
-          "pctRaised": 0.7239
+          "pctRaised": 0.5368
         },
         {
           "t": 0.3,
-          "pctRaised": 0.8034
+          "pctRaised": 0.6384
         },
         {
           "t": 0.35,
-          "pctRaised": 0.8034
+          "pctRaised": 0.6881
         },
         {
           "t": 0.4,
-          "pctRaised": 0.8034
+          "pctRaised": 0.7338
         },
         {
           "t": 0.45,
-          "pctRaised": 0.9318
+          "pctRaised": 0.7912
         },
         {
           "t": 0.5,
-          "pctRaised": 0.9318
+          "pctRaised": 0.8801
         }
       ],
       "projection": {
         "atT": 0.5,
         "finalPctOfTarget": {
-          "p10": 1.2823,
-          "p50": 1.5372,
-          "p90": 1.906
+          "p10": 1.3374,
+          "p50": 1.4099,
+          "p90": 1.5249
         },
         "note": "El modelo estima solo el valor al cierre; la curva entre t y 1.0 es interpolación visual."
       }

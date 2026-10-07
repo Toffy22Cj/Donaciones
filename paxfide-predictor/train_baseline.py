@@ -11,6 +11,13 @@ Decisiones de evaluación (ver ADR-044 §2.4):
   - Partición POR CONVOCATORIA (GroupShuffleSplit + GroupKFold sobre campaignRef):
     ningún campaignRef aparece en train y test a la vez. Se verifica con assert.
   - Se excluyen snapshots con alreadyReachedAtT == 1 (etiqueta trivial: inflaría métricas).
+  - Se excluyen las convocatorias STRICT (ADR-044 P7/D3): rechazan la donación que excedería la meta, así
+    que casi nunca llegan al 100 % por diseño. No son un caso a predecir; dejarlas dentro añade
+    negativos triviales que inflan las métricas de cualquier modelo que vea targetPolicy.
+    El generador no produce CLOSE_ON_TARGET con rechazo del exceso (su CLOSE_ON_TARGET acepta la
+    donación y cierra la convocatoria), así que no hay otra variante con el mismo problema.
+  - La mejora sobre el baseline de ritmo se mide también fold a fold (los mismos 5 folds de
+    GroupKFold para todos los modelos): media y desviación de la diferencia de Brier.
   - Métricas principales: Brier score y calibración (se va a mostrar una probabilidad),
     más log loss y ROC AUC. Accuracy solo como referencia.
   - Tres modelos: baseline de ritmo (logística con solo paceRatio), regresión logística
@@ -44,7 +51,8 @@ from sklearn.model_selection import GroupKFold, GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-MODEL_VERSION = "baseline-0.1.0"
+MODEL_VERSION = "baseline-0.2.0"  # 0.2.0: sin STRICT (ADR-044 P7/D3)
+EXCLUDED_POLICIES = ("STRICT",)
 SEED = 20261006
 
 NUMERIC = [
@@ -125,6 +133,9 @@ def main() -> None:
     n_total = len(df)
     df = df[df["alreadyReachedAtT"] == 0].reset_index(drop=True)
     n_trivial = n_total - len(df)
+    n_before_policy = len(df)
+    df = df[~df["targetPolicy"].isin(EXCLUDED_POLICIES)].reset_index(drop=True)
+    n_excluded_policy = n_before_policy - len(df)
 
     X, y, groups = df[FEATURES], df[LABEL].to_numpy(), df["campaignRef"].to_numpy()
 
@@ -144,6 +155,9 @@ def main() -> None:
             "strategy": "GroupShuffleSplit por campaignRef (20 % test) + GroupKFold(5) en train",
             "snapshotsTotal": n_total,
             "snapshotsExcludedAlreadyReached": n_trivial,
+            "excludedPolicies": list(EXCLUDED_POLICIES),
+            "excludedPoliciesReason": "STRICT rechaza la donación que excedería la meta: casi nunca llega al 100 % por diseño (ADR-044 P7/D3)",
+            "snapshotsExcludedByPolicy": n_excluded_policy,
             "trainSnapshots": int(len(tr)), "testSnapshots": int(len(te)),
             "trainCampaigns": int(len(set(groups[tr]))), "testCampaigns": int(len(set(groups[te]))),
             "campaignOverlapTrainTest": len(overlap),
@@ -152,6 +166,7 @@ def main() -> None:
     }
 
     test_probs: dict[str, np.ndarray] = {}
+    cv_brier_by_model: dict[str, list[float]] = {}
     for name, model in make_models().items():
         # CV agrupada dentro de train (estabilidad de la métrica)
         cv_brier = []
@@ -160,6 +175,7 @@ def main() -> None:
             m = make_models()[name].fit(X.iloc[tr].iloc[ftr], y[tr][ftr])
             cv_brier.append(brier_score_loss(y[tr][fva], m.predict_proba(X.iloc[tr].iloc[fva])[:, 1]))
 
+        cv_brier_by_model[name] = cv_brier
         model.fit(X.iloc[tr], y[tr])
         p = model.predict_proba(X.iloc[te])[:, 1]
         test_probs[name] = p
@@ -176,6 +192,19 @@ def main() -> None:
         joblib.dump({"model": model, "features": FEATURES, "modelVersion": MODEL_VERSION,
                      "datasetVersion": manifest["datasetVersion"]},
                     args.out / f"model_{name}.joblib")
+
+    # ---- Mejora sobre el baseline de ritmo, emparejada por fold (mismos folds para todos los modelos)
+    base_cv = np.array(cv_brier_by_model["pace_baseline"])
+    results["improvementOverPaceBaseline"] = {
+        name: {
+            "cvBrierGainMean": round(float(np.mean(base_cv - np.array(cv))), 4),
+            "cvBrierGainStd": round(float(np.std(base_cv - np.array(cv))), 4),
+            "cvBrierGainPerFold": [round(float(g), 4) for g in (base_cv - np.array(cv))],
+            "testBrierGain": round(results["models"]["pace_baseline"]["test"]["brier"]
+                                   - results["models"][name]["test"]["brier"], 4),
+        }
+        for name, cv in cv_brier_by_model.items() if name != "pace_baseline"
+    }
 
     # ---- Control de leakage: con etiquetas permutadas (dentro de train) el AUC en test real
     # debe centrarse en 0.5. Una sola permutación NO sirve: con features muy informativas,
@@ -262,7 +291,7 @@ def main() -> None:
     ], indent=2, ensure_ascii=False))
 
     (args.out / "metrics.json").write_text(json.dumps(results, indent=2, ensure_ascii=False))
-    print(json.dumps({k: results[k] for k in ("split", "bestByBrier", "regressionFinalPct", "leakageControl")}, indent=2))
+    print(json.dumps({k: results[k] for k in ("split", "bestByBrier", "regressionFinalPct", "leakageControl", "improvementOverPaceBaseline")}, indent=2, ensure_ascii=False))
     print("\nmodelo                   CV-Brier       test-Brier  logLoss  AUC     ECE")
     for name, r in results["models"].items():
         t = r["test"]
