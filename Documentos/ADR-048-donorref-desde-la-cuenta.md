@@ -1,6 +1,6 @@
 # ADR-048 — Origen del `donorRef`: seudónimo por cuenta o anónimo, nunca enviado por el cliente
 
-**Estado:** **PROPUESTO** (2026-10-07). Lo decide Carlos. Debe estar **aprobado antes del merge de B6-b** (regla 3.5; `documento-maestro-proyecto.md:450`: poblar `donorRef` desde `accountId` "requiere su propio ADR").
+**Estado:** **APROBADO — Carlos, 2026-10-07**, con la opción (C), seudónimo aleatorio por cuenta, y la condición de §7. Debe estar **aprobado antes del merge de B6-b** (regla 3.5; `documento-maestro-proyecto.md:450`: poblar `donorRef` desde `accountId` "requiere su propio ADR").
 **Origen:** `propuesta-d-api.md` (APROBADO), A5, Q5 y Q6, y la precisión de Carlos sobre privacidad (derecho de supresión, Habeas Data).
 
 ---
@@ -54,3 +54,14 @@
 |---|---|---|
 | A48-Q1 | ¿(C), seudónimo aleatorio por cuenta guardado en `identity`? | Sí: es la única opción con supresión completa y sin una clave que custodiar |
 | A48-Q2 | Si no (C), ¿(A) con riesgo aceptado a tu nombre, o (B)? | — |
+
+## 7. Decisión de Carlos (2026-10-07)
+
+**(C) aprobada.** Con un HMAC de clave global (B), quien conserve el id puede volver a enlazar las donaciones mientras exista la clave, y borrar la clave rompe los historiales de todos. Con (C), borrar el seudónimo de una persona la desvincula solo a ella, y los eventos no cambian.
+
+**Condición:** la relación cuenta ↔ seudónimo pasa a ser **el dato más sensible del sistema**:
+- **solo `identity` la lee**. `DonorPseudonymPort` devuelve el seudónimo de **una** cuenta a `app`, para calcular el `donorRef`; no hay ninguna operación que vaya del seudónimo a la cuenta, ni que liste la relación;
+- **nunca sale por la API**: ningún DTO ni respuesta contiene `donorPseudonym` ni el `donorRef` con prefijo `acct:`;
+- **nunca va a los logs**.
+
+Tests en B6-b: una regla ArchUnit que impide leer el campo fuera de `identity`; ninguna respuesta contiene el seudónimo; captura de logs sin el seudónimo.

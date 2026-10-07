@@ -219,7 +219,7 @@ Debe mostrarse en web y en Flutter, visible solo para `ADMINISTRATOR`/`REPRESENT
 
 | Regla | Contenido | Alcance real |
 |---|---|---|
-| T-33 `Command-Id` | Header `Command-Id: <UUID>`; duplicado → mismo código y cuerpo; ausente/vacío/no-UUID → 400 | **Solo comandos de escritura de Convocatoria** (crear convocatoria, asignar, designar, retirar, cerrar, configurar, crear `DonationIntent`). Identity **sin** `commandId` (DH-34). Core: pendiente (no-op sin resultado). Login: no aplica. **(La v1 lo extendía a "todos los comandos": incorrecto)** |
+| T-33 `Command-Id` | Header `Command-Id: <UUID>`; duplicado → mismo código y cuerpo; ausente/vacío/no-UUID → 400 | ***Revertido para `core` — Carlos, 2026-10-07 (`propuesta-d-api.md` Q9): obligatorio en todos los comandos de escritura de la demo, también los de `core`, porque la demo los expone por HTTP. Texto original:*** **Solo comandos de escritura de Convocatoria** (crear convocatoria, asignar, designar, retirar, cerrar, configurar, crear `DonationIntent`). Identity **sin** `commandId` (DH-34). Core: pendiente (no-op sin resultado). Login: no aplica. **(La v1 lo extendía a "todos los comandos": incorrecto)** |
 | Sin deduplicación HTTP transversal | Prohibido `Idempotency-Key` genérico | Toda la API (ADR-041 §2.6) |
 | T-36 transporte | `Authorization: Bearer`; JWT y `trackingCode` comparten header pero se separan **por ruta** (`/api/v1/donations/tracking/**`) | Nunca intercambiables |
 | 401 / 403 | 401 = no autenticado, token inválido o cuenta `INACTIVE`; 403 = autenticado sin permiso. Sin ocultar recursos con 404 fuera de tracking | DH-51 |
