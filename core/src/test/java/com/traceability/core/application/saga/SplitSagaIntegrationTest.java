@@ -85,7 +85,7 @@ import static org.mockito.Mockito.when;
         "saga.outbox.delay=99999999"
 })
 @Testcontainers
-@Import({TestIdentityPrincipalPortConfig.class, SplitSagaIntegrationTest.TestBeans.class})
+@Import({TestIdentityPrincipalPortConfig.class, SplitSagaIntegrationTest.TestBeans.class, com.traceability.core.support.TransactionProbe.Config.class})
 class SplitSagaIntegrationTest {
 
     private static final String ORG = "ORG-SPLIT";
@@ -135,11 +135,13 @@ class SplitSagaIntegrationTest {
     @Autowired private SagaOutboxAdministration administration;
     @Autowired private MongoTemplate mongoTemplate;
     @Autowired private MutableClock clock;
+    @Autowired private com.traceability.core.support.TransactionProbe transactionProbe;
 
     @BeforeEach
     void setup() {
         dropAll();
         clock.set(T0);
+        transactionProbe.reset();
         identityPrincipalPort.reset();
         identityPrincipalPort.addPrincipal(EMPLOYEE, ORG, Set.of(AuthorizationRole.EMPLOYEE));
         when(hashPort.canonicalizeAndHash(any(), any())).thenAnswer(inv -> UUID.randomUUID().toString());
@@ -188,6 +190,7 @@ class SplitSagaIntegrationTest {
         assertThat(splitsOf(parent)).isEmpty();
         assertThat(claimExists("cmd-fail")).isFalse();
         assertThat(mongoTemplate.count(new Query(), "outbox")).as("solo el mensaje de la saga de registro").isEqualTo(1);
+        transactionProbe.assertEveryWriteWasTransactional();
     }
 
     // 2
@@ -238,6 +241,7 @@ class SplitSagaIntegrationTest {
         assertThat(assets.createSplitChild(parent, child)).isEqualTo(SplitResolution.CHILD_CREATED);
 
         assertThat(eventStore.loadStream(child)).hasSize(1);
+        transactionProbe.assertEveryWriteWasTransactional();
     }
 
     // ------------------------------------------------------------------ 6, 8
@@ -298,6 +302,7 @@ class SplitSagaIntegrationTest {
             assertThat(afterCompensate.name()).isEqualTo(expected);
             assertThat(rehydrate(parent).getQuantity()).isEqualByComparingTo(childExists ? "7" : "10");
         }
+        transactionProbe.assertEveryWriteWasTransactional();
     }
 
     // ------------------------------------------------------------------ 11
@@ -443,6 +448,7 @@ class SplitSagaIntegrationTest {
         assertThatThrownBy(() -> administration.retryResolution(messageId, "operator-2", "again"))
                 .isInstanceOf(IllegalStateException.class);
         assertThat(manualActions(messageId)).hasSize(1);
+        transactionProbe.assertEveryWriteWasTransactional();
     }
 
     @Test

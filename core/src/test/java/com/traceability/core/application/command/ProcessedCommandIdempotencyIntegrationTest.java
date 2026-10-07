@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "core.projection.retry.timeout-minutes=5"
 })
 @Testcontainers
+@org.springframework.context.annotation.Import(com.traceability.core.support.TransactionProbe.Config.class)
 class ProcessedCommandIdempotencyIntegrationTest {
 
     @MockBean
@@ -97,6 +98,9 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private com.traceability.core.support.TransactionProbe transactionProbe;
 
     @BeforeEach
     void setup() {
@@ -231,6 +235,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
     @Test
     void rollback_on_conflict() {
         String fundId = setupFund();
+        transactionProbe.reset();
         String commandId = UUID.randomUUID().toString();
 
         List<DomainEvent> stream = eventStorePort.loadStream(fundId);
@@ -247,6 +252,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
             transactionalEventPublisher.appendAndOutbox(fundId, "Fund", 9999L, newEvents, new SystemActor("test"), Collections.emptyList(), commandId);
         });
 
+        transactionProbe.assertEveryWriteWasTransactional();
         // The document should not exist because of the rollback
         List<ProcessedCommandDocument> docs = mongoTemplate.findAll(ProcessedCommandDocument.class);
         long count = docs.stream().filter(d -> d.getCommandId().equals(commandId)).count();

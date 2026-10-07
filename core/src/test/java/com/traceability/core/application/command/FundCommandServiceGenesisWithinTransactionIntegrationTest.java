@@ -46,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "core.projection.retry.timeout-minutes=5"
 })
 @Testcontainers
+@org.springframework.context.annotation.Import(com.traceability.core.support.TransactionProbe.Config.class)
 class FundCommandServiceGenesisWithinTransactionIntegrationTest {
 
     @MockBean
@@ -84,6 +85,9 @@ class FundCommandServiceGenesisWithinTransactionIntegrationTest {
 
     private TransactionTemplate tx;
 
+    @Autowired
+    private com.traceability.core.support.TransactionProbe transactionProbe;
+
     @BeforeEach
     void setup() {
         mongoTemplate.dropCollection(TraceabilityEventDocument.class);
@@ -104,11 +108,13 @@ class FundCommandServiceGenesisWithinTransactionIntegrationTest {
 
     @Test
     void withinExternalTransaction_appendsGenesisAndClaimsCommand() {
+        transactionProbe.reset();
         String commandId = UUID.randomUUID().toString();
         String fundId = UUID.randomUUID().toString();
 
         Boolean appended = tx.execute(status -> genesis(commandId, fundId));
 
+        transactionProbe.assertEveryWriteWasTransactional();
         assertThat(appended).isTrue();
         assertThat(eventsOf(fundId)).isEqualTo(1);
         assertThat(claimed(commandId)).isTrue();
@@ -128,6 +134,7 @@ class FundCommandServiceGenesisWithinTransactionIntegrationTest {
 
     @Test
     void externalRollback_leavesNeitherEventNorClaim() {
+        transactionProbe.reset();
         String commandId = UUID.randomUUID().toString();
         String fundId = UUID.randomUUID().toString();
 
@@ -136,12 +143,14 @@ class FundCommandServiceGenesisWithinTransactionIntegrationTest {
             throw new IllegalStateException("fallo posterior del orquestador");
         })).isInstanceOf(IllegalStateException.class);
 
+        transactionProbe.assertEveryWriteWasTransactional();
         assertThat(eventsOf(fundId)).isZero();
         assertThat(claimed(commandId)).isFalse();
     }
 
     @Test
     void conflict_propagatesOnFirstAttemptWithItsCause_noInternalRetry() {
+        transactionProbe.reset();
         String fundId = UUID.randomUUID().toString();
         tx.execute(status -> genesis(UUID.randomUUID().toString(), fundId));
 
@@ -153,18 +162,21 @@ class FundCommandServiceGenesisWithinTransactionIntegrationTest {
                 .isExactlyInstanceOf(ConcurrencyConflictException.class)
                 .hasCauseInstanceOf(DuplicateKeyException.class);
 
+        transactionProbe.assertEveryWriteWasTransactional();
         assertThat(eventsOf(fundId)).isEqualTo(1);
         assertThat(claimed(secondCommandId)).as("el rollback externo descarta también el reclamo").isFalse();
     }
 
     @Test
     void sameCommandIdReplayed_returnsFalseWithoutDuplicating() {
+        transactionProbe.reset();
         String commandId = UUID.randomUUID().toString();
         String fundId = UUID.randomUUID().toString();
 
         Boolean first = tx.execute(status -> genesis(commandId, fundId));
         Boolean replay = tx.execute(status -> genesis(commandId, fundId));
 
+        transactionProbe.assertEveryWriteWasTransactional();
         assertThat(first).isTrue();
         assertThat(replay).isFalse();
         assertThat(eventsOf(fundId)).isEqualTo(1);
