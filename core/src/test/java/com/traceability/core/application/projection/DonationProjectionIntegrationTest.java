@@ -678,18 +678,51 @@ class DonationProjectionIntegrationTest {
         projectionHandler.handleEvent(buildEvent("fund-102b2", "Fund", 2, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
         projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 1, "ASSET_REGISTERED", Map.of("assetId", "asset-102b2", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
         projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 2, "ASSET_RECEIVED", Map.of("facilityLocation", "LocC")));
-        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 3, "ASSET_SPLIT", Map.of("parentQuantityAfter", 80L, "statusBeforeSplit", "RECEIVED")));
+        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 3, "ASSET_SPLIT", Map.of("childAssetId", "child-b2", "parentQuantityAfter", 80L, "statusBeforeSplit", "RECEIVED")));
 
         DonationProjectionDocument proj = projectionRepository.findById("fund-102b2").get();
-        assertEquals("RECEIVED", proj.getLogistics().get(0).getStatusBeforeSplit());
+        assertEquals(Map.of("child-b2", "RECEIVED"), proj.getLogistics().get(0).getSplitsBeforeCompensation());
 
-        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 4, "ASSET_SPLIT_COMPENSATED", Map.of("reintegratedQuantity", 20L)));
+        projectionHandler.handleEvent(buildEvent("asset-102b2", "PhysicalAsset", 4, "ASSET_SPLIT_COMPENSATED", Map.of("childAssetId", "child-b2", "reintegratedQuantity", 20L)));
         
         proj = projectionRepository.findById("fund-102b2").get();
         DonationProjectionDocument.LogisticsProjection log = proj.getLogistics().get(0);
         assertEquals(0, new BigDecimal("100.0000").compareTo(log.getQuantity()));
         assertEquals("RECEIVED", log.getLifecycleStatus());
-        assertNull(log.getStatusBeforeSplit());
+        assertFalse(log.getSplitsBeforeCompensation().containsKey("child-b2"));
+    }
+
+    // B1-bis, D-SPLIT S6 (DoD 12): la proyección hace lo mismo que el dominio
+    @Test
+    void compensation_doesNotReviveAParentThatWasNotDepleted() {
+        projectionHandler.handleEvent(buildEvent("fund-s6a", "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-s6a", "Fund", 2, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-s6a", "PhysicalAsset", 1, "ASSET_REGISTERED", Map.of("assetId", "asset-s6a", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-s6a", "PhysicalAsset", 2, "ASSET_SPLIT", Map.of("childAssetId", "child-s6a", "parentQuantityAfter", 80L, "statusBeforeSplit", "REGISTERED")));
+        projectionHandler.handleEvent(buildEvent("asset-s6a", "PhysicalAsset", 3, "ASSET_DISPATCHED", Map.of("carrierRef", "Carrier", "previousLocation", "LocA")));
+        projectionHandler.handleEvent(buildEvent("asset-s6a", "PhysicalAsset", 4, "ASSET_SPLIT_COMPENSATED", Map.of("childAssetId", "child-s6a", "reintegratedQuantity", 20L)));
+
+        DonationProjectionDocument.LogisticsProjection log = projectionRepository.findById("fund-s6a").get().getLogistics().get(0);
+        assertEquals("DISPATCHED", log.getLifecycleStatus(), "antes volvía a REGISTERED");
+        assertEquals(0, new BigDecimal("100.0000").compareTo(log.getQuantity()));
+    }
+
+    @Test
+    void twoSplitsAndOneCompensation_restoreTheStateOfThatSplit_likeTheDomain() {
+        projectionHandler.handleEvent(buildEvent("fund-s6b", "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent("fund-s6b", "Fund", 2, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 1, "ASSET_REGISTERED", Map.of("assetId", "asset-s6b", "allocationId", "alloc-1", "quantity", 100L, "currentLocation", "LocA", "custodianRef", "CustA")));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 2, "ASSET_SPLIT", Map.of("childAssetId", "child-a", "parentQuantityAfter", 80L, "statusBeforeSplit", "REGISTERED")));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 3, "ASSET_DISPATCHED", Map.of("carrierRef", "Carrier", "previousLocation", "LocA")));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 4, "ASSET_RECEIVED", Map.of("facilityLocation", "LocB")));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 5, "ASSET_SPLIT", Map.of("childAssetId", "child-b", "parentQuantityAfter", 0L, "statusBeforeSplit", "RECEIVED")));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 6, "ASSET_DEPLETED", Map.of()));
+        projectionHandler.handleEvent(buildEvent("asset-s6b", "PhysicalAsset", 7, "ASSET_SPLIT_COMPENSATED", Map.of("childAssetId", "child-a", "reintegratedQuantity", 20L)));
+
+        DonationProjectionDocument.LogisticsProjection log = projectionRepository.findById("fund-s6b").get().getLogistics().get(0);
+        // el dominio restaura el estado previo a la división compensada (child-a): REGISTERED. El campo único de antes daba RECEIVED.
+        assertEquals("REGISTERED", log.getLifecycleStatus());
+        assertEquals(Map.of("child-b", "RECEIVED"), log.getSplitsBeforeCompensation());
     }
 
     // --- Tarea 10.2 Grupo C ---
@@ -712,7 +745,7 @@ class DonationProjectionIntegrationTest {
         assertEquals("DELIVERED", log.getLifecycleStatus());
         assertEquals("LocFinal", log.getCurrentLocation());
         assertEquals("CustFinal", log.getCurrentCustodian());
-        assertNull(log.getStatusBeforeSplit());
+        assertTrue(log.getSplitsBeforeCompensation() == null || log.getSplitsBeforeCompensation().isEmpty());
         
         AssetHistoryProjectionDocument hist = historyRepository.findById("asset-102c1").get();
         assertEquals(6, hist.getTransitions().size());

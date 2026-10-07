@@ -28,8 +28,21 @@ public class TransactionalEventPublisher {
      */
     @Transactional
     public boolean appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId) {
+        return appendAndOutbox(streamId, aggregateType, expectedVersion, events, actorRef, outboxMessages, commandId, null);
+    }
+
+    /**
+     * Igual que {@link #appendAndOutbox(String, String, long, List, com.traceability.core.domain.event.ActorRef, List, String)},
+     * guardando en el reclamo el resultado que lo ganó ({@code claimOutcome}). Es la barrera de la división (plan B1-bis
+     * §2): el reclamo y su efecto se confirman juntos o no se confirma ninguno.
+     */
+    @Transactional
+    public boolean appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId, String claimOutcome) {
         if (commandId != null) {
-            if (!processedCommandRepositoryPort.tryClaim(commandId)) {
+            boolean claimed = claimOutcome == null
+                    ? processedCommandRepositoryPort.tryClaim(commandId)
+                    : processedCommandRepositoryPort.tryClaim(commandId, claimOutcome);
+            if (!claimed) {
                 return false;
             }
         }

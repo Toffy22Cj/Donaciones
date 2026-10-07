@@ -39,7 +39,7 @@
 
 ### B1-bis. `core`: saga de la división (dueño `core`; tras D-SPLIT y D-CAMPAIGN; en paralelo con B1)
 
-> **Plan:** `plan-b1bis-saga-division.md` (PROPUESTO, 2026-10-07). B3 hecho (#48).
+> **B1-bis HECHO (2026-10-07, `feat/b1bis-split-saga`):** `plan-b1bis-saga-division.md` y Enmienda 1 de ADR-007/008, ambos APROBADOS. El hijo de la división nace por la saga bajo una barrera atómica; endpoint HTTP y recurso de estado en B6. B3 hecho (#48).
 
 - **`splitPhysicalAsset`** escribe en la misma transacción el mensaje de outbox de la saga.
 - **`SplitPhysicalAssetSagaPolicy`** registra el stream hijo con:

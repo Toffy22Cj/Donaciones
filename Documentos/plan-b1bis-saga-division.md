@@ -1,6 +1,6 @@
 # Plan B1-bis — Saga de la división: crear el hijo, compensar y barrera atómica
 
-**Estado:** **APROBADO — Carlos, 2026-10-07** (Q1–Q4 con precisiones, §7). **Condición de merge:** `ADR-008-enmienda-1-recuperacion-coordinador-sagas.md` aprobada antes del merge del PR de código (regla 3.5), en su propio PR de documentación.
+**Estado:** **HECHO** (`feat/b1bis-split-saga`, 2026-10-07): reactor completo en verde sobre `ff7bfbc` y mutaciones (`evidencia-fase6/b1bis-saga-division-ff7bfbc-2026-10-07.txt`). **APROBADO — Carlos, 2026-10-07** (Q1–Q4 con precisiones, §7). **Condición de merge cumplida:** `ADR-008-enmienda-1-recuperacion-coordinador-sagas.md` **APROBADA — Carlos, 2026-10-07**, con los añadidos D5 (resolución manual) y D7 (sin migración).
 **Origen:** `propuesta-d-split.md` (**APROBADO — Carlos, 2026-10-07**, S1–S8 y precisiones P1–P4).
 **Desbloquea:** criterios 15–18 del golden path (el 19 depende además de B5) y el endpoint de división de B6.
 **Revisión:** cubierto por la excepción a la regla 3.2. La evidencia de tests sustituye al segundo revisor.
@@ -72,7 +72,8 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`.
   - `PENDING`: sin reclamo y el mensaje de la saga no está en cuarentena;
   - `CHILD_CREATED`;
   - `COMPENSATED`;
-  - `UNRESOLVED`: sin reclamo y el mensaje está `QUARANTINED`.
+  - `UNRESOLVED`: sin reclamo y el mensaje está `QUARANTINED`;
+  - **`RESOLVED_MANUALLY`**: reclamo con ese resultado, tomado por `markResolvedManually` (enmienda D5).
 - **Resolución de la división** (`SplitPhysicalAssetSagaPolicy.compensate`, enmienda D4, Q2): en este orden, bajo la barrera:
   1. si hay reclamo, termina con éxito según su resultado;
   2. compensar;
@@ -85,7 +86,10 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`.
   - `QUARANTINED` solo para lo que necesita a una persona, con ERROR y contador;
   - el documento de outbox gana `resolutionStartedAt`, `lastFailureReason` y `manualNote`.
 - **Reloj inyectable en el coordinador** (`Clock`, por defecto el del sistema): hoy usa `Instant.now()`, y los tests 16 y 18 necesitan fijar el instante a ambos lados de las 4 h.
-- **MBean `SagaOutboxAdministration`** (enmienda D5): `quarantinedCount`, `listQuarantined`, `retryResolution` y `markResolvedManually`.
+- **MBean `SagaOutboxAdministration`** (enmienda D5): `quarantinedCount`, `listQuarantined`, `retryResolution(messageId, operator, note)` y `markResolvedManually(messageId, operator, note)`.
+  - Las dos operaciones son condicionales (solo actúan sobre `QUARANTINED`) y exigen `operator` y `note`.
+  - Escriben `saga_manual_actions` en la misma transacción que el cambio de estado.
+  - `SagaPolicy.onManualResolution` es un método por defecto. La división lo sobrescribe para tomar el reclamo con `RESOLVED_MANUALLY`.
 - **Ventana:** el valor por defecto de `saga.quarantine.window` pasa a `PT4H` (S5).
 
 ### 3.3 Proyecciones (S6)
@@ -132,6 +136,7 @@ Los 14 tests de `propuesta-d-split.md` §4, con estas concreciones:
 | 19 | JMX: `retryResolution` vuelve a resolver con ventana nueva; `markResolvedManually` pasa a `RESOLVED` con nota; las dos rechazan un mensaje que no está `QUARANTINED`; `quarantinedCount` y `listQuarantined` reflejan el estado | integración |
 | **20** | **Recuperación hacia delante (Q2):** padre `DELIVERED` y ejecución vencida → la resolución **crea el hijo** (reclamo `CHILD_CREATED`), mensaje `RESOLVED`, estado `CHILD_CREATED` | integración |
 | 21 | Padre `DELIVERED` y creación del hijo también imposible → `QUARANTINED`, estado `UNRESOLVED`; tras `retryResolution`, si la causa desapareció, se crea el hijo | integración |
+| 22 | **Resolución manual de una división:** `markResolvedManually` → estado `RESOLVED_MANUALLY`, mensaje `RESOLVED`, registro en `saga_manual_actions` con operador, nota y fecha; después, `createSplitChild` y `compensateSplitChild` no tienen efecto; sin operador o sin nota, o sobre un mensaje no `QUARANTINED`, o con el reclamo ya tomado → rechazo sin ningún cambio | integración |
 
 **Mutaciones** (cada una debe hacer fallar algún test):
 - quitar el reclamo común (cada rama con su propio `commandId`): debe fallar el test 7;
@@ -146,7 +151,9 @@ Los 14 tests de `propuesta-d-split.md` §4, con estas concreciones:
 - quitar la ventana de resolución: debe fallar el 16;
 - tratar `PermanentSagaFailureException` como transitorio: debe fallar el 17;
 - quitar la recuperación hacia delante: debe fallar el 20;
-- dejar el valor por defecto de la ventana en `PT24H`: deben fallar el 13 y el 18.
+- dejar el valor por defecto de la ventana en `PT24H`: deben fallar el 13 y el 18;
+- que `markResolvedManually` no tome el reclamo de la división: debe fallar el 22;
+- que la resolución manual no sea condicional al estado `QUARANTINED`: debe fallar el 22.
 
 **Verificación:** `mvn clean install -fae` del reactor completo, con la salida literal en el PR y el archivo de evidencia en `evidencia-fase6/`.
 

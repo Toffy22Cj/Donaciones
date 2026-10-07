@@ -9,6 +9,8 @@ public class ProcessedCommandDocument {
     @Id
     private String commandId;
     private Instant processedAt;
+    /** Resultado que ganó el reclamo (barrera de la división, B1-bis); {@code null} en los reclamos de comando. */
+    private String outcome;
 
     public ProcessedCommandDocument() {}
 
@@ -31,5 +33,13 @@ public class ProcessedCommandDocument {
 
     public void setProcessedAt(Instant processedAt) {
         this.processedAt = processedAt;
+    }
+
+    public String getOutcome() {
+        return outcome;
+    }
+
+    public void setOutcome(String outcome) {
+        this.outcome = outcome;
     }
 }
