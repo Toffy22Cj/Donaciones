@@ -358,3 +358,7 @@ Todo el trabajo se hizo en una sola rama, `feat/identity-adr-038`, en lugar de l
 - `MongoTransactionRetryHelper` (`identity.application`) instancia `CommitRetryingMongoTransactionManager` (`identity.infrastructure`): es una dependencia de aplicación hacia infraestructura.
 - `MongoTransactionRetryHelper.getRetryCount()` es público solo para los tests.
 - Las clases de test con contenedor por clase necesitan `@DirtiesContext` para no reutilizar un contexto de Spring que apunta a un contenedor ya detenido. Mejora: contenedor singleton en `BaseMongoIntegrationTest`.
+
+## Nota de implementación — nombre público de la organización (B6-a, 2026-10-07)
+
+Adición, no cambio de decisión: `Organization` gana un **nombre público opcional** (máximo 200 caracteres), que recibe `CreateOrganizationService` y que solo lee `OrganizationPublicNamePort` (`contracts`) para el detalle público de una convocatoria (CV-07). Origen: Q7 de `propuesta-d-api.md` y Q-B6A-1 (a), decididas por Carlos el 2026-10-07. Que sea opcional, el límite y el nombre de la clase de lectura son `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-04 y DD-17 de `decisiones-delegadas-2026-10.md`).
