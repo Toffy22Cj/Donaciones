@@ -5,7 +5,7 @@
 **Naturaleza:** inventario y propuesta de trabajo. **No es normativo**, no es un ADR, no modifica ninguna fuente y **no autoriza código**. Nada de lo que aquí aparece como "candidato" o "pregunta" está decidido.
 **Fuentes leídas para esta versión:** fichas de contratos API Fase 6 (2026-10-04), `ficha-N1-quien-soy.md` (2026-10-05), `api-contract-matrix.md`, `hallazgos-front-fase2.md` (N1, R9, C2/H1), diseño de Convocatoria (ADR-037 + Enmienda 1, decisiones D1–D4), diseño de Identidad (ADR-038).
 **Limitación declarada:** revisado **solo contra documentos**. Ningún estado de implementación de esta tabla se ha verificado contra el repositorio en esta sesión; donde se cita una divergencia de código, proviene de las fichas (§1.4, TR-D1) y no de una inspección nueva.
-**Actualización aditiva (2026-10-07):** §6 registra las respuestas humanas autorizadas el 2026-10-06 y §7 corrige, **sin reescribir §1**, la columna de implementación contra el repositorio real. Donde §1 y §7 difieran sobre implementación, prevalece §7. Este archivo es el que vive en `Documentos/`; la copia `propuesta-apis-fase6-v2.md` de la raíz del proyecto queda superada por esta.
+**Actualización aditiva (2026-10-07):** §6 registra las respuestas humanas autorizadas el 2026-10-06, §8 las decisiones sobre los contratos de Flutter v1, y §7 corrige, **sin reescribir §1**, la columna de implementación contra el repositorio real. Donde §1 y §7 difieran sobre implementación, prevalece §7. Este archivo es el que vive en `Documentos/`; la copia `propuesta-apis-fase6-v2.md` de la raíz del proyecto queda superada por esta.
 
 ---
 
@@ -295,3 +295,36 @@ Debe mostrarse en web y en Flutter, visible solo para `ADMINISTRATOR`/`REPRESENT
 ### 7.3 Lo que esta sección no hace
 
 No cambia ninguna respuesta de §6; no modifica §3 ni §5 (instrucción humana del 2026-10-06); no aprueba fichas ni autoriza código.
+
+---
+
+## 8. Cierre de contratos consumidos por Flutter v1 — decisiones humanas (2026-10-06)
+
+**Origen:** inventario de los contratos que consume `paxfide-mobile` (`front-fase1.md` §12–§13, ADR-043 §2 D6/D10), contrastado con `develop` HEAD `0d4f428` sin ejecutar tests. **Alcance de este registro:** decisiones de Carlos del 2026-10-06. No aprueban ninguna ficha, no enmiendan ADR-043 ni ADR-041 y no autorizan código. "Se puede redactar" no significa "se puede cerrar": ninguna ficha pasa de CONGELADO a CERRADO mientras la Enmienda 1 de ADR-041 no esté aprobada.
+
+### 8.1 Hechos verificados que motivan las decisiones
+
+| Contrato | Hecho | Evidencia |
+|---|---|---|
+| `GET /api/v1/account/donations` | La matriz §3 dice "reutiliza patrón existente", pero no es así: `DonationReadPort` solo tiene `findByFundId`, `DonationReadModel` no tiene vínculo con el donante y `donorRef` solo existe en `DonationIntent` (módulo `convocatoria`). Ninguna fuente decide si `donorRef` es el `accountId` | `core/.../DonationReadPort.java`, `DonationReadModel.java`; `convocatoria/.../DonationIntent.java` |
+| `GET /api/v1/public/campaigns/{publicCode}/narrative` | `CampaignAuditFactsPort` existe en `contracts` sin ninguna implementación; sigue la contradicción con `AuditFactsPort` (ADR-040) | `contracts/.../CampaignAuditFactsPort.java` |
+| `GET /api/v1/public/campaigns/{publicCode}` (CV-07) | `ConvocatoriaReadPort` no existe y los campos de `ConvocatoriaReadModel` **no están definidos en ninguna fuente**: la matriz remite a "ADR-021-D", que es el perímetro del `trackingCode` y no define campos de campaña | `auditoria-documental-convocatoria.md` (A7, Parte 8); `implementation_plan.md` §1.3 |
+| dispatch / receive / deliver | El Outbox de Flutter reintenta un comando `AMBIGUOUS` con el **mismo `commandId`** (ADR-043 D6), pero T-33 solo cubre Convocatoria y Core no tiene semántica de duplicado definida (R11/F3: "no-op sin resultado") | ADR-043 §2 D6; §4 de este documento (T-33) |
+| Fuente de ID-01 y TR-01..03 | El documento "fichas de contratos API Fase 6 (2026-10-04)" no está en `Documentos/` ni en los repositorios; esas fichas solo se conocen por citas | Búsqueda en el proyecto y en ambos repositorios |
+
+### 8.2 Decisiones
+
+| Punto | Decisión | Efecto |
+|---|---|---|
+| Siguiente ficha | **CV-07 primero.** `GET /physical-assets/{assetRef}` puede redactarla su dueño (PhysicalAsset/`core`) en paralelo, pero no es la siguiente tarea de Convocatoria | CV-07 trata `publicCode` como identificador opaco recibido en la ruta: depende de su **semántica** (secreto bearer, entropía ≥128 bits, CV-01 §3.2), **no** de su longitud ni alfabeto, que siguen pendientes por separado (CV-01, nota a Q-CV01-10a) |
+| `GET /account/donations` | **Fuera de Flutter v1.** No se abre ahora la decisión `donorRef = accountId` | Queda como endpoint futuro del producto, no eliminado. `/donations` y `MyDonationsScreen` salen del alcance de v1 (requiere reflejarse en ADR-043 D10; no ejecutado) |
+| Narrativa pública de campaña | **Fuera del cierre de Flutter v1.** No se redacta ficha hasta resolver la contradicción de ADR-040 | `CampaignPublicScreen` usa su estado ya previsto "narrativa no disponible" |
+| Home de Flutter | **Adoptar N1** (`GET /api/v1/me`, ficha congelada) en lugar de la regla provisional (i) | **Requiere una futura enmienda de ADR-043 D10**, no autorizada todavía. Como N1 depende de la Enmienda 1 de ADR-041, no es contrato normativamente cerrado |
+| Core: dispatch / receive / deliver | **Abrir ahora la decisión de semántica de duplicado en Core** como precondición. Las tres acciones quedan **fuera de v1** hasta resolverla | T-33 **no** se extiende automáticamente a Core por existir el Outbox. Orden: Core decide la semántica → contrato HTTP → fichas de dispatch/receive/deliver → Flutter implementa el reintento |
+
+### 8.3 Pendientes derivados (no ejecutados, requieren autorización)
+
+- Enmienda de ADR-043: D10 (`/donations` fuera de v1; `/home` con N1) y tabla de contratos de §5.
+- Corrección de la matriz §3 ("reutiliza patrón existente" en `/account/donations`) y §2 (referencia errónea a ADR-021-D en CV-07).
+- Decisión de dominio de Core sobre duplicados (dueño: `core`).
+- Recuperar el documento de fichas del 2026-10-04 (ID-01, TR-01..03, ficha T).
