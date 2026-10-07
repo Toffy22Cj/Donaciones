@@ -156,4 +156,7 @@ La incorporación reutiliza `AddEmployee` y `AssignAdministrator` (ADR-026). Cor
 - convocatoria cerrada → 409;
 - el mismo 403 para quien no debe.
 
-**Hallazgo H-IDX-1** (para revisar aparte): el `application.yml` de test de `app` sustituye al principal y no activa `auto-index-creation`. Los índices que el código declara solo con anotaciones sobre documentos sin repositorio de Spring Data no existen en los tests de `app`; por ejemplo, el índice único parcial de `campaign_assignments`. Este bloque crea el suyo de forma explícita.
+**Hallazgo H-IDX-1 (sospecha, sin verificar):**
+- Con el índice declarado solo por anotación, en los tests de `app` se pudieron crear dos solicitudes pendientes; con el índice creado al arrancar, no.
+- El `application.yml` de test de `app` no activa `auto-index-creation`, y los tests de `convocatoria` crean los índices a mano (`ConvocatoriaTestIndexes`).
+- Es posible que otros índices declarados solo por anotación tampoco existan en los tests de `app` (por ejemplo, el único parcial de `campaign_assignments`), y que en producción solo se creen al primer uso. **Por verificar en un bloque aparte.** Este bloque crea el suyo de forma explícita.
