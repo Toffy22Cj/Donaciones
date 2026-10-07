@@ -63,6 +63,7 @@ class FundHttpIntegrationTest {
     private static final String ADMIN = "acc-admin";
     private static final String EMPLOYEE = "acc-employee";
     private static final String OTHER_ADMIN = "acc-other-admin";
+    private static final String REPRESENTATIVE_ONLY = "acc-representative";
     private static final SystemActor SYSTEM = new SystemActor("p11-tests");
 
     @Container
@@ -87,7 +88,8 @@ class FundHttpIntegrationTest {
         Map<String, AuthorizationPrincipal> principals = Map.of(
                 ADMIN, new AuthorizationPrincipal(ADMIN, ORG, Set.of(AuthorizationRole.ADMINISTRATOR), null),
                 EMPLOYEE, new AuthorizationPrincipal(EMPLOYEE, ORG, Set.of(AuthorizationRole.EMPLOYEE), null),
-                OTHER_ADMIN, new AuthorizationPrincipal(OTHER_ADMIN, OTHER_ORG, Set.of(AuthorizationRole.ADMINISTRATOR), null));
+                OTHER_ADMIN, new AuthorizationPrincipal(OTHER_ADMIN, OTHER_ORG, Set.of(AuthorizationRole.ADMINISTRATOR), null),
+                REPRESENTATIVE_ONLY, new AuthorizationPrincipal(REPRESENTATIVE_ONLY, ORG, Set.of(AuthorizationRole.REPRESENTATIVE), null));
         when(identityPrincipalPort.resolvePrincipal(anyString())).thenAnswer(inv -> principals.get(inv.<String>getArgument(0)));
     }
 
@@ -149,6 +151,10 @@ class FundHttpIntegrationTest {
         assertThat(foreign.statusCode()).isEqualTo(403);
         assertThat(unknown.statusCode()).isEqualTo(403);
         assertThat(unknown.body()).isEqualTo(foreign.body());
+        // DD-31: solo ADMINISTRATOR o EMPLOYEE de la organización
+        HttpResponse<String> noRole = send("GET", "/api/v1/organizations/" + ORG + "/funds", REPRESENTATIVE_ONLY, null, null);
+        assertThat(noRole.statusCode()).isEqualTo(403);
+        assertThat(noRole.body()).isEqualTo(foreign.body());
     }
 
     @Test
