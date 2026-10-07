@@ -9,6 +9,7 @@ import identity.application.service.AssignAdministratorService;
 import identity.application.service.BootstrapPlatformAuthorityService;
 import identity.application.service.CreateAccountService;
 import identity.application.service.CreateOrganizationService;
+import identity.application.service.RemoveMemberFromOrganizationService;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditActor;
 import identity.domain.model.Email;
@@ -71,6 +72,7 @@ class MyAssignedCampaignsHttpIntegrationTest {
     @Autowired private AddEmployeeService employees;
     @Autowired private AssignAdministratorService administrators;
     @Autowired private BootstrapPlatformAuthorityService bootstrap;
+    @Autowired private RemoveMemberFromOrganizationService removals;
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
@@ -159,6 +161,18 @@ class MyAssignedCampaignsHttpIntegrationTest {
         ok(send("POST", "/api/v1/campaigns/" + second + "/close", admin, null), 200);
         assertThat(mine(admin2)).filteredOn(n -> n.get("campaignRef").asText().equals(second))
                 .singleElement().satisfies(n -> assertThat(n.get("status").asText()).isEqualTo("CLOSED"));
+
+        // solo la organización actual: quien se va (por el dominio, sin la regla HTTP) y entra en otra no ve las antiguas
+        String mover = member(org, false);
+        String third = campaign(org.value(), admin, "Tercera");
+        ok(send("POST", "/api/v1/campaigns/" + third + "/employees", admin, "{\"employeeRef\":\"" + mover + "\"}"), 201);
+        assertThat(mine(mover)).hasSize(1);
+        removals.removeMemberFromOrganization(SETUP, org, new AccountId(mover));
+        String otherRep = account();
+        OrganizationId other = organizations.createOrganization(SETUP, OrganizationType.COMPANY, new AccountId(otherRep), "Otra")
+                .getOrganizationId();
+        employees.addEmployee(SETUP, other, new AccountId(mover));
+        assertThat(mine(mover)).isEmpty();
 
         // un parámetro no permite ver las de otro
         assertThat(ok(send("GET", "/api/v1/me/campaigns?accountId=" + admin2, idle, null), 200).get("items")).isEmpty();
