@@ -198,7 +198,12 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 - **ADR-039 — Productor de MerkleBatch e IntegrityVerificationPort.** Aprobado; implementado, incluida la recuperación de batches `COLLECTING`.
 - **ADR-040 — ConvocatoriaAuditFacts (IA).** Aprobado parcialmente; C1 cerrado (`CampaignAuditFactsPort` separado de `AuditFactsPort`), C2–C5 y C8 abiertos.
 - **ADR-041 — APIs de producto y Frontend.** Aprobado (arquitectura de la capa); sin código.
-- **ADR-043 — colisión de número.** En el repositorio, `ADR-043-frontend-movil-paxfide-mobile.md` (PROPUESTO). Los documentos de Convocatoria citan además un `ADR-043-recuperacion-aplicacion-fondos-convocatoria.md` (recuperación automática de la aplicación de fondos, Propuesto) que **no está en el repositorio**. Requiere renumeración por decisión humana (`estado-fase6.md` §0.1).
+- **ADR-039 Enmienda 1 — Verificación recalculada y estado de salida de `COLLECTING`.** BORRADOR (2026-10-07). Regulariza los cambios de modelo fusionados sin ADR y propone el recálculo de `eventHash` y de la cadena (B-9) y el tope con estado de salida de `COLLECTING` (B-10). Dirección aprobada por Carlos; diseño propuesto.
+- **ADR-043 — Frontend móvil `paxfide-mobile`.** PROPUESTO (2026-09-30). Hubo una colisión: los documentos de Convocatoria usaban también "ADR-043" para la recuperación de fondos (ver ADR-045).
+- **ADR-044 — Componente predictivo en Python.** PROPUESTO. **Número reservado**; el documento todavía no está en el repositorio.
+- **ADR-045 — Recuperación automática de la aplicación de fondos de Convocatoria.** Propuesto; **el documento aún no está en el repositorio**. Antes se citaba como "ADR-043"; renumerado con la dirección aprobada por Carlos el 2026-10-07 (`estado-fase6.md` §0.1). Su mecanismo ya se fusionó en PR #29 sin cumplir la regla 3.5, así que requiere aprobación o rechazo retroactivo.
+
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-046.
 
 ---
 
@@ -316,7 +321,7 @@ DomainEvent → EventCanonicalMapper (Map determinista)
 ```
 `MerkleTree`: agrupa hashes periódicamente, duplica la última hoja si el número es impar, orden estrictamente de inserción. El anclaje real a blockchain (Web3j, ADR-019/ADR-022) **está implementado** (Tarea 13; la frase anterior de este documento que lo daba por pendiente estaba desactualizada). Ciclo de `MerkleBatch`: `COLLECTING → PENDING → SUBMITTING → SUBMITTED → {ANCHORED | ANCHOR_MISMATCH | STUCK | FAILED}`.
 
-**Fase 6 (ADR-039):** `BlockchainAnchorProducer` (en `app`) reclama eventos sin anclar del `event_store` (`UnanchoredEventRepositoryPort`, presupuesto repartido entre streams y contiguo por `sequence`), construye el árbol y pasa el batch de `COLLECTING` a `PENDING` con un update condicional. Recupera automáticamente los batches `COLLECTING` abandonados (`recoveryAttempts`, `crypto.anchor.collecting-recovery.*`). `MerkleBatch` guarda la cobertura multi-stream (`coverage`) y los `leafHashes`. `IntegrityVerificationUseCase` (en `app`) implementa `IntegrityVerificationPort` recomputando la raíz; los batches legacy sin `coverage`/`leafHashes` fallan explícitamente (`LegacyBatchCoverageUnavailableException`, `LegacyBatchLeafHashesUnavailableException`).
+**Fase 6 (ADR-039):** `BlockchainAnchorProducer` (en `app`) reclama eventos sin anclar del `event_store` (`UnanchoredEventRepositoryPort`, presupuesto repartido entre streams y contiguo por `sequence`), construye el árbol y pasa el batch de `COLLECTING` a `PENDING` con un update condicional. Recupera automáticamente los batches `COLLECTING` abandonados (`recoveryAttempts`, `crypto.anchor.collecting-recovery.*`). `MerkleBatch` guarda la cobertura multi-stream (`coverage`) y los `leafHashes`. `IntegrityVerificationUseCase` (en `app`) implementa `IntegrityVerificationPort` recomputando la raíz. Hoy recalcula la raíz con el `eventHash` **guardado** de cada evento: no lo recalcula desde el payload ni verifica la cadena `previousHash` (hallazgo B-9, propuesta en ADR-039 Enmienda 1, BORRADOR); los batches legacy sin `coverage`/`leafHashes` fallan explícitamente (`LegacyBatchCoverageUnavailableException`, `LegacyBatchLeafHashesUnavailableException`).
 
 ### 8.3 Reconstrucción del payload tipado
 
