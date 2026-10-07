@@ -21,7 +21,7 @@ public class CommandRetryTemplate {
             } catch (ConcurrencyConflictException e) {
                 attempts++;
                 if (attempts >= MAX_RETRIES) {
-                    throw new ConcurrencyRetryExhaustedException("Max retries exceeded due to concurrent modifications");
+                    throw new ConcurrencyRetryExhaustedException("Max retries exceeded due to concurrent modifications", e);
                 }
                 // Backoff mínimo
                 try {

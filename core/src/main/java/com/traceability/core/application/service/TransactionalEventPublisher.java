@@ -22,11 +22,15 @@ public class TransactionalEventPublisher {
         this.processedCommandRepositoryPort = processedCommandRepositoryPort;
     }
 
+    /**
+     * @return {@code true} si escribió los eventos; {@code false} si el {@code commandId} ya estaba reclamado
+     *         (no-op idempotente, no se escribe nada).
+     */
     @Transactional
-    public void appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId) {
+    public boolean appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId) {
         if (commandId != null) {
             if (!processedCommandRepositoryPort.tryClaim(commandId)) {
-                return;
+                return false;
             }
         }
         
@@ -37,5 +41,6 @@ public class TransactionalEventPublisher {
                 outboxPort.save(msg);
             }
         }
+        return true;
     }
 }

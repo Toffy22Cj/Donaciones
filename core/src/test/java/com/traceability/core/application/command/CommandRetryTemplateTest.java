@@ -51,6 +51,16 @@ class CommandRetryTemplateTest {
     }
 
     @Test
+    void testExecute_ExhaustedRetriesKeepLastConflictAsCause() {
+        ConcurrencyConflictException lastConflict = new ConcurrencyConflictException("Conflict simulated");
+
+        ConcurrencyRetryExhaustedException exhausted = assertThrows(ConcurrencyRetryExhaustedException.class,
+                () -> retryTemplate.execute(() -> { throw lastConflict; }));
+
+        assertSame(lastConflict, exhausted.getCause());
+    }
+
+    @Test
     void testExecute_OtherExceptionsArePropagated() {
         class OtherDomainException extends DomainInvariantViolationException {
             public OtherDomainException() {
