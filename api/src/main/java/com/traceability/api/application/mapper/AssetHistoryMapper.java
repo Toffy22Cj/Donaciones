@@ -1,5 +1,7 @@
 package com.traceability.api.application.mapper;
 
+import com.traceability.api.application.dto.PublicCustodianCategory;
+
 import com.traceability.api.application.dto.AssetHistoryPublicDTO;
 import com.traceability.api.application.dto.PublicTransitionDTO;
 import com.traceability.core.application.service.LocationReferenceService;
@@ -40,8 +42,24 @@ public class AssetHistoryMapper {
                 transition.eventType(),
                 transition.timestamp() != null ? transition.timestamp().toString() : null,
                 zone,
-                publicDonationMapper.mapCustodian(transition.custodian()),
+                custodianCategory(transition.status()),
                 transition.status()
         );
+    }
+
+    /**
+     * Categoría pública del custodio según el <b>estado</b> de la transición, como la logística (TR-01). Nunca la
+     * referencia del custodio, que no se publica. Las transiciones que no son un estado del ciclo de vida ({@code SPLIT},
+     * {@code SPLIT_COMPENSATED}, {@code CUSTODY_TRANSFERRED}) no tienen categoría propia: {@code UNCATEGORIZED}.
+     * Hallazgo H-B6D-2: antes se pasaba la referencia del custodio y cualquier historial real fallaba.
+     */
+    private PublicCustodianCategory custodianCategory(String status) {
+        if (status == null) {
+            return PublicCustodianCategory.UNCATEGORIZED;
+        }
+        return switch (status) {
+            case "REGISTERED", "DISPATCHED", "RECEIVED", "DELIVERED", "DEPLETED" -> publicDonationMapper.mapCustodian(status);
+            default -> PublicCustodianCategory.UNCATEGORIZED;
+        };
     }
 }

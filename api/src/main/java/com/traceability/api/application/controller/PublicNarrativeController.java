@@ -42,13 +42,13 @@ public class PublicNarrativeController {
             // Dado que la narrativa es un derivado de la proyección base (facts), si la base no existe, 
             // la narrativa tampoco existe. Retornar 404 preserva el contrato semántico y evita 
             // enumeración o inconsistencia de estado en los clientes.
-            return ResponseEntity.notFound().build();
+            throw new TrackedResourceNotFoundException();
         }
 
         Optional<NarrativeReadModel> modelOpt = narrativeReadPort.getOrTriggerGeneration(fundId);
         
         if (modelOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            throw new TrackedResourceNotFoundException();
         }
         
         NarrativeReadModel model = modelOpt.get();
