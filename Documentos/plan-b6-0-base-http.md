@@ -1,6 +1,6 @@
 # Plan B6-0 — Base HTTP para los endpoints de la demo
 
-**Estado:** **PROPUESTO** (2026-10-07). Necesita la aprobación de Carlos antes de cualquier código (regla 3.4).
+**Estado:** **APROBADO — Carlos, 2026-10-07** (Q1–Q3 de §6 y las respuestas Q-B60-1 a 5 de un plan paralelo, incorporadas en §7). **Es el único plan de B6-0**: manda este, el del repositorio. Queda una pregunta abierta (§7, Q-B60-6) que solo afecta a una fila de la tabla de errores.
 **Origen:** `propuesta-d-api.md` (APROBADO — Carlos, 2026-10-07): A1 (controladores en `api` o en `app.web`), A9 (`Command-Id`), Q10 (B6 en cinco PR; este es el primero).
 **Desbloquea:** B6-a, B6-b, B6-c y B6-d, que solo añaden controladores sobre esta base.
 **Revisión:** cubierto por la excepción a la regla 3.2.
@@ -42,10 +42,10 @@
 | `CampaignNotEligibleForInKindDonationException` | 409 | **El mismo** para "no existe" y "es de otra organización" (D-CAMPAIGN) |
 | `IllegalArgumentException`, cuerpo ilegible, validación | 400 | Sin eco del valor recibido |
 | `ConcurrencyConflictException`, `ConcurrencyRetryExhaustedException` | 409 | `title` `ConcurrentModification`; el cliente puede reintentar con el mismo `Command-Id` |
-| Cualquier otra | 500 | `detail` genérico, sin traza ni mensaje interno; log ERROR con un id de correlación que sí aparece en el cuerpo |
+| Cualquier otra | 500 | `detail` genérico, sin traza ni mensaje interno. **Log ERROR con la clase de la excepción y el `correlationId`**, que también aparece en el cuerpo. El texto de la excepción no va al log (precisión de Carlos: sin la clase y el id, un 500 no se podría investigar; el texto puede llevar secretos como el `publicCode`) |
 
-- **Ningún cuerpo de error contiene** el mensaje de la excepción, ids internos ni datos de la petición: los mensajes de dominio pueden incluir ids o valores.
-- **`app`** podrá añadir su propio `@RestControllerAdvice` para las excepciones de `convocatoria`/`identity`, con una prioridad mayor (`@Order` más alto). B6-a lo usa.
+- **Ningún cuerpo de error contiene** el mensaje de la excepción, ids internos ni datos de la petición: los mensajes de dominio pueden incluir ids o valores (p. ej. el de `CampaignNotFoundException` lleva el `publicCode`, que es un secreto de acceso). **El cuerpo de cada estado es un texto fijo.**
+- **Un solo manejador (Q-B60-4):** no hay un segundo `@RestControllerAdvice` en `app`. Cada módulo aporta sus traducciones como beans `ApiErrorMapping` (excepción → estado HTTP y `title` fijo), y el manejador único las reúne. **Si dos beans declaran la misma excepción, la aplicación no arranca**, con un mensaje que nombra los dos: nada de ambigüedades silenciosas. B6-a añade los de `convocatoria` e `identity`.
 - No toca los controladores de Fase 3 ni el login, que ya componen su propio `ProblemDetail`.
 
 ### 2.4 Convención de ubicación (A1, Q1)
@@ -68,6 +68,9 @@
 | 7 | 500: cuerpo genérico con un id de correlación; el mismo id aparece en el log ERROR; sin traza | MockMvc y captura de logs |
 | 8 | Las rutas de Fase 3 y el login siguen devolviendo sus cuerpos de siempre (tests existentes en verde) | existentes |
 | 9 | Reglas ArchUnit de §2.1 y §2.4 | ArchUnit |
+| 10 | Dos beans `ApiErrorMapping` para la misma excepción → el contexto no arranca, con un mensaje que nombra los dos (Q-B60-4) | `ApplicationContextRunner` |
+| 11 | `Command-Id` en mayúsculas → el caso de uso recibe el mismo valor en minúsculas, y un reenvío en minúsculas es el mismo comando (Q-B60-3) | MockMvc |
+| 12 | El log del 500 contiene la clase de la excepción y el `correlationId`, y no el texto de la excepción (marcador en el mensaje) | captura de logs |
 
 **Mutaciones:**
 - devolver el mensaje de la excepción en el `detail`;
@@ -93,3 +96,18 @@
 | Q1 | ¿Invariantes de dominio → **409**, y no 422 ni 400? | 409: es un conflicto con el estado actual del recurso. 400 queda para la forma de la petición. 422 no está en DH-02 |
 | Q2 | ¿El mismo 403 para "otra organización" y "falta un rol"? | Sí: no revela nada sobre el recurso (DH-51) |
 | Q3 | ¿500 con un id de correlación en el cuerpo y en el log? | Sí: soporte puede encontrar el error sin exponer la traza |
+
+## 7. Decisiones de Carlos (2026-10-07)
+
+| # | Decisión |
+|---|---|
+| Q1 | **Sí:** 409 para los **conflictos de estado** (convocatoria cerrada, activo ya entregado, transición inválida, concurrencia); 400 para la **validación de la entrada**; 404 para "no encontrado" |
+| Q2 | **Sí:** el mismo cuerpo para todos los 403 (también Q-B60-5) |
+| Q3 | **Sí:** id de correlación en el cuerpo y en el log |
+| Q-B60-1 | El 404 del seguimiento (Fase 3) se corrige en **B6-d**, no aquí |
+| Q-B60-2 | **Omitir los nulos en cada DTO** (`@JsonInclude(NON_NULL)` por DTO), sin cambiar la configuración global de Jackson |
+| Q-B60-3 | **Sí:** el `Command-Id` se normaliza a minúsculas antes de usarse como `commandId` |
+| Q-B60-4 | **Un solo manejador**, con `ApiErrorMapping` por módulo; la aplicación no arranca si dos módulos declaran la misma excepción (§2.3) |
+| Q-B60-5 | El mismo cuerpo para todos los 403 |
+| Log del 500 | Clase de la excepción y `correlationId`, nunca el texto (§2.3) |
+| **Q-B60-6 (abierta)** | Carlos pidió "404 uniforme para no encontrado y otra organización". **Contradice dos decisiones vigentes:** DH-51 ("sin ocultar recursos con 404 fuera de tracking", `propuesta-apis-fase6.md:225`) y Q-CV01-6 de la ficha CV-01, decidida por Carlos el 2026-10-06 ("organización ajena **o inexistente** → 403, nunca 404", `ficha-CV-01:87`). **Mientras Carlos no decida, rige lo vigente:** `CrossOrganizationAccessException` → 403 idéntico para "otra organización" e "inexistente" cuando el recurso es la organización del path. Pregunta: ¿se mantiene DH-51 y Q-CV01-6 (403), o se cambian a 404 (lo que exige enmendar DH-51 y la ficha CV-01)? |

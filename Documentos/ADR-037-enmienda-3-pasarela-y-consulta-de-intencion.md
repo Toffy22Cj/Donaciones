@@ -1,6 +1,6 @@
 # ADR-037 — Enmienda 3: confirmación por pasarela, webhook, proveedor simulado y consulta de la intención
 
-**Estado:** **PROPUESTA** (2026-10-07). La decide Carlos. Debe estar **aprobada antes del merge de B6-b** (regla 3.5): añade un caso de uso, campos, un índice, una transición, una credencial y un registro persistente.
+**Estado:** **APROBADA — Carlos, 2026-10-07**, salvo **E3-Q3** (duración del `trackingCode`), que sigue abierta (§6). Hasta que se decida, B6-b no puede fusionarse. Debe estar **aprobada antes del merge de B6-b** (regla 3.5): añade un caso de uso, campos, un índice, una transición, una credencial y un registro persistente.
 **Enmienda a:** ADR-037 (Convocatoria, ledger, asignación y `DonationIntent`), con sus enmiendas 1 y 2 (APROBADAS).
 **Origen:** `propuesta-d-api.md` (APROBADO — Carlos, 2026-10-07), decisiones A2–A4, Q2, Q3 y Q4.
 
@@ -117,3 +117,5 @@ Lo fija ADR-048: se deriva del JWT o es anónimo, y **el cliente nunca lo envía
 | E3-Q1 | ¿`paymentProvider` en la intención, con la política `allowSimulatedPayments` en el dominio además del perfil? (D2) | Sí: dos barreras independientes |
 | E3-Q2 | ¿`unacceptable_payment_events` como registro persistente atado a P1, con contador JMX? (D4) | Sí |
 | E3-Q3 | ¿`traceability.tracking-code.ttl` de **90 días** por defecto? (D6) | 90 días: el donante sigue su donación durante la entrega; el valor es de producto |
+
+**Decisiones de Carlos (2026-10-07):** E3-Q1 **sí** (dos barreras para `SIMULATED`); E3-Q2 **sí** (registro persistente y contador, atados a P1). **E3-Q3 abierta:** el revisor considera 90 días cortos (la entrega al beneficiario puede tardar más, y el sentido del sistema es que el donante vea el recorrido completo) y propone **un año**; falta la elección de Carlos.
