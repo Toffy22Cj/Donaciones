@@ -20,7 +20,7 @@
 
 | # | Decisión | Dueño | Bloquea |
 |---|---|---|---|
-| D-P8 | Contenido del mensaje de outbox de la génesis (ADR-037 §2.3). Propuesta: `propuesta-P8-outbox-genesis.md`, que recomienda la opción A (sin mensaje, enmienda de §2.3) | `core` | B1 (camino crítico) |
+| D-P8 | ✅ **Cerrado el 2026-10-07: opción A (Carlos)**. La génesis no escribe outbox (enmienda de ADR-037 §2.3; `propuesta-P8-outbox-genesis.md`) | `core` | — |
 | D-JWT | Librería JWT y gestión del secreto de firma. Es una dependencia nueva: ADR o enmienda de ADR-038 §2.7 (§3.5) | Identidad | B3 |
 | D-B39 | Aprobar la Enmienda 1 de ADR-039 (P1–P5) | Blockchain | B4 |
 | D-IA | ADR-040 C2–C5 y C8 | IA | B5 |
@@ -52,7 +52,8 @@
   - Se une a la transacción externa.
   - Propaga la excepción transitoria **con su causa** (hoy `ConcurrencyRetryExhaustedException` la descarta, `CommandRetryTemplate.java:24,35`).
   - El método actual no cambia para los demás llamadores.
-- **P8:** según D-P8. Con la opción A no hay código: `List.of()` (`FundCommandService.java:94`) queda como diseño. Con la opción B, mensaje y `SagaPolicy` entran juntos.
+- **P8:** cerrado por D-P8 (opción A): sin código. `List.of()` (`FundCommandService.java:94`) queda como diseño. **B1 = solo T1.**
+- **Deuda aparte (no bloquea):** `OutboxSagaCoordinator` ignora en silencio los mensajes cuyo `sagaType` no tiene política, y `fetchPendingMessages` lee sin límite (`propuesta-P8-outbox-genesis.md` §5). Conviene una alerta o cuarentena para `sagaType` desconocido y una lectura por lotes.
 - **Tests:**
   - un conflicto dentro de una transacción externa no reintenta y su causa llega al llamador;
   - un rollback externo no deja evento ni outbox;
