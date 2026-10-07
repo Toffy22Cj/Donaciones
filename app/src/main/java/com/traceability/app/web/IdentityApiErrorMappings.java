@@ -3,7 +3,12 @@ package com.traceability.app.web;
 import com.traceability.api.web.ApiErrorMapping;
 import com.traceability.api.web.ApiErrorMappings;
 import com.traceability.api.web.ApiExceptionHandler;
+import com.traceability.app.web.platform.PlatformAuthorityTargetInactiveException;
+import com.traceability.app.web.platform.PlatformAuthorityTargetNotFoundException;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
+import identity.domain.exception.LastPlatformAdministratorException;
+import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
+import identity.domain.exception.PlatformAuthorityNotHeldException;
 import identity.domain.exception.AccountNotFoundException;
 import identity.domain.exception.DuplicateEmailException;
 import identity.domain.exception.InvalidEmailFormatException;
@@ -55,6 +60,13 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 // P2.7 (miembros): el mismo 403 que cualquier acceso denegado (DD-01)
                 new ApiErrorMapping(OrganizationAccessDeniedException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
                 // §3.1 (crear organización) y aceptar una invitación (ADR-049 D4): una cuenta, una organización (ADR-026)
-                new ApiErrorMapping(AccountAlreadyBelongsToOrganizationException.class, HttpStatus.CONFLICT, null));
+                new ApiErrorMapping(AccountAlreadyBelongsToOrganizationException.class, HttpStatus.CONFLICT, null),
+                // §3.2 (administradores de plataforma): el estado ya pedido y el último administrador, 409; la cuenta
+                // inexistente, 404, porque solo la ve la plataforma (como OrganizationNotFound)
+                new ApiErrorMapping(PlatformAuthorityAlreadyGrantedException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(PlatformAuthorityNotHeldException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(LastPlatformAdministratorException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(PlatformAuthorityTargetInactiveException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(PlatformAuthorityTargetNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND));
     }
 }

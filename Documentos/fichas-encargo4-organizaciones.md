@@ -36,3 +36,32 @@
 - filtro `NEEDS_MORE_INFORMATION` con su mensaje; estados no pendientes → 400;
 - administrador de organización, representante y cuenta suelta → el mismo 403;
 - cursor alterado, ajeno o del descubrimiento → 400, y el de la cola no vale en el descubrimiento.
+
+## 3.2 Conceder y revocar administradores de plataforma
+
+**Cierra:** la fila de la matriz §1 (`GRANT_PLATFORM_AUTHORITY` / `REVOKE_PLATFORM_AUTHORITY`, "DISEÑO CERRADO"). El dominio ya existía (ADR-038 §2.3): contador `PlatformAuthorityState` con `decrementIfMoreThanOne` y escrituras condicionales. **Sin reglas nuevas.**
+
+| Endpoint | Auth | Entrada | Respuesta | Errores |
+|---|---|---|---|---|
+| `GET /platform/administrators` | JWT + autoridad de plataforma | — | `200 {items: [{accountId, status}]}`, una página de 100, sin email, `no-store` | 401; 403 |
+| `POST /platform/administrators` | ídem | `{accountId}` | `201 {accountId, platformAuthority: "ADMINISTRATOR"}` | 400 `accountId`; 403; 404 cuenta inexistente; 409 `PlatformAuthorityAlreadyGranted`, `PlatformAuthorityTargetInactive` |
+| `POST /platform/administrators/{accountId}/revoke` | ídem | — | `200 {accountId}` | 403; 404; 409 `PlatformAuthorityNotHeld`, `LastPlatformAdministrator` |
+
+**Reglas de Carlos:**
+- Ante un estado que ya es el pedido, 409: conceder a quien ya la tiene o revocar a quien no la tiene.
+- La plataforma nunca se queda sin administradores. Revocar al último, incluido uno mismo, da 409. Con dos revocaciones cruzadas simultáneas gana una sola, porque el contador se decrementa con una escritura condicional dentro de la transacción.
+
+**Decisión DD-70:**
+- Revocar va por `POST …/revoke` y no por el `DELETE` de la matriz: toda la API usa POST (retirar responsable, DD-50) y CORS solo permite `GET`/`POST` (DD-57).
+- Una cuenta inexistente da **404**, porque solo la ve la plataforma, igual que la organización inexistente (DD-48).
+- La lista no lleva email (DD-55).
+- Se autoriza antes de validar el cuerpo: quien no es de la plataforma recibe 403, nunca 400.
+- Las excepciones de dominio que no tenían traducción ahora dan 409: `PlatformAuthorityAlreadyGranted`, `PlatformAuthorityNotHeld` y `LastPlatformAdministrator`.
+
+**Tests** (`PlatformAdministratorsHttpIntegrationTest`, rojo primero), un único ciclo porque el contador es global en la base:
+- conceder → `/me` lo refleja y la lista lo incluye;
+- repetir → 409; cuenta inexistente → 404; cuenta inactiva → 409; cuerpo vacío → 400;
+- quien no es de la plataforma recibe el mismo 403, también con un cuerpo inválido, y no cambia nada;
+- revocar → el revocado pierde el acceso en la petición siguiente; repetir → 409;
+- el último no se revoca, ni a sí mismo;
+- **8 rondas de revocación cruzada simultánea**: siempre gana exactamente una y queda un administrador.
