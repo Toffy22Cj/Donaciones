@@ -9,6 +9,7 @@
 | Base | `/api/v1`. JSON UTF-8. Instantes ISO-8601 UTC con `Z`. Importes como **texto** de dígitos en **unidades mínimas** de la moneda según ISO 4217 (Q-CV01-3; COP tiene exponente 2: `"100000"` son 1 000,00 COP), salvo en el seguimiento (EF3: `long`, las mismas unidades) |
 | Autenticación | `Authorization: Bearer <JWT>` (`POST /auth/login`). Las rutas no públicas exigen JWT (deny-by-default, `PublicRoutes`). El seguimiento usa el `trackingCode` en el mismo header, solo en `/donations/tracking/**` |
 | `Command-Id` | Header con un UUID en los comandos de escritura de `convocatoria` y `core` (T-33 revisado). Ausente o no-UUID → 400. Reenvío con el mismo id → misma respuesta; el mismo id para otro comando → 409 `CommandIdReusedForDifferentCommand`. Identity no lo usa |
+| CORS (S-03) | Orígenes exactos por `TRACEABILITY_CORS_ALLOWED_ORIGINS` (lista separada por comas; nunca `*`; sin valor, ninguno). Sin credenciales. Cabeceras: `Authorization`, `Command-Id`, `Intent-Token`, `Content-Type`. Expone `Location`. Métodos `GET`, `POST`, `OPTIONS` (DD-57) |
 | Errores | `ProblemDetail` (RFC 7807) con título fijo y sin eco de la entrada ni del mensaje interno |
 | 400 | Solo validaciones con nombre (campo inválido, email mal formado, …). `IllegalArgumentException` genérica → 500 (sección 0 de la segunda autorización) |
 | 401 | Sin JWT válido, o cuenta `INACTIVE` |

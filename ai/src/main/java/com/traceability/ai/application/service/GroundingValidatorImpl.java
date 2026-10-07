@@ -18,7 +18,8 @@ public class GroundingValidatorImpl implements GroundingValidator {
 
     @Override
     public boolean validate(LlmNarrativeResponse response, AuditFactsDTO facts) {
-        if (response == null || response.citedFacts() == null) {
+        // H-P12-1 (Carlos, 2026-10-07): sin ninguna cita, nada de la narrativa está fundamentado → fallback
+        if (response == null || response.citedFacts() == null || response.citedFacts().isEmpty()) {
             return false;
         }
         
