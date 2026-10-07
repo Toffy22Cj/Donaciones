@@ -104,6 +104,23 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Desbloquea** los criterios 4 y 6, y que B6 construya el `HumanActor` desde el atributo `authorizationPrincipal`.
 - **Pendiente:** refresh, límite de intentos (DH-56, riesgo aceptado), `AccountNotFoundException` en `contracts` (el filtro trata por tipo genérico los fallos de `resolvePrincipal` y propaga los de acceso a datos).
 
+### 0.9 B1-bis — saga de la división (2026-10-07, `feat/b1bis-split-saga`)
+
+- **Decisiones:** `propuesta-d-split.md` y `plan-b1bis-saga-division.md` aprobados por Carlos; **Enmienda 1 de ADR-007/008 APROBADA**, con resolución manual auditada y sin migración.
+- **Qué hace:**
+  - La división escribe su mensaje de saga en la misma transacción y devuelve un `childAssetId` determinista (UUID v5 de padre + `commandId`).
+  - **Barrera atómica:** crear el hijo y compensar usan el reclamo común `SPLIT_RESOLUTION:{childAssetId}`, confirmado en la misma transacción que su efecto y con el resultado guardado. Con 20 rondas concurrentes, nunca se aplican los dos efectos ni ninguno.
+  - El hijo hereda la cantidad, la ubicación, el custodio y las referencias del `ASSET_SPLIT` (incluido `campaignRef`), y del padre solo `assetType` y la asignación de origen.
+  - **Coordinador enmendado:** ejecución y resolución de 4 h cada una; distingue fallo permanente de transitorio; estado `RESOLVED`; `QUARANTINED` solo cuando hace falta una persona (con log ERROR); salida por JMX (`SagaOutboxAdministration`) condicional y auditada en `saga_manual_actions`.
+  - **Recuperación hacia delante:** si el padre ya está entregado, la resolución crea el hijo.
+  - **Proyección:** el estado previo se guarda por hijo, y una compensación ya no "resucita" un padre que no estaba agotado.
+- **Hallazgos corregidos:**
+  - una compensación fallida se perdía en silencio, también en la saga de registro;
+  - la ventana era de 24 h en el código frente a 4 h en la norma.
+- **Efecto sobre la saga de registro:** compensa a las 4 h y reintenta la compensación hasta 4 h más (test 18).
+- **Pendiente (B6):** el endpoint `POST .../split` (`202`) y `GET .../splits/{child}` sobre `SplitResolutionReadPort`.
+- **Evidencia:** `evidencia-fase6/b1bis-saga-division-ff7bfbc-2026-10-07.txt`.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.

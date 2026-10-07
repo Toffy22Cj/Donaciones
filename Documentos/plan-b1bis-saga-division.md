@@ -1,6 +1,6 @@
 # Plan B1-bis — Saga de la división: crear el hijo, compensar y barrera atómica
 
-**Estado:** **APROBADO — Carlos, 2026-10-07** (Q1–Q4 con precisiones, §7). **Condición de merge cumplida:** `ADR-008-enmienda-1-recuperacion-coordinador-sagas.md` **APROBADA — Carlos, 2026-10-07**, con los añadidos D5 (resolución manual) y D7 (sin migración).
+**Estado:** **HECHO** (`feat/b1bis-split-saga`, 2026-10-07): reactor completo en verde sobre `ff7bfbc` y mutaciones (`evidencia-fase6/b1bis-saga-division-ff7bfbc-2026-10-07.txt`). **APROBADO — Carlos, 2026-10-07** (Q1–Q4 con precisiones, §7). **Condición de merge cumplida:** `ADR-008-enmienda-1-recuperacion-coordinador-sagas.md` **APROBADA — Carlos, 2026-10-07**, con los añadidos D5 (resolución manual) y D7 (sin migración).
 **Origen:** `propuesta-d-split.md` (**APROBADO — Carlos, 2026-10-07**, S1–S8 y precisiones P1–P4).
 **Desbloquea:** criterios 15–18 del golden path (el 19 depende además de B5) y el endpoint de división de B6.
 **Revisión:** cubierto por la excepción a la regla 3.2. La evidencia de tests sustituye al segundo revisor.
