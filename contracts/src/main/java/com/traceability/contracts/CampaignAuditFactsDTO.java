@@ -9,6 +9,11 @@ import java.time.Instant;
  * a single donation.
  *
  * Ref: ADR-040 (ConvocatoriaAuditFacts), resolution of C1.
+ *
+ * Plan B5 (DD-36, Q-DIA-4): {@code currency} and one read instant per source ({@code fundingReadAt} for the
+ * campaign and its ledger, {@code deliveriesReadAt} for the asset streams). The sources are read independently
+ * (DD-35). {@code currency}, {@code targetAmount}, {@code targetPolicy} and {@code clearedAmount} are null for a
+ * campaign that does not accept {@code MONETARY}.
  */
 public record CampaignAuditFactsDTO(
     String campaignRef,
@@ -19,6 +24,9 @@ public record CampaignAuditFactsDTO(
     BigDecimal clearedAmount,
     BigDecimal unitsDelivered,
     long distinctRecipients,
+    String currency,
+    Instant fundingReadAt,
+    Instant deliveriesReadAt,
     Instant generatedAt
 ) {
     public CampaignAuditFactsDTO {
