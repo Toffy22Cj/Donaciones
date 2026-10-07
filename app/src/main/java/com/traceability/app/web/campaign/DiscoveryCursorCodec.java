@@ -21,7 +21,6 @@ import java.util.Optional;
  */
 public final class DiscoveryCursorCodec {
 
-    private static final String PREFIX = "dc1:";
     private static final int IV_BYTES = 12;
     private static final int TAG_BITS = 128;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -57,7 +56,7 @@ public final class DiscoveryCursorCodec {
             RANDOM.nextBytes(iv);
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
-            byte[] sealed = cipher.doFinal((PREFIX + publicCode).getBytes(StandardCharsets.US_ASCII));
+            byte[] sealed = cipher.doFinal(publicCode.getBytes(StandardCharsets.US_ASCII));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(
                     ByteBuffer.allocate(iv.length + sealed.length).put(iv).put(sealed).array());
         } catch (GeneralSecurityException e) {
@@ -74,8 +73,8 @@ public final class DiscoveryCursorCodec {
             }
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, raw, 0, IV_BYTES));
-            String plain = new String(cipher.doFinal(raw, IV_BYTES, raw.length - IV_BYTES), StandardCharsets.US_ASCII);
-            return plain.startsWith(PREFIX) ? Optional.of(plain.substring(PREFIX.length())) : Optional.empty();
+            // GCM autentica: solo un cursor emitido con esta clave descifra; el formato lo comprueba quien llama
+            return Optional.of(new String(cipher.doFinal(raw, IV_BYTES, raw.length - IV_BYTES), StandardCharsets.US_ASCII));
         } catch (IllegalArgumentException | GeneralSecurityException e) {
             return Optional.empty();
         }
