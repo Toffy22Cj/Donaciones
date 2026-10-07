@@ -204,7 +204,9 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 - **ADR-045 — Recuperación de la aplicación de fondos de `DonationIntent`** (`ADR-045-recuperacion-aplicacion-fondos.md`). **APROBADO — Carlos, 2026-10-07**. Antes se citaba como "ADR-043". Aprueba de forma retroactiva la barrera `APPLY_FUNDS`, `FUNDING_REJECTED` y la consulta de recuperables, fusionadas en el PR #29 sin cumplir la regla 3.5 (incumplimiento registrado). Autoriza el diseño; el código sigue bloqueado por T1/P8.
 - **ADR-046 — Frontend web `paxfide-web`** (`ADR-046-frontend-web-paxfide-web.md`, **repositorio `Toffy22Cj/PaxFide`**). APROBADO el 2026-09-28. Antes se numeraba ADR-042, lo que colisionaba con el ADR-042 de reintentos de proyección; se renumeró por decisión de Carlos el 2026-10-07. Los documentos cerrados de Donaciones que lo citan como "ADR-042" (Enmienda 1 de ADR-037, `convocatoria-resumen.md`, auditorías) no se reescriben; esa mención equivale a ADR-046.
 
-**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-047.
+- **ADR-047 — JWT: librería, algoritmo y secreto de firma** (`ADR-047-jwt-libreria-y-secreto-de-firma.md`). **PROPUESTO** (2026-10-07), decisión D-JWT. Complementa ADR-038 §2.7: Nimbus JOSE + JWT solo en `api`, HS256 con secreto ≥ 256 bits y *fail-fast*, `kid` con una clave anterior para rotar, `exp` de 8 h configurable. Bloquea B3.
+
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-048.
 
 ---
 

@@ -21,7 +21,7 @@
 | # | Decisión | Dueño | Bloquea |
 |---|---|---|---|
 | D-P8 | ✅ **Cerrado el 2026-10-07: opción A (Carlos)**. La génesis no escribe outbox (enmienda de ADR-037 §2.3; `propuesta-P8-outbox-genesis.md`) | `core` | — |
-| D-JWT | Librería JWT y gestión del secreto de firma. Es una dependencia nueva: ADR o enmienda de ADR-038 §2.7 (§3.5) | Identidad | B3 |
+| D-JWT | Librería JWT y gestión del secreto de firma. Es una dependencia nueva: ADR o enmienda de ADR-038 §2.7 (§3.5). **Redactado como ADR-047 (PROPUESTO, 2026-10-07), preguntas Q1–Q5** | Identidad | B3 |
 | D-B39 | Aprobar la Enmienda 1 de ADR-039 (P1–P5) | Blockchain | B4 |
 | D-IA | ADR-040 C2–C5 y C8 | IA | B5 |
 | D-API | Fichas de los endpoints de la demo, empezando por **CV-01** (ya en el repositorio) y CV-07; `GET /account/donations` y la relación `accountId` ↔ `donorRef` (criterios 4 y 6); contrato del **webhook simulado** (condiciones de B6); consulta de estado de la intención con lectura del `trackingCode` (dirección Q-v2-7) | API / Convocatoria | B6 |
