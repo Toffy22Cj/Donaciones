@@ -124,13 +124,25 @@ public class PhysicalAssetCommandService {
         });
     }
 
+    /** D-ASSET (plan B6-c §2.1). */
+    public void dispatchAsset(String commandId, String assetId, String carrierRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        throw new UnsupportedOperationException("B6-c");
+    }
+
+    /** D-ASSET (plan B6-c §2.1). */
+    public void receiveAsset(String commandId, String assetId, String facilityLocation, String receiverRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        throw new UnsupportedOperationException("B6-c");
+    }
+
     /**
      * NUEVA-3 — Camino A: registra un PhysicalAsset (génesis) contra la asignación de un Fund.
      * organizationRef lo aporta el llamador (rectificación NUEVA-3), pero ADR-029 exige que sea el
      * del Fund: como la saga que iba a resolverlo fue descartada (ADR-034), aquí se valida contra el
      * Fund cargado y se rechaza cualquier discrepancia antes de autorizar o persistir.
      */
-    public void registerPhysicalAsset(String commandId,
+    public RegisteredAsset registerPhysicalAsset(String commandId,
             String fundId,
             String organizationRef,
             String assetType,
@@ -143,7 +155,7 @@ public class PhysicalAssetCommandService {
             com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
-            return;
+            return null;
         }
 
         if (fundId == null || fundId.isBlank()) {
@@ -201,6 +213,7 @@ public class PhysicalAssetCommandService {
                     commandId);
             return null;
         });
+        return null;
     }
 
     /**
@@ -240,7 +253,7 @@ public class PhysicalAssetCommandService {
     /**
      * Tarea 5.4 — Camino B sin convocatoria (equivale a {@code campaignRef = null}).
      */
-    public void registerPhysicalAssetFromDonation(String commandId,
+    public RegisteredAsset registerPhysicalAssetFromDonation(String commandId,
             String organizationRef,
             String donorRef,
             String assetType,
@@ -249,7 +262,7 @@ public class PhysicalAssetCommandService {
             String custodianRef,
             String currentLocation,
             com.traceability.core.domain.event.ActorRef actorRef) {
-        registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
+        return registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
                 custodianRef, currentLocation, null, actorRef);
     }
 
@@ -259,7 +272,7 @@ public class PhysicalAssetCommandService {
      * {@link CampaignInKindEligibilityPort} → persistir. Autorizar primero impide que un actor sondee si un
      * {@code campaignRef} existe en otra organización; un rechazo no deja eventos ni reclamo del {@code commandId}.
      */
-    public void registerPhysicalAssetFromDonation(String commandId,
+    public RegisteredAsset registerPhysicalAssetFromDonation(String commandId,
             String organizationRef,
             String donorRef,
             String assetType,
@@ -271,7 +284,7 @@ public class PhysicalAssetCommandService {
             com.traceability.core.domain.event.ActorRef actorRef) {
 
         if (processedCommandRepository.exists(commandId)) {
-            return;
+            return null;
         }
 
         String donationRef = UUID.randomUUID().toString();
@@ -313,6 +326,7 @@ public class PhysicalAssetCommandService {
                     commandId);
             return null;
         });
+        return null;
     }
 
     /**

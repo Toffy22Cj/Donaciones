@@ -20,6 +20,7 @@ public class ApiBaseErrorMappings implements ApiErrorMappings {
     public List<ApiErrorMapping> mappings() {
         return List.of(
                 new ApiErrorMapping(InvalidCommandIdException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
+                new ApiErrorMapping(InvalidRequestFieldException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
                 new ApiErrorMapping(IllegalArgumentException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
                 new ApiErrorMapping(HttpMessageNotReadableException.class, HttpStatus.BAD_REQUEST, ApiExceptionHandler.BAD_REQUEST),
                 // un @PathVariable o @RequestParam que no convierte al tipo pedido
