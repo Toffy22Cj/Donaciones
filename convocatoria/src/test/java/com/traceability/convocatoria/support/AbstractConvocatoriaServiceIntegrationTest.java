@@ -64,7 +64,7 @@ public abstract class AbstractConvocatoriaServiceIntegrationTest extends Abstrac
         ConvocatoriaTestIndexes.resetCollectionsAndIndexes(mongoTemplate);
         identity.clear();
         organizationVerification.clear();
-        // Antes de las fechas de las convocatorias de los tests (ConvocatoriaScenarios.START = 2026-10-01): crear con
+        // Antes de las fechas de las convocatorias de los tests (ConvocatoriaScenarios.START = 2027-01-01): crear con
         // fechas pasadas se rechaza (deuda D-2 de la ficha CV-01). Cada test puede moverlo.
         clock.set(Instant.parse("2026-09-30T00:00:00Z"));
         identity.register(ADMIN, ORG, AuthorizationRole.ADMINISTRATOR);

@@ -34,7 +34,7 @@ public class PublicCampaignQueryService implements ConvocatoriaReadPort {
         if (publicCode == null || !ConvocatoriaLifecycleService.PUBLIC_CODE_FORMAT.matcher(publicCode).matches()) {
             return Optional.empty();
         }
-        return Optional.empty();
+        return convocatorias.findByPublicCode(publicCode).map(this::view);
     }
 
     private PublicCampaignView view(Convocatoria c) {

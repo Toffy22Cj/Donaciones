@@ -49,7 +49,7 @@ public class ConvocatoriaLifecycleService {
      * Longitud de {@code publicCode}: 26 caracteres de un alfabeto de 32 = 130 bits aleatorios (deuda D-3; ≥128 bits,
      * Q-CV01-10 de la ficha CV-01). Longitud y alfabeto no son contrato: el cliente lo trata como opaco.
      */
-    public static final int PUBLIC_CODE_LENGTH = 10;
+    public static final int PUBLIC_CODE_LENGTH = 26;
     /** Forma de un {@code publicCode} emitido por este servicio: CV-07 no consulta nada que no la tenga. */
     public static final java.util.regex.Pattern PUBLIC_CODE_FORMAT =
             java.util.regex.Pattern.compile("^[0-9A-HJKMNP-TV-Z]{" + PUBLIC_CODE_LENGTH + "}$");

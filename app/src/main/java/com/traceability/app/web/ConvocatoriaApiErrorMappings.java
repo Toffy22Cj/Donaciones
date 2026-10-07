@@ -47,7 +47,37 @@ public class ConvocatoriaApiErrorMappings implements ApiErrorMappings {
 
     @Override
     public List<ApiErrorMapping> mappings() {
-        return List.of();
+        return List.of(
+                // El mismo 403 que core (Q-B60-5). CampaignNotFound en CV-02 responde igual que "otra organización"
+                // (plan B6-a §2.2; Q-B60-6 rige con el 403, DD-01)
+                forbidden(ActorNotInCampaignOrganizationException.class),
+                forbidden(ActorRoleNotAllowedException.class),
+                forbidden(CampaignNotFoundException.class),
+                // CV-07: no encontrado público, cuerpo fijo
+                new ApiErrorMapping(PublicCampaignNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                // Validación de la entrada (ficha CV-01 §3.4)
+                badRequest(CampaignTitleRequiredException.class),
+                badRequest(CampaignTitleTooLongException.class),
+                badRequest(CampaignDescriptionTooLongException.class),
+                badRequest(CampaignVisibilityRequiredException.class),
+                badRequest(InvalidCampaignDateRangeException.class),
+                badRequest(CampaignDateInPastException.class),
+                badRequest(EmptyAcceptedDonationTypesException.class),
+                badRequest(IncompleteMonetaryConfigurationException.class),
+                badRequest(MissingCampaignCurrencyException.class),
+                badRequest(InvalidCampaignCurrencyException.class),
+                badRequest(InvalidTargetAmountException.class),
+                badRequest(InvalidOnTargetReachedException.class),
+                badRequest(MonetaryTermsWithoutMonetaryDonationTypeException.class),
+                // Conflictos con el estado (Q1 de B6-0)
+                conflict(OrganizationNotVerifiedException.class),
+                conflict(CommandIdReusedForDifferentCommandException.class),
+                conflict(ResponsibleAlreadyActiveInCampaignException.class),
+                conflict(EmployeeAlreadyAssignedException.class),
+                conflict(EmployeeSelfAssignmentNotAllowedException.class),
+                // Q-B6A-2 (DD-05): el mismo 409 para destinatario ajeno, inexistente o INACTIVE
+                conflict(InvalidResponsibleRecipientException.class),
+                conflict(ResponsibleAssignmentOnClosedCampaignException.class));
     }
 
     private static ApiErrorMapping forbidden(Class<? extends Throwable> type) {

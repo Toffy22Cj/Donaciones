@@ -200,7 +200,7 @@ public class ResponsibleAssignmentService {
      * responsable en una convocatoria {@code CLOSED}. Se relee dentro de la transacción del comando.
      */
     private void requireOpen(String campaignRef) {
-        if (false) {
+        if (load(campaignRef).getStatus() == com.traceability.convocatoria.domain.model.ConvocatoriaStatus.CLOSED) {
             throw new com.traceability.convocatoria.domain.exception.ResponsibleAssignmentOnClosedCampaignException(
                     "Campaign " + campaignRef + " is CLOSED");
         }

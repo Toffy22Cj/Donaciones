@@ -92,7 +92,7 @@ public class Organization {
             throw new IllegalArgumentException("Organization name must not be blank nor exceed " + NAME_MAX_LENGTH);
         }
         Organization organization = createOrganization(type, initialRepresentativeAccountId);
-
+        organization.name = name == null ? null : name.strip();
         return organization;
     }
 

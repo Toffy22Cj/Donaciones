@@ -10,13 +10,15 @@ import java.util.Optional;
 
 /**
  * Nombre público de una organización (CV-07; plan B6-a, Q-B6A-1 (a), Carlos, 2026-10-07). Solo devuelve el nombre.
+ * Es una lectura de un documento, sin transacción: no es un servicio de escritura (la regla de ArchUnit de identity
+ * sobre {@code MongoTransactionRetryHelper} rige para los `*Service`), igual que {@code IdentityPrincipalPortImpl}.
  */
 @Service
-public class OrganizationPublicNameService implements OrganizationPublicNamePort {
+public class OrganizationPublicNameQuery implements OrganizationPublicNamePort {
 
     private final OrganizationRepositoryPort organizations;
 
-    public OrganizationPublicNameService(OrganizationRepositoryPort organizations) {
+    public OrganizationPublicNameQuery(OrganizationRepositoryPort organizations) {
         this.organizations = organizations;
     }
 

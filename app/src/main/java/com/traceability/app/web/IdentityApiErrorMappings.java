@@ -35,6 +35,12 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
 
     @Override
     public List<ApiErrorMapping> mappings() {
-        return List.of();
+        return List.of(
+                new ApiErrorMapping(InsufficientPlatformAuthorityException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
+                // solo la ve un administrador de plataforma, que puede saber qué organizaciones existen
+                new ApiErrorMapping(OrganizationNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                new ApiErrorMapping(InvalidVerificationTransitionException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(AccountNotFoundException.class, HttpStatus.CONFLICT, INVALID_RESPONSIBLE_RECIPIENT),
+                new ApiErrorMapping(InactiveAccountException.class, HttpStatus.CONFLICT, INVALID_RESPONSIBLE_RECIPIENT));
     }
 }

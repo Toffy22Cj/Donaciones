@@ -412,8 +412,8 @@ class FundsApplicationOrchestratorIntegrationTest {
         ConvocatoriaConfiguration cfg = new ConvocatoriaConfiguration(EnumSet.of(DonationType.MONETARY),
                 Set.of(PaymentMethod.BANK_TRANSFER), "COP", target, policy, null);
         return lifecycle.createConvocatoria(new CreateConvocatoriaCommand(UUID.randomUUID().toString(), ADMIN, ORG,
-                "Campaña", null, Visibility.PUBLIC, Instant.parse("2026-10-01T00:00:00Z"),
-                Instant.parse("2026-12-31T00:00:00Z"), cfg)).campaignRef();
+                "Campaña", null, Visibility.PUBLIC, Instant.parse("2027-01-01T00:00:00Z"), // futura: deuda D-2 (plan B6-a)
+                Instant.parse("2027-12-31T00:00:00Z"), cfg)).campaignRef();
     }
 
     private String pendingIntent(String campaignRef, long amount) {

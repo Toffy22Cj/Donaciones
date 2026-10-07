@@ -53,7 +53,9 @@ public record ConvocatoriaConfiguration(
             if (currency == null || currency.isBlank()) {
                 throw new MissingCampaignCurrencyException("currency is required when MONETARY is accepted");
             }
-
+            if (!isIso4217(currency)) {
+                throw new InvalidCampaignCurrencyException("currency must be an ISO 4217 code");
+            }
             if (targetAmount <= 0) {
                 throw new InvalidTargetAmountException("targetAmount must be strictly positive");
             }
@@ -62,7 +64,8 @@ public record ConvocatoriaConfiguration(
                 throw new InvalidOnTargetReachedException(
                         "onTargetReached must be present if and only if targetPolicy = CLOSE_ON_TARGET");
             }
-        } else if (currency != null || targetAmount != null || targetPolicy != null || onTargetReached != null) {
+        } else if (currency != null || targetAmount != null || targetPolicy != null || onTargetReached != null
+                || !acceptedPaymentMethods.isEmpty()) {
             throw new MonetaryTermsWithoutMonetaryDonationTypeException("An IN_KIND-only campaign has no currency,"
                     + " targetAmount, targetPolicy, onTargetReached nor acceptedPaymentMethods");
         }

@@ -77,6 +77,12 @@ public final class Convocatoria {
         if (startDate == null || endDate == null || !startDate.isBefore(endDate)) {
             throw new InvalidCampaignDateRangeException("startDate and endDate are required and startDate < endDate");
         }
+        if (visibility == null) {
+            throw new CampaignVisibilityRequiredException("visibility is required");
+        }
+        if (description != null && description.length() > DESCRIPTION_MAX_LENGTH) {
+            throw new CampaignDescriptionTooLongException("description exceeds " + DESCRIPTION_MAX_LENGTH + " characters");
+        }
         return new Convocatoria(campaignRef, organizationRef, publicCode, title, description, visibility,
                 startDate, endDate, ConvocatoriaStatus.OPEN, configuration, INITIAL_CONFIGURATION_VERSION);
     }
@@ -86,7 +92,10 @@ public final class Convocatoria {
      * al crear: no es una máquina de estados. Las fechas ausentes las rechaza {@link #create}.
      */
     public static void requireDatesNotInPast(Instant startDate, Instant endDate, Instant now) {
-
+        Instant limit = now.minus(DATE_TOLERANCE);
+        if ((startDate != null && startDate.isBefore(limit)) || (endDate != null && endDate.isBefore(limit))) {
+            throw new CampaignDateInPastException("startDate and endDate must not be before now - " + DATE_TOLERANCE);
+        }
     }
 
     /** Uso exclusivo de adaptadores de persistencia: no aplica reglas de creación. */
