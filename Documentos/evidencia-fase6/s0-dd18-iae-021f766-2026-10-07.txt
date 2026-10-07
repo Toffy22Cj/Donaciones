@@ -1,0 +1,36 @@
+# Sección 0 de la segunda autorización (DD-18 sustituida, IllegalArgumentException -> 500) en 021f766 (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: f5f6e2a53892f0c2739d6c96f6741fc94d4ca93128c5af549a0a0e99d81a7826
+# Línea base: develop 74b5787 = 1141 tests. Ahora: 1142 (convocatoria +1; el test HTTP de DD-18 sustituye al anterior).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes
+[ERROR] Tests run: 20, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 2.280 s <<< FAILURE! -- in com.traceability.api.web.ApiExceptionHandlerTest
+[ERROR] Tests run: 6, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 14.81 s <<< FAILURE! -- in com.traceability.convocatoria.application.service.DonationIntentAccessIntegrationTest
+[ERROR] Tests run: 11, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 19.65 s <<< FAILURE! -- in com.traceability.app.web.donation.DonationPaymentHttpIntegrationTest
+
+# Revisión de dependencias del 400 de IllegalArgumentException: ningún test del reactor falló al quitarlo; las validaciones de entrada de las rutas usan InvalidRequestFieldException, InvalidCommandIdException o excepciones nombradas del dominio.
+
+# Mutaciones
+- reenvío sin rotar (devuelve un token que no vale): MUERTA  aRepeatedCreation_rotatesTheStatusToken_andOnlyTheNewOneIsValid
+- reenvío sin token (DD-18 anterior): MUERTA  aRepeatedCreation_rotatesTheStatusToken_andOnlyTheNewOneIsValid
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+- IllegalArgumentException vuelve a 400: MUERTA  eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[8]
+Restauración verificada contra HEAD. Mutaciones vivas: 0
