@@ -59,3 +59,13 @@ convocatoria:
     # Duración de la intención BANK_TRANSFER: parámetro de implementación sin valor decidido
     # (implementation_plan.md §9). Sin default a propósito: debe fijarse por entorno.
     bank-transfer-expiration: ${CONVOCATORIA_BANK_TRANSFER_EXPIRATION}
+  funds-application:
+    recovery:
+      # Scheduler de respaldo de ADR-045 §2.2. Deshabilitado por defecto, también en producción: no se habilita
+      # el dinero real sin P1 (Enmienda 2 §4). El disparo inmediato tras confirmar no depende de esta propiedad.
+      enabled: ${CONVOCATORIA_FUNDS_APPLICATION_RECOVERY_ENABLED:false}
+      fixed-delay: PT1M
+      initial-delay: PT1M
+      batch-size: 50
+      retry-window: PT4H          # aprobado en ADR-045 §2.3 (como ADR-010)
+      max-attempts: 10            # valor de implementación (ADR-045 §7)
