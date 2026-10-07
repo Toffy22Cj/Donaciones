@@ -46,6 +46,8 @@ public class PhysicalAsset extends AggregateRoot {
 
     private final Map<String, AssetLifecycleStatus> splitsBeforeCompensation = new HashMap<>();
     private final Set<String> compensatedSplits = new HashSet<>();
+    /** Lo que fijó cada {@code ASSET_SPLIT} para su hijo (D-SPLIT S3). */
+    private final Map<String, SplitRecord> splits = new HashMap<>();
 
     // Protected constructor for rehydration via AggregateRoot
     protected PhysicalAsset() {
@@ -155,14 +157,35 @@ public class PhysicalAsset extends AggregateRoot {
         return asset;
     }
 
-    /** Skeleton B1-bis. */
+    /**
+     * Génesis del hijo de una división (D-SPLIT S3; B1-bis). Escribe {@code ASSET_REGISTERED} 3.0. Origen de cada
+     * atributo (P4):
+     * <ul>
+     *   <li>del {@code ASSET_SPLIT}: cantidad, unidad, ubicación y custodio <em>en el momento de la división</em> (son
+     *       mutables en el padre), {@code rootAssetRef} y las referencias heredadas {@code organizationRef},
+     *       {@code donorRef}, {@code donationRef} y {@code campaignRef} (ADR-029 §3; Enmienda 1, D4);</li>
+     *   <li>del padre, solo atributos inmutables desde su registro: {@code assetType} y la asignación de origen
+     *       ({@code allocationId} del padre o, si el padre ya es hijo, su {@code sourceAllocationId}).</li>
+     * </ul>
+     * No exige nada de {@code donorRef}/{@code donationRef}: el hijo hereda lo que tenga el padre, de cualquier camino.
+     */
     public static PhysicalAsset registerSplitChild(PhysicalAsset parent, String childAssetId) {
-        throw new UnsupportedOperationException("B1-bis: pendiente");
+        SplitRecord split = parent.findSplit(childAssetId).orElseThrow(() -> new IllegalArgumentException(
+                "Asset " + parent.assetId + " has no split with child " + childAssetId));
+        String sourceAllocationId = parent.allocationId != null ? parent.allocationId : parent.sourceAllocationId;
+
+        PhysicalAsset child = new PhysicalAsset();
+        child.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
+                childAssetId, parent.assetType, split.extractedQuantity(), split.unitOfMeasure(),
+                split.childLocation(), split.childCustodianRef(), parent.assetId, split.rootAssetRef(),
+                null, sourceAllocationId, split.organizationRef(), split.donorRef(), split.donationRef(),
+                split.campaignRef()));
+        return child;
     }
 
-    /** Skeleton B1-bis. */
+    /** El {@code ASSET_SPLIT} (v1, v2 o v3) que generó ese hijo. */
     public java.util.Optional<SplitRecord> findSplit(String childAssetId) {
-        return java.util.Optional.empty();
+        return java.util.Optional.ofNullable(splits.get(childAssetId));
     }
 
     private void checkOrganizationAssigned() {
@@ -254,6 +277,11 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         reintegratedQuantity = reintegratedQuantity.setScale(4, RoundingMode.HALF_UP);
+        BigDecimal extracted = splits.get(childAssetId).extractedQuantity();
+        if (extracted != null && reintegratedQuantity.compareTo(extracted) != 0) {
+            throw new InvalidCompensationQuantityException("Compensation of split " + childAssetId + " must reintegrate "
+                    + extracted + ", not " + reintegratedQuantity);
+        }
         raiseEvent(PhysicalAssetEventType.ASSET_SPLIT_COMPENSATED, new AssetSplitCompensatedPayload(
                 childAssetId, reintegratedQuantity));
     }
@@ -349,16 +377,26 @@ public class PhysicalAsset extends AggregateRoot {
                 this.custodianRef = p.newCustodianRef();
             }
             case AssetSplitV3Payload p -> {
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        p.organizationRef(), p.donorRef(), p.donationRef(), p.campaignRef()));
                 this.splitsBeforeCompensation.put(p.childAssetId(),
                         AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
                 this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetSplitV2Payload p -> {
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        p.organizationRef(), p.donorRef(), p.donationRef(), null));
                 this.splitsBeforeCompensation.put(p.childAssetId(),
                         AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
                 this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetSplitPayload p -> {
+                // 1.0: sin referencias en el payload; se toman del padre, inmutables desde su registro
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        this.organizationRef, this.donorRef, this.donationRef, null));
                 this.splitsBeforeCompensation.put(p.childAssetId(),
                         AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
                 this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
@@ -384,6 +422,10 @@ public class PhysicalAsset extends AggregateRoot {
             }
             default -> throw new IllegalArgumentException("Unknown payload type: " + payload.getClass());
         }
+    }
+
+    private static BigDecimal scaled(BigDecimal quantity) {
+        return quantity == null ? null : quantity.setScale(4, RoundingMode.HALF_UP);
     }
 
     // Getters for testing
