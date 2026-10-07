@@ -4,3 +4,9 @@ convocatoria:
     # PROVISIONAL — no es valor de producto (estado-fase6.md §0). Desbloquea el arranque local;
     # producción sigue sin valor por defecto (CONVOCATORIA_BANK_TRANSFER_EXPIRATION obligatoria).
     bank-transfer-expiration: PT72H
+
+traceability:
+  security:
+    jwt:
+      # SOLO DESARROLLO — nunca un valor productivo (ADR-047 D3). Producción exige JWT_SIGNING_SECRET.
+      signing-secret: dev-only-jwt-signing-secret-not-for-production

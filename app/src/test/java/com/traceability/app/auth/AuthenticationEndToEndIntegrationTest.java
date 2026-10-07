@@ -53,7 +53,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
     "crypto.anchor.stuck-monitor.delay=9999999",
     "crypto.web3j.private-key=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
     "crypto.web3j.node-url=http://dummy-node",
-    "spring.ai.openai.api-key=dummy-api-key"
+    "spring.ai.openai.api-key=dummy-api-key",
+    // DEBUG para que el motivo del rechazo se registre y el test de logs (punto 9) tenga algo que revisar
+    "logging.level.com.traceability.api.auth=DEBUG"
 })
 class AuthenticationEndToEndIntegrationTest {
 
@@ -174,6 +176,7 @@ class AuthenticationEndToEndIntegrationTest {
         whoami(token.substring(0, token.length() - 4) + "AAAA");
 
         String logs = output.getAll();
+        assertThat(logs).contains("JWT authentication rejected: SIGNATURE").contains("Login rejected");
         for (String part : token.split("\\.")) {
             assertThat(logs).doesNotContain(part);
         }
