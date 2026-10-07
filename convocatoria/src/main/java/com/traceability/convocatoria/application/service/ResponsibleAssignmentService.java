@@ -76,6 +76,7 @@ public class ResponsibleAssignmentService {
         ConvocatoriaActor actor = authorizationPolicy.requireAdministratorOf(command.actorAccountId(),
                 convocatoria.getOrganizationRef());
         Map<String, String> result = executor.execute(command.commandId(), CommandType.ASSIGN_EMPLOYEE_TO_CAMPAIGN, () -> {
+            requireOpen(command.campaignRef());
             CampaignAssignment assignment = insertResponsible(convocatoria, command.employeeRef(), ActingRole.EMPLOYEE,
                     actor, command.commandId());
             responsibleState.increment(convocatoria.getCampaignRef());
@@ -94,6 +95,7 @@ public class ResponsibleAssignmentService {
                 convocatoria.getOrganizationRef());
         Map<String, String> result = executor.execute(command.commandId(),
                 CommandType.DESIGNATE_ADMINISTRATOR_AS_CAMPAIGN_RESPONSIBLE, () -> {
+                    requireOpen(command.campaignRef());
                     CampaignAssignment assignment = insertResponsible(convocatoria, command.administratorRef(),
                             ActingRole.ADMINISTRATOR, actor, command.commandId());
                     responsibleState.increment(convocatoria.getCampaignRef());
@@ -191,5 +193,16 @@ public class ResponsibleAssignmentService {
                        boolean selfAssigned, String commandId, Map<String, String> details) {
         auditLog.append(new ConvocatoriaAuditEntry(UUID.randomUUID().toString(), action, campaignRef,
                 actor.accountId(), targetRef, selfAssigned, commandId, clock.instant(), details));
+    }
+
+    /**
+     * Q-B6A-2 (ii) (`[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]`, DD-05): no se asigna ni designa un
+     * responsable en una convocatoria {@code CLOSED}. Se relee dentro de la transacción del comando.
+     */
+    private void requireOpen(String campaignRef) {
+        if (load(campaignRef).getStatus() == com.traceability.convocatoria.domain.model.ConvocatoriaStatus.CLOSED) {
+            throw new com.traceability.convocatoria.domain.exception.ResponsibleAssignmentOnClosedCampaignException(
+                    "Campaign " + campaignRef + " is CLOSED");
+        }
     }
 }

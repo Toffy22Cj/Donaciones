@@ -21,6 +21,11 @@ public class Organization {
     private final List<Membership> members;
     private VerificationStatus verificationStatus;
     private InformationRequestMessage verificationInformationRequest;
+    /** Nombre público, opcional (plan B6-a, Q-B6A-1; `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-04). */
+    private String name;
+
+    /** Longitud máxima del nombre público (DD-04). */
+    public static final int NAME_MAX_LENGTH = 200;
 
     private Organization(OrganizationId organizationId,
                          OrganizationType type,
@@ -53,6 +58,19 @@ public class Organization {
         return new Organization(organizationId, type, members, verificationStatus, verificationInformationRequest);
     }
 
+    /** Igual que {@link #reconstitute(OrganizationId, OrganizationType, List, VerificationStatus, InformationRequestMessage)}, con el nombre público. */
+    public static Organization reconstitute(OrganizationId organizationId,
+                                            OrganizationType type,
+                                            List<Membership> members,
+                                            VerificationStatus verificationStatus,
+                                            InformationRequestMessage verificationInformationRequest,
+                                            String name) {
+        Organization organization = reconstitute(organizationId, type, members, verificationStatus,
+                verificationInformationRequest);
+        organization.name = name;
+        return organization;
+    }
+
     public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
         if (type == null) {
             throw new IllegalArgumentException("OrganizationType cannot be null");
@@ -62,6 +80,24 @@ public class Organization {
         }
         Membership initialMembership = new Membership(initialRepresentativeAccountId, Set.of(Role.REPRESENTATIVE));
         return new Organization(OrganizationId.generate(), type, List.of(initialMembership), VerificationStatus.PENDING_VERIFICATION, null);
+    }
+
+    /**
+     * Igual que {@link #createOrganization(OrganizationType, AccountId)}, con un nombre público opcional (plan B6-a,
+     * Q-B6A-1). Un nombre presente no puede estar en blanco ni superar {@link #NAME_MAX_LENGTH}.
+     */
+    public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId,
+                                                  String name) {
+        if (name != null && (name.isBlank() || name.length() > NAME_MAX_LENGTH)) {
+            throw new IllegalArgumentException("Organization name must not be blank nor exceed " + NAME_MAX_LENGTH);
+        }
+        Organization organization = createOrganization(type, initialRepresentativeAccountId);
+        organization.name = name == null ? null : name.strip();
+        return organization;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public OrganizationId getOrganizationId() {

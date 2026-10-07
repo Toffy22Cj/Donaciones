@@ -29,6 +29,7 @@ public class OrganizationMapper {
             .collect(Collectors.toList()));
 
         doc.setVerificationStatus(org.getVerificationStatus().name());
+        doc.setName(org.getName());
         doc.setVerificationInformationRequest(
             org.getVerificationInformationRequest() != null
                 ? org.getVerificationInformationRequest().value()
@@ -91,7 +92,8 @@ public class OrganizationMapper {
                 .map(OrganizationMapper::toMembershipDomain)
                 .collect(Collectors.toList()),
             status,
-            infoMessage
+            infoMessage,
+            doc.getName()
         );
     }
 

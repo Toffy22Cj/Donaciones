@@ -1,5 +1,7 @@
 package com.traceability.convocatoria.support;
 
+import java.time.Instant;
+
 import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.convocatoria.application.audit.ConvocatoriaAuditEntry;
 import com.traceability.convocatoria.application.port.out.CampaignAssignmentRepositoryPort;
@@ -62,7 +64,9 @@ public abstract class AbstractConvocatoriaServiceIntegrationTest extends Abstrac
         ConvocatoriaTestIndexes.resetCollectionsAndIndexes(mongoTemplate);
         identity.clear();
         organizationVerification.clear();
-        clock.reset();
+        // Antes de las fechas de las convocatorias de los tests (ConvocatoriaScenarios.START = 2027-01-01): crear con
+        // fechas pasadas se rechaza (deuda D-2 de la ficha CV-01). Cada test puede moverlo.
+        clock.set(Instant.parse("2026-09-30T00:00:00Z"));
         identity.register(ADMIN, ORG, AuthorizationRole.ADMINISTRATOR);
         identity.register(ADMIN_2, ORG, AuthorizationRole.ADMINISTRATOR);
         identity.register(ADMIN_EMPLOYEE, ORG, AuthorizationRole.ADMINISTRATOR, AuthorizationRole.EMPLOYEE);

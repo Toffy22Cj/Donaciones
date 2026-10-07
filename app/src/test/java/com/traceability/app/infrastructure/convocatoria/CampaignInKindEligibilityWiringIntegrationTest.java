@@ -161,8 +161,8 @@ class CampaignInKindEligibilityWiringIntegrationTest {
         ConvocatoriaConfiguration inKind = new ConvocatoriaConfiguration(EnumSet.of(DonationType.IN_KIND), null, null,
                 null, null, null);
         return lifecycle.createConvocatoria(new CreateConvocatoriaCommand(UUID.randomUUID().toString(), ADMIN, ORG,
-                "Mantas", null, Visibility.PUBLIC, Instant.parse("2026-10-01T00:00:00Z"),
-                Instant.parse("2026-12-31T00:00:00Z"), inKind)).campaignRef();
+                "Mantas", null, Visibility.PUBLIC, Instant.parse("2027-01-01T00:00:00Z"), // futura: deuda D-2 (plan B6-a)
+                Instant.parse("2027-12-31T00:00:00Z"), inKind)).campaignRef();
     }
 
     private String registerInKind(String campaignRef) {

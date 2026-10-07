@@ -45,8 +45,14 @@ import java.util.UUID;
 public class ConvocatoriaLifecycleService {
 
     private static final char[] PUBLIC_CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
-    /** Longitud de {@code publicCode}: valor de implementación (50 bits aleatorios), reportado en §16. */
-    static final int PUBLIC_CODE_LENGTH = 10;
+    /**
+     * Longitud de {@code publicCode}: 26 caracteres de un alfabeto de 32 = 130 bits aleatorios (deuda D-3; ≥128 bits,
+     * Q-CV01-10 de la ficha CV-01). Longitud y alfabeto no son contrato: el cliente lo trata como opaco.
+     */
+    public static final int PUBLIC_CODE_LENGTH = 26;
+    /** Forma de un {@code publicCode} emitido por este servicio: CV-07 no consulta nada que no la tenga. */
+    public static final java.util.regex.Pattern PUBLIC_CODE_FORMAT =
+            java.util.regex.Pattern.compile("^[0-9A-HJKMNP-TV-Z]{" + PUBLIC_CODE_LENGTH + "}$");
 
     private final IdempotentCommandExecutor executor;
     private final ConvocatoriaAuthorizationPolicy authorizationPolicy;
@@ -81,6 +87,7 @@ public class ConvocatoriaLifecycleService {
         ConvocatoriaActor actor = authorizationPolicy.requireAdministratorOf(command.actorAccountId(),
                 command.organizationRef());
         Map<String, String> result = executor.execute(command.commandId(), CommandType.CREATE_CONVOCATORIA, () -> {
+            Convocatoria.requireDatesNotInPast(command.startDate(), command.endDate(), clock.instant());
             OrganizationVerification.requireVerified(command.organizationRef(),
                     organizationVerificationPort.isVerified(command.organizationRef()));
             Convocatoria convocatoria = Convocatoria.create(UUID.randomUUID().toString(), command.organizationRef(),

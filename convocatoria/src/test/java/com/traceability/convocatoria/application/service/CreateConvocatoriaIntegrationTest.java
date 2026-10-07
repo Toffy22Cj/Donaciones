@@ -65,7 +65,9 @@ class CreateConvocatoriaIntegrationTest extends AbstractConvocatoriaServiceInteg
 
         Convocatoria stored = convocatorias.findByCampaignRef(result.campaignRef()).orElseThrow();
         assertEquals(result.publicCode(), stored.getPublicCode());
-        assertEquals(10, stored.getPublicCode().length());
+        // deuda D-3: 26 caracteres de un alfabeto de 32 = 130 bits (≥128, Q-CV01-10)
+        assertEquals(26, stored.getPublicCode().length());
+        assertTrue(ConvocatoriaLifecycleService.PUBLIC_CODE_FORMAT.matcher(stored.getPublicCode()).matches());
         assertEquals(ConvocatoriaStatus.OPEN, stored.getStatus());
         assertEquals(1L, stored.getConfigurationVersion());
         assertEquals(ORG, stored.getOrganizationRef());
@@ -205,4 +207,18 @@ class CreateConvocatoriaIntegrationTest extends AbstractConvocatoriaServiceInteg
         assertEquals(3, count(ConvocatoriaAuditLogDocument.COLLECTION));
         assertEquals(3, processedCommandCount());
     }
+
+    @Test
+    void d2_datesBeforeNowMinusFiveMinutes_areRejectedWithoutWriting() {
+        clock.set(START.plus(java.time.Duration.ofDays(1)));
+
+        assertThrows(com.traceability.convocatoria.domain.exception.CampaignDateInPastException.class,
+                () -> service.createConvocatoria(command(newCommandId(), ADMIN, flexible())));
+
+        verify(convocatorias, never()).insert(any());
+        verify(ledgers, never()).insert(any());
+        verify(auditLog, never()).append(any());
+        assertEquals(0, processedCommandCount());
+    }
+
 }

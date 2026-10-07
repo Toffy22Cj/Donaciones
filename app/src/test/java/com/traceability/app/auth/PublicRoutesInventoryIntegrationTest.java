@@ -48,6 +48,10 @@ class PublicRoutesInventoryIntegrationTest {
 
     /** Rutas protegidas por JWT, decididas una a una ("MÉTODO /patrón"). */
     static final Set<String> PROTECTED = Set.of(
+            // B6-a: convocatoria y verificación (plan-b6-a-convocatoria-http.md §2)
+            "POST /api/v1/organizations/{organizationId}/campaigns",
+            "POST /api/v1/campaigns/{campaignRef}/employees",
+            "POST /api/v1/platform/organizations/{organizationId}/verify",
             // B6-c: activos y división (plan-b6-c-activos-http.md §2.2)
             "POST /api/v1/physical-assets/register",
             "POST /api/v1/physical-assets/from-donation",

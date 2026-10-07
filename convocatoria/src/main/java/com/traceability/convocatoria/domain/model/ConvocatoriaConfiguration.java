@@ -5,6 +5,7 @@ import com.traceability.convocatoria.domain.exception.IncompleteMonetaryConfigur
 import com.traceability.convocatoria.domain.exception.InvalidOnTargetReachedException;
 import com.traceability.convocatoria.domain.exception.InvalidTargetAmountException;
 import com.traceability.convocatoria.domain.exception.MissingCampaignCurrencyException;
+import com.traceability.convocatoria.domain.exception.InvalidCampaignCurrencyException;
 import com.traceability.convocatoria.domain.exception.MonetaryTermsWithoutMonetaryDonationTypeException;
 
 import java.util.Collections;
@@ -22,8 +23,9 @@ import java.util.Set;
  *   <li>solo {@code IN_KIND}: sin meta, política ni moneda (N2; R1);</li>
  *   <li>{@code onTargetReached} presente si y solo si {@code targetPolicy = CLOSE_ON_TARGET}.</li>
  * </ul>
- * {@code acceptedPaymentMethods} solo es obligatorio con {@code MONETARY} (Enmienda §3.1); ningún documento
- * prohíbe declararlo en una convocatoria solo {@code IN_KIND}, así que no se rechaza (reportado en §16).
+ * {@code acceptedPaymentMethods} solo es obligatorio con {@code MONETARY} (Enmienda §3.1). En una convocatoria solo
+ * {@code IN_KIND} se rechaza, como el resto de campos monetarios (deuda D-7, Q-CV01-13 de la ficha CV-01). Con
+ * {@code MONETARY}, {@code currency} es un código ISO 4217 de tres letras mayúsculas (deuda D-1, Q-CV01-3).
  */
 public record ConvocatoriaConfiguration(
         Set<DonationType> acceptedDonationTypes,
@@ -51,6 +53,9 @@ public record ConvocatoriaConfiguration(
             if (currency == null || currency.isBlank()) {
                 throw new MissingCampaignCurrencyException("currency is required when MONETARY is accepted");
             }
+            if (!isIso4217(currency)) {
+                throw new InvalidCampaignCurrencyException("currency must be an ISO 4217 code");
+            }
             if (targetAmount <= 0) {
                 throw new InvalidTargetAmountException("targetAmount must be strictly positive");
             }
@@ -59,9 +64,23 @@ public record ConvocatoriaConfiguration(
                 throw new InvalidOnTargetReachedException(
                         "onTargetReached must be present if and only if targetPolicy = CLOSE_ON_TARGET");
             }
-        } else if (currency != null || targetAmount != null || targetPolicy != null || onTargetReached != null) {
-            throw new MonetaryTermsWithoutMonetaryDonationTypeException(
-                    "An IN_KIND-only campaign has no currency, targetAmount, targetPolicy nor onTargetReached");
+        } else if (currency != null || targetAmount != null || targetPolicy != null || onTargetReached != null
+                || !acceptedPaymentMethods.isEmpty()) {
+            throw new MonetaryTermsWithoutMonetaryDonationTypeException("An IN_KIND-only campaign has no currency,"
+                    + " targetAmount, targetPolicy, onTargetReached nor acceptedPaymentMethods");
+        }
+    }
+
+    /** Tres letras mayúsculas que {@link java.util.Currency} reconoce (deuda D-1). */
+    private static boolean isIso4217(String code) {
+        if (!code.matches("[A-Z]{3}")) {
+            return false;
+        }
+        try {
+            java.util.Currency.getInstance(code);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
         }
     }
 
