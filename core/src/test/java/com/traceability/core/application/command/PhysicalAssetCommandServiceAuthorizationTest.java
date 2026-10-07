@@ -89,12 +89,16 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         HumanActor actor = new HumanActor("user1");
         AuthorizationPrincipal principal = new AuthorizationPrincipal("user1", orgId, Set.of(AuthorizationRole.EMPLOYEE), null);
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
+        // el publicador real devuelve true cuando escribe; un mock devolvería false (= reclamo ajeno)
+        when(eventPublisher.appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any())).thenReturn(true);
 
         assertDoesNotThrow(() -> {
             service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "evid", Instant.now(), actor);
         });
 
-        verify(eventPublisher).appendAndOutbox(eq(assetId), eq("PhysicalAsset"), any(Long.class), any(), eq(actor), any(), eq("cmd-1"));
+        // B6-c (DD-11): el reclamo guarda el resultado TIPO:assetId
+        verify(eventPublisher).appendAndOutbox(eq(assetId), eq("PhysicalAsset"), any(Long.class), any(), eq(actor), any(), eq("cmd-1"),
+                eq("DELIVER_ASSET:" + assetId));
     }
 
     @Test
@@ -113,6 +117,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         }).isInstanceOf(InsufficientRoleException.class);
 
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());
+        verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -130,5 +135,6 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         }).isInstanceOf(CrossOrganizationAccessException.class);
 
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());
+        verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any());
     }
 }

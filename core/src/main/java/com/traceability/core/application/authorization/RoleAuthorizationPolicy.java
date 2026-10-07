@@ -18,7 +18,8 @@ public class RoleAuthorizationPolicy {
 
         AuthorizationRole requiredRole = switch (commandType) {
             case REGISTER_FUND, CLEAR_FUNDS_AS_GENESIS, CLEAR_FUNDS_FOR_PLEDGE, REVERSE_ALLOCATION_ADMINISTRATIVELY, REQUEST_ALLOCATION, CONFIRM_ALLOCATION -> AuthorizationRole.ADMINISTRATOR;
-            case REGISTER_PHYSICAL_ASSET, REGISTER_PHYSICAL_ASSET_FROM_DONATION, SPLIT_PHYSICAL_ASSET, DELIVER_ASSET -> AuthorizationRole.EMPLOYEE;
+            case REGISTER_PHYSICAL_ASSET, REGISTER_PHYSICAL_ASSET_FROM_DONATION, SPLIT_PHYSICAL_ASSET, DELIVER_ASSET,
+                 DISPATCH_PHYSICAL_ASSET, RECEIVE_PHYSICAL_ASSET -> AuthorizationRole.EMPLOYEE;
         };
 
         if (!principal.roles().contains(requiredRole)) {

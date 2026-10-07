@@ -49,13 +49,13 @@
 
 | Endpoint | Auth | Domain op | Response | Estado |
 |---|---|---|---|---|
-| `POST /physical-assets/from-donation` | JWT + `EMPLOYEE` | `REGISTER_PHYSICAL_ASSET_FROM_DONATION` | `{assetRef, status, donationRef, campaignRef}` | CONTRATO DEFINIDO / **BLOQUEADO** — `HumanAccount` (`golden-path.md` §5.1) + integración P7 (§5.2) |
-| `POST /physical-assets/register` | JWT + `EMPLOYEE`/`REPRESENTATIVE` backup | `REGISTER_PHYSICAL_ASSET` | ídem | CONTRATO DEFINIDO / integración P7 pendiente |
+| `POST /physical-assets/from-donation` | JWT + `EMPLOYEE` | `REGISTER_PHYSICAL_ASSET_FROM_DONATION` | `201 {assetRef, status, donationRef, campaignRef}` (`campaignRef` omitido si no hay); la organización sale del JWT y el `donorRef` lo genera el servidor (DD-09, DD-10) | **IMPLEMENTADO en B6-c**, id determinista (Q9) |
+| `POST /physical-assets/register` | JWT + `EMPLOYEE`/`REPRESENTATIVE` backup | `REGISTER_PHYSICAL_ASSET` | `201 {assetRef, status, campaignRef}` | **IMPLEMENTADO en B6-c**, id determinista (Q9). Necesita una asignación previa sin endpoint (H-B6C-1) |
 | `POST /physical-assets/{assetRef}/split` | ídem | `SPLIT_PHYSICAL_ASSET` | **`202 Accepted`** + `Location` al recurso de estado + `{parentAssetRef, childAssetRef, status: "PENDING"}`. El hijo nace de forma asíncrona (saga); `childAssetRef` es determinista (UUID v5 de padre + `commandId`), así que un reenvío devuelve lo mismo (D-SPLIT S7; sustituye "assets resultantes") | CONTRATO DEFINIDO / núcleo hecho en B1-bis (`splitPhysicalAsset` devuelve `childAssetId`); HTTP en B6 |
 | `GET /physical-assets/{parentAssetRef}/splits/{childAssetRef}` | ídem (lectura del padre) | — (`SplitResolutionReadPort`) | `200 {status}`: `PENDING`, `CHILD_CREATED`, `COMPENSATED`, `UNRESOLVED` o `RESOLVED_MANUALLY`; un par que no corresponde a ninguna división → 404. El guion de la demo sondea hasta `CHILD_CREATED`. Mientras tanto, `GET` del activo hijo da 404, como cualquier activo inexistente | CONTRATO NUEVO (D-SPLIT S7) / puerto hecho en B1-bis; HTTP en B6 |
-| `POST /physical-assets/{assetRef}/dispatch` | ídem | `DISPATCH_PHYSICAL_ASSET` (extensión de `CommandType`, ver §5.2) | `{assetRef, status}` | CONTRATO CONCEPTUAL — método ni siquiera expuesto en `PhysicalAssetCommandService` hoy |
-| `POST /physical-assets/{assetRef}/receive` | ídem | `RECEIVE_PHYSICAL_ASSET` (extensión) | ídem | CONTRATO CONCEPTUAL — mismo estado que dispatch |
-| `POST /physical-assets/{assetRef}/deliver` | Pendiente de decisión | `DELIVER_PHYSICAL_ASSET` aún no existe en `CommandType`; `deliverAsset` existe como método interno, pero no hay endpoint ni adapter HTTP implementado | Pendiente | CONTRATO FUTURO NO IMPLEMENTADO — requiere reconciliar exposición y autorización antes de publicarse |
+| `POST /physical-assets/{assetRef}/dispatch` | ídem | `DISPATCH_PHYSICAL_ASSET` (extensión de `CommandType`, ver §5.2) | `200 {assetRef, status: "DISPATCHED"}` | **IMPLEMENTADO en B6-c** (D-ASSET) |
+| `POST /physical-assets/{assetRef}/receive` | ídem | `RECEIVE_PHYSICAL_ASSET` (extensión) | `200 {assetRef, status: "RECEIVED"}` | **IMPLEMENTADO en B6-c** (D-ASSET) |
+| `POST /physical-assets/{assetRef}/deliver` | JWT + `EMPLOYEE` | `DELIVER_ASSET` (nombre del código, A8 de D-API) | `200 {assetRef, status: "DELIVERED"}`; `deliveredAt` lo pone el servidor | **IMPLEMENTADO en B6-c** (`[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-14, DD-15). *Texto anterior: "CONTRATO FUTURO NO IMPLEMENTADO — `DELIVER_PHYSICAL_ASSET` aún no existe"* |
 
 ## 5. Tracking y narrativas
 

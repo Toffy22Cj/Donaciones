@@ -1,6 +1,6 @@
 # Plan B6-c — HTTP de activos y división (incluido D-ASSET)
 
-**Estado:** **EN EJECUCIÓN bajo la autorización de trabajo autónomo de Carlos (2026-10-07)**, que exceptúa temporalmente las reglas 1 y 3.4. El plan entero es una `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-08); cada decisión concreta está en `decisiones-delegadas-2026-10.md` (DD-09 a DD-16).
+**Estado:** **HECHO** (2026-10-07, `feat/b6-c-activos-http`; evidencia `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`, `estado-fase6.md` §0.12). Ejecutado bajo la autorización de trabajo autónomo de Carlos (2026-10-07), excepción temporal a las reglas 1 y 3.4. El plan entero es una `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-08); cada decisión concreta está en `decisiones-delegadas-2026-10.md` (DD-09 a DD-16). Precisión de la implementación: el resultado del registro se toma del activo recién escrito; solo un duplicado relee el evento de génesis.
 **Origen:** `propuesta-d-api.md` (APROBADO): A8 (D-ASSET, id determinista, `DELIVER_ASSET`), A9 y Q9 (`Command-Id` en todos los comandos de la demo, reversión de T-33 por Carlos), §3 (B6-c); `api-contract-matrix.md` §4 y §4b; `plan-b1bis-saga-division.md` (división y `SplitResolutionReadPort`).
 **Depende de:** B6-0 (fusionado en #58).
 **Revisión:** cubierto por la excepción a la regla 3.2 (`estado-fase6.md` §0.5).
