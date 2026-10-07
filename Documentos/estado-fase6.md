@@ -178,6 +178,23 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.24 Decisiones de Carlos (2026-10-07T21:41Z): Ganache como evidencia, CI local y demo local
+
+- **Anclaje (criterios 10, 11, 12 y 18):** se cierran con la evidencia de la **cadena local (Ganache)**. La testnet pública pasa a ser **opcional** (`runbook-anclaje-testnet.md`). Motivo: no depender de *faucets*, cuotas ni disponibilidad de la red el día de la demo. **Limitación aceptada:** un anclaje en Ganache es real en la cadena local, pero no lo pueden verificar terceros. Anotado en `golden-path.md` §8 y `plan-cierre-fase6-codigo.md`.
+- **B7 cerrado con evidencia de Ganache:**
+  - recorrido automático `GoldenPathHttpIntegrationTest` (19 de 19, `verifyBatch` → `MATCH`), en cada `scripts/ci-local.sh`;
+  - recorrido en vivo con `runbook-demo-local.md`, probado desde cero: `evidencia-fase6/demo-local-2026-10-07T21-40-35Z/`. 12 eventos del fondo, el padre y el hijo en 2 batches `ANCHORED`, con recibos `0x1` en Ganache.
+- **CI local — excepción permanente a la regla 3.2 (Carlos, 2026-10-07):** la cuenta de GitHub está bloqueada por facturación y no hay presupuesto. El CI es `scripts/ci-local.sh` y su salida va en `Documentos/evidencia-ci/`. Todo PR adjunta la salida sobre su último commit (`reglas-equipo-y-agentes.md` §3.2).
+- **Demo local** (`runbook-demo-local.md`; `scripts/demo/`):
+  - `docker-compose.yml` con Mongo en réplica y Ganache;
+  - `deploy-anchor-registry.sh`;
+  - `demo.env.example`, con valores solo locales;
+  - `recorrido.py`, que enmascara las credenciales en la evidencia;
+  - semilla `DemoSeedRunner`, solo para el perfil `dev`.
+- **Hallazgos al probar la demo:**
+  - **H-DEMO-1 (corregido en `fix/narrativa-fallback-cacheado`):** sin clave de LLM, la narrativa individual no salía nunca de `PENDING`. El fallback se guardaba con otro identificador de modelo y no se encontraba, así que cada consulta llamaba al proveedor y guardaba otro documento: 90 en una prueba. Los tests no lo veían porque siempre había un LLM simulado que respondía.
+  - **H-DEMO-2 (abierto, decisión de Carlos):** el texto de respaldo de la narrativa individual está en inglés e **incluye el `fundId` interno** en una respuesta pública de seguimiento. Propuesta: texto en español sin ids.
+
 ### 0.23 P4 y cierre de la segunda autorización (2026-10-07)
 
 - **P4 (solo documento):** `ADR-042-enmienda-1-reconstruccion-jmx.md`, **PROPUESTA**: operación JMX `rebuildProjections()` para B-PROJ PR 2 (alcance, secuencia con `finally`, sin abortar por un evento, candado de una sola ejecución, sin HTTP). No autoriza código. Nada de B4.

@@ -16,8 +16,8 @@ import java.util.Optional;
  * {@code publicCode} de la página, cifrado y autenticado con AES-256-GCM e IV aleatorio, en Base64 URL. El cliente no
  * puede leerlo ni fabricarlo; uno alterado, ajeno o de otra clave es inválido (→ 400). Solo JDK, sin dependencias.
  * <p>
- * Clave: {@code TRACEABILITY_DISCOVERY_CURSOR_KEY} (32 bytes en Base64) si existe; si no, una aleatoria por proceso
- * (los cursores dejan de valer al reiniciar y el cliente vuelve a la primera página). DD-58.
+ * Clave: {@code TRACEABILITY_DISCOVERY_CURSOR_KEY} (32 bytes en Base64), obligatoria, sin valor por defecto y distinta
+ * de los demás secretos (Carlos, 2026-10-07; {@code DiscoveryCursorConfig}). Nunca se registra.
  */
 public final class DiscoveryCursorCodec {
 
@@ -31,6 +31,7 @@ public final class DiscoveryCursorCodec {
         this.key = new SecretKeySpec(key, "AES");
     }
 
+    /** Solo para tests: la aplicación siempre usa {@link #fromConfiguredKey(String, java.util.List)}. */
     public static DiscoveryCursorCodec withRandomKey() {
         byte[] key = new byte[32];
         RANDOM.nextBytes(key);
@@ -38,14 +39,36 @@ public final class DiscoveryCursorCodec {
     }
 
     public static DiscoveryCursorCodec fromConfiguredKey(String base64Key) {
+        return fromConfiguredKey(base64Key, java.util.List.of());
+    }
+
+    /**
+     * @param otherSecrets los demás secretos de la aplicación: la clave no puede coincidir con ninguno, ni como texto ni
+     *                     una vez decodificada. Los mensajes de error nunca incluyen la clave.
+     */
+    public static DiscoveryCursorCodec fromConfiguredKey(String base64Key, java.util.List<String> otherSecrets) {
+        if (base64Key == null || base64Key.isBlank()) {
+            throw new IllegalStateException("TRACEABILITY_DISCOVERY_CURSOR_KEY es obligatoria (32 bytes en Base64)");
+        }
+        String trimmed = base64Key.trim();
         byte[] key;
         try {
-            key = Base64.getDecoder().decode(base64Key.trim());
+            key = Base64.getDecoder().decode(trimmed);
         } catch (IllegalArgumentException e) {
             key = new byte[0];
         }
         if (key.length != 32) {
             throw new IllegalStateException("TRACEABILITY_DISCOVERY_CURSOR_KEY debe ser una clave de 32 bytes en Base64");
+        }
+        for (String other : otherSecrets) {
+            if (other == null || other.isBlank()) {
+                continue;
+            }
+            if (other.trim().equals(trimmed)
+                    || java.security.MessageDigest.isEqual(key, other.getBytes(StandardCharsets.UTF_8))) {
+                throw new IllegalStateException(
+                        "TRACEABILITY_DISCOVERY_CURSOR_KEY debe ser distinta de los demás secretos de la aplicación");
+            }
         }
         return new DiscoveryCursorCodec(key);
     }

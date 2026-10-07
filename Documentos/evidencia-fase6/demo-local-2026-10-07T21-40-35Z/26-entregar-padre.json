@@ -1,0 +1,21 @@
+{
+  "paso": "entregar-padre",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/2b1d550a-fc16-507f-a024-c0b8cb69f868/deliver",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "0d2a2450-5b96-4fd0-8b2c-3c828d6e1bd2"
+  },
+  "cuerpo": {
+    "finalCustodianRef": "custodio-final",
+    "beneficiaryRef": "beneficiario-1",
+    "locationRef": "centro-1",
+    "evidenceRef": "acta-1"
+  },
+  "estado": 200,
+  "respuesta": {
+    "assetRef": "2b1d550a-fc16-507f-a024-c0b8cb69f868",
+    "status": "DELIVERED"
+  }
+}

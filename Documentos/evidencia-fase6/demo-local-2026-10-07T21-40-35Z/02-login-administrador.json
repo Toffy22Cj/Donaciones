@@ -1,0 +1,16 @@
+{
+  "paso": "login-administrador",
+  "metodo": "POST",
+  "ruta": "/api/v1/auth/login",
+  "cabeceras": {
+    "Content-Type": "application/json"
+  },
+  "cuerpo": {
+    "email": "administrador@demo.paxfide.local",
+    "password": "***"
+  },
+  "estado": 200,
+  "respuesta": {
+    "token": "***"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "paso": "narrativa-convocatoria",
+  "metodo": "GET",
+  "ruta": "/api/v1/public/campaigns/Y27E5TEA4ETGK63YATTVVA25D5/narrative",
+  "cabeceras": {},
+  "cuerpo": null,
+  "estado": 202,
+  "respuesta": {
+    "status": "PENDING",
+    "content": null,
+    "source": null,
+    "facts": {
+      "status": "OPEN",
+      "currency": "COP",
+      "targetAmount": "50000000",
+      "clearedAmount": "10000000",
+      "unitsDelivered": "10",
+      "distinctRecipients": 1
+    }
+  }
+}

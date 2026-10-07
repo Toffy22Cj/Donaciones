@@ -107,4 +107,19 @@ class DonorReportMongoAdapterTest {
         assertEquals("FALLBACK", dto.modelIdentifier());
         assertEquals(nextRetry, dto.nextRetryAt());
     }
+
+    @Test
+    void twoFallbacksWithTheSameKey_returnTheLatest_insteadOfFailing() {
+        java.time.Instant t0 = java.time.Instant.parse("2027-01-10T10:00:00Z");
+        adapter.save("fund-dup", new DonorReportDTO("primero", NarrativeSource.FALLBACK_TEMPLATE, "FALLBACK", "v1",
+                NarrativeConstants.SNAPSHOT_HASH_V1, 12L, t0, t0.plusSeconds(900)));
+        adapter.save("fund-dup", new DonorReportDTO("segundo", NarrativeSource.FALLBACK_TEMPLATE, "FALLBACK", "v1",
+                NarrativeConstants.SNAPSHOT_HASH_V1, 12L, t0.plusSeconds(901), t0.plusSeconds(1801)));
+
+        Optional<DonorReportDTO> found = adapter.findByLogicalKey("fund-dup", 12L, NarrativeConstants.SNAPSHOT_HASH_V1,
+                "v1", "FALLBACK");
+
+        assertTrue(found.isPresent());
+        assertEquals("segundo", found.get().narrativeText());
+    }
 }
