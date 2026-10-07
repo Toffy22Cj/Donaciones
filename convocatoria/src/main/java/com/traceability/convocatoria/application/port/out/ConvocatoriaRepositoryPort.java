@@ -34,4 +34,7 @@ public interface ConvocatoriaRepositoryPort {
      * {@code PRIVATE_LINK}.
      */
     java.util.List<Convocatoria> findPublicOpenAfter(String afterPublicCode, int limit);
+
+    /** Convocatorias de la organización que empezaron antes de {@code before} (variable del predictor, P3). */
+    long countByOrganizationStartedBefore(String organizationRef, java.time.Instant before);
 }

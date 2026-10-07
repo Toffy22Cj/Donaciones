@@ -75,6 +75,7 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/organizations/{organizationId}/members",
             "POST /api/v1/platform/organizations/{organizationId}/reject",
             "POST /api/v1/platform/organizations/{organizationId}/request-information",
+            "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction",
             "POST /api/v1/funds/{fundId}/allocations",
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm");
 

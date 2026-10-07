@@ -93,4 +93,10 @@ public class MongoConvocatoriaRepositoryAdapter implements ConvocatoriaRepositor
         Query query = Query.query(criteria).with(org.springframework.data.domain.Sort.by("publicCode")).limit(limit);
         return mongoTemplate.find(query, ConvocatoriaDocument.class).stream().map(ConvocatoriaMapper::toDomain).toList();
     }
+
+    @Override
+    public long countByOrganizationStartedBefore(String organizationRef, java.time.Instant before) {
+        return mongoTemplate.count(Query.query(Criteria.where("organizationRef").is(organizationRef)
+                .and("startDate").lt(before)), ConvocatoriaDocument.class);
+    }
 }
