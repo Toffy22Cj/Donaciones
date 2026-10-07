@@ -1,6 +1,6 @@
 # Plan B6-a — HTTP de convocatoria: crear, asignar responsable, detalle público y verificar organización
 
-**Estado:** **PROPUESTO** (2026-10-07). Necesita la aprobación de Carlos antes de cualquier código (regla 3.4). Las preguntas de §7 bloquean partes concretas; el resto puede empezar en cuanto se apruebe el plan.
+**Estado:** **EN EJECUCIÓN bajo la autorización de trabajo autónomo de Carlos (2026-10-07)**, que exceptúa temporalmente las reglas 1 y 3.4. Las preguntas de §7 quedan resueltas en §8: Q-B6A-1 por Carlos (opción (a)), y el resto como `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (`decisiones-delegadas-2026-10.md`).
 **Origen:** `propuesta-d-api.md` (APROBADO), §3 (B6-a: CV-01, CV-02, CV-07, verificar organización), Q7 (CV-07 con `acceptedPaymentMethods` y el nombre de la organización), Q8 (CV-01 cerrada) y la decisión de Carlos de que **D-7 a D-9 entran en B6-a**; `ficha-CV-01-crear-convocatoria.md` (CONGELADO); `plan-b6-0-base-http.md` (HECHO).
 **Depende de:** B6-0 (fusionado en #58).
 **Revisión:** cubierto por la excepción a la regla 3.2.
@@ -167,3 +167,14 @@
 | Q-B6A-3 | **Respuesta de CV-02:** la matriz dice `{campaignRef, accountId, status}`; el código guarda `{assignmentId}` | `201` con `{assignmentId}`: es lo que se guarda para los duplicados, así que el cuerpo repetido es idéntico sin cambiar el ejecutor. La matriz se corrige |
 | Q-B6A-4 | **Verificar organización y `Command-Id`:** el servicio no recibe `commandId`, y un segundo intento da `InvalidVerificationTransition`. ¿(a) Exento de `Command-Id`, como el login y el webhook, con 409 en el reintento; o (b) `Command-Id` obligatorio con idempotencia en `identity`? | **(a)**: el estado ya hace la operación idempotente en la práctica (no puede verificarse dos veces), y (b) cambia `identity` sin que la demo lo necesite. Q9 solo revirtió T-33 para `core` |
 | Q-B6A-5 | **Ficha CV-07:** no está en el repositorio. Los campos de §2.3 salen de A6 con la opción (b) de Q7. ¿Me la pasas para cotejarla, o vale la lista de §2.3? | Pasármela; si no llega antes de empezar el código, vale §2.3 y la cotejo al sincronizar |
+
+## 8. Respuestas (2026-10-07)
+
+| # | Respuesta | Origen |
+|---|---|---|
+| Q-B6A-1 | **(a):** puerto de `identity` con el nombre de la organización (Carlos: "el puerto de identity con el nombre de la organización"). Detalles: `name` opcional en `Organization` (máx. 200), `OrganizationPublicNamePort` en `contracts` con `Optional<String>`, CV-07 omite el campo sin nombre | Carlos, 2026-10-07; detalles `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-04) |
+| Q-B6A-2 | (i) el mismo 409 `InvalidResponsibleRecipient` para no `EMPLOYEE`, inexistente e `INACTIVE`; (ii) 409 `CampaignClosed` | `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-05) |
+| Q-B6A-3 | `201 {assignmentId}`; se corrige la matriz | `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-06) |
+| Q-B6A-4 | (a) exento de `Command-Id`; 409 en el reintento | `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-07) |
+| Q-B6A-5 | Vale la lista de §2.3; se coteja con la ficha CV-07 cuando llegue al repositorio | `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-03) |
+| Q-B60-6 | Rige el 403 idéntico para "no existe" y "otra organización" (§2.2) | `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-01) |
