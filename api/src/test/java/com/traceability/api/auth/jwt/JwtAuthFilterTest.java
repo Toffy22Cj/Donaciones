@@ -28,7 +28,6 @@ import java.util.Set;
 
 import static com.traceability.api.auth.jwt.JwtTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -128,8 +127,12 @@ class JwtAuthFilterTest {
     void aDataAccessFailureWhileResolvingThePrincipal_isNotDisguisedAs401() throws Exception {
         when(identity.resolvePrincipal("acc-1")).thenThrow(new DataAccessResourceFailureException("mongo down"));
 
-        assertThatThrownBy(() -> perform(bearer(get("/api/v1/accounts/me"), valid())))
-                .hasRootCauseInstanceOf(DataAccessResourceFailureException.class);
+        Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> perform(bearer(get("/api/v1/accounts/me"), valid())));
+        boolean found = false;
+        for (Throwable t = thrown; t != null; t = t.getCause()) {
+            found |= t instanceof DataAccessResourceFailureException;
+        }
+        assertThat(found).as("la excepción de acceso a datos se propaga: %s", thrown).isTrue();
     }
 
     @Test
@@ -168,7 +171,11 @@ class JwtAuthFilterTest {
                 "/api/v1/auth/login;jsessionid=x",
                 "/api/v1//public/campaigns",
                 "/api/v1/public/campaigns/%2e%2e")) {
-            MockHttpServletRequestBuilder r = get(uri);
+            // URI en bruto: MockMvc normalizaría la plantilla antes de llegar al filtro
+            MockHttpServletRequestBuilder r = get("/placeholder").with(req -> {
+                req.setRequestURI(uri);
+                return req;
+            });
             assertThat(perform(r).getResponse().getStatus()).as(uri).isEqualTo(401);
         }
     }
