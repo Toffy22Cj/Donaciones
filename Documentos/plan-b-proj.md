@@ -80,7 +80,9 @@ Sin dependencias ni mecanismos nuevos: se corrige el comportamiento de piezas ex
    Así la versión 3 de D-CAMPAIGN no puede repetir el fallo sin que el test lo detecte.
 3. **Origen de la secuencia:** un stream que empieza en 1 se proyecta; un hueco real (1 → 3) sigue dando `SequenceGapException`.
 
-### 3.2 Corrección (`fix/b-proj-proyecciones-v2`, PR 1)
+### 3.2 Corrección (`fix/b-proj-proyecciones-v2`, PR 1) — hecha, 2026-10-07
+
+*Implementación: la consulta de la génesis va por el puerto estrecho `EventStreamGenesisReadPort` (no se amplió `EventStorePort`); el Camino B se detecta con `donationRef != null`; un payload no declarado avanza la secuencia con log de error y el contador JMX `UndeclaredPayloadCount` de `ProjectionRetryScheduler`; los manejadores tienen orden fijo (`@Order`). Efecto conocido: los activos del Camino B no tienen `asset_history`, así que su historial público da 404 hasta que se decida su proyección.*
 
 - **D-SEQ (a):** "nada procesado" = 0 en `DonationProjectionHandler` y `DonationAuditFactsHandler`, y la condición de "documento nuevo" deja de depender de que la secuencia valga 0 (`DonationProjectionHandler.java:138`; `DonationAuditFactsHandler.java:110`).
 - **v2:** `FundRegisteredV2Payload`, `FundsClearedV2Payload` y `AssetRegisteredV2Payload` en los dos manejadores, en `appendAssetHistory`, en los dos `resolveProjectionId` (manejador y `ProjectionEventSource`) y en `resolveFundId` de la auditoría.

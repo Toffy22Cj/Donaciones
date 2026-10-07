@@ -19,10 +19,8 @@ import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -51,7 +49,9 @@ import static org.mockito.Mockito.when;
  * manejadores la esperaban en 0, y además no reconocían los payloads v2.
  * <p>
  * Propiedades propias para no compartir contexto con {@code DonationProjectionIntegrationTest}, que inserta en
- * {@code event_store} con el change stream activo.
+ * {@code event_store} con el change stream activo. Usa la configuración de arranque que encuentra la búsqueda de
+ * Spring Boot en el paquete (la anidada de ese test, con el mismo escaneo de {@code core} y {@code @EnableScheduling}):
+ * declarar otra aquí rompería esa búsqueda en los tests vecinos.
  */
 @SpringBootTest(properties = {
         "core.projection.retry.delay=500",
@@ -72,13 +72,6 @@ class ProjectionChangeStreamE2ETest {
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
-    }
-
-    @Configuration
-    @SpringBootApplication(scanBasePackages = "com.traceability.core")
-    @org.springframework.data.mongodb.repository.config.EnableMongoRepositories(basePackages = "com.traceability.core")
-    @org.springframework.scheduling.annotation.EnableScheduling
-    static class TestConfig {
     }
 
     @MockBean private IdentityPrincipalPort identityPrincipalPort;
@@ -139,7 +132,9 @@ class ProjectionChangeStreamE2ETest {
                 allocationId, null, ACTOR);
         String assetId = assetIdOfAllocation(allocationId);
 
-        await(() -> Optional.ofNullable(mongoTemplate.findById(assetId, Document.class, "asset_index")));
+        // asset_index se escribe antes que logistics y asset_history: se espera al último paso del registro.
+        await(() -> Optional.ofNullable(mongoTemplate.findById(assetId, Document.class, "asset_history")));
+        assertThat(mongoTemplate.findById(assetId, Document.class, "asset_index")).isNotNull();
         assertThat(logisticsStatus(fundId, assetId)).isEqualTo("REGISTERED");
         assertThat(historyStatuses(assetId)).containsExactly("REGISTERED");
 
@@ -149,7 +144,8 @@ class ProjectionChangeStreamE2ETest {
         appendWithAggregate(assetId, asset -> asset.receive("WH-2", "RECEIVER-1"));
         assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "EVIDENCE-1", Instant.now(), ACTOR);
 
-        await(() -> Optional.of(logisticsStatus(fundId, assetId)).filter("DELIVERED"::equals));
+        await(() -> Optional.of(historyStatuses(assetId)).filter(h -> h.size() == 4));
+        assertThat(logisticsStatus(fundId, assetId)).isEqualTo("DELIVERED");
         assertThat(historyStatuses(assetId)).containsExactly("REGISTERED", "DISPATCHED", "RECEIVED", "DELIVERED");
         assertThat(donationRead.findByFundId(fundId).orElseThrow().logistics()).hasSize(1);
         assertNoQuarantine(fundId);
@@ -192,7 +188,12 @@ class ProjectionChangeStreamE2ETest {
         Thread.sleep(1500); // por encima de core.projection.retry.delay: un reintento ya se habría registrado
 
         assertThat(mongoTemplate.findById(assetId, Document.class, "asset_index")).isNull();
-        assertThat(mongoTemplate.count(new Query(Criteria.where("fundId").is(null)), "donation_audit_facts")).isZero();
+        assertThat(mongoTemplate.count(new Query(Criteria.where("_id").is(null)), "donation_audit_facts"))
+                .as("ningún documento de auditoría con clave nula").isZero();
+        assertThat(mongoTemplate.count(new Query(Criteria.where("auditMetadata.assetLastProcessedSequences." + assetId)
+                .exists(true)), "donation_audit_facts")).as("ningún documento de auditoría registra el activo").isZero();
+        assertThat(mongoTemplate.count(new Query(Criteria.where("logistics.assetId").is(assetId)), "donation_projections"))
+                .as("el activo no se adjunta a ninguna donación").isZero();
         assertNoQuarantine(assetId);
     }
 

@@ -111,10 +111,10 @@ public class DonationAuditFactsIntegrationTest {
         Instant t1 = Instant.parse("2023-01-01T10:00:00Z");
         Instant t2 = t1.plus(7201, ChronoUnit.SECONDS); // > 7200 threshold
         
-        TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("carrier", "loc"), t1, "PhysicalAsset");
+        TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("carrier", "loc"), t1, "PhysicalAsset");
         auditFactsHandler.handleEvent(ev1);
         
-        TraceabilityEventDocument ev2 = createEvent("ev2", assetId, 1, "ASSET_RECEIVED", new AssetReceivedPayload("loc2", "rec"), t2, "PhysicalAsset");
+        TraceabilityEventDocument ev2 = createEvent("ev2", assetId, 2, "ASSET_RECEIVED", new AssetReceivedPayload("loc2", "rec"), t2, "PhysicalAsset");
         auditFactsHandler.handleEvent(ev2);
         
         DonationAuditFactsDocument doc = auditFactsRepository.findById(fundId).orElseThrow();
@@ -135,10 +135,10 @@ public class DonationAuditFactsIntegrationTest {
         Instant t1 = Instant.parse("2023-01-01T10:00:00Z");
         Instant t2 = t1.plus(7199, ChronoUnit.SECONDS); // < 7200 threshold
         
-        TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("carrier", "loc"), t1, "PhysicalAsset");
+        TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("carrier", "loc"), t1, "PhysicalAsset");
         auditFactsHandler.handleEvent(ev1);
         
-        TraceabilityEventDocument ev2 = createEvent("ev2", assetId, 1, "ASSET_RECEIVED", new AssetReceivedPayload("loc2", "rec"), t2, "PhysicalAsset");
+        TraceabilityEventDocument ev2 = createEvent("ev2", assetId, 2, "ASSET_RECEIVED", new AssetReceivedPayload("loc2", "rec"), t2, "PhysicalAsset");
         auditFactsHandler.handleEvent(ev2);
         
         DonationAuditFactsDocument doc = auditFactsRepository.findById(fundId).orElseThrow();
@@ -152,7 +152,7 @@ public class DonationAuditFactsIntegrationTest {
         String assetId = "asset-3";
         assetIndexRepository.save(new AssetIndexDocument(assetId, fundId, assetId, 0));
         
-        TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 0, "ASSET_SPLIT", 
+        TraceabilityEventDocument ev1 = createEvent("ev1", assetId, 1, "ASSET_SPLIT", 
             new AssetSplitPayload("child", new BigDecimal("10.0000"), "kg", new BigDecimal("20.0000"), new BigDecimal("10.0000"), "REGISTERED", "loc", "cust", "root"), 
             Instant.now(), "PhysicalAsset");
         
@@ -176,8 +176,8 @@ public class DonationAuditFactsIntegrationTest {
         Instant t1 = Instant.parse("2023-01-01T10:00:00Z");
         Instant t2 = t1.plus(7201, ChronoUnit.SECONDS); 
         
-        auditFactsHandler.handleEvent(createEvent("e1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), t1, "PhysicalAsset"));
-        auditFactsHandler.handleEvent(createEvent("e2", assetId, 1, "ASSET_RECEIVED", new AssetReceivedPayload("l2", "r"), t2, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), t1, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e2", assetId, 2, "ASSET_RECEIVED", new AssetReceivedPayload("l2", "r"), t2, "PhysicalAsset"));
         
         DonationAuditFactsDocument doc = auditFactsRepository.findById(fundId).orElseThrow();
         assertThat(doc.getTransitions().get(0).expectedMaximumSeconds()).isEqualTo(7200);
@@ -194,7 +194,7 @@ public class DonationAuditFactsIntegrationTest {
         
         Instant t = Instant.now();
         FundsRefundedPayload payload = new FundsRefundedPayload("ref1", 500L, true, "reason1");
-        TraceabilityEventDocument ev = createEvent("e1", fundId, 0, "FUNDS_REFUNDED", payload, t, "Fund");
+        TraceabilityEventDocument ev = createEvent("e1", fundId, 1, "FUNDS_REFUNDED", payload, t, "Fund");
         
         auditFactsHandler.handleEvent(ev);
         
@@ -209,7 +209,7 @@ public class DonationAuditFactsIntegrationTest {
         
         // Also test non-deficit refund is ignored
         FundsRefundedPayload p2 = new FundsRefundedPayload("ref2", 100L, false, "reason2");
-        TraceabilityEventDocument ev2 = createEvent("e2", fundId, 1, "FUNDS_REFUNDED", p2, t, "Fund");
+        TraceabilityEventDocument ev2 = createEvent("e2", fundId, 2, "FUNDS_REFUNDED", p2, t, "Fund");
         auditFactsHandler.handleEvent(ev2);
         
         doc = auditFactsRepository.findById(fundId).orElseThrow();
@@ -222,7 +222,7 @@ public class DonationAuditFactsIntegrationTest {
         String assetId = "asset-6";
         assetIndexRepository.save(new AssetIndexDocument(assetId, fundId, assetId, 0));
         
-        TraceabilityEventDocument ev1 = createEvent("e1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), Instant.now(), "PhysicalAsset");
+        TraceabilityEventDocument ev1 = createEvent("e1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), Instant.now(), "PhysicalAsset");
         auditFactsHandler.handleEvent(ev1);
         
         DonationAuditFactsDocument doc = auditFactsRepository.findById(fundId).orElseThrow();
@@ -240,7 +240,7 @@ public class DonationAuditFactsIntegrationTest {
         String assetId = "asset-7";
         assetIndexRepository.save(new AssetIndexDocument(assetId, fundId, assetId, 0));
         
-        auditFactsHandler.handleEvent(createEvent("e1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), Instant.now(), "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), Instant.now(), "PhysicalAsset"));
         
         Optional<AuditFactsDTO> dto = auditFactsPort.getAuditFacts(fundId);
         assertThat(dto).isPresent();
@@ -260,9 +260,9 @@ public class DonationAuditFactsIntegrationTest {
         Instant t2 = t1.plus(100, ChronoUnit.SECONDS);
         Instant t3 = t2.plus(100, ChronoUnit.SECONDS);
         
-        auditFactsHandler.handleEvent(createEvent("e1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), t1, "PhysicalAsset"));
-        auditFactsHandler.handleEvent(createEvent("e2", assetId, 1, "ASSET_RECEIVED", new AssetReceivedPayload("l2", "r"), t2, "PhysicalAsset"));
-        auditFactsHandler.handleEvent(createEvent("e3", assetId, 2, "ASSET_DELIVERED", new AssetDeliveredPayload("fc", "b", "l", "ev", t3), t3, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), t1, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e2", assetId, 2, "ASSET_RECEIVED", new AssetReceivedPayload("l2", "r"), t2, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e3", assetId, 3, "ASSET_DELIVERED", new AssetDeliveredPayload("fc", "b", "l", "ev", t3), t3, "PhysicalAsset"));
         
         DonationAuditFactsDocument doc = auditFactsRepository.findById(fundId).orElseThrow();
         List<TransitionFactDTO> trans = doc.getTransitions();
@@ -287,8 +287,8 @@ public class DonationAuditFactsIntegrationTest {
         Instant t3 = t2.plus(100, ChronoUnit.SECONDS);
         Instant t4 = t3.plus(100, ChronoUnit.SECONDS);
         
-        auditFactsHandler.handleEvent(createEvent("e1", assetId, 0, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), t1, "PhysicalAsset"));
-        auditFactsHandler.handleEvent(createEvent("e2", assetId, 1, "ASSET_RECEIVED", new AssetReceivedPayload("l2", "r"), t2, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e1", assetId, 1, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), t1, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e2", assetId, 2, "ASSET_RECEIVED", new AssetReceivedPayload("l2", "r"), t2, "PhysicalAsset"));
         
         // Here we should have DISPATCHED->RECEIVED and RECEIVED->?
         DonationAuditFactsDocument doc1 = auditFactsRepository.findById(fundId).orElseThrow();
@@ -296,7 +296,7 @@ public class DonationAuditFactsIntegrationTest {
         assertThat(doc1.getTransitions().get(1).toStatus()).isNull();
         
         // Re-dispatch
-        auditFactsHandler.handleEvent(createEvent("e3", assetId, 2, "ASSET_DISPATCHED", new AssetDispatchedPayload("c2", "l2"), t3, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e3", assetId, 3, "ASSET_DISPATCHED", new AssetDispatchedPayload("c2", "l2"), t3, "PhysicalAsset"));
         
         // The orphaned RECEIVED->? should be removed, and a new DISPATCHED->? added.
         // Total transitions should still be 2: the closed DISPATCHED->RECEIVED and the new open DISPATCHED->?
@@ -307,7 +307,7 @@ public class DonationAuditFactsIntegrationTest {
         assertThat(doc2.getTransitions().get(1).toStatus()).isNull();
         
         // Finally deliver
-        auditFactsHandler.handleEvent(createEvent("e4", assetId, 3, "ASSET_DELIVERED", new AssetDeliveredPayload("fc", "b", "l", "ev", t4), t4, "PhysicalAsset"));
+        auditFactsHandler.handleEvent(createEvent("e4", assetId, 4, "ASSET_DELIVERED", new AssetDeliveredPayload("fc", "b", "l", "ev", t4), t4, "PhysicalAsset"));
         
         DonationAuditFactsDocument doc3 = auditFactsRepository.findById(fundId).orElseThrow();
         assertThat(doc3.getTransitions()).hasSize(2);

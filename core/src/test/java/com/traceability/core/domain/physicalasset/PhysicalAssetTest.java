@@ -13,6 +13,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PhysicalAssetTest {
 
+    /** B-PROJ: premisa de la detección del Camino B en las proyecciones (donationRef != null solo en el Camino B). */
+    @Test
+    void register_caminoA_writesV2WithNullDonationRef() {
+        PhysicalAsset asset = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("1.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", "DONOR_1"
+        );
+
+        AssetRegisteredV2Payload payload = (AssetRegisteredV2Payload) asset.getUncommittedEvents().get(0).payload();
+        assertNull(payload.donationRef());
+    }
+
+
     @Test
     void testRegisterAsset_Success() {
         PhysicalAsset asset = PhysicalAsset.register(
