@@ -28,6 +28,10 @@ public final class DonationIntentMapper {
         d.configurationVersion = i.getConfigurationVersion();
         d.paymentSessionId = i.getPaymentSessionId();
         d.providerEventId = i.getProviderEventId();
+        DonationIntent.Access a = i.getAccess();
+        d.paymentProvider = a.paymentProvider();
+        d.statusTokenHash = a.statusTokenHash();
+        d.statusTokenExpiresAt = a.statusTokenExpiresAt();
         d.expiresAt = i.getExpiresAt();
         d.status = i.getStatus().name();
         DonationIntent.Confirmation c = i.getConfirmation();
@@ -66,6 +70,7 @@ public final class DonationIntentMapper {
                         d.firstApplicationAttemptAt, d.lastApplicationAttemptAt, d.lastApplicationError,
                         Boolean.TRUE.equals(d.applicationQuarantined)),
                 d.fundingRejectedAt == null ? null
-                        : new DonationIntent.FundingRejection(d.fundingRejectedAt, d.fundingRejectionReason));
+                        : new DonationIntent.FundingRejection(d.fundingRejectedAt, d.fundingRejectionReason),
+                new DonationIntent.Access(d.paymentProvider, d.statusTokenHash, d.statusTokenExpiresAt));
     }
 }

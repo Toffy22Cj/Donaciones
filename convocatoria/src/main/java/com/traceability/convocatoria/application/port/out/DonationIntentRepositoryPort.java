@@ -73,4 +73,19 @@ public interface DonationIntentRepositoryPort {
 
     /** Métrica (ADR-045 §2.6): fecha de confirmación de la intención recuperable más antigua. */
     Optional<Instant> oldestPendingApplicationConfirmedAt();
+
+    /** Enmienda 3 de ADR-037, D1: correlación del evento del proveedor. */
+    Optional<DonationIntent> findByPaymentSessionId(String paymentSessionId);
+
+    /**
+     * Confirmación por pasarela con la misma barrera que la manual ({@code status = PENDING}), guardando el
+     * {@code providerEventId} (Enmienda 3 de ADR-037, D1).
+     */
+    boolean confirmGatewayIfPending(String intentId, DonationIntent.Confirmation confirmation, String providerEventId);
+
+    /** {@code PENDING → FAILED} (Enmienda 3 de ADR-037, D4), condicional. */
+    boolean failIfPending(String intentId, String providerEventId, Instant failedAt);
+
+    /** Historial de un donante (ADR-048), como mucho {@code limit}. */
+    List<DonationIntent> findByDonorRef(String donorRef, int limit);
 }

@@ -45,6 +45,12 @@ crypto:
       warn-after-attempts: ${CRYPTO_ANCHOR_COLLECTING_RECOVERY_WARN_AFTER_ATTEMPTS:5}
 
 traceability:
+  # Enmienda 3 de ADR-037, D6 y E3-Q3 (Carlos, 2026-10-07): el trackingCode dura un año desde fundsAppliedAt
+  tracking-code:
+    ttl: P365D
+  # Proveedor de pago simulado: apagado por defecto (E3-Q1). Solo application-dev.yml lo activa.
+  demo:
+    simulated-payments: false
   audit:
     thresholds:
       dispatched-to-received: 259200

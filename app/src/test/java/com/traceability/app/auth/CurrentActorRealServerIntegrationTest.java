@@ -55,8 +55,11 @@ class CurrentActorRealServerIntegrationTest {
     static final String PROTECTED_PRINCIPAL = "/api/v1/b6-test/principal";
     static final String PROTECTED_FORBIDDEN = "/api/v1/b6-test/forbidden";
     static final String PROTECTED_BROKEN = "/api/v1/b6-test/broken";
-    /** Ruta de JWT opcional de {@code PublicRoutes} que aún no tiene controlador real (CV-11 llega en B6-b). */
-    static final String OPTIONAL_JWT = "/api/v1/public/campaigns/demo/donation-intents";
+    /**
+     * Ruta de JWT opcional de {@code PublicRoutes}. Desde B6-b tiene un controlador real (CV-11); el de este test
+     * exige además el parámetro {@code b60test}, así que Spring lo elige solo en estas peticiones.
+     */
+    static final String OPTIONAL_JWT = "/api/v1/public/campaigns/demo/donation-intents?b60test=1";
 
     /** Solo de test. */
     @RestController
@@ -81,7 +84,7 @@ class CurrentActorRealServerIntegrationTest {
             throw new IllegalStateException("internal detail of " + actor.accountId());
         }
 
-        @PostMapping("/api/v1/public/campaigns/{publicCode}/donation-intents")
+        @PostMapping(value = "/api/v1/public/campaigns/{publicCode}/donation-intents", params = "b60test")
         String optional(@CurrentActor Optional<HumanActor> actor) {
             return actor.map(a -> "some:" + a.accountId()).orElse("none");
         }
