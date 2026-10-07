@@ -1,0 +1,52 @@
+# P1.4 anclaje del recorrido en cadena local (criterios 10, 11, 12 y 18) en 2c330b3 (2026-10-07)
+# mvn clean test -fae, Docker real (Mongo y Ganache por Testcontainers). sha256 del log completo: 3c5d8c17f1c5093a8076d7e535720d6cd29ba8efee42d18602eaf04f840b7a05
+# Línea base: develop 226d00f (B5) = 1172 tests. Ahora: 1172 (los criterios se añaden al test del recorrido).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 131, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.636 s -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+
+# Anclaje real en Ganache durante el reactor (envío y confirmación del poller):
+c.t.c.a.s.AnchorConfirmationPoller       : Batch batch-1 is fully confirmed and ANCHORED at block 1000.
+c.t.c.a.s.AnchorConfirmationPoller       : Batch batch-ganache is fully confirmed and ANCHORED at block 2.
+c.t.c.a.s.BlockchainAnchorScheduler      : Batch batch-C successfully submitted to network with txHash 0xtxhash123
+c.t.c.a.s.BlockchainAnchorScheduler      : Batch batch-B successfully submitted to network with txHash null
+c.t.c.a.s.BlockchainAnchorScheduler      : Batch batch-A successfully submitted to network with txHash null
+c.t.c.a.s.BlockchainAnchorScheduler      : Batch 172ed671-5820-44ec-a83f-d4073bdc9bac successfully submitted to network with txHash 0x92b2e22d3cb8fe557077387ffb5b249c71f375dd96c0f9cdbca48fc6fd2ac383
+c.t.c.a.s.AnchorConfirmationPoller       : Batch 172ed671-5820-44ec-a83f-d4073bdc9bac is fully confirmed and ANCHORED at block 2.
+c.t.c.a.s.BlockchainAnchorScheduler      : Batch 3fc71ff4-cc13-4617-93b0-9f9bdc047f69 successfully submitted to network with txHash 0xdf77dc5d374d609dc12ec3494deef070e68c4ec1ed7f9abe90aedd0a9b62f4b4
+c.t.c.a.s.AnchorConfirmationPoller       : Batch 3fc71ff4-cc13-4617-93b0-9f9bdc047f69 is fully confirmed and ANCHORED at block 3.
+c.t.c.a.s.BlockchainAnchorScheduler      : Batch d75a76a4-4897-4ea3-b0f8-3d469ecf646b successfully submitted to network with txHash 0x868ee80561a47c4d8d4edbd00a23e55eb83f25497bcfdb99b7c34f6c7eaba61f
+c.t.c.a.s.AnchorConfirmationPoller       : Batch d75a76a4-4897-4ea3-b0f8-3d469ecf646b is fully confirmed and ANCHORED at block 4.
+
+# Fichero de evidencia que escribe el test (app/target/golden-path-anclaje-evidencia.txt, última ejecución):
+# Evidencia de anclaje del golden path (criterios 10, 11, 12 y 18)
+destino=ganache-local
+batch=172ed671-5820-44ec-a83f-d4073bdc9bac status=ANCHORED network=ganache-local contract=0xd3aa556287afe63102e5797bfddd2a1e8dbb3ea5 merkleRoot=928139d3bf6e0ae83b07a770f25fcac427fe717479676bf15623a6a760ca704a txHash=0x92b2e22d3cb8fe557077387ffb5b249c71f375dd96c0f9cdbca48fc6fd2ac383 block=2 streams=1 verifyBatch=MATCH
+batch=3fc71ff4-cc13-4617-93b0-9f9bdc047f69 status=ANCHORED network=ganache-local contract=0xd3aa556287afe63102e5797bfddd2a1e8dbb3ea5 merkleRoot=ac02b5015b6e0ec3dda98ee85a7ba602a3a1e59c47ee94bd8ca5d4c798757364 txHash=0xdf77dc5d374d609dc12ec3494deef070e68c4ec1ed7f9abe90aedd0a9b62f4b4 block=3 streams=4 verifyBatch=MATCH
+batch=d75a76a4-4897-4ea3-b0f8-3d469ecf646b status=ANCHORED network=ganache-local contract=0xd3aa556287afe63102e5797bfddd2a1e8dbb3ea5 merkleRoot=0da2de09aecb35f4377b1b256af4fbee39c5e2d0c66bef2024b3a5511cd985fd txHash=0x868ee80561a47c4d8d4edbd00a23e55eb83f25497bcfdb99b7c34f6c7eaba61f block=4 streams=2 verifyBatch=MATCH
+
+# Antes / después: solo test y documentación; el anclaje ya funcionaba. La capacidad del test de detectar un
+# fallo la prueban las mutaciones:
+- se ancla otra raíz en la cadena: MUERTA  theDemoPath_fromVerificationToPublicTracking_overHttp
+- verifyBatch no reconoce la misma raíz: MUERTA  theDemoPath_fromVerificationToPublicTracking_overHttp
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+# Testnet: NO ejecutada (es de Carlos). Ver Documentos/runbook-anclaje-testnet.md.
