@@ -112,7 +112,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void createAccount_throwsDuplicateEmailException_andDoesNotGenerateAuditLog() {
         Email email = new Email("duplicate.test@example.com");
-        String password = "password123";
+        String password = "password123-long";
 
         // Create first account
         createAccountService.createAccount(email, password);
@@ -131,25 +131,42 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void changeCredentials_success() {
         Email email = new Email("change.creds@example.com");
-        Account account = createAccountService.createAccount(email, "oldPassword");
+        Account account = createAccountService.createAccount(email, "oldPassword-123");
         org.mockito.Mockito.reset(auditLogPort);
 
-        changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
+        changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword-123");
 
         Account updated = accountRepository.findById(account.getAccountId());
-        assertTrue(passwordHasher.matches("newPassword", updated.getPasswordHash()));
+        assertTrue(passwordHasher.matches("newPassword-123", updated.getPasswordHash()));
         verify(auditLogPort, times(1)).record(any());
+    }
+
+    @Test
+    void shortPasswords_areRejected_onCreationAndOnChange_withoutWritingAnything() {
+        // H-P2-1 (Carlos, 2026-10-07): al menos 12 caracteres
+        Email email = new Email("short.password@example.com");
+        org.mockito.Mockito.reset(auditLogPort);
+        assertThrows(identity.domain.exception.PasswordTooShortException.class,
+                () -> createAccountService.createAccount(email, "elevenchars"));
+        assertTrue(accountRepository.findByEmail(email).isEmpty());
+
+        Account account = createAccountService.createAccount(email, "twelve-chars");
+        org.mockito.Mockito.reset(auditLogPort);
+        assertThrows(identity.domain.exception.PasswordTooShortException.class,
+                () -> changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "short"));
+        assertTrue(passwordHasher.matches("twelve-chars", accountRepository.findById(account.getAccountId()).getPasswordHash()));
+        verify(auditLogPort, never()).record(any());
     }
 
     @Test
     void changeCredentials_onInactiveAccount_throwsException_andDoesNotGenerateAuditLog() {
         Email email = new Email("change.creds.inactive@example.com");
-        Account account = createAccountService.createAccount(email, "oldPassword");
+        Account account = createAccountService.createAccount(email, "oldPassword-123");
         deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
         org.mockito.Mockito.reset(auditLogPort);
 
         assertThrows(identity.domain.exception.InactiveAccountException.class, () -> {
-            changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
+            changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword-123");
         });
 
         verify(auditLogPort, never()).record(any());
@@ -158,7 +175,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void deactivateAccount_success() {
         Email email = new Email("deactivate@example.com");
-        Account account = createAccountService.createAccount(email, "password");
+        Account account = createAccountService.createAccount(email, "password-12345");
         org.mockito.Mockito.reset(auditLogPort);
 
         deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
@@ -171,7 +188,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void deactivateAccount_idempotent_doesNotGenerateAuditLog() {
         Email email = new Email("deactivate.idempotent@example.com");
-        Account account = createAccountService.createAccount(email, "password");
+        Account account = createAccountService.createAccount(email, "password-12345");
         deactivateAccountService.deactivateAccount(testActor, account.getAccountId()); // First time mutates
         org.mockito.Mockito.reset(auditLogPort);
 
@@ -185,7 +202,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void reactivateAccount_success() {
         Email email = new Email("reactivate@example.com");
-        Account account = createAccountService.createAccount(email, "password");
+        Account account = createAccountService.createAccount(email, "password-12345");
         deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
         org.mockito.Mockito.reset(auditLogPort);
 
@@ -199,7 +216,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void reactivateAccount_idempotent_doesNotGenerateAuditLog() {
         Email email = new Email("reactivate.idempotent@example.com");
-        Account account = createAccountService.createAccount(email, "password");
+        Account account = createAccountService.createAccount(email, "password-12345");
         org.mockito.Mockito.reset(auditLogPort);
 
         // Already active, so reactivating should be idempotent
@@ -306,13 +323,13 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void changeCredentials_onInactiveAccount_doesNotRetry() {
         Email email = new Email("inactive.noretry@example.com");
-        Account account = createAccountService.createAccount(email, "password123");
+        Account account = createAccountService.createAccount(email, "password123-long");
         deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
 
         int retriesBefore = retryHelper.getRetryCount();
 
         assertThrows(identity.domain.exception.InactiveAccountException.class, () -> {
-            changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
+            changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword-123");
         });
 
         assertEquals(retriesBefore, retryHelper.getRetryCount(), "Domain exceptions must not trigger transaction retries");
@@ -336,12 +353,12 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void changeCredentials_insideActiveTransaction_throwsNestedIdentityTransactionException() {
         Email email = new Email("nested.tx@example.com");
-        Account account = createAccountService.createAccount(email, "password123");
+        Account account = createAccountService.createAccount(email, "password123-long");
 
         org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
         try {
             assertThrows(identity.domain.exception.NestedIdentityTransactionException.class, () -> {
-                changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword");
+                changeCredentialsService.changeCredentials(testActor, account.getAccountId(), "newPassword-123");
             });
         } finally {
             org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
@@ -351,8 +368,8 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void deactivateAccount_auditActorIsNotTheTarget() {
         Email email = new Email("target.deact@example.com");
-        Account targetAccount = createAccountService.createAccount(email, "password123");
-        Account operatorAccount = createAccountService.createAccount(new Email("operator.deact@example.com"), "password123");
+        Account targetAccount = createAccountService.createAccount(email, "password123-long");
+        Account operatorAccount = createAccountService.createAccount(new Email("operator.deact@example.com"), "password123-long");
 
         AuditActor operatorActor = new AuditActor.AccountAuditActor(operatorAccount.getAccountId());
         deactivateAccountService.deactivateAccount(operatorActor, targetAccount.getAccountId());
@@ -376,7 +393,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void createAccount_selfRegistration_recordsNewAccountAsActor_andSetsFlag() {
         Email email = new Email("selfreg@example.com");
-        Account account = createAccountService.createAccount(email, "password123");
+        Account account = createAccountService.createAccount(email, "password123-long");
 
         org.bson.Document rawDoc = mongoTemplate.findOne(
                 new org.springframework.data.mongodb.core.query.Query(
@@ -401,7 +418,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void deactivateAccount_onPlatformAdministrator_isRejected_andAccountIntact() {
         Email email = new Email("admin.deact@example.com");
-        Account account = createAccountService.createAccount(email, "password123");
+        Account account = createAccountService.createAccount(email, "password123-long");
 
         mongoTemplate.updateFirst(
                 new org.springframework.data.mongodb.core.query.Query(
@@ -435,7 +452,7 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
     @Test
     void changeCredentials_onPlatformAdministrator_preservesPlatformAuthority() {
         Email email = new Email("admin.changecred@example.com");
-        Account account = createAccountService.createAccount(email, "password123");
+        Account account = createAccountService.createAccount(email, "password123-long");
 
         mongoTemplate.updateFirst(
                 new org.springframework.data.mongodb.core.query.Query(
@@ -459,13 +476,13 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
 
     @Test
     void addEmployee_onPlatformAdministrator_preservesPlatformAuthority() {
-        Account rep = createAccountService.createAccount(new Email("rep.org@example.com"), "password123");
+        Account rep = createAccountService.createAccount(new Email("rep.org@example.com"), "password123-long");
         Organization organization = Organization.createOrganization(OrganizationType.COMPANY, rep.getAccountId());
         organizationRepository.save(organization);
         rep.joinOrganization(organization.getOrganizationId());
         accountRepository.save(rep);
 
-        Account adminAccount = createAccountService.createAccount(new Email("admin.employee@example.com"), "password123");
+        Account adminAccount = createAccountService.createAccount(new Email("admin.employee@example.com"), "password123-long");
 
         mongoTemplate.updateFirst(
                 new org.springframework.data.mongodb.core.query.Query(

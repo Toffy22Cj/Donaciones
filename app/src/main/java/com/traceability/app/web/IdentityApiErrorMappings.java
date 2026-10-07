@@ -17,6 +17,7 @@ import identity.domain.exception.InactiveAccountException;
 import identity.domain.exception.InsufficientPlatformAuthorityException;
 import identity.domain.exception.InvalidVerificationTransitionException;
 import identity.domain.exception.OrganizationAccessDeniedException;
+import identity.domain.exception.PasswordTooShortException;
 import identity.domain.exception.OrganizationNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,8 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 // P2.2 (registro): el email mal formado es una validación con nombre (400); el duplicado, 409
                 new ApiErrorMapping(InvalidEmailFormatException.class, HttpStatus.BAD_REQUEST, null),
                 new ApiErrorMapping(DuplicateEmailException.class, HttpStatus.CONFLICT, null),
+                // H-P2-1: contraseña de menos de 12 caracteres
+                new ApiErrorMapping(PasswordTooShortException.class, HttpStatus.BAD_REQUEST, null),
                 // P2.8 (pedir información): mensaje vacío o de más de 2000 caracteres
                 new ApiErrorMapping(InvalidInformationRequestMessageException.class, HttpStatus.BAD_REQUEST, null),
                 // P2.7 (miembros): el mismo 403 que cualquier acceso denegado (DD-01)
