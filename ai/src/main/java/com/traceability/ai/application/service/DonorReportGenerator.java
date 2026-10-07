@@ -69,7 +69,15 @@ public class DonorReportGenerator {
                 cacheKey.sourceFactsHash(),
                 cacheKey.promptTemplateVersion(),
                 cacheKey.modelIdentifier()
-        );
+        ).or(() -> repositoryPort.findByLogicalKey(
+                // Hallazgo de la demo local: el fallback se guarda con su propio identificador de modelo; sin esta
+                // búsqueda nunca se encontraba y cada consulta volvía a llamar al proveedor
+                cacheKey.donationId(),
+                cacheKey.auditFactsSequence(),
+                cacheKey.sourceFactsHash(),
+                cacheKey.promptTemplateVersion(),
+                FallbackNarrativeTemplateService.MODEL_IDENTIFIER
+        ));
 
         if (existing.isPresent()) {
             DonorReportDTO cached = existing.get();
