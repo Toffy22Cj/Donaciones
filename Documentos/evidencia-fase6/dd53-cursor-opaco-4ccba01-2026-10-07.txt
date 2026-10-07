@@ -1,0 +1,49 @@
+# DD-53 rehecha: cursor opaco del descubrimiento, en 4ccba01 (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: b251e74ecfb3fa55263d2d0083857643d8da5d03f50f4d4781d3c407b8836073
+# Línea base: develop c2bd9b0 (H-P12-1) = 1214 tests. Ahora: 1218 (app +4). Reactor = la ejecución de scripts/ci-local.sh (Documentos/evidencia-ci/ci-local-4ccba01-*.txt).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 134, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 162, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Después (verde, del reactor)
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in com.traceability.app.web.campaign.DiscoveryCursorCodecTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.46 s -- in com.traceability.app.web.P2EndpointsHttpIntegrationTest
+
+# Antes (rojo, con la implementación apartada con git stash o sin la corrección)
+## dd53-red.log
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 25.87 s <<< FAILURE! -- in com.traceability.app.web.P2EndpointsHttpIntegrationTest
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.discovery_neverListsPrivateLinkNorClosed_paginatesWithAnOpaqueCursor_andHidesInternalIds -- Time elapsed: 6.466 s <<< FAILURE!
+## dd53-red-unit.log
+[ERROR] COMPILATION ERROR : 
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[16,19] cannot find symbol
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[16,48] cannot find symbol
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[42,20] cannot find symbol
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[50,9] cannot find symbol
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[50,34] cannot find symbol
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[51,9] cannot find symbol
+[ERROR] /home/user/w3/app/src/test/java/com/traceability/app/web/campaign/DiscoveryCursorCodecTest.java:[51,34] cannot find symbol
+
+# Nota
+La mutación 'sin comprobar el prefijo' sobrevivió: con AES-GCM solo el propio codificador produce cursores válidos, así que el prefijo era código sin efecto observable (mutante equivalente). Se eliminó el prefijo (c7315b8); las otras dos mutaciones murieron.
+
+# Mutaciones
+- IV fijo: MUERTA  theCursorDoesNotRevealThePublicCode_andChangesEveryTime
+- sin comprobar el prefijo: VIVA  
+- clave corta aceptada: MUERTA  aConfiguredKey_mustBe32BytesInBase64
+Restauración verificada contra HEAD. Mutaciones vivas: 1
