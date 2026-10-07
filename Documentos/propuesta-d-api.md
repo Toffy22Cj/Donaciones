@@ -1,6 +1,6 @@
 # Propuesta D-API — Decisiones abiertas antes de B6 y división de B6 en PR por flujo
 
-**Estado:** **EN DECISIÓN** (2026-10-07): Q2, Q4 y Q6 **decididas por Carlos** con precisiones, y la dirección de ADR-048 fijada (§5). Siguen abiertas Q1, Q3, Q5 y Q7–Q10. Sin código. Cada PR de B6 necesitará después su plan aprobado (regla 3.4), y las piezas marcadas "ADR" necesitan su enmienda aprobada antes del merge (regla 3.5).
+**Estado:** **APROBADO — Carlos, 2026-10-07**: Q1–Q10 decididas, con precisiones en Q2, Q3, Q4, Q7 y Q9 (§5). Necesitan aprobación antes del merge de su PR: la enmienda 3 de ADR-037 (B6-b) y ADR-048 (B6-b). Cada PR de B6 necesita su plan. Cada PR de B6 necesitará después su plan aprobado (regla 3.4), y las piezas marcadas "ADR" necesitan su enmienda aprobada antes del merge (regla 3.5).
 **Origen:** D-API de `plan-cierre-fase6-codigo.md` (`:27`); revisión de Carlos del 2026-10-07 ("B6 dividido en varios PR por flujo").
 **Hechos:** verificados en `develop` tras #53, con cita. Rutas relativas a la raíz del repositorio.
 
@@ -160,4 +160,10 @@ Cada PR lleva su plan (regla 3.4), sus tests en rojo, el reactor y mutaciones, y
 | **`donorRef` del cliente** | Confirmado como **fallo de seguridad**: hoy no se puede explotar porque CV-11 no tiene HTTP, pero B6 lo expondría. Se corrige en B6-b: el `donorRef` se deriva del JWT o es anónimo, y el cliente nunca lo envía |
 | **A1** | De acuerdo: los controladores que cruzan módulos van en `app.web` |
 | **§3** | De acuerdo: B6 en cinco PR, en ese orden |
-| **CV-01** | Hay que cerrar la ficha, con un `publicCode` de ≥128 bits, **antes de B6-a** |
+| **CV-01** | Hay que cerrar la ficha, con un `publicCode` de ≥128 bits, **antes de B6-a**. **Hecho (2026-10-07):** ficha CONGELADA, con 130 bits, cuerpo anidado, 400, visibilidad obligatoria y 5000 caracteres |
+| **Q1** | **Sí:** los controladores que solo usan `core` se quedan en `api` |
+| **Q3** | **Sí**, con una precisión: una **confirmación sobre una intención `FAILED` o `EXPIRED_UNKNOWN`** (dinero real recibido para una intención no pendiente) no puede quedarse solo en un log. Deja: (1) un **registro persistente** (`unacceptable_payment_events`: proveedor, id del evento, intención, importe, moneda, motivo y fecha); (2) un **contador** expuesto por JMX; (3) un **vínculo explícito con P1** como vía de resolución pendiente (regla 2.6). El resto, igual: duplicado → 200 sin efecto; fallo sobre `PENDING` → `FAILED`; fallo sobre `CONFIRMED` → se ignora con WARN |
+| **Q5** | **Sí:** el `donorRef` se deriva del JWT o es anónimo, y el cliente nunca lo envía; la forma exacta, en ADR-048 |
+| **Q7** | **Sí**, y **B6-a añade un puerto mínimo de `identity`** que devuelve solo el **nombre de la organización**, para el detalle público. Una página de donación que no dice a quién va el dinero genera desconfianza |
+| **Q9** | **Sí:** id de activo determinista **con espacio de nombres**, `UUIDv5(NS_ASSET, organizationRef + ":" + commandId)`, como el hijo de la división; y `Command-Id` en todos los comandos de la demo |
+| **Q10** | **Sí** (ya decidido arriba) |
