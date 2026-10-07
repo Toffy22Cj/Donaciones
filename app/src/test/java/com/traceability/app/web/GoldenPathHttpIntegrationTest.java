@@ -50,7 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Plan B6-d: el recorrido de la demo por HTTP, de punta a punta, contra Tomcat real y todos los módulos reales
  * (golden path §2, pasos 1–5 y 7 sin narrativa ni anclaje). Criterios de §8 cubiertos: 1, 2, 3, 4, 5, 6, 7 (Camino A),
- * 8, 9, 15, 16 y 17. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
+ * 8, 9, 13 (narrativa individual con LLM simulado y grounding real), 15, 16 y 17. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
  * y H-B6D-1).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
@@ -67,7 +67,32 @@ import static org.assertj.core.api.Assertions.assertThat;
     // Solo para tests; nunca un valor productivo
     "traceability.demo.webhook-secret=test-only-simulated-webhook-secret-0123456789"
 })
+@org.springframework.context.annotation.Import(GoldenPathHttpIntegrationTest.SimulatedLlm.class)
 class GoldenPathHttpIntegrationTest {
+
+    /**
+     * LLM simulado (criterio 13): cita solo hechos que están en los hechos deterministas que recibe, como hace el
+     * proveedor real con la salida estructurada. La validación de grounding y el resto del pipeline son los reales. En
+     * la demo, el LLM es real si existe SPRING_AI_OPENAI_API_KEY; sin ella, cada intento cae al fallback.
+     */
+    @org.springframework.boot.test.context.TestConfiguration
+    static class SimulatedLlm {
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        com.traceability.ai.application.port.out.LlmClientPort simulatedLlmClient() {
+            return (facts, version) -> {
+                boolean delivered = facts.transitions() != null && facts.transitions().stream()
+                        .anyMatch(t -> "DELIVERED".equals(t.toStatus()));
+                return delivered
+                        ? new com.traceability.ai.domain.narrative.LlmNarrativeResponse(
+                                "Los bienes comprados con tu donación fueron entregados.",
+                                List.of(new com.traceability.ai.domain.narrative.CitedFact(
+                                        com.traceability.ai.domain.narrative.FactType.LIFECYCLE_STATUS, "DELIVERED")))
+                        : new com.traceability.ai.domain.narrative.LlmNarrativeResponse(
+                                "Tu donación está en camino.", List.of());
+            };
+        }
+    }
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
@@ -253,5 +278,14 @@ class GoldenPathHttpIntegrationTest {
         assertThat(publicAssetRef).isNotIn(parentRef, childRef);
         ok(send("GET", "/api/v1/donations/tracking/assets/" + publicAssetRef + "/history", null, null,
                 "Authorization", "Bearer " + trackingCode), 200);
+
+        // Criterio 13: la narrativa individual, generada por el LLM (simulado) y validada por el grounding real
+        JsonNode narrative = until("individual narrative", () -> {
+            HttpResponse<String> r = send("GET", "/api/v1/donations/tracking/narrative", null, null,
+                    "Authorization", "Bearer " + trackingCode);
+            return r.statusCode() == 200 ? json.readTree(r.body()) : null;
+        }, n -> n.get("content").asText().contains("entregados"));
+        assertThat(narrative.get("status").asText()).isEqualTo("AVAILABLE");
+        assertThat(narrative.get("source").asText()).isEqualTo("LLM_GENERATED");
     }
 }
