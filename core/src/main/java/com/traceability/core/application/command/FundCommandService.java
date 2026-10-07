@@ -17,6 +17,8 @@ import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.core.application.authorization.CommandType;
 import com.traceability.core.domain.event.HumanActor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -86,14 +88,34 @@ public class FundCommandService {
         }
 
         retryTemplate.execute(() -> {
-            authorize(actorRef, organizationRef != null ? organizationRef.value() : null, CommandType.CLEAR_FUNDS_AS_GENESIS);
-
-            Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
-            List<DomainEvent> newEvents = fund.getUncommittedEvents();
-
-            eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
+            appendGenesis(commandId, fundId, organizationRef, campaignRef, donorRef, currency, amount, sourceRef, actorRef);
             return null;
         });
+    }
+
+    /**
+     * T1 — Génesis de {@code Fund} para el orquestador de aplicación de fondos de {@code app} (ADR-045, Tx 2).
+     * <p>
+     * Exige una transacción ya abierta ({@link Propagation#MANDATORY}) y se une a ella. <b>Sin reintento interno</b>:
+     * un conflicto o un error transitorio de MongoDB aborta la transacción externa, así que reintentar aquí sería
+     * reintentar sobre una transacción ya abortada. Las excepciones se propagan tal cual, con su causa, para que el
+     * orquestador reintente la transacción completa (ADR-037 §2.3, E1 §6). Sin mensaje de outbox (D-P8, opción A).
+     *
+     * @return {@code true} si escribió la génesis; {@code false} si el {@code commandId} ya estaba reclamado
+     *         (no-op idempotente).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean clearFundsGenesisWithinTransaction(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        return appendGenesis(commandId, fundId, organizationRef, campaignRef, donorRef, currency, amount, sourceRef, actorRef);
+    }
+
+    private boolean appendGenesis(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        authorize(actorRef, organizationRef != null ? organizationRef.value() : null, CommandType.CLEAR_FUNDS_AS_GENESIS);
+
+        Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
+        List<DomainEvent> newEvents = fund.getUncommittedEvents();
+
+        return eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
     }
 
     public void clearFundsForPledge(String commandId, String fundId, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
