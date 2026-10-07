@@ -59,7 +59,7 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 ### D3. Camino B: recibido en el comando y validado contra `convocatoria`
 
 - `registerPhysicalAssetFromDonation` recibe un `campaignRef` **opcional**. `null` = donación en especie sin convocatoria (lo que existe hoy).
-- Si viene informado, se valida **antes de autorizar y de persistir**: un rechazo no deja eventos, igual que el Camino A.
+- Si viene informado, se valida **después de autorizar y antes de persistir**: un rechazo no deja eventos, igual que el Camino A. *Corrección aprobada por Carlos el 2026-10-07 al revisar el plan de implementación: el texto aprobado decía "antes de autorizar". Consultar la convocatoria antes de autorizar permitiría a un actor de otra organización averiguar si un `campaignRef` existe, porque `CAMPAIGN_NOT_FOUND` y `OTHER_ORGANIZATION` darían errores distintos. Además, hacia fuera los dos casos dan la **misma respuesta**.*
   - la convocatoria existe;
   - pertenece a la misma `organizationRef` del comando;
   - está `OPEN`;

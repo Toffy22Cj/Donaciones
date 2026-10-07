@@ -1,6 +1,6 @@
 # Plan D-CAMPAIGN — `campaignRef` en `PhysicalAsset` (implementación de la Enmienda 1 de ADR-029)
 
-**Estado:** **PROPUESTO** (2026-10-07). Necesita la aprobación de Carlos antes de cualquier código (regla 3.4).
+**Estado:** **APROBADO — Carlos, 2026-10-07** (regla 3.4), con Q1–Q4 según la recomendación y los ajustes de §8, ya incorporados en el texto.
 **Origen:** `ADR-029-enmienda-1-campaignref.md`, **APROBADA — Carlos, 2026-10-07**, con Q1–Q5 según la recomendación. Este plan no reabre ninguna decisión de la enmienda; solo fija cómo se implementa.
 **Desbloquea:** B5 (narrativa de convocatoria, criterio 14) y B1-bis (herencia en la división, criterio 15).
 **Revisión:** cubierto por la excepción a la regla 3.2 (`reglas-equipo-y-agentes.md` §3.2); la evidencia de tests sustituye al segundo revisor.
@@ -13,7 +13,7 @@
 |---|---|
 | D1 | `ASSET_REGISTERED` y `ASSET_SPLIT` **3.0**, con `campaignRef` (puede ser `null`). **Toda escritura nueva usa la 3.0.** La 1.0 y la 2.0 no cambian; no hay *upcaster* de almacenamiento |
 | D2 | Camino A: `campaignRef` **heredado del `Fund`** que ya carga `assertOrganizationMatchesFund`. No es parámetro del comando |
-| D3 + Q1/Q2/Q5 | Camino B: `campaignRef` **opcional** en el comando, validado **antes de autorizar y persistir** con un **puerto en `contracts`** implementado por `convocatoria`. Comprueba que la convocatoria existe, es de la misma organización, está `OPEN` **en el momento del registro** y acepta `IN_KIND`. Limitación escrita: lo registrado después del cierre queda sin convocatoria |
+| D3 + Q1/Q2/Q5 | Camino B: `campaignRef` **opcional** en el comando, validado **después de autorizar y antes de persistir** (ajuste de seguridad de §8) con un **puerto en `contracts`** implementado por `convocatoria`. Comprueba que la convocatoria existe, es de la misma organización, está `OPEN` **en el momento del registro** y acepta `IN_KIND`. Limitación escrita: lo registrado después del cierre queda sin convocatoria |
 | D4 | División: el hijo hereda el `campaignRef` del padre en `AssetSplitV3Payload` |
 | D5/D6 | Inmutable, sin *backfill*, nunca inferido; v1/v2 = sin convocatoria |
 | D7 | La narrativa lee el `campaignRef` **solo** del payload v3 del propio activo |
@@ -56,13 +56,15 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
    - El `apply` de `AssetSplitV3Payload` en el padre es igual que el de la V2.
 3. **`PhysicalAssetCommandService`:**
    - **Camino A:** `assertOrganizationMatchesFund` pasa a devolver el `Fund` cargado. `registerPhysicalAsset` pasa `fund.getCampaignRef()` a `register`. La firma pública **no cambia**.
+     - **Decisión escrita, no olvido:** el Camino A **no comprueba que la convocatoria siga `OPEN`**. Gastar fondos ya recaudados después del cierre es legítimo, igual que una intención válida sobrevive al cierre (ADR-037 §2.6bis, D1). El activo hereda el `campaignRef` del `Fund` sin consultar el estado de la convocatoria.
    - **Camino B:** `registerPhysicalAssetFromDonation` añade el parámetro `campaignRef` (opcional).
-     - Si no es `null`, consulta el puerto **antes de autorizar y de persistir**.
-     - Cualquier resultado distinto de `ELIGIBLE` lanza `CampaignNotEligibleForInKindDonationException(campaignRef, motivo)` (nueva, en `core`). Un rechazo no deja eventos, ni reclamo del `commandId`, ni outbox.
-   - **Sin implementación del puerto en el contexto:** `ObjectProvider<CampaignInKindEligibilityPort>`.
-     - Si falta y el `campaignRef` no es `null`, el registro se **rechaza** (*fail-closed*).
-     - Con `null` funciona como hoy.
-     - Así los ~40 contextos de test de `core` no necesitan otro `@MockBean`. En producción, `app` tiene la implementación, y lo comprueba un test de *wiring* (§3.4).
+     - Orden: **primero autorizar** (el actor puede registrar activos en la organización declarada), **después** consultar el puerto si `campaignRef` no es `null`, y por último persistir.
+     - Cada resultado distinto de `ELIGIBLE` lanza su **excepción nombrada** (regla 2.6), todas subclases de `CampaignNotEligibleForInKindDonationException` (nueva, en `core`): `InKindCampaignNotFoundException`, `InKindCampaignOfOtherOrganizationException`, `InKindCampaignClosedException` e `InKindNotAcceptedByCampaignException`.
+     - **Misma respuesta externa** para "no existe" y "es de otra organización": las dos excepciones llevan **el mismo mensaje público**, sin el motivo, y la API (B6) las traduce al mismo código y cuerpo. El motivo real solo queda en el log interno.
+     - Un rechazo no deja eventos, ni reclamo del `commandId`, ni outbox.
+   - **Puerto obligatorio (Q2):** `PhysicalAssetCommandService` recibe `CampaignInKindEligibilityPort` como **dependencia obligatoria**, no opcional.
+     - Si falta la implementación, la aplicación **no arranca**: un error de cableado nunca queda oculto como un rechazo silencioso.
+     - Los tests de `core` reciben **un único stub compartido**: un `@Component` en las fuentes de test de `core`, que los contextos que escanean `com.traceability.core` recogen automáticamente. Los tests unitarios que construyen el servicio a mano le pasan un *fake*. No hacen falta 40 `@MockBean`.
    - La firma anterior de `registerPhysicalAssetFromDonation` (sin `campaignRef`) se conserva como sobrecarga que delega con `null`, para no romper a los llamadores actuales (solo tests).
 4. **Proyecciones** (lo exige el test de contrato):
    - `AssetProjectionRouting.registration(...)` reconoce `AssetRegisteredV3Payload`. `Registration` gana el campo `campaignRef`; para v1/v2 vale `null`.
@@ -87,7 +89,8 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 
 - Nada que conectar a mano: `app` ya escanea `com.traceability`, así que el adaptador de `convocatoria` queda disponible para `core`.
 - **`CampaignInKindEligibilityWiringIntegrationTest`**, con el patrón de `OrganizationVerificationWiringIntegrationTest`:
-  - hay **una sola** implementación del puerto en el contexto completo y es la de `convocatoria`;
+  - hay **una sola** implementación del puerto en el contexto completo y es la de `convocatoria`. El stub de test de `core` no está en el classpath de producción: se comprueba como con `FakeOrganizationVerificationPort`;
+  - **sin la implementación, el contexto no arranca.** Se prueba con un `ApplicationContextRunner` que excluye el adaptador de `convocatoria` y espera el fallo por la dependencia ausente;
   - `PhysicalAssetCommandService` la recibe;
   - prueba de punta a punta: registrar un activo en especie con el `campaignRef` de una convocatoria real `OPEN` que acepta `IN_KIND` produce un `ASSET_REGISTERED` 3.0 con ese `campaignRef`;
   - con una convocatoria `CLOSED`, el rechazo no deja eventos.
@@ -111,11 +114,12 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
    - el activo hereda el `campaignRef` del `Fund`;
    - un `Fund` sin convocatoria da un activo sin convocatoria;
    - el llamador no puede imponer otro (no hay parámetro).
-3. **Camino B (integración en `core`, con un puerto *fake*):**
+3. **Camino B (integración en `core`, con el stub compartido):**
    - `campaignRef` válido → V3 con ese valor;
-   - los cuatro rechazos, cada uno con su motivo y **sin efectos**: sin eventos, sin reclamo del `commandId` y sin outbox;
-   - `null` → registro sin convocatoria;
-   - sin implementación del puerto y con `campaignRef` → rechazo (*fail-closed*).
+   - los cuatro rechazos, cada uno con su excepción nombrada y **sin efectos**: sin eventos, sin reclamo del `commandId` y sin outbox;
+   - "no existe" y "otra organización" tienen **el mismo mensaje público**;
+   - **un actor no autorizado recibe el error de autorización y el puerto no se consulta** (verificado con el stub), así que no puede sondear `campaignRef`;
+   - `null` → registro sin convocatoria.
 4. **Idempotencia:** el mismo `commandId`, con o sin `campaignRef`, no duplica el activo.
 5. **Integridad:** los eventos v2 guardados conservan su hash. Los v3 se encadenan con `campaignRef` dentro del hash: alterar el `campaignRef` de un v3 guardado cambia su hash recalculado.
 6. **Proyecciones:**
@@ -130,7 +134,8 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
   - `register` sin el `campaignRef` del `Fund`;
   - `split` sin heredar;
   - aceptar `CAMPAIGN_CLOSED`;
-  - quitar el *fail-closed*;
+  - consultar el puerto antes de autorizar;
+  - dar mensajes distintos a "no existe" y "otra organización";
   - no declarar `AssetRegisteredV3Payload` en las proyecciones.
 - Relectura adversarial del diff.
 
@@ -147,11 +152,17 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 - H1 con activos en especie (Q4: solo cuentan las intenciones; pendiente registrado).
 - El contrato HTTP del registro (D-API/B6).
 
-## 7. Preguntas para Carlos
+## 7. Preguntas — respondidas por Carlos el 2026-10-07
 
-| # | Pregunta | Recomendación |
+| # | Pregunta | Decisión |
 |---|---|---|
-| Q1 | Resultado del puerto: ¿enum con el motivo o `boolean`? | Enum: el rechazo dice por qué sin que `core` conozca `convocatoria` |
-| Q2 | ¿*Fail-closed* con `ObjectProvider` cuando no hay implementación del puerto (§3.2.3)? | Sí: evita tocar ~40 contextos de test de `core` y nunca acepta un `campaignRef` sin validar |
-| Q3 | ¿`campaignRef` en `LogisticsProjection` ya en este PR (§3.2.4)? | Sí: es el dato que necesita B5, tomado solo del payload v3 |
-| Q4 | ¿Un único PR multimódulo (§5)? | Sí: no deja un puerto sin implementar en `develop` |
+| Q1 | Resultado del puerto: ¿enum o `boolean`? | **Enum**, con cada valor asociado a una excepción nombrada; hacia fuera, "no existe" y "otra organización" dan la misma respuesta |
+| Q2 | ¿Qué pasa si no hay implementación del puerto? | **Puerto obligatorio** con stub compartido en los tests de `core` (la alternativa más limpia de la revisión): sin implementación, la aplicación no arranca, y el test de `app` lo comprueba |
+| Q3 | ¿`campaignRef` en `LogisticsProjection` ya en este PR? | **Sí** |
+| Q4 | ¿Un único PR multimódulo? | **Sí** |
+
+## 8. Ajustes de la revisión (2026-10-07), incorporados arriba
+
+1. **Seguridad — autorizar antes de consultar la convocatoria** y la misma respuesta externa para "no existe" y "otra organización", para que un actor no pueda averiguar si un `campaignRef` existe en otra organización. Corrige el orden de la Enmienda 1 de ADR-029 (D3), que queda anotado en la enmienda.
+2. **Sin ocultar errores de cableado:** el puerto es una dependencia obligatoria (§3.2.3), y el test de `app` falla si falta la implementación (§3.4).
+3. **Decisión escrita:** el Camino A no comprueba que la convocatoria siga `OPEN` (§3.2.3).
