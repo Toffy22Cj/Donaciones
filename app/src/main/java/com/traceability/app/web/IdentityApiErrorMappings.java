@@ -3,6 +3,7 @@ package com.traceability.app.web;
 import com.traceability.api.web.ApiErrorMapping;
 import com.traceability.api.web.ApiErrorMappings;
 import com.traceability.api.web.ApiExceptionHandler;
+import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotFoundException;
 import identity.domain.exception.DuplicateEmailException;
 import identity.domain.exception.InvalidEmailFormatException;
@@ -52,6 +53,8 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 // P2.8 (pedir información): mensaje vacío o de más de 2000 caracteres
                 new ApiErrorMapping(InvalidInformationRequestMessageException.class, HttpStatus.BAD_REQUEST, null),
                 // P2.7 (miembros): el mismo 403 que cualquier acceso denegado (DD-01)
-                new ApiErrorMapping(OrganizationAccessDeniedException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN));
+                new ApiErrorMapping(OrganizationAccessDeniedException.class, HttpStatus.FORBIDDEN, ApiExceptionHandler.FORBIDDEN),
+                // §3.1 (crear organización) y aceptar una invitación (ADR-049 D4): una cuenta, una organización (ADR-026)
+                new ApiErrorMapping(AccountAlreadyBelongsToOrganizationException.class, HttpStatus.CONFLICT, null));
     }
 }

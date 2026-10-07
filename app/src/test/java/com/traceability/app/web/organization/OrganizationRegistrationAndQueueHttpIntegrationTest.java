@@ -241,7 +241,9 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
         HttpResponse<String> asOrgAdmin = send("GET", "/api/v1/platform/organizations", orgAdmin, null);
         HttpResponse<String> asRepresentative = send("GET", "/api/v1/platform/organizations", representative, null);
         HttpResponse<String> asLoner = send("GET", "/api/v1/platform/organizations?status=VERIFIED", account(), null);
-        for (HttpResponse<String> r : List.of(asOrgAdmin, asRepresentative, asLoner)) {
+        // autoriza antes de validar: un estado o un cursor inválidos no cambian el 403
+        HttpResponse<String> badCursor = send("GET", "/api/v1/platform/organizations?cursor=abc", orgAdmin, null);
+        for (HttpResponse<String> r : List.of(asOrgAdmin, asRepresentative, asLoner, badCursor)) {
             assertThat(r.statusCode()).isEqualTo(403);
             assertThat(json.readTree(r.body()).get("title")).isEqualTo(json.readTree(asOrgAdmin.body()).get("title"));
         }
