@@ -18,8 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>email o contraseña vacíos → 400 sin llamar al dominio; email mal formado → 400;</li>
  *   <li>email ya registrado → 409 ({@code DuplicateEmail}).</li>
  * </ul>
- * Sin {@code Command-Id}: Identity no lo usa (DH-34); un reintento recibe 409. Sin política de contraseña: el dominio
- * no la tiene y no se inventa aquí (hallazgo H-P2-1). Nunca registra la contraseña ni el email.
+ * Sin {@code Command-Id}: Identity no lo usa (DH-34); un reintento recibe 409. La contraseña debe tener al menos 12
+ * caracteres (H-P2-1; regla del dominio, {@code PlainPassword}) → si no, 400 {@code PasswordTooShort}. Nunca registra
+ * la contraseña ni el email.
  */
 @RestController
 public class AccountRegistrationController {

@@ -26,6 +26,7 @@
 | `NOT_STARTED` / `CAMPAIGN_ENDED` | Antes del inicio; `CLOSED` o pasado el fin |
 | `TARGET_ALREADY_REACHED` | Ya recaudó la meta: el entrenamiento excluye esas instantáneas |
 | `TOO_MANY_INTENTS` | Más de 10 000 intenciones leídas (tope de la lectura) |
+| `UNSUPPORTED_CURRENCY` | Moneda distinta de COP (Carlos, 2026-10-07) |
 
 6. **Fuera del rango de entrenamiento** (el modelo vio el 15 %, 25 % y 50 % del tiempo): se sirve la estimación con una segunda advertencia, no se oculta.
 
@@ -33,7 +34,7 @@
 
 | Variable | Fuente real |
 |---|---|
-| `logTargetAmount` | `ln(targetAmount)` de la configuración |
+| `logTargetAmount` | `ln(targetAmount / 10^exponente)`: la meta en unidades enteras de la moneda (ISO 4217; COP = 2) |
 | `durationDays`, `pctTimeElapsed` | `startDate`, `endDate` y el reloj del servidor |
 | `orgPriorCampaigns` | convocatorias de la misma organización con `startDate` anterior |
 | `paymentMethodsEnabled` | número de `acceptedPaymentMethods` |
@@ -42,6 +43,7 @@
 ## 3. Riesgos que esta enmienda no resuelve
 
 - **Datos sintéticos.** El modelo nunca vio una convocatoria real; la advertencia es obligatoria y la UI debe separarlo de los hechos verificables (Q-v2-9).
-- **Moneda.** El dataset está en COP; una meta en otra moneda da un `logTargetAmount` fuera de distribución. Hoy no se avisa.
+- **Moneda.** El dataset está en COP: una convocatoria en otra moneda no tiene estimación (`UNSUPPORTED_CURRENCY`, Carlos, 2026-10-07).
+- **Unidades (H-P3-1, corregido el 2026-10-07):** el backend guarda los importes en unidades mínimas (Q-CV01-3; COP, exponente 2) y el dataset sintético está en pesos. Las razones no cambian, pero `logTargetAmount` se calculaba sobre céntimos (ln(100) ≈ 4,6 de más). Ahora se calcula sobre unidades enteras con el exponente ISO 4217, y la paridad de variables se prueba alimentando Java con céntimos.
 - **Reentrenar** exige volver a exportar y a pasar la paridad; el nombre del recurso lleva la versión del modelo.
 - **El script de exportación** vive en `scripts/predictor/` de este repositorio porque lee los artefactos sin cambiarlos. Si Carlos prefiere que viva junto al predictor, se mueve sin tocar el backend.

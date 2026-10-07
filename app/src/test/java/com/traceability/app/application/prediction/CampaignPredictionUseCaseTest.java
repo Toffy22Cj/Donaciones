@@ -49,7 +49,12 @@ class CampaignPredictionUseCaseTest {
     }
 
     static CampaignPredictionData campaign(String policy, Long target, String status, List<IntentOutcome> intents) {
-        return new CampaignPredictionData("CAMP-1", "ORG-1", status, "PUBLIC", policy, target, START, END, 2, 3,
+        return campaign(policy, target, "COP", status, intents);
+    }
+
+    static CampaignPredictionData campaign(String policy, Long target, String currency, String status,
+                                           List<IntentOutcome> intents) {
+        return new CampaignPredictionData("CAMP-1", "ORG-1", status, "PUBLIC", policy, target, currency, START, END, 2, 3,
                 intents, false);
     }
 
@@ -95,6 +100,29 @@ class CampaignPredictionUseCaseTest {
 
         assertThat(p.unavailable()).isNull();
         assertThat(p.warnings()).hasSize(2).anyMatch(w -> w.startsWith("fuera del rango de entrenamiento"));
+    }
+
+    @Test
+    void aCurrencyOtherThanCop_neverGetsAPrediction_withAnExplicitReason() {
+        when(query.dataOf("CAMP-1")).thenReturn(Optional.of(campaign("FLEXIBLE", 800_000_000L, "USD", "OPEN",
+                donations(40_000_000))));
+
+        Prediction p = useCase(NOW).predict(principal("ORG-1", AuthorizationRole.ADMINISTRATOR), "ORG-1", "CAMP-1");
+
+        assertThat(p.unavailable()).isEqualTo(Unavailable.UNSUPPORTED_CURRENCY);
+        assertThat(p.unavailable().text).contains("COP");
+        assertThat(p.probabilityReachTarget()).isNull();
+    }
+
+    @Test
+    void amountsArriveInMinorUnits_andTheModelSeesPesos() {
+        // Q-CV01-3: importes en unidades mínimas; ISO 4217 da a COP exponente 2. El modelo se entrenó con pesos.
+        CampaignPredictionData data = campaign("FLEXIBLE", 800_000_000L, "OPEN", donations(40_000_000, 30_000_000));
+
+        CampaignFeatures f = CampaignFeatureBuilder.build(data, NOW);
+
+        assertThat(f.logTargetAmount()).isCloseTo(Math.log(8_000_000), org.assertj.core.api.Assertions.within(1e-12));
+        assertThat(f.pctRaised()).isCloseTo(70_000_000.0 / 800_000_000.0, org.assertj.core.api.Assertions.within(1e-12));
     }
 
     @Test

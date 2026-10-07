@@ -36,11 +36,13 @@ public class ChangeCredentialsService {
 
     public void changeCredentials(AuditActor actor, AccountId accountId, String newPlainPassword) {
         Objects.requireNonNull(actor, "actor must not be null");
+        // H-P2-1: la misma política que al crear la cuenta
+        identity.domain.model.PlainPassword password = new identity.domain.model.PlainPassword(newPlainPassword);
 
         retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(accountId);
             
-            PasswordHash newPasswordHash = passwordHasher.hash(newPlainPassword);
+            PasswordHash newPasswordHash = passwordHasher.hash(password.value());
             account.changeCredentials(newPasswordHash);
             
             accountRepository.save(account);
