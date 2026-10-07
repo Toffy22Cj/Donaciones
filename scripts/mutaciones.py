@@ -8,6 +8,9 @@ con un JSON de la forma:
     {"module": "core", "tests": "TestA,TestB",
      "mutations": [{"name": "...", "edits": [{"file": "core/src/...java", "old": "...", "new": "..."}]}]}
 
+"args" (opcional) añade argumentos a Maven; p. ej., para mutar `api` y matar con un test de `app`:
+    {"module": "api,app", "tests": "TestDeApp", "args": ["-Dsurefire.failIfNoSpecifiedTests=false"], ...}
+
 Garantías:
 - Se niega a empezar si algún archivo a mutar tiene cambios sin commit: la restauración vuelve a HEAD.
 - Restaura SIEMPRE con `git checkout -- <archivo>`, nunca desde una copia en memoria. Una copia guardada después de
@@ -53,7 +56,8 @@ def main(spec_path):
                     raise ValueError(f"texto a mutar encontrado {text.count(edit['old'])} veces en {edit['file']}")
                 path.write_text(text.replace(edit["old"], edit["new"]), encoding="utf-8")
                 touched.append(edit["file"])
-            result = subprocess.run(["mvn", "-o", "-q", "test", "-pl", spec["module"], f"-Dtest={spec['tests']}"],
+            result = subprocess.run(["mvn", "-o", "-q", "test", "-pl", spec["module"], f"-Dtest={spec['tests']}",
+                                     *spec.get("args", [])],
                                     cwd=ROOT, capture_output=True, text=True)
             killed = result.returncode != 0
             survivors += 0 if killed else 1
