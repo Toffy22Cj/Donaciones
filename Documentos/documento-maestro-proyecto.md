@@ -181,7 +181,7 @@ core/src/main/java/com/traceability/core/
 
 ### VIII. Autorización y Actores (Fase 5)
 - **ADR-028 — Relación `Organization ↔ Fund`.** Reconstrucción histórica, aprobada en Fase 5.
-- **ADR-029 — `Organization ↔ PhysicalAsset` y Donación en Especie.** Aprobada en Fase 5, revisada (C3/C5) para el enforcement vigente de `organizationRef`. `PhysicalAsset` todavía no tiene `campaignRef` (ver ADR-040 §8).
+- **ADR-029 — `Organization ↔ PhysicalAsset` y Donación en Especie.** Aprobada en Fase 5, revisada (C3/C5) para el enforcement vigente de `organizationRef`. `PhysicalAsset` todavía no tiene `campaignRef` (ver ADR-040 §8). **Enmienda 1 (`ADR-029-enmienda-1-campaignref.md`, PROPUESTA, 2026-10-07):** `ASSET_REGISTERED`/`ASSET_SPLIT` 3.0 con `campaignRef`, Camino A heredado del `Fund`, Camino B validado contra `convocatoria`, sin *backfill*; registra el hallazgo H-PROJ (proyecciones solo v1).
 - **ADR-030 — `actorRef`: Ubicación y Persistencia.** Aprobada en Fase 5.
 - **ADR-031 — Taxonomía de `ActorRef`.** Aprobada en Fase 5.
 - **ADR-032 — Autorización de Comandos en `core`.** Puerto `Identity ↔ Core` (`IdentityPrincipalPort` en `contracts`), guardas de pertenencia y rol, matriz de autorización. Aprobada en Fase 5.
