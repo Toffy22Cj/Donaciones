@@ -33,7 +33,7 @@
 ## P2.6 — `GET /api/v1/public/campaigns`
 - **Auth:** pública. **Solo `?cursor=`** (Q-v2-3).
 - **200:** `{items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; sin `nextCursor` en la última; cursor inválido → 400 (T-35).
-- **Nunca `PRIVATE_LINK`** (filtro en la consulta). Solo `OPEN` (DD-52: una cerrada se sigue viendo por su código, CV-07, pero no se descubre). Orden por `publicCode`; el cursor es el último `publicCode` en Base64 URL, que ya es público (DD-53).
+- **Nunca `PRIVATE_LINK`** (filtro en la consulta). Solo `OPEN` (DD-52: una cerrada se sigue viendo por su código, CV-07, pero no se descubre). Orden por `publicCode`; el cursor es **opaco**: el último `publicCode` cifrado y autenticado (AES-256-GCM), así que no se puede leer ni fabricar (DD-58; sustituye a DD-53, no ratificada).
 - Sin `campaignRef` ni `organizationRef`; sin descripción (está en CV-07).
 
 ## P2.7 — activos y miembros de la organización
