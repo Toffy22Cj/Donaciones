@@ -145,7 +145,7 @@ Todo con `HumanActor` construido desde el JWT.
 
 ### B7. Ejecución del golden path (dueño Carlos)
 
-- El recorrido de `golden-path.md` enmendado (enmendado el 2026-10-07), con su tabla real/fixture: webhook simulado; anclaje en testnet confirmado antes de la sesión. **El guion espera a que aparezca el hijo de la división** (nace de forma asíncrona, por la saga) antes de despacharlo.
+- El recorrido de `golden-path.md` enmendado (enmendado el 2026-10-07), con su tabla real/fixture: webhook simulado; *anclaje en testnet confirmado antes de la sesión* → **sustituido (Carlos, 2026-10-07T21:07Z): el anclaje se demuestra en la cadena local (Ganache); la testnet es opcional (`runbook-anclaje-testnet.md`). Limitación aceptada: Ganache no es verificable públicamente.** Guion y arranque: `runbook-demo-local.md`. **El guion espera a que aparezca el hijo de la división** (nace de forma asíncrona, por la saga) antes de despacharlo.
 - Evidencia persistida en `Documentos/evidencia-fase6/`.
 - Cierre de la Fase 6 en `estado-fase6.md` y en el documento maestro.
 

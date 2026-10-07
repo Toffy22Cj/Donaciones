@@ -50,8 +50,8 @@ END=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     echo "salida:   $STATUS"
     echo
     echo "## Versiones"
-    java -version 2>&1 | sed 's/^/java:   /'
-    mvn -v 2>&1 | head -1 | sed 's/^/maven:  /'
+    java -version 2>&1 | grep -v "Picked up" | sed 's/^/java:   /'
+    mvn -v 2>&1 | grep -v "Picked up" | head -1 | sed 's/^/maven:  /'
     docker version --format 'docker: cliente {{.Client.Version}}, servidor {{.Server.Version}}' 2>&1
     echo
     echo "## Resumen de Surefire por módulo (literal)"

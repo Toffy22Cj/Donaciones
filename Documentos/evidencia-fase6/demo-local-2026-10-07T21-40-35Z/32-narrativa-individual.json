@@ -1,0 +1,15 @@
+{
+  "paso": "narrativa-individual",
+  "metodo": "GET",
+  "ruta": "/api/v1/donations/tracking/narrative",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "status": "AVAILABLE",
+    "content": "The donation for fund d4dc54ab-c857-48fe-b746-bc9107791ce4 has been processed up to sequence 3. It has 4 transition(s) and 0 flag(s) registered. Detailed AI narrative is temporarily unavailable.",
+    "source": "FALLBACK_TEMPLATE"
+  }
+}

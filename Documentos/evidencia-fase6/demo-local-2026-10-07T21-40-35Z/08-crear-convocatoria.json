@@ -1,0 +1,34 @@
+{
+  "paso": "crear-convocatoria",
+  "metodo": "POST",
+  "ruta": "/api/v1/organizations/01M4C4Z92PEGCKBMAFRC36T39E/campaigns",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "278360a1-cc30-44b7-ad6e-de7a132600f7"
+  },
+  "cuerpo": {
+    "title": "Abrigo para el invierno",
+    "description": "Convocatoria de la demo local",
+    "visibility": "PUBLIC",
+    "startDate": "2026-10-07T21:41:37Z",
+    "endDate": "2026-12-06T21:40:37Z",
+    "configuration": {
+      "acceptedDonationTypes": [
+        "MONETARY",
+        "IN_KIND"
+      ],
+      "acceptedPaymentMethods": [
+        "GATEWAY"
+      ],
+      "currency": "COP",
+      "targetAmount": "50000000",
+      "targetPolicy": "FLEXIBLE"
+    }
+  },
+  "estado": 201,
+  "respuesta": {
+    "campaignRef": "e2643d21-0784-45ea-ba59-4616c2deb803",
+    "publicCode": "Y27E5TEA4ETGK63YATTVVA25D5"
+  }
+}

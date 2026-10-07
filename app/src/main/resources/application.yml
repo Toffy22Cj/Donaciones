@@ -50,9 +50,9 @@ traceability:
       # S-03: orígenes exactos (desarrollo y demo) separados por comas; nunca '*'. Sin valor, ningún origen cruzado.
       allowed-origins: ${TRACEABILITY_CORS_ALLOWED_ORIGINS:}
   discovery:
-    # DD-53 rehecha: clave AES-256 del cursor opaco del descubrimiento (32 bytes en Base64). Opcional: sin ella, una
-    # aleatoria por proceso (los cursores no sobreviven a un reinicio). Nunca un valor en este fichero.
-    cursor-key: ${TRACEABILITY_DISCOVERY_CURSOR_KEY:}
+    # DD-53: clave AES-256 del cursor opaco del descubrimiento (32 bytes en Base64). Obligatoria y sin valor por
+    # defecto: sin TRACEABILITY_DISCOVERY_CURSOR_KEY, o igual a otro secreto, la aplicación no arranca.
+    cursor-key: ${TRACEABILITY_DISCOVERY_CURSOR_KEY}
   # Enmienda 3 de ADR-037, D6 y E3-Q3 (Carlos, 2026-10-07): el trackingCode dura un año desde fundsAppliedAt
   tracking-code:
     ttl: P365D
