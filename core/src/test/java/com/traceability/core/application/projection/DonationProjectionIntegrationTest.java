@@ -126,6 +126,36 @@ class DonationProjectionIntegrationTest {
         return doc;
     }
 
+    // --- B-PROJ, D-SEQ: el event store numera la génesis de cada stream como la secuencia 1 ---
+
+    @Test
+    void streamStartingAtSequenceOne_isProjected() {
+        projectionHandler.handleEvent(buildEvent("fund-seq1", "Fund", 1, "FUNDS_CLEARED",
+                Map.of("clearedAmount", 300, "sourceReference", "SRC", "currency", "COP")));
+
+        DonationProjectionDocument doc = projectionRepository.findById("fund-seq1").orElseThrow();
+        assertEquals(300L, doc.getFinancialSnapshot().getClearedAmount());
+        assertEquals(300L, doc.getFinancialSnapshot().getOriginalAmount());
+    }
+
+    @Test
+    void gapFromOneToThree_stillThrowsSequenceGap() {
+        projectionHandler.handleEvent(buildEvent("fund-gap", "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 100)));
+
+        assertThrows(DonationProjectionHandler.SequenceGapException.class, () -> projectionHandler.handleEvent(
+                buildEvent("fund-gap", "Fund", 3, "FUNDS_REFUNDED", Map.of("refundAmount", 10))));
+    }
+
+    @Test
+    void repeatedGenesis_isADuplicate() {
+        TraceabilityEventDocument genesis = buildEvent("fund-dup", "Fund", 1, "FUNDS_CLEARED",
+                Map.of("clearedAmount", 300, "sourceReference", "SRC", "currency", "COP"));
+        projectionHandler.handleEvent(genesis);
+        projectionHandler.handleEvent(genesis);
+
+        assertEquals(300L, projectionRepository.findById("fund-dup").orElseThrow().getFinancialSnapshot().getClearedAmount());
+    }
+
     @Test
     void testAssetSplit() {
         // 1. FUND_REGISTERED
