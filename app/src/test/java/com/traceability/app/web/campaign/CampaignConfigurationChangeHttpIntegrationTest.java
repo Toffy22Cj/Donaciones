@@ -253,6 +253,17 @@ class CampaignConfigurationChangeHttpIntegrationTest {
     }
 
     @Test
+    void approvingTheAdditionOfMonetary_opensItsLedger_andTheCampaignStartsTakingMoney() throws Exception {
+        JsonNode c = campaign(IN_KIND_ONLY);
+        String ref = c.get("campaignRef").asText();
+        assertThat(mongoTemplate.getCollection("campaign_funding_ledgers").countDocuments(new Document("_id", ref))).isZero();
+        String requestId = ok(request(adminA, ref, 1, BOTH), 201).get("requestId").asText();
+        ok(decide(adminB, ref, requestId, "approve"), 200);
+        assertThat(mongoTemplate.getCollection("campaign_funding_ledgers").countDocuments(new Document("_id", ref))).isEqualTo(1);
+        donate(c.get("publicCode").asText());
+    }
+
+    @Test
     void ifTheConfigurationMovedOn_theApprovalFails_andTheRequestStaysPendingUntilWithdrawn() throws Exception {
         String ref = campaign(BOTH).get("campaignRef").asText();
         String requestId = ok(request(adminA, ref, 1, MONETARY_ONLY), 201).get("requestId").asText();
