@@ -26,6 +26,7 @@
 | `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}` | `201 {accountId, status}` | 400 vacíos o email mal formado; 409 `DuplicateEmail`. Sin política de contraseña (H-P2-1) |
 | `GET /me` | JWT | — | `200 {accountId, organizationId?, roles, platformAuthority?}`, `Cache-Control: no-store` (ficha N1) | 401 |
 | `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle, amount, currency, status, trackingCode?}]}`, una página de 100 (DD-21) | 401 |
+| `POST /invitations/accept` (§3.3, ADR-049 D4) | JWT de la cuenta invitada | `{token}` en el cuerpo (la web lo lee del fragmento `#token=` y lo borra de la barra); **nunca** en la URL | `200 {organizationId, roles}`; efectivo en la petición siguiente | 401; **el mismo 403 `InvitationNotAcceptable`** (desconocido, caducado, revocado, usado, otro email o token en la URL); 409 `AccountAlreadyBelongsToOrganization` |
 
 ## 2. Plataforma
 
@@ -46,6 +47,11 @@
 | `POST /organizations` (crear organización, R9, §3.1) | JWT, cualquier cuenta activa sin organización; cuerpo `{type: FOUNDATION\|COMPANY, name}` (1–200) | `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`; quien la crea queda como `REPRESENTATIVE` (DD-68) | 400 `type` o `name`; 409 `AccountAlreadyBelongsToOrganization` |
 | `GET /organizations/{organizationId}/campaigns` | `ADMINISTRATOR` de la organización | `200 {items: [{campaignRef, publicCode, title, status, visibility, currency?, targetAmount?, targetPolicy?, clearedAmount?, responsibles: [{accountId, actingRole}], assignedEmployeeCount}]}`, una página de 100 (DD-49) | 403 |
 | `GET /organizations/{organizationId}/members` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-55) | `200 {items: [{accountId, roles, status}]}`, sin email | 403 |
+| `POST /organizations/{organizationId}/invitations` (§3.3, ADR-049) | `ADMINISTRATOR` o `REPRESENTATIVE`; cuerpo `{email, role: ADMINISTRATOR\|EMPLOYEE}` | `202 {invitationId, role, expiresAt}`, **la misma respuesta exista o no la cuenta**; el correo lleva `{web}/invitaciones#token=…` (token en el fragmento) | 400 `InvalidMemberRole`, `InvalidEmailFormat`; 403 (antes de validar) |
+| `GET /organizations/{organizationId}/invitations` | ídem | `200 {items: [{invitationId, emailMasked, role, createdAt, expiresAt, delivery: SENT\|FAILED\|PENDING}]}`, pendientes sin caducar, una página de 100, `no-store` (DD-65) | 403 |
+| `POST /organizations/{organizationId}/invitations/{invitationId}/revoke` | ídem | `200 {invitationId, status: "REVOKED"}` | 403; 409 `InvitationNotPending` |
+| `POST /organizations/{organizationId}/members/{accountId}/role` | ídem; cuerpo `{role: ADMINISTRATOR\|EMPLOYEE}` | `200 {accountId, roles}`; los roles del `REPRESENTATIVE` solo los cambia él (DD-66) | 400; 403; 409 `MemberAlreadyHasRole`, `ActiveCampaignResponsible` |
+| `POST /organizations/{organizationId}/members/{accountId}/remove` | ídem | `200 {accountId, removed: true}` | 403; 409 `RepresentativeTransferRequired`, `ActiveCampaignResponsible` |
 | `GET /organizations/{organizationId}/funds` | `ADMINISTRATOR` o `EMPLOYEE` (DD-31) | `200 {items: [{fundId, campaignRef?, currency, clearedAmount, availableAmount, allocations: [{allocationId, amount, status}]}]}`, una página de 200; sin `donorRef` | 403 |
 | `GET /organizations/{organizationId}/physical-assets` | `ADMINISTRATOR` o `EMPLOYEE` (DD-54) | `200 {items: [{assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef?}]}`, una página de 200; sin `donorRef` | 403 |
 | `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-43) | `200 {kind: "ESTIMATE", modelVersion, warning, available, probabilityReachTarget?, estimatedFinalPctOfTarget?, pctTimeElapsed?, warnings?, unavailableReason?, unavailableText?, asOf}`, `no-store`. Solo lectura. STRICT → `available: false`, `STRICT_POLICY_EXCLUDED` (ADR-044 Enmienda 1, BORRADOR) | 403 |
