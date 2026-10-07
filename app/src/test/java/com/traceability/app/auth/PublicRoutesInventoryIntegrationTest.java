@@ -65,6 +65,7 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/account/donations",
             // P1.1: Camino A por HTTP (plan-p1-camino-a-http.md §2.2)
             "GET /api/v1/organizations/{organizationId}/funds",
+            "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction",
             "POST /api/v1/funds/{fundId}/allocations",
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm");
 

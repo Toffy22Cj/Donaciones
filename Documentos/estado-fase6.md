@@ -178,6 +178,17 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.21 P3 — predictor de convocatorias en el backend (2026-10-07, `feat/p3-predictor`) — HECHO
+
+- **Qué hace** (`plan-p3-predictor.md`; norma propuesta `ADR-044-enmienda-1-prediccion-en-backend.md`, BORRADOR):
+  - el modelo entrenado offline (`paxfide-predictor`, `baseline-0.2.0`, sin STRICT) se exporta a JSON con `scripts/predictor/export_baseline_json.py`: la regresión logística (mejor Brier) y el `HistGradientBoostingRegressor` del % final. El predictor **no se movió** de su rama ni de su repositorio;
+  - Java lo evalúa sin Python ni dependencias nuevas (`CampaignPredictorModel`) y calcula las variables con los datos reales de la convocatoria (`CampaignFeatureBuilder`, `CampaignPredictionDataQuery`);
+  - **paridad primero, tolerancia 1e-9:** 303 vectores del modelo (diferencia máxima 2.2e-16 en la probabilidad y 0.0 en el % final) y 172 instantáneas de variables frente a `build_snapshot` de Python (8.9e-16);
+  - `GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction`, solo `ADMINISTRATOR`/`REPRESENTATIVE` de la organización (el resto, el mismo 403): `kind: "ESTIMATE"`, `modelVersion`, `warning: "modelo entrenado con datos sintéticos"`; STRICT → `available: false` con `STRICT_POLICY_EXCLUDED`. Solo lectura (test: ninguna colección cambia).
+- **Decisiones:** DD-41 a DD-47, `PENDIENTE DE RATIFICACIÓN`. Sustituye, si se ratifica, Q-v2-9 (mock server) por instrucción de Carlos.
+- **Riesgos:** datos sintéticos; metas en moneda distinta de COP fuera de distribución sin aviso; reentrenar exige reexportar y pasar la paridad.
+- **Evidencia:** `evidencia-fase6/p3-predictor-6c802da-2026-10-07.txt`. Reactor **1185 tests**; 9 mutaciones, 9 muertas.
+
 ### 0.20 P1.4 — anclaje del recorrido en cadena local (2026-10-07, `feat/p1-anclaje-e2e`) — HECHO
 
 - **Qué hace:** `GoldenPathHttpIntegrationTest` levanta Ganache (Testcontainers, como los tests de `crypto`), despliega `AnchorRegistry` y deja correr los procesos reales: productor de `MerkleBatch`, envío y poller. Exige que **todos** los eventos de los dos fondos, del padre y del hijo estén en batches `ANCHORED` (el poller solo marca `ANCHORED` si la raíz leída de la cadena coincide) y que `verifyBatch` dé `MATCH` en cada uno. Escribe `app/target/golden-path-anclaje-evidencia.txt` (red, contrato, raíz, `txHash`, bloque; sin secretos).
