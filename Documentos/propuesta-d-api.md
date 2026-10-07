@@ -1,6 +1,6 @@
 # Propuesta D-API — Decisiones abiertas antes de B6 y división de B6 en PR por flujo
 
-**Estado:** **PROPUESTO** (2026-10-07). Lo decide Carlos. Sin código. Cada PR de B6 necesitará después su plan aprobado (regla 3.4), y las piezas marcadas "ADR" necesitan su enmienda aprobada antes del merge (regla 3.5).
+**Estado:** **EN DECISIÓN** (2026-10-07): Q2, Q4 y Q6 **decididas por Carlos** con precisiones, y la dirección de ADR-048 fijada (§5). Siguen abiertas Q1, Q3, Q5 y Q7–Q10. Sin código. Cada PR de B6 necesitará después su plan aprobado (regla 3.4), y las piezas marcadas "ADR" necesitan su enmienda aprobada antes del merge (regla 3.5).
 **Origen:** D-API de `plan-cierre-fase6-codigo.md` (`:27`); revisión de Carlos del 2026-10-07 ("B6 dividido en varios PR por flujo").
 **Hechos:** verificados en `develop` tras #53, con cita. Rutas relativas a la raíz del repositorio.
 
@@ -147,4 +147,17 @@ Cada PR lleva su plan (regla 3.4), sus tests en rojo, el reactor y mutaciones, y
 | Q8 | ¿`publicCode` ≥128 bits y Q-CV01-12 a 15 cerradas antes de B6-a? (A7) | Sí |
 | Q9 | ¿Id de activo determinista en el registro y `Command-Id` en todos los comandos de la demo? (A8, A9) | Sí |
 | Q10 | ¿B6 en cinco PR (B6-0, a, b, c, d) en el orden de §3? | Sí |
-| — | Fecha interna de cierre: ¿21 de octubre, con revisión el 14? | Pendiente desde el 2026-10-07 |
+| — | Fecha interna de cierre | **21 de octubre, con revisión el 14 — CONFIRMADA por Carlos, 2026-10-07** |
+
+## 5. Decisiones de Carlos (2026-10-07)
+
+| # | Decisión |
+|---|---|
+| **Q2** | **Sí:** `paymentProvider = SIMULATED`, y `confirmationSource` sigue indicando quién confirma. **Condición:** la aplicación **rechaza `SIMULATED` fuera de los perfiles `dev` y `demo`**, tanto al crear la intención (el adaptador simulado no existe fuera de ellos, y el dominio rechaza ese proveedor si el perfil no lo permite) como al recibir un webhook. Test en el perfil por defecto para los dos caminos. Necesita la enmienda 3 de ADR-037 |
+| **Q4** | **Reutilizable durante 24 h.** Mitigaciones obligatorias: solo se guarda el hash; caduca a las 24 h; **nunca aparece en logs ni en URLs** (va en la cabecera `Intent-Token`, no en la ruta ni en la consulta); el `trackingCode` solo se entrega cuando la intención está confirmada y con los fondos aplicados. Tests de logs, como en B3 |
+| **Q6** | **Sí:** `GET /account/donations` entra en B6, porque lo exige el criterio 6 |
+| **ADR-048** | Debe **evaluar un seudónimo derivado**, `donorRef = "acct:" + HMAC(clave propia, accountId)`, frente al id de la cuenta en claro. Motivo: los eventos son inmutables, y el id en claro no podría suprimirse si alguien ejerce el derecho de supresión (Habeas Data). Si se elige el id en claro, queda escrito como **riesgo aceptado con el nombre de Carlos** |
+| **`donorRef` del cliente** | Confirmado como **fallo de seguridad**: hoy no se puede explotar porque CV-11 no tiene HTTP, pero B6 lo expondría. Se corrige en B6-b: el `donorRef` se deriva del JWT o es anónimo, y el cliente nunca lo envía |
+| **A1** | De acuerdo: los controladores que cruzan módulos van en `app.web` |
+| **§3** | De acuerdo: B6 en cinco PR, en ese orden |
+| **CV-01** | Hay que cerrar la ficha, con un `publicCode` de ≥128 bits, **antes de B6-a** |
