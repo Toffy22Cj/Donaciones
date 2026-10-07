@@ -15,11 +15,13 @@ import com.traceability.convocatoria.domain.exception.InvalidFundingAmountExcept
 import com.traceability.convocatoria.domain.model.CampaignFundingLedger;
 import com.traceability.convocatoria.domain.model.DonationIntent;
 import com.traceability.convocatoria.domain.model.DonationIntentStatus;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,7 +40,7 @@ import java.util.function.Supplier;
  * La barrera de idempotencia es el registro de comandos procesados del módulo, con el comando de sistema
  * {@link CommandType#APPLY_FUNDS} y {@code commandId = intentId} (ADR-037 Enmienda 2 §3.3). La composición
  * con {@code Fund} y el outbox pertenece al orquestador de {@code app} (ADR-037 §2.3; Enmienda 2 §3.2), que todavía no
- * existe; la recuperación automática la regula ADR-043.
+ * existe; la recuperación automática la regula ADR-045.
  */
 @Service
 public class CampaignFundingLedgerService {
@@ -47,15 +49,21 @@ public class CampaignFundingLedgerService {
     private final DonationIntentRepositoryPort donationIntents;
     private final ProcessedCommandPort processedCommands;
     private final ConvocatoriaTransactionRetryHelper transactionRetryHelper;
+    private final Clock clock;
+
+    /** Motivo de {@code FUNDING_REJECTED} registrado con la transición (Enmienda 2 §4, C2). */
+    public static final String FUNDING_LIMIT_EXCEEDED_REASON = "CAMPAIGN_FUNDING_LIMIT_EXCEEDED";
 
     public CampaignFundingLedgerService(CampaignFundingLedgerRepositoryPort ledgers,
                                         DonationIntentRepositoryPort donationIntents,
                                         ProcessedCommandPort processedCommands,
-                                        ConvocatoriaTransactionRetryHelper transactionRetryHelper) {
+                                        ConvocatoriaTransactionRetryHelper transactionRetryHelper,
+                                        ObjectProvider<Clock> clock) {
         this.ledgers = ledgers;
         this.donationIntents = donationIntents;
         this.processedCommands = processedCommands;
         this.transactionRetryHelper = transactionRetryHelper;
+        this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
     /**
@@ -93,6 +101,8 @@ public class CampaignFundingLedgerService {
                     "intentId", intentId,
                     "campaignRef", intent.getCampaignRef(),
                     "amount", String.valueOf(intent.getAmount())));
+            // ADR-045 §2.5: marca derivada, en la misma transacción que el reclamo; no puede divergir de él.
+            donationIntents.markFundsApplied(intentId, clock.instant());
             return new ApplyFundsResult(intentId, intent.getCampaignRef(), intent.getAmount(), true);
         };
         return inTransaction(operation);
@@ -123,17 +133,17 @@ public class CampaignFundingLedgerService {
             if (!isPermanentlyUnfundable(ledger, intent.getAmount())) {
                 return false;
             }
-            return donationIntents.markFundingRejectedIfConfirmed(intentId);
+            return donationIntents.markFundingRejectedIfConfirmed(intentId,
+                    new DonationIntent.FundingRejection(clock.instant(), FUNDING_LIMIT_EXCEEDED_REASON));
         };
         return inTransaction(operation);
     }
 
     /**
-     * Intenciones {@code CONFIRMED} cuya aplicación no se ha completado (sin reclamo {@code APPLY_FUNDS}),
-     * para que la recuperación automática las vuelva a procesar (ADR-037 Enmienda 2 §5; ADR-043). Excluye las aplicadas,
-     * las {@code FUNDING_REJECTED}, las que no están confirmadas y, mientras R4 no exista, las de convocatorias
-     * {@code CLOSE_ON_TARGET + CLOSE} (P9, opción a): no son aplicables ni rechazables, así que quedan fuera de la cola
-     * automática; cuando se implemente R4 habrá que definir cómo vuelven a ser elegibles.
+     * Intenciones {@code CONFIRMED} cuya aplicación no se ha completado, para que la recuperación automática las vuelva
+     * a procesar (ADR-045 §2.2–§2.5). Excluye las aplicadas ({@code fundsAppliedAt} o reclamo {@code APPLY_FUNDS}), las
+     * que están en cuarentena, las {@code FUNDING_REJECTED}, las que no están confirmadas y, mientras R4 no exista, las
+     * de convocatorias {@code CLOSE_ON_TARGET + CLOSE} (P9, opción a). Orden de equidad: menos intentos primero.
      */
     public List<DonationIntent> findConfirmedPendingApplication(int limit) {
         return donationIntents.findConfirmedPendingApplication(limit);
