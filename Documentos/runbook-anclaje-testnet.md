@@ -1,4 +1,6 @@
-# Runbook — anclaje del golden path en una testnet
+# Runbook — anclaje del golden path en una testnet (OPCIONAL)
+
+> **OPCIONAL (Carlos, 2026-10-07T21:07Z).** Los criterios 10, 11, 12 y 18 se cierran con la evidencia de la cadena local (Ganache): ver `golden-path.md` §8 y `runbook-demo-local.md`. Este runbook queda como demostración adicional, verificable públicamente por terceros, que Carlos puede ejecutar si quiere.
 
 **Estado:** preparado bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P1.4. **Lo ejecuta Carlos.** La ejecución en la testnet, las claves de blockchain y la clave del LLM son suyas: este documento nombra las variables y los pasos, **nunca valores reales**.
 **Cubre:** criterios 10, 11, 12 y 18 de `golden-path.md` §8 contra una red pública de pruebas. Con una cadena local (Ganache) ya los cumple `GoldenPathHttpIntegrationTest` en cada `mvn clean test`.

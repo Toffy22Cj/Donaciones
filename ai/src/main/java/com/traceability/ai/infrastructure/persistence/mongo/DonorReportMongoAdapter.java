@@ -20,7 +20,7 @@ public class DonorReportMongoAdapter implements DonorReportRepositoryPort {
 
     @Override
     public Optional<DonorReportDTO> findByLogicalKey(String donationId, long auditFactsSequence, String sourceFactsHash, String promptTemplateVersion, String modelIdentifier) {
-        return repository.findByDonationIdAndAuditFactsSequenceAndSourceFactsHashAndPromptTemplateVersionAndModelIdentifier(
+        return repository.findFirstByDonationIdAndAuditFactsSequenceAndSourceFactsHashAndPromptTemplateVersionAndModelIdentifierOrderByGeneratedAtDesc(
                 donationId, auditFactsSequence, sourceFactsHash, promptTemplateVersion, modelIdentifier)
                 .map(this::toDTO);
     }

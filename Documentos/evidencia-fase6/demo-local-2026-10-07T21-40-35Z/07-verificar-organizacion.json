@@ -1,0 +1,14 @@
+{
+  "paso": "verificar-organizacion",
+  "metodo": "POST",
+  "ruta": "/api/v1/platform/organizations/01M4C4Z92PEGCKBMAFRC36T39E/verify",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "organizationId": "01M4C4Z92PEGCKBMAFRC36T39E",
+    "verificationStatus": "VERIFIED"
+  }
+}

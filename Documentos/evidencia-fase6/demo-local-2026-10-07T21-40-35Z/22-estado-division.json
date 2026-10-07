@@ -1,0 +1,13 @@
+{
+  "paso": "estado-division",
+  "metodo": "GET",
+  "ruta": "/api/v1/physical-assets/2b1d550a-fc16-507f-a024-c0b8cb69f868/splits/81aa2363-42b7-5ee0-b6e7-5d26bc295caa",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "status": "PENDING"
+  }
+}

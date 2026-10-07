@@ -38,12 +38,10 @@ public class PublicCampaignDiscoveryController {
 
     public PublicCampaignDiscoveryController(PublicCampaignDiscoveryQuery discovery,
                                              OrganizationPublicNamePort organizationNames,
-                                             @org.springframework.beans.factory.annotation.Value(
-                                                     "${traceability.discovery.cursor-key:}") String cursorKey) {
+                                             DiscoveryCursorCodec cursors) {
         this.discovery = discovery;
         this.organizationNames = organizationNames;
-        this.cursors = cursorKey.isBlank() ? DiscoveryCursorCodec.withRandomKey()
-                : DiscoveryCursorCodec.fromConfiguredKey(cursorKey);
+        this.cursors = cursors;
     }
 
     @GetMapping("/api/v1/public/campaigns")

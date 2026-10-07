@@ -1,0 +1,18 @@
+{
+  "paso": "me-administrador",
+  "metodo": "GET",
+  "ruta": "/api/v1/me",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "accountId": "01M4C4Z9FGQ7WCTP71AHC1BVCY",
+    "organizationId": "01M4C4Z92PEGCKBMAFRC36T39E",
+    "roles": [
+      "ADMINISTRATOR",
+      "EMPLOYEE"
+    ]
+  }
+}

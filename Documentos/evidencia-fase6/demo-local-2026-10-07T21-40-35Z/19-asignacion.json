@@ -1,0 +1,18 @@
+{
+  "paso": "asignacion",
+  "metodo": "POST",
+  "ruta": "/api/v1/funds/d4dc54ab-c857-48fe-b746-bc9107791ce4/allocations",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "6c2c1d21-91a7-4ef6-b6f8-066e3e11a4cf"
+  },
+  "cuerpo": {
+    "amount": "5000000"
+  },
+  "estado": 201,
+  "respuesta": {
+    "allocationId": "d213c5c6-6a10-5282-867d-af69b877e64a",
+    "status": "REQUESTED"
+  }
+}
