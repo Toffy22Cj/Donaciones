@@ -6,9 +6,10 @@
 
 | Regla | Contenido |
 |---|---|
-| Base | `/api/v1`. JSON UTF-8. Instantes ISO-8601 UTC con `Z`. Importes como **texto** de dígitos (unidades enteras de la moneda), salvo en el seguimiento (EF3: `long`) |
+| Base | `/api/v1`. JSON UTF-8. Instantes ISO-8601 UTC con `Z`. Importes como **texto** de dígitos en **unidades mínimas** de la moneda según ISO 4217 (Q-CV01-3; COP tiene exponente 2: `"100000"` son 1 000,00 COP), salvo en el seguimiento (EF3: `long`, las mismas unidades) |
 | Autenticación | `Authorization: Bearer <JWT>` (`POST /auth/login`). Las rutas no públicas exigen JWT (deny-by-default, `PublicRoutes`). El seguimiento usa el `trackingCode` en el mismo header, solo en `/donations/tracking/**` |
 | `Command-Id` | Header con un UUID en los comandos de escritura de `convocatoria` y `core` (T-33 revisado). Ausente o no-UUID → 400. Reenvío con el mismo id → misma respuesta; el mismo id para otro comando → 409 `CommandIdReusedForDifferentCommand`. Identity no lo usa |
+| CORS (S-03) | Orígenes exactos por `TRACEABILITY_CORS_ALLOWED_ORIGINS` (lista separada por comas; nunca `*`; sin valor, ninguno). Sin credenciales. Cabeceras: `Authorization`, `Command-Id`, `Intent-Token`, `Content-Type`. Expone `Location`. Métodos `GET`, `POST`, `OPTIONS` (DD-57) |
 | Errores | `ProblemDetail` (RFC 7807) con título fijo y sin eco de la entrada ni del mensaje interno |
 | 400 | Solo validaciones con nombre (campo inválido, email mal formado, …). `IllegalArgumentException` genérica → 500 (sección 0 de la segunda autorización) |
 | 401 | Sin JWT válido, o cuenta `INACTIVE` |
@@ -22,7 +23,7 @@
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|
 | `POST /auth/login` | pública | `{email, password}` | `200 {token}` | 400 campos vacíos; **el mismo 401** para email inexistente, contraseña errónea o cuenta inactiva |
-| `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}` | `201 {accountId, status}` | 400 vacíos o email mal formado; 409 `DuplicateEmail`. Sin política de contraseña (H-P2-1) |
+| `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}` | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
 | `GET /me` | JWT | — | `200 {accountId, organizationId?, roles, platformAuthority?}`, `Cache-Control: no-store` (ficha N1) | 401 |
 | `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle, amount, currency, status, trackingCode?}]}`, una página de 100 (DD-21) | 401 |
 
@@ -42,7 +43,7 @@
 | `GET /organizations/{organizationId}/members` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-55) | `200 {items: [{accountId, roles, status}]}`, sin email | 403 |
 | `GET /organizations/{organizationId}/funds` | `ADMINISTRATOR` o `EMPLOYEE` (DD-31) | `200 {items: [{fundId, campaignRef?, currency, clearedAmount, availableAmount, allocations: [{allocationId, amount, status}]}]}`, una página de 200; sin `donorRef` | 403 |
 | `GET /organizations/{organizationId}/physical-assets` | `ADMINISTRATOR` o `EMPLOYEE` (DD-54) | `200 {items: [{assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef?}]}`, una página de 200; sin `donorRef` | 403 |
-| `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-43) | `200 {kind: "ESTIMATE", modelVersion, warning, available, probabilityReachTarget?, estimatedFinalPctOfTarget?, pctTimeElapsed?, warnings?, unavailableReason?, unavailableText?, asOf}`, `no-store`. Solo lectura. STRICT → `available: false`, `STRICT_POLICY_EXCLUDED` (ADR-044 Enmienda 1, BORRADOR) | 403 |
+| `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-43) | `200 {kind: "ESTIMATE", modelVersion, warning, available, probabilityReachTarget?, estimatedFinalPctOfTarget?, pctTimeElapsed?, warnings?, unavailableReason?, unavailableText?, asOf}`, `no-store`. Solo lectura. STRICT → `available: false`, `STRICT_POLICY_EXCLUDED`; moneda distinta de COP → `UNSUPPORTED_CURRENCY` (ADR-044 Enmienda 1, BORRADOR) | 403 |
 
 ## 4. Convocatoria (administración)
 
@@ -53,14 +54,14 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 | `POST /organizations/{organizationId}/campaigns` (CV-01) | `{title, description?, visibility, startDate, endDate, configuration: {acceptedDonationTypes, acceptedPaymentMethods?, currency?, targetAmount?, targetPolicy?, onTargetReached?}}` | `201 {campaignRef, publicCode}` | 400 campos (con nombre); 403; 409 `OrganizationNotVerified` |
 | `POST /campaigns/{campaignRef}/employees` (CV-02) | `{employeeRef}` | `201 {assignmentId}` | 400; 403; 409 ya asignado, destinatario inválido, `CLOSED` |
 | `POST /campaigns/{campaignRef}/administrators` (CV-03) | `{administratorRef}` | `201 {assignmentId}` | ídem |
-| `POST /campaigns/{campaignRef}/responsibles/{responsibleRef}/remove` (DD-50) | opcional `{replacementRef, replacementActingRole}` | `200 {removedAssignmentId, replacementAssignmentId?}` | 400 reemplazo sin `replacementActingRole`; 403; 409 último responsable, no responsable (DD-51) |
+| `POST /campaigns/{campaignRef}/responsibles/{responsibleRef}/remove` (DD-50) | opcional `{replacementRef, replacementActingRole}` | `200 {removedAssignmentId, replacementAssignmentId?}` | 400 reemplazo sin `replacementActingRole`; 403; 409 último responsable, no responsable (DD-51), convocatoria `CLOSED` |
 | `POST /campaigns/{campaignRef}/close` | — | `200 {campaignRef, status: "CLOSED"}` | 403; 409 `CampaignAlreadyClosed` (`CLOSED` es terminal) |
 
 ## 5. Convocatoria y donación (público)
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|
-| `GET /public/campaigns` | pública | `?cursor=` | `200 {items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; solo `PUBLIC` y `OPEN`, **nunca `PRIVATE_LINK`** (DD-52, DD-53) | 400 cursor |
+| `GET /public/campaigns` | pública | `?cursor=` | `200 {items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; cursor opaco (DD-58); solo `PUBLIC` y `OPEN`, **nunca `PRIVATE_LINK`** (DD-52) | 400 cursor |
 | `GET /public/campaigns/{publicCode}` (CV-07) | pública | — | `200 {organizationName, title, description?, status, startDate, endDate, acceptedDonationTypes, acceptedPaymentMethods?, currency?, targetAmount?, clearedAmount?}` | 404 |
 | `GET /public/campaigns/{publicCode}/narrative` | pública | — | `200 {status: "AVAILABLE", content, source: "LLM_GENERATED", facts}`; `202 {status: "PENDING", facts}`; `200 {status: "UNAVAILABLE", content: "Narrativa no disponible", facts}`. `facts = {status, currency?, targetAmount?, clearedAmount?, unitsDelivered, distinctRecipients}` (B5, DD-39) | 404 |
 | `POST /public/campaigns/{publicCode}/donation-intents` (CV-11) | JWT **opcional**, `Command-Id` | `{amount, currency, paymentMethod}` | `201 {intentId, statusToken, paymentRedirectUrl}`; un reenvío emite un `statusToken` nuevo y anula el anterior (DD-18 sustituida) | 400; 404; 409 reglas de la convocatoria |

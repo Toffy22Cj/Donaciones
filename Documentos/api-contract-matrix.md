@@ -73,7 +73,7 @@
 
 | Endpoint | Auth | Read Model | Estado |
 |---|---|---|---|
-| `GET /organizations/{organizationId}/campaigns` | JWT + `ADMINISTRATOR` org + `OrganizationBoundaryPolicy` | `ConvocatoriaAdminReadModel` — distinto del público: `campaignRef, publicCode, title, status, visibility, targetAmount, targetPolicy, clearedAmount, responsables{accountId, fullName}, assignedEmployeeCount`, paginado | CONTRATO DEFINIDO |
+| `GET /organizations/{organizationId}/campaigns` | JWT + `ADMINISTRATOR` org + `OrganizationBoundaryPolicy` | `ConvocatoriaAdminReadModel` — distinto del público: `campaignRef, publicCode, title, status, visibility, currency, targetAmount, targetPolicy, clearedAmount, responsibles{accountId, actingRole}, assignedEmployeeCount`; una página de 100 (DD-49) | **IMPLEMENTADO en P2.3**. *Enmienda (Carlos, 2026-10-07, H-P2-2): `fullName` sale del contrato v1 — Identity no guarda nombres de cuenta. Texto anterior: `responsables{accountId, fullName}`, paginado* |
 
 No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide si hace falta cuando el frontend descubra si el listado es suficiente.
 

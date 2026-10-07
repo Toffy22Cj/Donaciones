@@ -1,0 +1,58 @@
+# S-03 CORS en dc79a5e (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: 5d15924a83b7a317ddeba1b4ada45ec3279081e3e940405d130f4ad2e3320859
+# Línea base: develop 3e7b11a = 1194 tests. Ahora: 1210 (api +11, app +5).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 134, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 158, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Después (verde, del reactor)
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.093 s -- in com.traceability.api.web.CorsConfigTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.473 s -- in com.traceability.app.web.CorsHttpIntegrationTest
+
+# Antes (rojo, con la implementación apartada con git stash o sin la corrección)
+## s03-red.log
+[ERROR] Tests run: 5, Failures: 5, Errors: 0, Skipped: 0, Time elapsed: 13.63 s <<< FAILURE! -- in com.traceability.app.web.CorsHttpIntegrationTest
+[ERROR] com.traceability.app.web.CorsHttpIntegrationTest.preflight_allowsTheIntentToken_onThePublicStatusRoute -- Time elapsed: 1.277 s <<< FAILURE!
+[ERROR] com.traceability.app.web.CorsHttpIntegrationTest.preflightOfAnAllowedOrigin_toAProtectedRoute_isAnsweredWithoutJwt -- Time elapsed: 0.017 s <<< FAILURE!
+[ERROR] com.traceability.app.web.CorsHttpIntegrationTest.theActualResponse_carriesTheOrigin_andExposesLocation -- Time elapsed: 0.128 s <<< FAILURE!
+[ERROR] com.traceability.app.web.CorsHttpIntegrationTest.anUnlistedHeader_isNotAllowed -- Time elapsed: 0.017 s <<< FAILURE!
+[ERROR] com.traceability.app.web.CorsHttpIntegrationTest.aNotAllowedOrigin_getsNoCorsHeaders -- Time elapsed: 0.018 s <<< FAILURE!
+## s03-red-unit.log
+[ERROR] COMPILATION ERROR : 
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[15,20] cannot find symbol
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[21,20] cannot find symbol
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[22,20] cannot find symbol
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[29,34] cannot find symbol
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[15,20] cannot find symbol
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[21,20] cannot find symbol
+[ERROR] /home/user/Donaciones/api/src/test/java/com/traceability/api/web/CorsConfigTest.java:[22,20] cannot find symbol
+
+# Nota
+La mutación 'filtro después del JWT' sobrevivió en la primera tanda (los dos filtros en LOWEST_PRECEDENCE quedaban en orden de registro); se añadió un test que fija el orden y la mató.
+
+# Mutaciones
+- con credenciales: MUERTA  preflightOfAnAllowedOrigin_toAProtectedRoute_isAnsweredWithoutJwt; theActualResponse_carriesTheOrigin_andExposesLocation
+- sin Intent-Token: MUERTA  preflight_allowsTheIntentToken_onThePublicStatusRoute
+- sin exponer Location: MUERTA  theActualResponse_carriesTheOrigin_andExposesLocation
+- comodín aceptado: MUERTA  wildcardsAndMalformedOrigins_preventStartup[1]; wildcardsAndMalformedOrigins_preventStartup[2]; wildcardsAndMalformedOrigins_preventStartup[3]; wildcardsAndMalformedOrigins_preventStartup[4]; wildcardsAndMalformedOrigins_preventStartup[5]; wildcardsAndMalformedOrigins_preventStartup[6]; wildcardsAndMalformedOrigins_preventStartup[7]; wildcardsAndMalformedOrigins_preventStartup[8]
+- filtro después del JWT: VIVA  
+- cualquier cabecera: MUERTA  anUnlistedHeader_isNotAllowed
+Restauración verificada contra HEAD. Mutaciones vivas: 1
+- filtro después del JWT: MUERTA  theCorsFilter_runsBeforeAnyOther_soAPreflightNeverReachesTheJwtFilter
+Restauración verificada contra HEAD. Mutaciones vivas: 0

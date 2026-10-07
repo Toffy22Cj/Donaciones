@@ -30,12 +30,15 @@ public class CampaignPredictionUseCase {
 
     public static final String MODEL_RESOURCE = "/predictor/campaign-predictor-baseline-0.2.0.json";
     public static final String SYNTHETIC_WARNING = "modelo entrenado con datos sintéticos";
+    /** El dataset sintético de {@code baseline-0.2.0} está en COP (Carlos, 2026-10-07: motivo explícito para el resto). */
+    static final String SUPPORTED_CURRENCY = "COP";
     static final double TRAINED_T_MIN = 0.15;
     static final double TRAINED_T_MAX = 0.50;
 
     public enum Unavailable {
         STRICT_POLICY_EXCLUDED("La política STRICT rechaza el exceso sobre la meta; el modelo no se entrenó con ella"),
         NO_MONETARY_TARGET("La convocatoria no tiene meta monetaria"),
+        UNSUPPORTED_CURRENCY("El modelo solo se entrenó con convocatorias en COP"),
         NOT_STARTED("La convocatoria aún no ha empezado"),
         CAMPAIGN_ENDED("La convocatoria ya terminó"),
         TARGET_ALREADY_REACHED("La meta ya se alcanzó"),
@@ -84,6 +87,9 @@ public class CampaignPredictionUseCase {
         Instant now = clock.instant();
         if (d.targetAmount() == null) {
             return unavailable(now, Unavailable.NO_MONETARY_TARGET);
+        }
+        if (!SUPPORTED_CURRENCY.equals(d.currency())) {
+            return unavailable(now, Unavailable.UNSUPPORTED_CURRENCY);
         }
         if (model.excludedPolicies().contains(d.targetPolicy())) {
             return unavailable(now, Unavailable.STRICT_POLICY_EXCLUDED);

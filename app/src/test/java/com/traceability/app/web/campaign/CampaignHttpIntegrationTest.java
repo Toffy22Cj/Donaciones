@@ -99,11 +99,11 @@ class CampaignHttpIntegrationTest {
     private static String unverifiedAdmin;
 
     private String account() {
-        return accounts.createAccount(new Email(UUID.randomUUID() + "@b6a.test"), "Pass123!").getAccountId().value();
+        return accounts.createAccount(new Email(UUID.randomUUID() + "@b6a.test"), "Pass123!Pass123!").getAccountId().value();
     }
 
     private String organization(String name, String[] adminOut, String... extraEmployees) {
-        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@b6a.test"), "Pass123!");
+        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@b6a.test"), "Pass123!Pass123!");
         Organization o = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION,
                 representative.getAccountId(), name);
         String a = account();
@@ -120,7 +120,7 @@ class CampaignHttpIntegrationTest {
     void world() throws Exception {
         if (platformAdmin != null) return;
         String email = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(email), "Pass123!");
+        accounts.createAccount(new Email(email), "Pass123!Pass123!");
         platformAdmin = bootstrap.bootstrap(email).value();
 
         String[] out = new String[1];

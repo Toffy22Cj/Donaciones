@@ -11,12 +11,12 @@
 - **Auth:** pública (ya en `PublicRoutes`). **Sin `Command-Id`** (Identity no lo usa, DH-34): un reintento recibe 409.
 - **Cuerpo:** `{email, password}`. **201:** `{accountId, status}` (matriz §3).
 - **Errores:** email o contraseña vacíos → 400; email mal formado → 400 (`InvalidEmailFormat`, sin eco del email); email ya registrado → 409 `DuplicateEmail`.
-- **Sin política de contraseña:** el dominio no la tiene y no se inventa en el controlador (H-P2-1).
+- **Contraseña de al menos 12 caracteres** (H-P2-1, Carlos, 2026-10-07): regla del dominio (`PlainPassword`), también al cambiarla; si no, 400 `PasswordTooShort`.
 
 ## P2.3 — `GET /api/v1/organizations/{organizationId}/campaigns`
 - **Auth:** `ADMINISTRATOR` de la organización (matriz §2b, `ConvocatoriaAuthorizationPolicy`).
 - **200:** `{items: [{campaignRef, publicCode, title, status, visibility, currency?, targetAmount?, targetPolicy?, clearedAmount?, responsibles: [{accountId, actingRole}], assignedEmployeeCount}]}`. Importes como texto. Una página con tope de 100, sin `nextCursor` (DD-49, como DD-21).
-- **Sin `fullName`** de los responsables: Identity no guarda nombres (H-P2-2). Se da `actingRole`.
+- **Sin `fullName`** de los responsables: Carlos lo quitó del contrato v1 (H-P2-2, 2026-10-07; matriz §2b enmendada). Se da `actingRole`.
 
 ## P2.4 — `POST /api/v1/campaigns/{campaignRef}/close`
 - **Auth:** `ADMINISTRATOR`, `Command-Id`. **200:** `{campaignRef, status: "CLOSED"}`.
@@ -28,12 +28,12 @@
   - último responsable sin reemplazo → 409 `LastResponsibleRemovalWithoutReplacement`;
   - reemplazo sin `replacementActingRole` → 400;
   - quien no es responsable activo → 409 `ResponsibleAssignmentNotFound` (DD-51: 409, no 404; la convocatoria es de la organización del actor y ya se autorizó).
-- Retirar en una convocatoria `CLOSED`: el dominio no tiene regla; se permite como hoy (H-P2-4).
+- Retirar en una convocatoria `CLOSED` → 409 `ResponsibleAssignmentOnClosedCampaign` (H-P2-4, Carlos, 2026-10-07).
 
 ## P2.6 — `GET /api/v1/public/campaigns`
 - **Auth:** pública. **Solo `?cursor=`** (Q-v2-3).
 - **200:** `{items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; sin `nextCursor` en la última; cursor inválido → 400 (T-35).
-- **Nunca `PRIVATE_LINK`** (filtro en la consulta). Solo `OPEN` (DD-52: una cerrada se sigue viendo por su código, CV-07, pero no se descubre). Orden por `publicCode`; el cursor es el último `publicCode` en Base64 URL, que ya es público (DD-53).
+- **Nunca `PRIVATE_LINK`** (filtro en la consulta). Solo `OPEN` (DD-52: una cerrada se sigue viendo por su código, CV-07, pero no se descubre). Orden por `publicCode`; el cursor es **opaco**: el último `publicCode` cifrado y autenticado (AES-256-GCM), así que no se puede leer ni fabricar (DD-58; sustituye a DD-53, no ratificada).
 - Sin `campaignRef` ni `organizationRef`; sin descripción (está en CV-07).
 
 ## P2.7 — activos y miembros de la organización
@@ -46,7 +46,7 @@
 - Sobre una organización `VERIFIED` o `REJECTED`, `verify`, `reject` y `request-information` → **409** `InvalidVerificationTransition` (DD-48, por instrucción de Carlos; es la regla de dominio de ADR-038). Inexistente → 404 (solo la ve la plataforma). Sin `Command-Id` (DD-07).
 
 ## Hallazgos
-- **H-P2-1:** no hay política de contraseña en el dominio; el registro acepta cualquier contraseña no vacía.
-- **H-P2-2:** la matriz §2b pide `fullName` de los responsables; Identity no guarda nombres de cuenta.
+- **H-P2-1:** ~~sin política de contraseña~~ — **cerrado**: al menos 12 caracteres.
+- **H-P2-2:** ~~`fullName` en la matriz~~ — **cerrado**: fuera del contrato v1.
 - **H-P2-3:** el 409 del registro revela que un email ya existe (enumeración). Lo fija la matriz (`{accountId, status}` y dominio con `DuplicateEmailException`); mitigarlo exige un flujo de verificación de email que está PENDIENTE.
-- **H-P2-4:** retirar un responsable de una convocatoria `CLOSED` no tiene regla de dominio; hoy se permite.
+- **H-P2-4:** ~~retirar en `CLOSED` sin regla~~ — **cerrado**: 409.

@@ -217,7 +217,7 @@ class GoldenPathHttpIntegrationTest {
     private static final AuditActor SETUP = new AuditActor.SystemAuditActor("golden-path-tests");
 
     private String account() {
-        return accounts.createAccount(new Email(UUID.randomUUID() + "@golden.test"), "Pass123!").getAccountId().value();
+        return accounts.createAccount(new Email(UUID.randomUUID() + "@golden.test"), "Pass123!Pass123!").getAccountId().value();
     }
 
     private HttpResponse<String> send(String method, String path, String account, String body, String... headers)
@@ -285,9 +285,9 @@ class GoldenPathHttpIntegrationTest {
     void theDemoPath_fromVerificationToPublicTracking_overHttp() throws Exception {
         // Mundo: plataforma, organización PENDING_VERIFICATION con REPRESENTATIVE, un ADMINISTRATOR y un EMPLOYEE
         String platformEmail = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(platformEmail), "Pass123!");
+        accounts.createAccount(new Email(platformEmail), "Pass123!Pass123!");
         String platformAdmin = bootstrap.bootstrap(platformEmail).value();
-        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@golden.test"), "Pass123!");
+        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@golden.test"), "Pass123!Pass123!");
         Organization org = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION,
                 representative.getAccountId(), "Fundación Golden Path");
         String orgId = org.getOrganizationId().value();
