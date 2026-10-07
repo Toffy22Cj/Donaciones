@@ -1,0 +1,40 @@
+# H-P12-1: narrativa individual sin citas al fallback, en 3ff6c48 (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: 1f6e692b35f8bb6087a6624ce23e3749bcee0644c8c2aab857d5be6d8c57b461
+# Línea base: develop 77ceac1 (S-03) = 1210 tests. Ahora: 1214 (ai +4).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 134, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 158, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Después (verde, del reactor)
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.952 s -- in com.traceability.ai.application.service.DonorReportGeneratorTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.024 s -- in com.traceability.ai.application.service.GroundingValidatorImplTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.00 s -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+
+# Antes (rojo, con la implementación apartada con git stash o sin la corrección)
+## hp12-red.log
+[ERROR] Tests run: 4, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 1.455 s <<< FAILURE! -- in com.traceability.ai.application.service.GroundingValidatorImplTest
+[ERROR] com.traceability.ai.application.service.GroundingValidatorImplTest.aNarrativeWithoutCitations_isNotGrounded -- Time elapsed: 0.016 s <<< FAILURE!
+[ERROR] com.traceability.ai.application.service.GroundingValidatorImplTest.theGenerator_publishesTheFallback_whenTheLlmCitesNothing -- Time elapsed: 1.309 s <<< FAILURE!
+
+# Nota
+Rojo sin apartar código: el test se escribió antes de la corrección (2 de 4 fallaban con el validador original).
+
+# Mutaciones
+- sin citas aceptado: MUERTA  aNarrativeWithoutCitations_isNotGrounded; theGenerator_publishesTheFallback_whenTheLlmCitesNothing
+Restauración verificada contra HEAD. Mutaciones vivas: 0
