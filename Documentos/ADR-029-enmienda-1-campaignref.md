@@ -1,6 +1,6 @@
 # ADR-029 — Enmienda 1: `campaignRef` en `PhysicalAsset` (D-CAMPAIGN)
 
-**Estado:** **PROPUESTA** — pendiente de aprobación de Carlos (dueño de `core`). Redactada por el agente a petición de Carlos el 2026-10-07. Sin código: la implementación necesita, además, la aprobación de su plan (regla 3.4).
+**Estado:** **APROBADA — Carlos, 2026-10-07**, con las respuestas de §7 (Q1–Q5 según la recomendación). Redactada por el agente a petición de Carlos. La implementación necesita, además, la aprobación de su plan (regla 3.4).
 **Origen:** decisión D-CAMPAIGN de `plan-cierre-fase6-codigo.md` (B0). Cumple las dependencias que ADR-037 Enmienda 1 §7.2 y §9.1 dejan a "la enmienda de ADR-029".
 **Bloquea:** B5 (narrativa de convocatoria, criterio 14 de `golden-path.md` §8), B1-bis (saga de la división, criterio 15) y, por el hallazgo H-PROJ (§6), también B7.
 
@@ -64,7 +64,7 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
   - pertenece a la misma `organizationRef` del comando;
   - está `OPEN`;
   - acepta `IN_KIND`.
-- **Mecanismo (decisión de Carlos, pregunta Q1):**
+- **Mecanismo — decidido: (a), puerto en `contracts` (Carlos, 2026-10-07, Q1).** Opciones consideradas:
   - **(a) Recomendada — puerto en `contracts`**, provisionalmente `CampaignInKindEligibilityPort`, con una sola pregunta cerrada: "¿esta convocatoria acepta ahora una donación en especie de esta organización?". Lo implementa `convocatoria` y se conecta en `app`, con el mismo patrón que `OrganizationVerificationPort`. `core` lo consume sin conocer `convocatoria`. Requiere añadir `acceptsInKind()` a `ConvocatoriaConfiguration`.
   - (b) Validar solo en el caso de uso de `app`/`api` antes de llamar a `core`. Más barata, pero `core` aceptaría cualquier `campaignRef` de otros llamadores (tests, futuros consumidores, `SystemActor`). Contradice el criterio de ADR-029 §2.1: el invariante no se delega en quien llama.
   - (c) Sin validación. **Desaconsejada:** un `campaignRef` inventado o de otra organización contaría unidades en la narrativa de otra convocatoria.
@@ -72,7 +72,7 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 - **Momento de referencia de la comprobación de `OPEN` (pregunta Q5, añadida el 2026-10-07 tras la revisión):** en el dinero, una intención creada con la convocatoria `OPEN` conserva su validez tras el cierre (ADR-037 §2.6bis, D1). En especie no hay un registro previo del acto de donación: el activo **es** el primer registro. Una donación entregada el último día y registrada dos días después, ya `CLOSED`, quedaría sin convocatoria con la regla de arriba. Opciones:
   - **(a) `OPEN` en el momento del registro** (texto actual). Simple y sin datos declarados. **Limitación conocida que se deja escrita:** las donaciones registradas después del cierre quedan sin convocatoria.
   - **(b) `OPEN` en el momento del acto de donación**, coherente con D1. Exige dos cosas que hoy no existen: (1) que el comando reciba la **fecha del acto**, un dato **declarado** por el operador e inverificable, y (2) que `convocatoria` conserve la **fecha de cierre** (`Convocatoria` no tiene `closedAt`: `Convocatoria.java:31-41`; solo queda en el audit log). Riesgo: con una fecha declarada, se podría asociar a una convocatoria cerrada un activo recibido mucho después. Mitigación posible: un plazo máximo de gracia tras el cierre (valor de producto) y la fecha declarada dentro del payload v3, con hash.
-  - **Recomendación del agente:** (a) en este corte, con la limitación escrita, y (b) como evolución si el caso aparece en producción. Decide Carlos.
+  - **Decidido: (a) — Carlos, 2026-10-07 (Q5).** `OPEN` se comprueba en el momento del registro. **Limitación conocida:** una donación en especie registrada después del cierre de su convocatoria queda sin convocatoria. (b) queda como evolución si el caso aparece en producción.
 - **Riesgo aceptado, explícito:** la comprobación ocurre **antes** de la escritura y **fuera** de la transacción de `core` (el puerto consulta `convocatoria`, que es otro módulo). Si la convocatoria se cierra entre las dos, el activo queda asociado igualmente. Es una ventana pequeña y benigna: el activo es real y de la misma organización, y solo hay una convocatoria posible. No se cierra con bloqueos.
 - Ese mecanismo nuevo queda cubierto por esta enmienda cuando se apruebe (regla 3.5).
 
@@ -133,7 +133,7 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 - **Hueco de diseño adicional:** la `DonationProjection` se indexa por `fundId`. Un activo del **Camino B** no tiene `Fund` ni `allocationId`, así que hoy no tiene proyección a la que pertenecer, ni siquiera con v1. Dónde se proyecta una donación en especie es una decisión de diseño (Fase 3/ADR-040 C5), no un arreglo.
 - **Propuesta:** un bloque nuevo **B-PROJ** en `core`, independiente de esta enmienda y previo a B5 y B7. *Actualización 2026-10-07 tras la revisión:* B-PROJ pasa a ser una **corrección** (`fix/`) de lo ya fusionado, con prioridad sobre el resto; su plan está en `plan-b-proj.md`, que añade un segundo defecto más grave (**origen de la secuencia**: el event store numera la génesis como 1 y los manejadores la esperan en 0, así que ningún stream real se proyecta). El soporte de la versión 3 se añade con la implementación de D-CAMPAIGN. Los manejadores tratan las versiones 1, 2 y 3. Tests de proyección con eventos reales de `clearFundsGenesis`, `registerPhysicalAsset` y `registerPhysicalAssetFromDonation`. El hueco del Camino B se decide aparte (pregunta Q3).
 
-## 7. Preguntas para Carlos
+## 7. Preguntas para Carlos — respondidas el 2026-10-07 (todas según la recomendación)
 
 | # | Pregunta | Recomendación |
 |---|---|---|

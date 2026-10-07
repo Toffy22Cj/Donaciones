@@ -74,6 +74,7 @@ Antes de dar por cumplido un invariante de seguridad, concurrencia o integridad:
 ### 3.2 Protección de rama
 
 - PR hacia `develop`: mínimo una aprobación humana antes del merge.
+  - **Excepción vigente (Carlos, 2026-10-07):** mientras Carlos trabaje en solitario sobre el backend, los PR se fusionan sin segundo revisor y la evidencia de tests (salida literal de Surefire y mutaciones comprobadas) sustituye a esa aprobación. Es una decisión consciente, no un descuido; cada PR la cita. Primeros PR cubiertos: #35–#40 de `Toffy22Cj/Donaciones`. Ver `estado-fase6.md` §0.5.
 - CI obligatorio corriendo `mvn test` en los cuatro módulos (`contracts`, `core`, `crypto`, `ai`) contra Testcontainers real — no se permite mergear con tests deshabilitados o con `-DskipTests`.
 - PR hacia `main`: solo desde `develop`, nunca desde una rama feature directamente.
 

@@ -1,6 +1,6 @@
 # Plan B-PROJ — Proyecciones con eventos reales (corrección)
 
-**Estado:** **PROPUESTO** (2026-10-07). Necesita la aprobación de Carlos antes de cualquier código (regla 3.4). Redactado por el agente tras la revisión de la Enmienda 1 de ADR-029, que pidió tratar H-PROJ como corrección prioritaria (`fix/`).
+**Estado:** **APROBADO — Carlos, 2026-10-07** (regla 3.4), con las respuestas de §5. Q4 se corrigió en la revisión: la reconstrucción por JMX es un mecanismo nuevo y requiere enmendar ADR-042 antes del PR 2. Redactado por el agente tras la revisión de la Enmienda 1 de ADR-029, que pidió tratar H-PROJ como corrección prioritaria (`fix/`).
 **Origen:** hallazgo H-PROJ (`ADR-029-enmienda-1-campaignref.md` §6), ampliado aquí con un segundo defecto encontrado al verificarlo.
 **Prioridad:** por delante de B5, B6 y B7. Afecta a lo que ya está en `develop` (B2), no solo a trabajo futuro.
 
@@ -64,7 +64,9 @@ Con (a) se corrige `golden-path.md:34` y se anota en `Promt-Contexto.md:644` (do
 
 ## 3. Alcance de la corrección
 
-Sin dependencias ni mecanismos nuevos: se corrige el comportamiento de piezas existentes (ADR-010, ADR-011, ADR-017, ADR-042). Si Carlos considera que la reconstrucción operativa (§3.3) es un mecanismo nuevo de recuperación, se registra como enmienda de ADR-042 antes de fusionar (regla 3.5) — ver Q4.
+**PR 1 (§3.1–§3.2):** sin dependencias ni mecanismos nuevos; corrige el comportamiento de piezas existentes (ADR-010, ADR-011, ADR-017, ADR-042).
+
+**PR 2 (§3.3):** la reconstrucción operativa por JMX **es un mecanismo de recuperación nuevo** (decisión de Carlos, Q4). Requiere una **enmienda de ADR-042 aprobada antes del merge del PR 2** (regla 3.5).
 
 ### 3.1 Tests primero (deben fallar antes de la corrección)
 
@@ -87,7 +89,7 @@ Sin dependencias ni mecanismos nuevos: se corrige el comportamiento de piezas ex
 - **Camino B — ignorado de forma explícita, sin cuarentena:** un `ASSET_REGISTERED` sin `allocationId` ni `parentAssetRef` (y los eventos posteriores de ese activo) se ignora con un log y una métrica, en vez de ir a reintento y cuarentena. No se pierde nada: la proyección es reconstruible y, cuando se decida dónde se proyecta la donación en especie (Q3 de la Enmienda 1 de ADR-029, con C5 de ADR-040), una reconstrucción la incorporará. Se elimina también el riesgo de la consulta `allocationId = null`.
 - **Sin cambios** en el event store, los payloads, los hashes ni el anclaje.
 
-### 3.3 Recuperación de lo acumulado (PR 2)
+### 3.3 Recuperación de lo acumulado (PR 2; requiere antes la enmienda de ADR-042)
 
 Los eventos escritos hasta hoy están en `quarantined_projections` o pendientes de reintento, y sus proyecciones no existen. Como las proyecciones son reconstruibles (documento maestro, principio rector), la recuperación es una **reconstrucción**, no una liberación evento a evento (`resumeProjection` no puede liberar proyecciones que nunca existieron).
 
@@ -125,8 +127,8 @@ Los eventos escritos hasta hoy están en `quarantined_projections` o pendientes 
 
 | # | Pregunta | Recomendación |
 |---|---|---|
-| Q1 | D-SEQ: ¿la génesis es la secuencia 1 (código) o 0 (documentos)? | (a) 1, sin tocar el event store |
-| Q2 | ¿Hay algún entorno (demo, *staging*) con datos reales escritos por los comandos? | Determina si el PR 2 es urgente o puede ir después del PR 1 |
-| Q3 | Camino B: ¿ignorarlo de forma explícita hasta decidir su proyección (§3.2)? | Sí |
-| Q4 | ¿La reconstrucción operativa por JMX (§3.3) es corrección de lo existente o un mecanismo nuevo que requiere enmendar ADR-042? | Corrección de lo existente; si Carlos opina lo contrario, la enmienda va antes de fusionar el PR 2 |
-| Q5 | ¿Dos PR (corrección y recuperación) o uno? | Dos: el PR 1 desbloquea el resto y es pequeño |
+| Q1 | D-SEQ: ¿la génesis es la secuencia 1 (código) o 0 (documentos)? | (a) 1, sin tocar el event store. **Decidido: (a)** |
+| Q2 | ¿Hay algún entorno (demo, *staging*) con datos reales escritos por los comandos? | Determina si el PR 2 es urgente o puede ir después del PR 1. **Decidido: no hay entornos con datos reales; el PR 2 sigue al PR 1 sin urgencia** |
+| Q3 | Camino B: ¿ignorarlo de forma explícita hasta decidir su proyección (§3.2)? | Sí. **Decidido: sí** |
+| Q4 | ¿La reconstrucción operativa por JMX (§3.3) es corrección de lo existente o un mecanismo nuevo que requiere enmendar ADR-042? | **Decidido (corregido en la revisión): mecanismo nuevo; enmienda de ADR-042 aprobada antes del merge del PR 2** |
+| Q5 | ¿Dos PR (corrección y recuperación) o uno? | Dos: el PR 1 desbloquea el resto y es pequeño. **Decidido: dos** |
