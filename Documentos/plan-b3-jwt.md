@@ -67,7 +67,8 @@
   - Lee `Authorization: Bearer`, verifica el token y llama a `IdentityPrincipalPort.resolvePrincipal(sub)` en **cada** request.
   - Deja el `AuthorizationPrincipal` como atributo de la request. B6 construirá desde él el `HumanActor`.
   - **Cualquier** fallo da 401 con **el mismo** `ProblemDetail`: token ausente o mal formado, `alg` no permitido, `kid` desconocido, firma inválida, caducado, cuenta `INACTIVE` o inexistente.
-  - Como `api` no depende de `identity`, las excepciones del puerto se tratan por tipo genérico (`RuntimeException`) y se responden igual. La falta de una excepción en `contracts` es un pendiente conocido de ADR-038 (`estado-fase6.md`).
+  - Como `api` no depende de `identity`, las excepciones del puerto se tratan por tipo genérico (`RuntimeException`) y se responden igual.
+  - **Excepción: un fallo de acceso a datos (`DataAccessException`) al resolver el principal se propaga y da 500, nunca 401. Decisión de Carlos, 2026-10-07** (Q4 abajo). Un fallo de infraestructura no es un fallo de autenticación: un 401 haría creer al cliente que su token no vale y ocultaría la caída de la base de datos. Lo esencial es que la request no llega al controlador. Lo prueba `PrincipalResolutionFailureRealServerIntegrationTest` contra Tomcat real. La falta de una excepción en `contracts` es un pendiente conocido de ADR-038 (`estado-fase6.md`).
 - **`LoginController`**, `POST /api/v1/auth/login` (ficha ID-01):
   - `{email, password}` vacíos → **400** (ID01-D2);
   - `AuthenticationFailedException` → **401** uniforme (ID01-D1);
@@ -158,3 +159,4 @@ Una sola constante, `PublicRoutes` (en `api`), con método HTTP + patrón. El fi
 | Q1 | ¿*Deny-by-default* sobre `/api/v1/**`? | **Sí — Carlos, 2026-10-07, con condición:** lista explícita y completa de rutas públicas (§2.3.1: CV-07, intención sin cuenta, webhook simulado, narrativa, registro, login y seguimiento) y test de inventario que falle ante una ruta sin clasificar |
 | Q2 | ¿Respuesta del login solo `{token}`? | **Sí — Carlos, 2026-10-07** |
 | Q3 | ¿Un único PR multimódulo? | **Sí — Carlos, 2026-10-07** |
+| Q4 | Si Mongo falla al resolver el principal en el filtro, ¿401 o propagar? (surgió en la implementación, no estaba en ADR-038) | **Propagar: 500, nunca 401, y el controlador no se ejecuta — Carlos, 2026-10-07**, con test contra Tomcat real |

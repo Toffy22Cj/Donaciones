@@ -22,11 +22,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -88,7 +83,7 @@ class PathEvasionRealServerIntegrationTest {
     void setUp() throws Exception {
         String email = "e" + UUID.randomUUID().toString().substring(0, 8) + "@example.org";
         createAccountService.createAccount(new Email(email), "pw-correct-123");
-        Response login = send("POST", "/api/v1/auth/login", null,
+        RawHttp.Response login = send("POST", "/api/v1/auth/login", null,
                 "{\"email\":\"" + email + "\",\"password\":\"pw-correct-123\"}");
         assertThat(login.status()).isEqualTo(200);
         jwt = login.body().substring("{\"token\":\"".length(), login.body().length() - 2);
@@ -107,7 +102,7 @@ class PathEvasionRealServerIntegrationTest {
                 "/" + PROTECTED,                          // //api/v1/b3-test/protected
                 "/api/v1//b3-test/protected",
                 "/api/v1/b3-test//protected")) {
-            Response r = send("GET", path, null, null);
+            RawHttp.Response r = send("GET", path, null, null);
             System.out.printf("PATH-EVASION %d sin-cabecera %s%n", r.status(), path);
             assertThat(r.status()).as(path).isEqualTo(401);
             assertThat(r.body()).as(path).doesNotContain("secret-for-");
@@ -145,53 +140,13 @@ class PathEvasionRealServerIntegrationTest {
     }
 
     private void assertNeverReached(String path, String bearer) throws Exception {
-        Response r = send("GET", path, bearer, null);
+        RawHttp.Response r = send("GET", path, bearer, null);
         System.out.printf("PATH-EVASION %d %s %s%n", r.status(), bearer == null ? "sin-cabecera" : "con-codigo-de-seguimiento", path);
         assertThat(r.status()).as("%s (bearer %s)", path, bearer == null ? "none" : "tracking").isIn(400, 401);
         assertThat(r.body()).as(path).doesNotContain("secret-for-");
     }
 
-    record Response(int status, String body) {}
-
-    /** HTTP/1.1 por socket en bruto: la ruta llega a Tomcat exactamente como se escribe aquí. */
-    private Response send(String method, String rawPath, String bearer, String jsonBody) throws Exception {
-        try (Socket socket = new Socket("127.0.0.1", port)) {
-            socket.setSoTimeout(10_000);
-            byte[] body = jsonBody == null ? new byte[0] : jsonBody.getBytes(StandardCharsets.UTF_8);
-            StringBuilder req = new StringBuilder()
-                    .append(method).append(' ').append(rawPath).append(" HTTP/1.1\r\n")
-                    .append("Host: 127.0.0.1:").append(port).append("\r\n")
-                    .append("Connection: close\r\n");
-            if (bearer != null) req.append("Authorization: Bearer ").append(bearer).append("\r\n");
-            if (jsonBody != null) req.append("Content-Type: application/json\r\n");
-            req.append("Content-Length: ").append(body.length).append("\r\n\r\n");
-            OutputStream out = socket.getOutputStream();
-            out.write(req.toString().getBytes(StandardCharsets.US_ASCII));
-            out.write(body);
-            out.flush();
-
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-            String statusLine = in.readLine();
-            int status = Integer.parseInt(statusLine.split(" ")[1]);
-            boolean chunked = false;
-            for (String line; (line = in.readLine()) != null && !line.isEmpty(); ) {
-                chunked |= line.toLowerCase().startsWith("transfer-encoding:") && line.toLowerCase().contains("chunked");
-            }
-            StringBuilder rest = new StringBuilder();
-            if (chunked) {
-                for (String size; (size = in.readLine()) != null; ) {
-                    int n = Integer.parseInt(size.trim().split(";")[0], 16);
-                    if (n == 0) break;
-                    char[] chunk = new char[n];
-                    int read = 0;
-                    while (read < n) read += in.read(chunk, read, n - read);
-                    rest.append(chunk);
-                    in.readLine();
-                }
-            } else {
-                for (String line; (line = in.readLine()) != null; ) rest.append(line);
-            }
-            return new Response(status, rest.toString());
-        }
+    private RawHttp.Response send(String method, String rawPath, String bearer, String jsonBody) throws Exception {
+        return RawHttp.send(port, method, rawPath, bearer, jsonBody);
     }
 }
