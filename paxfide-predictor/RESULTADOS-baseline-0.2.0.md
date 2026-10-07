@@ -49,11 +49,18 @@ HistGradientBoostingRegressor: MAE **19.24 puntos %**, frente a 97.48 de la extr
 | Mejora sobre el baseline (test) | 0,1470 | 0.0305 |
 | MAE del regresor (puntos %) | 13,91 | 19.24 |
 
-**Cómo presentarlo:** "El modelo mejora al baseline de ritmo en 0.030 de Brier en test (0.036 ± 0.008 en validación cruzada, positiva en los 5 folds), una vez eliminado el sesgo de STRICT. La cifra anterior (0,147) estaba inflada porque STRICT entraba como negativos triviales."
+**Cómo presentarlo** (las dos cifras, la que mejora y la que empeora):
+
+1. **Clasificador:** "El modelo mejora al baseline de ritmo en 0.030 de Brier en test (0.036 ± 0.008 en validación cruzada, positiva en los 5 folds), una vez eliminado el sesgo de STRICT. La cifra anterior (0,147) estaba inflada porque STRICT entraba como negativos triviales."
+2. **Regresor del % final:** "Al quitar STRICT, el error del regresor **empeora**: el MAE pasa de 13,91 a 19,24 puntos. La cifra anterior también estaba favorecida por los casos STRICT, fáciles de predecir (se quedan por debajo del 100 % por diseño). Aun así, sigue muy por debajo de la extrapolación lineal (97,48 puntos)."
+
+Presentar solo la mejora del Brier y callar que el MAE subió le quitaría al informe su punto fuerte: haber detectado el sesgo y corregido **todas** las cifras que afectaba.
 
 ## Texto para ADR-044 D3
 
-> **Alcance del modelo v1:** se excluyen las convocatorias `STRICT`. Rechazan la donación que excedería la meta, así que casi nunca alcanzan el 100 % por diseño: no son un caso a predecir. Dejarlas dentro añadía negativos triviales que inflaban todas las métricas (P7). El modelo no da predicción para una convocatoria `STRICT`. Las variantes `CLOSE_ON_TARGET` del dataset aceptan la donación y cierran la convocatoria, así que no tienen el mismo problema. Si se modelara `CLOSE_ON_TARGET` con rechazo del exceso, se excluiría por el mismo motivo.
+ADR-044 está en el proyecto de Claude (`claude/ADR-044-componente-predictivo-python.md`), no en git. Pegar este texto allí, y subir el ADR al repositorio si va a entregarse.
+
+> **Alcance del modelo v1 — decisión de Carlos, 2026-10-07:** se excluyen las convocatorias `STRICT`. Rechazan la donación que excedería la meta, así que casi nunca alcanzan el 100 % por diseño: no son un caso a predecir. Dejarlas dentro añadía negativos triviales que inflaban todas las métricas (P7). El modelo no da predicción para una convocatoria `STRICT`. Las variantes `CLOSE_ON_TARGET` del dataset aceptan la donación y cierran la convocatoria, así que no tienen el mismo problema. Si se modelara `CLOSE_ON_TARGET` con rechazo del exceso, se excluiría por el mismo motivo.
 
 ## Artefactos regenerados
 
