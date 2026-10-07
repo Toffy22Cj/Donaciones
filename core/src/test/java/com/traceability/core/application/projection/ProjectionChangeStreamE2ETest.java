@@ -13,7 +13,7 @@ import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
@@ -137,6 +137,8 @@ class ProjectionChangeStreamE2ETest {
         assertThat(mongoTemplate.findById(assetId, Document.class, "asset_index")).isNotNull();
         assertThat(logisticsStatus(fundId, assetId)).isEqualTo("REGISTERED");
         assertThat(historyStatuses(assetId)).containsExactly("REGISTERED");
+        // D-CAMPAIGN (D7): el campaignRef por activo sale del payload v3, heredado del Fund (D2).
+        assertThat(logisticsField(fundId, assetId, "campaignRef")).isEqualTo("CAMP-1");
 
         // D-ASSET: PhysicalAssetCommandService todavía no expone dispatch/receive. Se escriben con el agregado y
         // TransactionalEventPublisher; cuando D-ASSET añada los métodos del servicio, este test pasará a usarlos.
@@ -153,7 +155,7 @@ class ProjectionChangeStreamE2ETest {
     }
 
     @Test
-    void caminoA_v2Registration_alwaysCarriesNullDonationRef() {
+    void caminoA_registration_alwaysCarriesNullDonationRef() {
         String fundId = UUID.randomUUID().toString();
         String allocationId = UUID.randomUUID().toString();
         funds.clearFundsGenesis(cmd(), fundId, new OrganizationRef(ORG), null, "DONOR-1", "COP", 1000L, "SRC-1",
@@ -165,8 +167,8 @@ class ProjectionChangeStreamE2ETest {
 
         // Premisa de la detección del Camino B (donationRef != null): el Camino A nunca la cumple.
         DomainEventPayload genesis = eventStore.loadStream(assetIdOfAllocation(allocationId)).get(0).payload();
-        assertThat(genesis).isInstanceOf(AssetRegisteredV2Payload.class);
-        assertThat(((AssetRegisteredV2Payload) genesis).donationRef()).isNull();
+        assertThat(genesis).isInstanceOf(AssetRegisteredV3Payload.class);
+        assertThat(((AssetRegisteredV3Payload) genesis).donationRef()).isNull();
     }
 
     @Test
@@ -230,6 +232,15 @@ class ProjectionChangeStreamE2ETest {
         return ((List<Document>) projection.get("logistics", List.class)).stream()
                 .filter(l -> assetId.equals(l.getString("assetId")))
                 .map(l -> l.getString("lifecycleStatus"))
+                .findFirst().orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String logisticsField(String fundId, String assetId, String field) {
+        Document projection = mongoTemplate.findById(fundId, Document.class, "donation_projections");
+        return ((List<Document>) projection.get("logistics", List.class)).stream()
+                .filter(l -> assetId.equals(l.getString("assetId")))
+                .map(l -> l.getString(field))
                 .findFirst().orElse(null);
     }
 

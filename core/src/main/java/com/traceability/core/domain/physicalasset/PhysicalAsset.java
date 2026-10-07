@@ -56,6 +56,26 @@ public class PhysicalAsset extends AggregateRoot {
         return asset;
     }
 
+    /** Camino A con convocatoria (ADR-029 Enmienda 1, D2). ESQUELETO: todavía ignora {@code campaignRef}. */
+    public static PhysicalAsset register(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String campaignRef) {
+        return register(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef);
+    }
+
+    /** Camino B con convocatoria (ADR-029 Enmienda 1, D3). ESQUELETO: todavía ignora {@code campaignRef}. */
+    public static PhysicalAsset create(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String donationRef, String campaignRef) {
+        return create(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef);
+    }
+
     public static PhysicalAsset register(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
@@ -349,6 +369,11 @@ public class PhysicalAsset extends AggregateRoot {
 
     public String getDonorRef() {
         return donorRef;
+    }
+
+    /** ESQUELETO: todavía no se aplica desde los eventos. */
+    public String getCampaignRef() {
+        return null;
     }
 
     public String getDonationRef() {

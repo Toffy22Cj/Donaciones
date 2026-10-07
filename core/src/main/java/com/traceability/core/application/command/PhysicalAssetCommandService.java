@@ -15,6 +15,7 @@ import com.traceability.core.domain.fund.Fund;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
+import com.traceability.contracts.campaign.CampaignInKindEligibilityPort;
 import com.traceability.core.application.authorization.CommandType;
 import com.traceability.core.domain.event.HumanActor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class PhysicalAssetCommandService {
     private final RoleAuthorizationPolicy roleAuthorizationPolicy;
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
     private final IdentityPrincipalPort identityPrincipalPort;
+    private final CampaignInKindEligibilityPort campaignInKindEligibility;
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
             ProcessedCommandRepositoryPort processedCommandRepository,
@@ -42,7 +44,8 @@ public class PhysicalAssetCommandService {
             TransactionalEventPublisher eventPublisher,
             RoleAuthorizationPolicy roleAuthorizationPolicy,
             OrganizationBoundaryPolicy organizationBoundaryPolicy,
-            IdentityPrincipalPort identityPrincipalPort) {
+            IdentityPrincipalPort identityPrincipalPort,
+            CampaignInKindEligibilityPort campaignInKindEligibility) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
@@ -50,6 +53,7 @@ public class PhysicalAssetCommandService {
         this.roleAuthorizationPolicy = roleAuthorizationPolicy;
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
         this.identityPrincipalPort = identityPrincipalPort;
+        this.campaignInKindEligibility = campaignInKindEligibility;
     }
 
     private void authorize(ActorRef actorRef, String organizationRef, CommandType commandType) {
@@ -181,6 +185,23 @@ public class PhysicalAssetCommandService {
             throw new CrossOrganizationAccessException(
                     "organizationRef '" + organizationRef + "' does not match organizationRef '" + fundOrganizationRef + "' of Fund " + fundId + " (ADR-029, Path A)");
         }
+    }
+
+    /**
+     * Camino B con convocatoria (ADR-029 Enmienda 1, D3). ESQUELETO: todavía ignora {@code campaignRef}.
+     */
+    public void registerPhysicalAssetFromDonation(String commandId,
+            String organizationRef,
+            String donorRef,
+            String assetType,
+            BigDecimal quantity,
+            String unitOfMeasure,
+            String custodianRef,
+            String currentLocation,
+            String campaignRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
+                custodianRef, currentLocation, actorRef);
     }
 
     /**

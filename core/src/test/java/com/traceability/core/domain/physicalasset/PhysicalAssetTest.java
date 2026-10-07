@@ -13,14 +13,76 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PhysicalAssetTest {
 
+    // --- D-CAMPAIGN (ADR-029 Enmienda 1): campaignRef en la versión 3.0 ---
+
+    @Test
+    void register_writesV3WithCampaignRef() {
+        PhysicalAsset asset = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("10.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null, "CAMP-1"
+        );
+
+        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) asset.getUncommittedEvents().get(0).payload();
+        assertEquals("CAMP-1", payload.campaignRef());
+        assertNull(payload.donationRef());
+        assertEquals("CAMP-1", asset.getCampaignRef());
+    }
+
+    @Test
+    void create_writesV3WithCampaignRef() {
+        PhysicalAsset asset = PhysicalAsset.create(
+            "B1", "BLANKETS", new java.math.BigDecimal("5.0000"), "Units", "LOC_A", "CUST_A", null, "B1", null, null, "ORG_1", "DONOR_1", "DON_1", "CAMP-2"
+        );
+
+        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) asset.getUncommittedEvents().get(0).payload();
+        assertEquals("CAMP-2", payload.campaignRef());
+        assertEquals("DON_1", payload.donationRef());
+    }
+
+    @Test
+    void registerWithoutCampaign_writesV3WithNullCampaignRef() {
+        PhysicalAsset asset = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("10.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null
+        );
+
+        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) asset.getUncommittedEvents().get(0).payload();
+        assertNull(payload.campaignRef());
+    }
+
+    @Test
+    void split_writesV3InheritingTheParentCampaignRef() {
+        PhysicalAsset asset = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("10.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null, "CAMP-1"
+        );
+        asset.clearUncommittedEvents();
+
+        asset.split("CHILD-1", new java.math.BigDecimal("4"));
+
+        AssetSplitV3Payload payload = (AssetSplitV3Payload) asset.getUncommittedEvents().get(0).payload();
+        assertEquals("CAMP-1", payload.campaignRef());
+        assertEquals(new java.math.BigDecimal("6.0000"), asset.getQuantity());
+    }
+
+    @Test
+    void rehydrate_v2Registration_hasNoCampaign_v3HasIt() {
+        AssetRegisteredV2Payload v2 = new AssetRegisteredV2Payload("A2", "VACCINE", new java.math.BigDecimal("1"), "Vial",
+                "LOC", "CUST", null, "A2", "ALLOC", null, "ORG_1", null, null);
+        AssetRegisteredV3Payload v3 = new AssetRegisteredV3Payload("A3", "VACCINE", new java.math.BigDecimal("1"), "Vial",
+                "LOC", "CUST", null, "A3", "ALLOC", null, "ORG_1", null, null, "CAMP-9");
+
+        assertNull(PhysicalAsset.rehydrate("A2", List.of(v2), 1).getCampaignRef());
+        assertEquals("CAMP-9", PhysicalAsset.rehydrate("A3", List.of(v3), 1).getCampaignRef());
+        assertEquals("ORG_1", PhysicalAsset.rehydrate("A3", List.of(v3), 1).getOrganizationRef());
+    }
+
+
     /** B-PROJ: premisa de la detección del Camino B en las proyecciones (donationRef != null solo en el Camino B). */
     @Test
-    void register_caminoA_writesV2WithNullDonationRef() {
+    void register_caminoA_writesNullDonationRef() {
         PhysicalAsset asset = PhysicalAsset.register(
             "A1", "VACCINE", new java.math.BigDecimal("1.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", "DONOR_1"
         );
 
-        AssetRegisteredV2Payload payload = (AssetRegisteredV2Payload) asset.getUncommittedEvents().get(0).payload();
+        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) asset.getUncommittedEvents().get(0).payload();
         assertNull(payload.donationRef());
     }
 
