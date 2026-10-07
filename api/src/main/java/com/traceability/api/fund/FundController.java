@@ -51,7 +51,11 @@ public class FundController {
 
     @GetMapping("/api/v1/organizations/{organizationId}/funds")
     public FundsResponse list(@CurrentActor HumanActor actor, @PathVariable("organizationId") String organizationId) {
-        throw new UnsupportedOperationException("P1.1");
+        return new FundsResponse(reads.listForOrganization(organizationId, actor).stream()
+                .map(f -> new FundItem(f.fundId(), f.campaignRef(), f.currency(), Long.toString(f.clearedAmount()),
+                        Long.toString(f.availableAmount()), f.allocations().stream()
+                        .map(a -> new AllocationItem(a.allocationId(), Long.toString(a.amount()), a.status())).toList()))
+                .toList());
     }
 
     /** El {@code allocationId} es determinista (DD-29): un reenvío del mismo {@code Command-Id} devuelve el mismo. */
@@ -59,7 +63,12 @@ public class FundController {
     @ResponseStatus(HttpStatus.CREATED)
     public AllocationResponse request(@CurrentActor HumanActor actor, @CommandId String commandId,
                                       @PathVariable("fundId") String fundId, @RequestBody AllocationRequest body) {
-        throw new UnsupportedOperationException("P1.1");
+        if (body == null || body.amount() == null || !AMOUNT.matcher(body.amount()).matches()) {
+            throw new InvalidRequestFieldException("amount");
+        }
+        String allocationId = AllocationIds.of(fundId, commandId);
+        funds.requestAllocation(commandId, fundId, allocationId, Long.parseLong(body.amount()), actor);
+        return new AllocationResponse(allocationId, "REQUESTED");
     }
 
     /** Confirmación manual (DD-32). En el recorrido normal la hace la saga al registrar el activo. */
@@ -67,6 +76,7 @@ public class FundController {
     public AllocationResponse confirm(@CurrentActor HumanActor actor, @CommandId String commandId,
                                       @PathVariable("fundId") String fundId,
                                       @PathVariable("allocationId") String allocationId) {
-        throw new UnsupportedOperationException("P1.1");
+        funds.confirmAllocationByCommand(commandId, fundId, allocationId, actor);
+        return new AllocationResponse(allocationId, "CONFIRMED");
     }
 }

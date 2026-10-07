@@ -47,7 +47,7 @@ public class FundOperationalQueryService implements FundOperationalReadPort {
                 && !principal.roles().contains(AuthorizationRole.EMPLOYEE))) {
             throw new InsufficientRoleException("Reading funds requires ADMINISTRATOR or EMPLOYEE");
         }
-        return List.of();
+        return directory.findFundIdsByOrganization(organizationRef, MAX_FUNDS).stream().map(this::view).toList();
     }
 
     private FundView view(String fundId) {
