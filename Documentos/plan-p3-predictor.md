@@ -1,6 +1,6 @@
 # Plan P3 — predictor de convocatorias en el backend
 
-**Estado:** **EN EJECUCIÓN** bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P3. Decisiones DD-41 a DD-47, `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]`. Norma propuesta: `ADR-044-enmienda-1-prediccion-en-backend.md` (BORRADOR).
+**Estado:** **HECHO** (2026-10-07; evidencia `evidencia-fase6/p3-predictor-6c802da-2026-10-07.txt`). Era **EN EJECUCIÓN** bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P3. Decisiones DD-41 a DD-47, `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]`. Norma propuesta: `ADR-044-enmienda-1-prediccion-en-backend.md` (BORRADOR).
 
 ## Orden (instrucción de Carlos: "sin paridad no hay endpoint")
 1. Exportar a JSON la regresión logística y el regresor del % final (`scripts/predictor/export_baseline_json.py`, scikit-learn 1.9.1, la versión del entrenamiento).
