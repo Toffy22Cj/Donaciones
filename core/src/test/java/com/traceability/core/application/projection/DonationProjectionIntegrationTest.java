@@ -745,7 +745,7 @@ class DonationProjectionIntegrationTest {
         assertEquals("DELIVERED", log.getLifecycleStatus());
         assertEquals("LocFinal", log.getCurrentLocation());
         assertEquals("CustFinal", log.getCurrentCustodian());
-        assertNull(log.getStatusBeforeSplit());
+        assertTrue(log.getSplitsBeforeCompensation() == null || log.getSplitsBeforeCompensation().isEmpty());
         
         AssetHistoryProjectionDocument hist = historyRepository.findById("asset-102c1").get();
         assertEquals(6, hist.getTransitions().size());

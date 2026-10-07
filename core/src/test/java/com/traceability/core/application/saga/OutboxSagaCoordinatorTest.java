@@ -218,7 +218,11 @@ class OutboxSagaCoordinatorTest {
     @Test
     void theDefaultExecutionWindow_isFourHours() {
         assertThat(OutboxSagaCoordinator.DEFAULT_EXECUTION_WINDOW).isEqualTo("PT4H");
-        new ApplicationContextRunner().withUserConfiguration(CoordinatorOnly.class).run(context -> {
+        // Con el servicio de conversión de Spring Boot, que convierte "PT4H" en Duration como en la aplicación
+        new ApplicationContextRunner()
+                .withInitializer(ctx -> ctx.getBeanFactory().setConversionService(
+                        org.springframework.boot.convert.ApplicationConversionService.getSharedInstance()))
+                .withUserConfiguration(CoordinatorOnly.class).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(OutboxSagaCoordinator.class).executionWindow()).isEqualTo(FOUR_HOURS);
             assertThat(context.getBean(OutboxSagaCoordinator.class).resolutionWindow()).isEqualTo(FOUR_HOURS);

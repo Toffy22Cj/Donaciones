@@ -81,7 +81,7 @@ class DonationReadAdapterTest {
         l1.setSourceAllocationId("source-alloc");
         l1.setParentAssetRef("parent-ref");
         l1.setRootAssetRef("root-ref");
-        l1.setStatusBeforeSplit("WAREHOUSE");
+        l1.setSplitsBeforeCompensation(java.util.Map.of("child-1", "WAREHOUSE"));
 
         doc.setLogistics(Arrays.asList(l1));
 

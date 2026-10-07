@@ -230,7 +230,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             AssetProjectionRouting.Registration p = registration.get();
             DonationProjectionDocument.LogisticsProjection log = new DonationProjectionDocument.LogisticsProjection(
                 assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(),
-                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED", null,
+                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED",
                 p.campaignRef(), // D7: solo del payload v3 del propio activo
                 new java.util.HashMap<>()
             );
@@ -244,27 +244,29 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
+        // El registro del hijo lo proyecta su propio ASSET_REGISTERED (creado por la saga de la división, B1-bis).
+        // El estado previo se guarda por childAssetId, como el agregado (D-SPLIT S6): un único campo lo pisaba cada división.
         } else if (payload instanceof AssetSplitV3Payload p) {
-            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
-            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitV2Payload p) {
-            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
-            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
-            // Child asset registration is handled by the ASSET_REGISTERED event of the child.
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitPayload p) {
-            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
-            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
-            // Child asset registration is handled by the ASSET_REGISTERED event of the child.
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             update.set("logistics.$[elem].currentCustodian", p.newCustodianRef());
         } else if (payload instanceof AssetSplitCompensatedPayload p) {
+            // Como el dominio: solo un padre DEPLETED vuelve al estado previo a ESA división (D-SPLIT S6)
             DonationProjectionDocument.LogisticsProjection elem = projection.getLogistics().stream()
                 .filter(l -> l.getAssetId().equals(assetId)).findFirst().orElse(null);
-            if (elem != null && elem.getStatusBeforeSplit() != null) {
-                update.set("logistics.$[elem].lifecycleStatus", elem.getStatusBeforeSplit());
+            String before = elem == null || elem.getSplitsBeforeCompensation() == null
+                ? null : elem.getSplitsBeforeCompensation().get(p.childAssetId());
+            if (elem != null && "DEPLETED".equals(elem.getLifecycleStatus()) && before != null) {
+                update.set("logistics.$[elem].lifecycleStatus", before);
             }
             update.inc("logistics.$[elem].quantity", new Decimal128(p.reintegratedQuantity()));
-            update.set("logistics.$[elem].statusBeforeSplit", null);
+            if (p.childAssetId() != null) {
+                update.unset("logistics.$[elem].splitsBeforeCompensation." + p.childAssetId());
+            }
         } else if (payload instanceof AssetDepletedPayload) {
             update.set("logistics.$[elem].lifecycleStatus", "DEPLETED");
         } else if (payload instanceof AssetDeliveredPayload p) {
@@ -281,6 +283,13 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         }
         
         appendAssetHistory(eventDoc, assetId, payload);
+    }
+
+    private static void recordSplit(Update update, String childAssetId, Object parentQuantityAfter, String statusBeforeSplit) {
+        update.set("logistics.$[elem].quantity", parentQuantityAfter);
+        if (childAssetId != null && statusBeforeSplit != null) {
+            update.set("logistics.$[elem].splitsBeforeCompensation." + childAssetId, statusBeforeSplit);
+        }
     }
 
     private void appendAssetHistory(TraceabilityEventDocument eventDoc, String assetId, DomainEventPayload payload) {

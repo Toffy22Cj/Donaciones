@@ -183,7 +183,7 @@ class SplitSagaIntegrationTest {
                 .when(outboxPort).save(argThat(m -> SplitPhysicalAssetSagaPolicy.SAGA_TYPE.equals(m.sagaType())));
 
         assertThatThrownBy(() -> assets.splitPhysicalAsset("cmd-fail", parent, new BigDecimal("3"), new HumanActor(EMPLOYEE)))
-                .hasRootCauseMessage("outbox down");
+                .hasMessage("outbox down");
 
         assertThat(splitsOf(parent)).isEmpty();
         assertThat(claimExists("cmd-fail")).isFalse();
@@ -492,7 +492,7 @@ class SplitSagaIntegrationTest {
         coordinator.processPendingMessages();
 
         assertThat(registrationMessage().status()).isEqualTo(OutboxStatus.RESOLVED);
-        assertThat(eventStore.loadStream(fundId)).extracting(e -> e.eventType().toString()).contains("ALLOCATION_REVERSED");
+        assertThat(eventStore.loadStream(fundId)).extracting(e -> e.eventType().name()).contains("ALLOCATION_REVERSED");
     }
 
     // ------------------------------------------------------------------ utilidades

@@ -84,7 +84,6 @@ public class DonationProjectionDocument {
         private String currentLocation;
         private String currentCustodian;
         private String lifecycleStatus;
-        private String statusBeforeSplit;  // Uso interno para compensación de splits
         // Convocatoria del activo (ADR-029 Enmienda 1, D7): SOLO del payload v3 del propio activo; v1/v2 → null.
         // Nunca se infiere del Fund ni de la donación. Índice y agregación para la narrativa: B5 (ADR-040 C5).
         private String campaignRef;
