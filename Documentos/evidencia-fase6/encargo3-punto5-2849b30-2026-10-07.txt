@@ -1,0 +1,14 @@
+# Encargo 3, punto (5): FundNotFoundException independiente; las dos excepciones al mismo 403
+commit: 5212d64 (integrado con develop en 2849b30)
+
+## Fase roja (código apartado con git stash; extracto literal)
+[ERROR] Tests run: 23, Failures: 2, Errors: 0, Skipped: 0
+[ERROR] Tests run: 23, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 3.341 s <<< FAILURE! -- in com.traceability.api.web.ApiExceptionHandlerTest
+[ERROR] com.traceability.api.web.ApiExceptionHandlerTest.eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage(String, int, String)[4]
+[ERROR] com.traceability.api.web.ApiExceptionHandlerTest.fundNotFound_andFundWithoutOrganization_areIndependent_andGiveTheSame403AsAForeignResource
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- vuelve la herencia: MUERTA  fundNotFound_andFundWithoutOrganization_areIndependent_andGiveTheSame403AsAForeignResource
+- fondo sin organización sin traducir: MUERTA  eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[4]; fundNotFound_andFundWithoutOrganization_areIndependent_andGiveTheSame403AsAForeignResource
+- fondo inexistente como 404: MUERTA  eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[3]; fundNotFound_andFundWithoutOrganization_areIndependent_andGiveTheSame403AsAForeignResource
+Restauración verificada contra HEAD. Mutaciones vivas: 0
