@@ -31,3 +31,7 @@ buildNumber.properties
 # Python
 __pycache__/
 *.pyc
+
+# Demo local: variables de la máquina (scripts/demo/demo.env.example es la plantilla)
+scripts/demo/demo.env
+demo-evidencia/

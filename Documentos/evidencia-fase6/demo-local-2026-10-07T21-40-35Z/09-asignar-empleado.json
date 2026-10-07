@@ -1,0 +1,17 @@
+{
+  "paso": "asignar-empleado",
+  "metodo": "POST",
+  "ruta": "/api/v1/campaigns/e2643d21-0784-45ea-ba59-4616c2deb803/employees",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "cd097d1d-09df-4d08-a24b-24685a141897"
+  },
+  "cuerpo": {
+    "employeeRef": "01M4C4Z9XA0ZRKRCC83XEYMG1P"
+  },
+  "estado": 201,
+  "respuesta": {
+    "assignmentId": "a79eaf08-57a4-4c42-8ee2-e0f101b64a2a"
+  }
+}

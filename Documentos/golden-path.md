@@ -219,4 +219,6 @@ Este documento combina decisiones ya cerradas en `convocatoria-resumen.md`, `ide
 16. La cantidad del padre se reduce en lo extraído.
 17. Padre e hijo alcanzan `DELIVERED`.
 18. Los streams del padre y del hijo quedan incluidos en un `MerkleBatch` `ANCHORED`.
+
+> **Decisión de Carlos (2026-10-07T21:07Z) — criterios 10, 11, 12 y 18:** se cierran con la evidencia de la **cadena local (Ganache)**: el recorrido real ancla sus eventos en Ganache, el poller marca `ANCHORED` solo si la raíz leída de la cadena coincide con la del batch, y `verifyBatch` da `MATCH` (`GoldenPathHttpIntegrationTest`; demo en vivo con `runbook-demo-local.md`). Motivo: no depender de *faucets*, cuotas de proveedor ni disponibilidad de la red el día de la demo. La ejecución en una testnet pública pasa a ser **opcional**, como demostración adicional (`runbook-anclaje-testnet.md`). **Limitación aceptada:** un anclaje en Ganache es real dentro de la cadena local, pero **no es verificable públicamente por terceros**.
 19. La narrativa de convocatoria cuenta las unidades de ambos.
