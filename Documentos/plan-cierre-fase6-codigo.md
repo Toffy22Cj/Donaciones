@@ -98,7 +98,7 @@
 - Antes de implementar, la verificación P4: ¿existen eventos anteriores al corte `0579f41` en algún entorno?
 - Implementación de la Enmienda 1 de ADR-039, con su DoD §5 (10 tests).
 
-### B-PROJ. `core`: proyecciones de los eventos v2/v3 (propuesto el 2026-10-07; pendiente de Carlos, Q3 de la Enmienda 1 de ADR-029)
+### B-PROJ. `core`: proyecciones de los eventos v2/v3 — *actualizado 2026-10-07: corrección prioritaria con plan propio en `plan-b-proj.md` (PROPUESTO), que añade el defecto del origen de la secuencia* (propuesto el 2026-10-07; pendiente de Carlos, Q3 de la Enmienda 1 de ADR-029)
 
 - **Hallazgo H-PROJ (verificado):** `DonationProjectionHandler` y `DonationAuditFactsHandler` solo tratan `FundRegisteredPayload`, `FundsClearedPayload` y `AssetRegisteredPayload` de la versión 1. Hoy se escriben las versiones 2: la génesis de ADR-045 no proyecta importe, moneda ni `campaignRef`, y todo activo registrado acaba en `MissingDependencyException` (detalle y citas en la Enmienda 1 de ADR-029, §6).
 - **Alcance:** los manejadores tratan las versiones 1, 2 y (tras D-CAMPAIGN) 3; tests de proyección con eventos reales de `clearFundsGenesis`, `registerPhysicalAsset` y `registerPhysicalAssetFromDonation`.
