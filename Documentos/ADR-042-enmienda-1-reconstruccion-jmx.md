@@ -19,7 +19,7 @@
 3. **Secuencia:**
    1. parar la fuente (`ProjectionEventSource.stop()`);
    2. tomar el *resume token* actual **antes** de leer;
-   3. vaciar las colecciones de lectura de esos manejadores **y** `quarantined_projections` y los documentos de reintento pendientes, que la reconstrucción deja superados;
+   3. vaciar las colecciones de lectura de esos manejadores (las que hoy vacía `rebuildAll`: proyección de donaciones, historial e índice de activos; más `donation_audit_facts` y `pending_allocations`) **y** `quarantined_projections` y los documentos de reintento pendientes, que la reconstrucción deja superados;
    4. recorrer el event store por stream y `sequence` ascendente (el orden dentro del stream es lo que exige la integridad; entre streams no hay orden);
    5. guardar el *resume token* del paso 2 como checkpoint;
    6. **siempre** (`finally`) volver a arrancar la fuente: lo escrito durante la reconstrucción se proyecta después, y la idempotencia por `sequence` evita duplicados.
