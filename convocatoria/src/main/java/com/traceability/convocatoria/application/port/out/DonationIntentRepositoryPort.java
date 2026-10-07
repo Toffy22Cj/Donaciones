@@ -94,4 +94,7 @@ public interface DonationIntentRepositoryPort {
 
     /** Historial de un donante (ADR-048), como mucho {@code limit}. */
     List<DonationIntent> findByDonorRef(String donorRef, int limit);
+
+    /** Intenciones de una convocatoria, como mucho {@code limit} (lectura del predictor, P3). */
+    List<DonationIntent> findByCampaignRef(String campaignRef, int limit);
 }

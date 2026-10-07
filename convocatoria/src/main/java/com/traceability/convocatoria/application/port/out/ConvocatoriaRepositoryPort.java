@@ -24,4 +24,7 @@ public interface ConvocatoriaRepositoryPort {
 
     /** Escritura condicional {@code OPEN → CLOSED} (Enmienda §3.4). Devuelve si se aplicó. */
     boolean closeIfOpen(String campaignRef);
+
+    /** Convocatorias de la organización que empezaron antes de {@code before} (variable del predictor, P3). */
+    long countByOrganizationStartedBefore(String organizationRef, java.time.Instant before);
 }

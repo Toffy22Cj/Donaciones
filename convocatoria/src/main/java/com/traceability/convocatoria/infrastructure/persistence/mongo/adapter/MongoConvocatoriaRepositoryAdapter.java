@@ -76,4 +76,10 @@ public class MongoConvocatoriaRepositoryAdapter implements ConvocatoriaRepositor
             update.set(field, value);
         }
     }
+
+    @Override
+    public long countByOrganizationStartedBefore(String organizationRef, java.time.Instant before) {
+        return mongoTemplate.count(Query.query(Criteria.where("organizationRef").is(organizationRef)
+                .and("startDate").lt(before)), ConvocatoriaDocument.class);
+    }
 }

@@ -35,6 +35,7 @@ public class DonationIntentDocument {
     @Indexed(name = "uq_fund_id", unique = true)
     public String fundId;
     public String organizationRef;
+    @Indexed(name = "idx_campaign_ref")
     public String campaignRef;
     @Indexed(name = DONOR_REF_INDEX)
     public String donorRef;

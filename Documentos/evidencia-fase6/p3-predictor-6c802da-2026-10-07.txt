@@ -1,0 +1,52 @@
+# P3 predictor de convocatorias en el backend en 6c802da (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: 0fc78345b4072eb67b6e5995748ff59c024adc075b6b108340232d726a80e336
+# Línea base: develop 45edc7d (P1.4) = 1172 tests. Ahora: 1185 (app +13).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 144, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Paridad Java/Python (tolerancia 1e-9), primero, antes del endpoint:
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.518 s -- in com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest
+Paridad regresor: diferencia máxima = 0.0
+Paridad clasificador: diferencia máxima = 2.220446049250313E-16
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.107 s -- in com.traceability.app.application.prediction.CampaignPredictorModelParityTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.804 s -- in com.traceability.app.application.prediction.CampaignPredictionUseCaseTest
+Paridad de variables: diferencia máxima = 8.881784197001252E-16
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.036 s -- in com.traceability.app.application.prediction.CampaignFeatureBuilderParityTest
+
+# Exportación: scripts/predictor/export_baseline_json.py con scikit-learn 1.9.1 (la del entrenamiento) sobre los
+# artefactos de origin/feat/predictive-dataset-baseline:paxfide-predictor/output (sin modificarlos).
+sha256 del modelo exportado: 4a688b23582e4ed74666faea7ca3c94469772c3e855c1f76535e993dc5d6bd1b
+
+# Antes (rojo): la ruta sin controlador
+[ERROR] Tests run: 4, Failures: 2, Errors: 1, Skipped: 0, Time elapsed: 17.72 s <<< FAILURE! -- in com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest
+[ERROR] com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest.theAdministrator_getsAnEstimateEnvelope_withVersionAndSyntheticWarning_andNoStore -- Time elapsed: 4.623 s <<< FAILURE!
+[ERROR] com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest.onlyAdministratorOrRepresentativeOfTheOrganization_andEverythingElseIsTheSame403 -- Time elapsed: 0.051 s <<< FAILURE!
+
+# Mutaciones
+- sin estandarizar: MUERTA  probabilityReachTarget_matchesScikitLearn
+- sigmoide con el signo cambiado: MUERTA  probabilityReachTarget_matchesScikitLearn
+- sin la predicción base del regresor: MUERTA  finalPctOfTarget_matchesScikitLearn
+- PENDING cuenta como intento: MUERTA  aFlexibleCampaignInProgress_getsAnEstimateFromTheModel
+- ventana reciente del 20 %: MUERTA  featuresMatchTheTrainingDefinition
+- sin exigir rol: MUERTA  authorization_isCheckedOnTheServer; onlyAdministratorOrRepresentativeOfTheOrganization_andEverythingElseIsTheSame403
+- STRICT con estimación: MUERTA  strict_neverGetsAPrediction_withAnExplicitReason; strict_neverHasAnEstimate_andInKindHasNoMonetaryTarget
+- convocatoria de otra organización: MUERTA  authorization_isCheckedOnTheServer; onlyAdministratorOrRepresentativeOfTheOrganization_andEverythingElseIsTheSame403
+- sin advertencia de datos sintéticos: MUERTA  aFlexibleCampaignInProgress_getsAnEstimateFromTheModel; theAdministrator_getsAnEstimateEnvelope_withVersionAndSyntheticWarning_andNoStore
+Restauración verificada contra HEAD. Mutaciones vivas: 0

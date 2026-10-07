@@ -247,6 +247,14 @@ public class MongoDonationIntentRepositoryAdapter implements DonationIntentRepos
     }
 
     @Override
+    public List<DonationIntent> findByCampaignRef(String campaignRef, int limit) {
+        Query query = Query.query(Criteria.where("campaignRef").is(campaignRef))
+                .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
+        return mongoTemplate.find(query, DonationIntentDocument.class).stream().map(DonationIntentMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<DonationIntent> findByDonorRef(String donorRef, int limit) {
         Query query = Query.query(Criteria.where("donorRef").is(donorRef))
                 .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
