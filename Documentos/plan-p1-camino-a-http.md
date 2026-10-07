@@ -1,6 +1,6 @@
 # Plan P1.1 — Camino A por HTTP: fondos de la organización y asignaciones
 
-**Estado:** **EN EJECUCIÓN** bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P1.1. Plan y decisiones `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-29 a DD-32, `decisiones-delegadas-2026-10.md` §3).
+**Estado:** **HECHO** (2026-10-07; evidencia `evidencia-fase6/p1-camino-a-http-34abe94-2026-10-07.txt`). Era **EN EJECUCIÓN** bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P1.1. Plan y decisiones `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-29 a DD-32, `decisiones-delegadas-2026-10.md` §3).
 **Origen:** hallazgos H-B6C-1 (la asignación del Camino A no tiene ruta) y H-B6D-1 (el empleado no tiene de dónde sacar el `fundId`), registrados en B6-c y B6-d.
 **Objetivo:** que el criterio 7 del golden path ("`PhysicalAsset` creado y asociado a la donación") se cumpla por HTTP con el Camino A, sin leer la base de datos ni llamar servicios desde el test.
 
