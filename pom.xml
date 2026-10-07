@@ -14,6 +14,8 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <spring-boot.version>3.4.4</spring-boot.version>
+        <!-- ADR-047 D1: no la gestiona ningún BOM; se fija a mano y se actualiza como dependencia de seguridad -->
+        <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
     </properties>
 
     <modules>
@@ -44,6 +46,11 @@
                 <version>1.0.0-M6</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus-jose-jwt.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
