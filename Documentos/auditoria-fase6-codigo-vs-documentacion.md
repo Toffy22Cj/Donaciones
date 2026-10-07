@@ -165,3 +165,12 @@ Una revisión externa de este informe (versión `0d4f428`) señaló errores. Cad
 - **Regla 3.5 (PR #29, `4374d55`):** la barrera `APPLY_FUNDS`, el estado `FUNDING_REJECTED` y la consulta de intenciones recuperables (parte del mecanismo de recuperación) se fusionaron con la Enmienda 2 en BORRADOR y sin el ADR de recuperación en el repositorio. Requiere aprobación o rechazo retroactivo de la Enmienda 2 y de ADR-045, dejando constancia del incumplimiento. Aclaración: `FUNDING_REJECTED` sí da salida a la intención (estado terminal, Enmienda 2 §4). El destino del dinero depende de P1 (Enmienda 1 §3.3), y la Enmienda 2 ya prohíbe el flujo con dinero real hasta que P1 exista. `FUNDING_REJECTED` no es el "registro de dinero no aceptable".
 - **Reglas 3.1/3.2:** `b614a73`, `e269985` y `0d4f428`, incluido este informe, se subieron directamente a `develop` sin PR ni aprobación humana. Esta corrección entra por PR desde `chore/docs-correccion-auditoria-fase6`.
 - **Regla 3.5 (Blockchain):** los cambios de §10.3 B-5/B-6 se fusionaron sin ADR (`7a51ecb`, `793d4b8`).
+- **Actualización del 2026-10-07 (cierre de decisiones, `estado-fase6.md` §0.4):**
+  - ADR-045 y la Enmienda 2 de ADR-037 quedaron **aprobados por Carlos**. Lo fusionado en el PR #29 queda aprobado de forma retroactiva, sin borrar el incumplimiento de la regla 3.5.
+  - I-5 tiene dueño: **Carlos**.
+  - Tres commits más entraron directamente en `develop` sin PR (reglas 3.1/3.2):
+    - `498ee58`: subió `paxfide-predictor/__pycache__/*.pyc`;
+    - `4b5e528`: ADR-045, `propuesta-apis-fase6.md` y su duplicado exacto `propuesta-apis-fase6-c.md`, diseño UX, ficha CV-01 y dos PNG;
+    - `58da613`: quitó el `.pyc`.
+
+    Con `58da613`, `paxfide-predictor/` ya no está en Donaciones, así que no queda contradicción con ADR-044 D1. El duplicado se elimina en el PR de cierre.

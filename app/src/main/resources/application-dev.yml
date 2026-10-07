@@ -1,0 +1,6 @@
+# Perfil de desarrollo (activar con --spring.profiles.active=dev).
+convocatoria:
+  donation-intent:
+    # PROVISIONAL — no es valor de producto (estado-fase6.md §0). Desbloquea el arranque local;
+    # producción sigue sin valor por defecto (CONVOCATORIA_BANK_TRANSFER_EXPIRATION obligatoria).
+    bank-transfer-expiration: PT72H

@@ -189,11 +189,11 @@ core/src/main/java/com/traceability/core/
 - **ADR-034 — Read Model de Pending Allocation.** Aprobado; sustituye a `FundAllocationSagaPolicy` por resolución manual auditada.
 - **ADR-035 — `HumanActor` como variante de `ActorRef`.** Approved.
 - **ADR-036 — Reversión Administrativa de Asignación.** Approved.
-- **ADR-042 — Orquestación Centralizada de Reintentos de Proyección (A7.2).** Aprobado e implementado en Fase 5; refina ADR-010/017.
+- **ADR-042 — Orquestación Centralizada de Reintentos de Proyección (A7.2).** Aprobado e implementado en Fase 5; refina ADR-010/017. Conserva el número; el ADR del frontend web que también usaba "042" pasa a ADR-046.
 
 ### IX. Fase 6 (en curso)
 Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están commiteados con esos números y este catálogo es la referencia para no reutilizarlos.
-- **ADR-037 — Convocatoria, CampaignFundingLedger, CampaignAssignment, DonationIntent.** Aprobado con Enmienda 1 (APROBADA). Enmienda 2 (confirmación y aplicación de fondos) en BORRADOR. Primer corte implementado en `develop` (aunque la cabecera del ADR aún dice "pendiente de implementación").
+- **ADR-037 — Convocatoria, CampaignFundingLedger, CampaignAssignment, DonationIntent.** Aprobado con Enmienda 1 (APROBADA). Enmienda 2 (confirmación y aplicación de fondos) **APROBADA — Carlos, 2026-10-07**, con C1–C3 (aprobación en parte retroactiva de lo fusionado en el PR #29). Primer corte implementado en `develop` (aunque la cabecera del ADR aún dice "pendiente de implementación").
 - **ADR-038 — Identidad: HumanActor, Platform Administrator, Verificación de Organization, Autenticación.** Approved; tareas 1–8 implementadas y fusionadas (§9 del ADR prevalece sobre §2). JWT pendiente.
 - **ADR-039 — Productor de MerkleBatch e IntegrityVerificationPort.** Aprobado; implementado, incluida la recuperación de batches `COLLECTING`.
 - **ADR-040 — ConvocatoriaAuditFacts (IA).** Aprobado parcialmente; C1 cerrado (`CampaignAuditFactsPort` separado de `AuditFactsPort`), C2–C5 y C8 abiertos.
@@ -201,9 +201,10 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 - **ADR-039 Enmienda 1 — Verificación recalculada y estado de salida de `COLLECTING`.** BORRADOR (2026-10-07). Regulariza los cambios de modelo fusionados sin ADR y propone el recálculo de `eventHash` y de la cadena (B-9) y el tope con estado de salida de `COLLECTING` (B-10). Dirección aprobada por Carlos; diseño propuesto.
 - **ADR-043 — Frontend móvil `paxfide-mobile`.** PROPUESTO (2026-09-30). Hubo una colisión: los documentos de Convocatoria usaban también "ADR-043" para la recuperación de fondos (ver ADR-045).
 - **ADR-044 — Componente predictivo en Python.** PROPUESTO. **Número reservado**; el documento todavía no está en el repositorio.
-- **ADR-045 — Recuperación automática de la aplicación de fondos de Convocatoria.** Propuesto; **el documento aún no está en el repositorio**. Antes se citaba como "ADR-043"; renumerado con la dirección aprobada por Carlos el 2026-10-07 (`estado-fase6.md` §0.1). Su mecanismo ya se fusionó en PR #29 sin cumplir la regla 3.5, así que requiere aprobación o rechazo retroactivo.
+- **ADR-045 — Recuperación de la aplicación de fondos de `DonationIntent`** (`ADR-045-recuperacion-aplicacion-fondos.md`). **APROBADO — Carlos, 2026-10-07**. Antes se citaba como "ADR-043". Aprueba de forma retroactiva la barrera `APPLY_FUNDS`, `FUNDING_REJECTED` y la consulta de recuperables, fusionadas en el PR #29 sin cumplir la regla 3.5 (incumplimiento registrado). Autoriza el diseño; el código sigue bloqueado por T1/P8.
+- **ADR-046 — Frontend web `paxfide-web`** (`ADR-046-frontend-web-paxfide-web.md`, **repositorio `Toffy22Cj/PaxFide`**). APROBADO el 2026-09-28. Antes se numeraba ADR-042, lo que colisionaba con el ADR-042 de reintentos de proyección; se renumeró por decisión de Carlos el 2026-10-07. Los documentos cerrados de Donaciones que lo citan como "ADR-042" (Enmienda 1 de ADR-037, `convocatoria-resumen.md`, auditorías) no se reescriben; esa mención equivale a ADR-046.
 
-**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-046.
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-047.
 
 ---
 
@@ -409,7 +410,7 @@ event_store (Mongo, colección real)
 
 | Capa | Implementado en `develop` | Pendiente principal |
 |---|---|---|
-| Convocatoria (ADR-037) | Módulo `convocatoria`: convocatoria, ledger, asignaciones, intención de donación, confirmación y aplicación de fondos con barrera `APPLY_FUNDS`. Compuesto en `app` con verificación real de organización | Orquestador ledger + génesis + outbox en `app`; T1/P8 en `core`; Enmienda 2 en BORRADOR; colisión ADR-043 |
+| Convocatoria (ADR-037) | Módulo `convocatoria`: convocatoria, ledger, asignaciones, intención de donación, confirmación y aplicación de fondos con barrera `APPLY_FUNDS`. Compuesto en `app` con verificación real de organización | Orquestador ledger + génesis + outbox en `app` (ADR-045, aprobado); T1/P8 en `core` |
 | Identidad (ADR-038) | Platform Administrator con bootstrap, verificación de `Organization`, actor real en el Audit Log, reintentos C+ | JWT/autenticación HTTP y endpoints de plataforma |
 | Blockchain (ADR-039) | Productor de `MerkleBatch`, recuperación de `COLLECTING`, `IntegrityVerificationPort` | Migración de batches legacy, `correlationId` de scheduler |
 | IA (ADR-040) | Contrato `CampaignAuditFactsPort` (C1 cerrado) | Productor/consumidor, bloqueados por C2–C5 |
@@ -419,7 +420,7 @@ Idempotencia de `clearFundsGenesis` ante reenvío del mismo `commandId`: verific
 
 *Texto anterior (desactualizado, conservado como registro):* "Quedan pendientes las implementaciones del dominio de Convocatoria (Ledger, Assignment), las lógicas de verificación en Identidad y la resolución final de la contradicción de puertos en IA." — las tres están hechas.
 
-**Próximo hito inmediato:** Resolver los pendientes de Fase 6 en el orden de `estado-fase6.md` §6 (colisión ADR-043 y Enmienda 2 → T1/P8 y orquestador de fondos → JWT y endpoints de ADR-041 → C2–C5 de IA) y abordar las siguientes etapas del proyecto. Candidatos identificados: (a) donaciones físicas (en especie) con trazabilidad directa al donante; (b) integración HTTP/autenticación sobre el módulo `identity` (endpoints REST, login, Spring Security); (c) deuda técnica menor identificada.
+**Próximo hito inmediato:** Resolver los pendientes de Fase 6 en el orden de `estado-fase6.md` §6 y en `plan-cierre-fase6-codigo.md` (PROPUESTO): dos cadenas críticas, dinero (D-P8 → T1/P8 → orquestador ADR-045 → API → golden path) y narrativa de convocatoria (`campaignRef` en `PhysicalAsset` → IA C2–C5 → golden path) y abordar las siguientes etapas del proyecto. Candidatos identificados: (a) donaciones físicas (en especie) con trazabilidad directa al donante; (b) integración HTTP/autenticación sobre el módulo `identity` (endpoints REST, login, Spring Security); (c) deuda técnica menor identificada.
 
 ## 9.1 Deudas Técnicas Identificadas
 
@@ -448,7 +449,7 @@ Idempotencia de `clearFundsGenesis` ante reenvío del mismo `commandId`: verific
 
 ## 10. Diccionario de Conceptos
 
-**ADR (Architecture Decision Record):** documento formal que congela una decisión arquitectónica con su contexto, alternativas consideradas y consecuencias. En este proyecto, los ADR-001 a ADR-043 (catálogo en §5; el número 043 tiene una colisión pendiente) forman el contrato vigente.
+**ADR (Architecture Decision Record):** documento formal que congela una decisión arquitectónica con su contexto, alternativas consideradas y consecuencias. En este proyecto, los ADR-001 a ADR-046 (catálogo en §5; el 044 está reservado y el 046 vive en el repositorio `PaxFide`) forman el contrato vigente.
 
 **Aggregate / Aggregate Root:** entidad raíz que protege un conjunto de invariantes de negocio bajo un único límite de consistencia transaccional. En este proyecto: `Fund` y `PhysicalAsset`. Se reconstruye completamente a partir del replay de sus eventos.
 

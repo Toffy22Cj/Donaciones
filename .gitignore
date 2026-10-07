@@ -27,3 +27,7 @@ buildNumber.properties
 *.iml
 .vscode/
 *.swp
+
+# Python
+__pycache__/
+*.pyc

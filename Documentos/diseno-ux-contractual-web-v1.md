@@ -1,5 +1,7 @@
 # Diseño UX contractual — `paxfide-web` v1
 
+*Nota de numeración (2026-10-07, decisión de Carlos):* el ADR del frontend web `paxfide-web` se renumera de ADR-042 a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`, repositorio `Toffy22Cj/PaxFide`) por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`, que conserva su número. Las referencias de este documento se actualizaron.
+
 **Estado:** **APROBADO (2026-10-05)**, revisión 4 (revisión 2 + enmienda de §3.3 + `PanelHome`, todo del mismo día, ver §9). Aprobación humana explícita de Carlos, en bloque, de las 9 decisiones de §9. Ver el registro en §9.
 **Qué significa APROBADO aquí:** las decisiones marcadas PROPUESTO en este texto quedan aprobadas. **No** habilita ninguna superficie: Login, `AssetPage`, `split` y `/c` siguen BLOQUEADOS por D5 hasta resolver sus dependencias. Tampoco aprueba la Enmienda 1 de ADR-041, ni convierte en normativas las fichas de contratos.
 
@@ -14,12 +16,12 @@
 **Cambios de la revisión 2:**
 - `split` pasa de "frame futuro" a "diseñado, BLOQUEADO para despliegue" (§5.3).
 - Se precisa la presentación de `quantity` (§5.3).
-- R-UX-2 deja de ser requisito y pasa a nota de dependencia. El destino `/panel` se mantiene porque es HEREDADO de ADR-042 D4 (§5.2).
+- R-UX-2 deja de ser requisito y pasa a nota de dependencia. El destino `/panel` se mantiene porque es HEREDADO de ADR-046 D4 (§5.2).
 
 **No es un ADR ni un mockup.** Fija estructura, estados, componentes, contenido permitido y comportamiento. **Penpot es la fuente visual** y traduce este documento; no puede añadir campos, acciones ni pantallas que aquí no estén.
 **Alcance:** Shell, Login, `AssetPage`, `PanelHome` (desde la revisión 4), estados globales, componentes base y `/c` solo como estructura. **El listado de convocatorias (`OrgCampaignsPage` con datos) y el formulario de "Registrar activo" quedan fuera** hasta que existan sus contratos.
 
-**Fuentes:** `ADR-042-frontend-web-paxfide-web.md` (APROBADO), `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` (APROBADO), `api-contract-matrix.md`, fichas de contratos API Fase 6 (material de trabajo, **no normativo** hasta que se apruebe la Enmienda 1 de ADR-041), y las decisiones de Carlos del 2026-10-05.
+**Fuentes:** `ADR-046-frontend-web-paxfide-web.md` (APROBADO), `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` (APROBADO), `api-contract-matrix.md`, fichas de contratos API Fase 6 (material de trabajo, **no normativo** hasta que se apruebe la Enmienda 1 de ADR-041), y las decisiones de Carlos del 2026-10-05.
 
 ### Etiquetas
 
@@ -176,14 +178,14 @@ No se añade `Card` ni otros componentes sin una pantalla que los necesite.
 | Error de red | Timeout o conexión | Rechazado: "No pudimos conectar. Revisa tu conexión e inténtalo de nuevo." Reintentar es seguro (el login no tiene efectos duplicables, HEREDADO) |
 | **Sesión expirada** | Llegada a `/login` por T-1 | `StatusNotice` informativo: "Tu sesión expiró. Vuelve a iniciar sesión." |
 | Sesión cerrada en otra pestaña | Llegada por señal G-W3 | Informativo: "Cerraste sesión en otra pestaña." |
-| Éxito | `200` | **HEREDADO (ADR-042 D4; `front-fase2` §8, tabla de guards):** navega al destino retenido en memoria (G-W2) o, si no lo hay, a `/panel`. Este documento no redefine ese comportamiento; solo deja fuera el **contenido** de `/panel` (ver nota N1). Mientras `/panel` no esté habilitado (D5), su resultado es el 404 de G-W4 |
+| Éxito | `200` | **HEREDADO (ADR-046 D4; `front-fase2` §8, tabla de guards):** navega al destino retenido en memoria (G-W2) o, si no lo hay, a `/panel`. Este documento no redefine ese comportamiento; solo deja fuera el **contenido** de `/panel` (ver nota N1). Mientras `/panel` no esté habilitado (D5), su resultado es el 404 de G-W4 |
 
 **Excluido:** recuperar contraseña, crear cuenta, "recordarme" y cualquier persistencia del token.
 
 **Requisito que este diseño crea (PROPUESTO):**
 - **R-UX-1:** la máquina de sesión debe registrar **en memoria** el motivo del último `LOGGED_OUT` (manual, expirado, otra pestaña) para poder mostrar el aviso. Es un cambio pequeño en W-3 y no persiste nada.
 
-**Nota de dependencia (N1), no requisito:** `PanelHome` (`/panel`) es PROVISIONAL según `front-fase2` §7 y su contenido no se diseña aquí. La ruta existe como destino normativo (ADR-042 D4); lo que falta es su contenido y su habilitación. Hasta que exista N1, la entrada útil a la web autenticada es por QR (`/assets/…` → login → vuelta al activo mediante el destino retenido).
+**Nota de dependencia (N1), no requisito:** `PanelHome` (`/panel`) es PROVISIONAL según `front-fase2` §7 y su contenido no se diseña aquí. La ruta existe como destino normativo (ADR-046 D4); lo que falta es su contenido y su habilitación. Hasta que exista N1, la entrada útil a la web autenticada es por QR (`/assets/…` → login → vuelta al activo mediante el destino retenido).
 
 ### 5.3 `AssetPage` (`/assets/:assetRef`) — lectura, BLOQUEADO para despliegue
 
@@ -374,8 +376,8 @@ Regla común: **nunca se muestra el `detail` de un `ProblemDetail`** (consecuenc
 **Aprobación:** Carlos, 2026-10-05, en bloque, sobre la revisión 2 (decisiones 1–9); decisiones 10 y 11 aprobadas por separado el mismo día; decisiones 12 y 13 el 2026-10-06.
 
 **Decisiones explícitas registradas con la aprobación:**
-- Se mantiene `/panel` como destino post-login por defecto. Es HEREDADO de ADR-042 D4 y este documento no puede rebajarlo a PENDIENTE.
-- No se abre ninguna enmienda a ADR-042.
+- Se mantiene `/panel` como destino post-login por defecto. Es HEREDADO de ADR-046 D4 y este documento no puede rebajarlo a PENDIENTE.
+- No se abre ninguna enmienda a ADR-046.
 - R-UX-2 permanece como nota de dependencia (N1), no como requisito.
 - Se distingue "la ruta existe como destino normativo" de "su contenido está diseñado o habilitado". Mientras `/panel` no esté habilitado (D5), su resultado es el 404 de G-W4.
 

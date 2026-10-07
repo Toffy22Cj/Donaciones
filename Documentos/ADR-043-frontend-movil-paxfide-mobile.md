@@ -1,22 +1,24 @@
 # ADR-043 — Frontend móvil `paxfide-mobile`: sesión, Outbox con fallo ambiguo, restauración, navegación y deep links
 
+*Nota de numeración (2026-10-07, decisión de Carlos):* el ADR del frontend web `paxfide-web` se renumera de ADR-042 a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`, repositorio `Toffy22Cj/PaxFide`) por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`, que conserva su número. Las referencias de este documento se actualizaron.
+
 **Status:** PROPUESTO (2026-09-30). Pasa a APROBADO cuando se cumplan las condiciones de §7. Aprobar este ADR **no** autoriza escribir código: antes se requiere el plan de implementación aprobado (regla 3.4).
 **Fecha:** 2026-09-30 (revisión 1)
-**Número:** **043, propuesto** — es el siguiente libre tras ADR-042 en la numeración vigente. No está asignado hasta aprobación humana explícita (condición 2 de §7).
+**Número:** **043, propuesto** — era el siguiente libre tras ADR-042 (frontend web, hoy ADR-046) en la numeración vigente. No está asignado hasta aprobación humana explícita (condición 2 de §7).
 
 **Documento de diseño fuente:** `front-fase1.md` (raíz), versión con estado "Flutter v1 cerrado a nivel de diseño". Este ADR **no reescribe el diseño**: formaliza las decisiones arquitectónicamente significativas y remite a sus secciones (§N = sección de `front-fase1.md`). Ante cualquier discrepancia entre este ADR y `front-fase1.md`, se detiene y se reporta; no se resuelve por interpretación.
 
-**Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-042 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
+**Numeración de ADR:** se usa la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend, ADR-046 frontend web). `front-fase1.md` §4 cita "ADR-037" con la numeración anterior; corresponde al **ADR-041** vigente.
 
-**Relacionados:** `front-fase1.md`, `ADR-042-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
+**Relacionados:** `front-fase1.md`, `ADR-046-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
 
-**Origen de la obligación:** ADR-042 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
+**Origen de la obligación:** ADR-046 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
 
 ---
 
 ## 1. Context
 
-`paxfide-mobile` es la superficie del usuario común: donante y operador de campo que escanea QR (§1). Las funciones administrativas de Organización y Platform Administrator pertenecen a `paxfide-web` (ADR-042).
+`paxfide-mobile` es la superficie del usuario común: donante y operador de campo que escanea QR (§1). Las funciones administrativas de Organización y Platform Administrator pertenecen a `paxfide-web` (ADR-046).
 
 Restricciones que condicionan la decisión:
 
@@ -158,7 +160,7 @@ Reglas:
 **PROPUESTA NUEVA de este ADR. No está en `front-fase1.md`; requiere aprobación explícita (condición 3 de §7).**
 
 - Motivo: H2 (ownership del Outbox ante cambio de cuenta) puede producir un evento inmutable atribuido al actor equivocado. `hallazgos-front-fase2.md` clasifica esa clase de efecto como severidad **Crítica**. T-1 agrava el escenario: un `401` puede provocar logout con entradas `AMBIGUOUS` pendientes.
-- Propuesta: el `SyncEngine` **no se habilita para envío** en ningún build distribuible mientras H2 no esté decidido mediante enmienda a este ADR. Análogo a ADR-042 D6 ("R11 es un bloqueo duro de habilitación, no deuda").
+- Propuesta: el `SyncEngine` **no se habilita para envío** en ningún build distribuible mientras H2 no esté decidido mediante enmienda a este ADR. Análogo a ADR-046 D6 ("R11 es un bloqueo duro de habilitación, no deuda").
 - **Esta propuesta no elige ninguna opción de H2.** Solo fija que no se despliega sin decidirla.
 - Alternativa a esta propuesta: tratar H2 como riesgo aceptado y documentado. No recomendada: el efecto es irreversible en el Event Store.
 
@@ -204,7 +206,7 @@ Todas proceden de las decisiones descartadas en `front-fase1.md`.
 ### Positivas
 
 - Los fallos ambiguos tienen salida explícita y nunca provocan reenvío automático (regla 2.6).
-- Una sola fuente de autorización (backend), coherente con `paxfide-web` (ADR-042).
+- Una sola fuente de autorización (backend), coherente con `paxfide-web` (ADR-046).
 - Ningún deep link puede producir efectos en el Event Store (R3).
 - El router no depende de dominio ni de Outbox: sus decisiones son verificables con una tabla de 4 × 4.
 
@@ -216,9 +218,9 @@ Todas proceden de las decisiones descartadas en `front-fase1.md`.
 - **Ninguna acción operativa es ejecutable hoy:** formularios de comando bloqueados por contrato (D10) y, si se aprueba D11, envío bloqueado por H2.
 - **`/donations` sin flujo productor** y Golden Path del donante no implementable en v1.
 
-### Divergencia deliberada con `paxfide-web` (ADR-042)
+### Divergencia deliberada con `paxfide-web` (ADR-046)
 
-| Tema | Móvil (este ADR) | Web (ADR-042) | Motivo |
+| Tema | Móvil (este ADR) | Web (ADR-046) | Motivo |
 |---|---|---|---|
 | Comandos | Outbox persistente | Sin Outbox | Requisito offline solo en móvil |
 | Estado de navegación | `NavigationRestoreState` | La URL | Plataforma |
@@ -252,7 +254,7 @@ Ninguna opción de esta sección está elegida. Cada una se resuelve por enmiend
 
 ## 6. Fuera de este ADR
 
-- `paxfide-web`: ADR-042.
+- `paxfide-web`: ADR-046.
 - Estrategia de access/refresh token y semántica de `401/403`: Identity (ADR-038). Al definirse, T-1 se sustituye por enmienda.
 - Identidad visual de la app móvil.
 - Distribución (tiendas, firma de la app, entornos).
