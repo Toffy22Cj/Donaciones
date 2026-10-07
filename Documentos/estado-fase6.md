@@ -178,6 +178,18 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.14 B6-b — donación y pago por HTTP (2026-10-07, `feat/b6-b-donacion-pago-http`) — HECHO
+
+- **Proceso:** autorización de trabajo autónomo de Carlos (2026-10-07). Implementa normas **aprobadas**: la Enmienda 3 de ADR-037 (completa, con E3-Q3 = un año) y ADR-048 (seudónimo aleatorio). Las decisiones de implementación DD-18 a DD-25 están `PENDIENTE DE RATIFICACIÓN`.
+- **Qué hace:**
+  - **CV-11** (`POST /public/campaigns/{publicCode}/donation-intents`, JWT opcional): `201 {intentId, statusToken, paymentRedirectUrl}`. El `donorRef` lo calcula el servidor: con JWT, `acct:` + el seudónimo de la cuenta; sin JWT, `anon:` + un UUID nuevo. El cliente no puede elegirlo.
+  - **Webhook simulado** (`POST /webhooks/payments`): solo con `traceability.demo.simulated-payments=true` (activo únicamente en `application-dev.yml`). Lleva firma HMAC y llama al **mismo** `ConfirmGatewayPaymentUseCase` (Tx 1 → Tx 2 con el orquestador de ADR-045). La intención queda con `paymentProvider = SIMULATED`.
+  - **Dos barreras para `SIMULATED`** (E3-Q1): sin la propiedad no existen ni el proveedor ni la ruta, y `convocatoria` rechaza `SIMULATED` aunque llegue por otra vía.
+  - **Eventos fuera de orden (D4):** un duplicado no tiene efecto; un fallo sobre `PENDING` la pasa a `FAILED`; un fallo sobre `CONFIRMED` se ignora. Una confirmación sobre `FAILED` no cambia el estado: se registra en `unacceptable_payment_events` (idempotente) y suma en el contador JMX, a la espera de P1.
+  - **Consulta de la intención** (`GET /public/donation-intents/{intentId}`, cabecera `Intent-Token`): cuando los fondos están aplicados, entrega el `trackingCode`, válido un año y aceptado por el seguimiento de Fase 3. Un token ausente, incorrecto, caducado o enviado en la URL da el mismo 404 que una intención inexistente.
+  - **`GET /account/donations`:** solo las donaciones de la cuenta, con su `trackingCode`, sin el seudónimo. Borrar el seudónimo vacía el historial sin tocar los eventos.
+- **Evidencia:** `evidencia-fase6/b6-b-donacion-pago-http-e72cc0e-2026-10-07.txt`. Reactor **1139 tests** en verde; 9 mutaciones, 9 muertas.
+
 ### 0.13 B6-a — convocatoria por HTTP (2026-10-07, `feat/b6-a-convocatoria-http`) — HECHO
 
 - **Proceso:** autorización de trabajo autónomo de Carlos (2026-10-07). Q-B6A-1 la decidió Carlos (opción (a)); **Q-B6A-2 a 5 y Q-B60-6 son decisiones delegadas `PENDIENTE DE RATIFICACIÓN`** (DD-01, DD-03 a DD-07 y DD-17 en `decisiones-delegadas-2026-10.md`).

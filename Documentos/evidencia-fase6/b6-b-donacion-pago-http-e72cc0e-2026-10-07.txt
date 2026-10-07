@@ -1,0 +1,42 @@
+# B6-b — evidencia sobre feat/b6-b-donacion-pago-http en e72cc0e (2026-10-07), con develop (B6-a #62, B6-c #61) incluido
+# mvn clean test -fae, Docker real. sha256 del log completo: 8d520fb9930133e3096bab30901bfef074992f01b1c0838938b86123adb7f26d
+# Línea base: develop b480acd = 1119 tests. Ahora: 1139 (convocatoria +5, app +15).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 122, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 235, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 122, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes (esqueleto, 923e6f2)
+[ERROR] Tests run: 5, Failures: 1, Errors: 4, Skipped: 0, Time elapsed: 13.56 s <<< FAILURE! -- in com.traceability.convocatoria.application.service.DonationIntentAccessIntegrationTest
+[ERROR] Tests run: 3, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 18.29 s <<< FAILURE! -- in com.traceability.app.web.donation.SimulatedPaymentsDisabledIntegrationTest
+[ERROR] Tests run: 11, Failures: 11, Errors: 0, Skipped: 0, Time elapsed: 8.923 s <<< FAILURE! -- in com.traceability.app.web.donation.DonationPaymentHttpIntegrationTest
+
+# Intento anterior del reactor (7de3b66): app 122 tests, 1 fallo en PublicRoutesInventoryIntegrationTest (GET /api/v1/account/donations sin clasificar). Corregido en e72cc0e.
+
+# Mutaciones (scripts/mutaciones.py; restauración con git checkout verificada contra HEAD)
+# Con -pl convocatoria,app, una mutación de convocatoria que ya mata un test de convocatoria detiene el build antes de app: solo se listan los tests de convocatoria.
+- aceptar SIMULATED con la política desactivada: MUERTA  secondBarrier_aSimulatedSessionIsRejectedWhenThePolicyIsOff_andNothingIsWritten
+- sin registro persistente de la confirmación tardía: MUERTA  failureOnPending_isFailed_andALateConfirmationIsRecordedAsUnacceptable_withoutChangingTheState
+- aceptar el token en la URL: MUERTA  statusToken_absentWrongOrInTheUrl_givesTheSame404_asAnUnknownIntent
+- trackingCode antes de aplicar los fondos: MUERTA  anonymousGatewayDonation_webhookConfirmsAndAppliesFunds_andTheTrackingCodeWorksInPhase3Tracking
+- donorRef con el id de la cuenta en claro: MUERTA  accountDonations_listsOnlyTheOwnDonations_withTheTrackingCodeOnceApplied_andNeverThePseudonym; forgettingThePseudonym_emptiesTheHistory_andLeavesTheEventsUntouched; withJwt_theDonorRefIsTheStablePseudonymOfTheAccount_andTheClientCannotChooseIt
+- webhook sin verificar la firma: MUERTA  aWebhookWithABadSignatureOrAMismatchedAmount_changesNothing
+- cualquier token vale: MUERTA  theStatusToken_givesTheStatusForTwentyFourHours_andNothingAfterwards_norWithAnotherToken
+- el token no caduca: MUERTA  theStatusToken_givesTheStatusForTwentyFourHours_andNothingAfterwards_norWithAnotherToken
+- statusToken devuelto también en el duplicado: MUERTA  aDuplicateCv11_returnsTheSameIntentWithoutTheTokenAgain
+Restauración verificada contra HEAD. Mutaciones vivas: 0
