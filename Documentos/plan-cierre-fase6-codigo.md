@@ -39,6 +39,8 @@
 
 ### B1-bis. `core`: saga de la división (dueño `core`; tras D-SPLIT y D-CAMPAIGN; en paralelo con B1)
 
+> **Plan:** `plan-b1bis-saga-division.md` (PROPUESTO, 2026-10-07). B3 hecho (#48).
+
 - **`splitPhysicalAsset`** escribe en la misma transacción el mensaje de outbox de la saga.
 - **`SplitPhysicalAssetSagaPolicy`** registra el stream hijo con:
   - la cantidad extraída y la unidad;
