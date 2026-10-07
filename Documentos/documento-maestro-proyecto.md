@@ -206,7 +206,11 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 
 - **ADR-047 — JWT: librería, algoritmo y secreto de firma** (`ADR-047-jwt-libreria-y-secreto-de-firma.md`). **APROBADO — Carlos, 2026-10-07**, con las precisiones P1–P4 (orden `kid` → firma con el `kid` solo como clave del mapa; fin de aceptación de la clave anterior; nunca registrar el token ni el secreto; lista de tests como definición de hecho) y los riesgos residuales aceptados por escrito. Decisión D-JWT. Complementa ADR-038 §2.7: Nimbus JOSE + JWT solo en `api`, HS256 con secreto ≥ 256 bits y *fail-fast*, `kid` con una clave anterior para rotar, `exp` de 8 h configurable. Bloquea B3.
 
-**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-048.
+- **ADR-048 — Origen del `donorRef`** (`ADR-048-donorref-desde-la-cuenta.md`). **APROBADO — Carlos, 2026-10-07**, con seudónimo aleatorio por cuenta. *Nota 2026-10-07T22:30Z:* faltaba en este catálogo, que seguía dando el 048 como libre; se añade sin cambiar su contenido.
+
+- **ADR-049 — Envío de correo e invitaciones para incorporar miembros a una organización** (`ADR-049-correo-e-invitaciones-a-organizaciones.md`). **Reservado el 2026-10-07T22:30Z** y **APROBADO como decisión delegada** (autorización (3) de Carlos, §2; DD-60, pendiente de ratificar). `spring-boot-starter-mail` solo en `app`, Mailpit en `dev`, token de un solo uso de 7 días guardado como hash, token en el fragmento (excepción consciente decidida por Carlos), aceptación con email coincidente, cambio de rol y retirada de miembros con la regla del responsable activo.
+
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-050.
 
 ---
 
