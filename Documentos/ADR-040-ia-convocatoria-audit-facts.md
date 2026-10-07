@@ -2,7 +2,7 @@
 
 **Estado:** Aprobado parcialmente — límites de responsabilidad, exclusiones semánticas, frontera modular y contradicción de puerto (C1) cerrados. **Tres decisiones estructurales interdependientes siguen abiertas (§7-A, C2-C4)** y son más centrales que en ADR-037/034/035: no son detalles menores, son el núcleo de cómo se construye el componente.
 **Fecha:** Sesión de Fase 6, review formal de 12 puntos (Modo de Arquitectura), posterior a ADR-037/034/035. C1 resuelto en revisión posterior (ver §8).
-**Complementa:** `ia-resumen.md`. No reabre el pipeline existente (`DonationAuditFacts`, `AuditFactsPort`, `NarrativeGenerator`, `SpringAiLlmAdapter`, `NarrativePromptSanitizer`, `GroundingValidatorImpl`, `FallbackNarrativeTemplateService`, `NarrativeCacheCoordinator`), implementado y probado desde Fase 2.
+**Complementa:** `ia-resumen.md`. No reabre el pipeline existente (`DonationAuditFacts`, `AuditFactsPort`, `DonorReportGenerator` (antes citado como `NarrativeGenerator`, nombre que no existe en el código; auditoría IA-1), `SpringAiLlmAdapter`, `NarrativePromptSanitizer`, `GroundingValidatorImpl`, `FallbackNarrativeTemplateService`, `NarrativeCacheCoordinator`), implementado y probado desde Fase 2.
 
 ---
 
@@ -25,7 +25,7 @@ ConvocatoriaAuditFacts
 └── receptores distintos                              ← COUNT(DISTINCT beneficiaryRef) en DELIVERED
 ```
 
-Consume `CampaignAuditFactsPort` en `contracts` con `CampaignAuditFactsDTO` (puerto especializado para convocatorias, preservando `AuditFactsPort` intacto para donaciones individuales, conforme al Interface Segregation Principle) y reutiliza el pipeline de `NarrativeGenerator`.
+Consume `CampaignAuditFactsPort` en `contracts` con `CampaignAuditFactsDTO` (puerto especializado para convocatorias, preservando `AuditFactsPort` intacto para donaciones individuales, conforme al Interface Segregation Principle) y reutiliza el pipeline de `DonorReportGenerator`.
 
 **Exclusión deliberada, no reabierta por este review**: "familias alcanzadas" — `beneficiaryRef` es una referencia opaca sin invariante de dominio que garantice `1 beneficiaryRef = 1 familia/hogar` (podría ser una organización, un punto de entrega comunitario). El hecho neutral afirmable es "receptores distintos", nunca "familias". También excluidos: análisis predictivo, scoring, inferencias sin respaldo determinista, acceso directo del LLM a MongoDB/Event Store, read model dedicado solo para IA.
 

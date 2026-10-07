@@ -1,6 +1,6 @@
 # ADR-038 — Identidad: HumanActor, Platform Administrator, Verificación de Organization, Autenticación
 
-**Estado:** Approved — diseño conceptual. Decisiones de §7 aprobadas por el equipo el 2026-09-30. **Implementado** en la rama `feat/identity-adr-038` (2026-10-01 → 2026-10-04, último commit `2b2a68a`), pendiente de merge a `develop`. Las decisiones tomadas durante la implementación **prevalecen sobre el texto de §2** donde lo contradigan y se registran en §9.
+**Estado:** Approved — diseño conceptual. Decisiones de §7 aprobadas por el equipo el 2026-09-30. **Implementado** en la rama `feat/identity-adr-038` (2026-10-01 → 2026-10-04, último commit `2b2a68a`) y **fusionado en `develop`** (`aebedb2`, 2026-10-06). *Actualización 2026-10-07 (auditoría §4.3): ya no está pendiente de merge. Sigue pendiente la autenticación JWT (§2.7), cuya librería y secreto decide ADR-047 (PROPUESTO).* Las decisiones tomadas durante la implementación **prevalecen sobre el texto de §2** donde lo contradigan y se registran en §9.
 **Fecha:** Fase 6. Review formal de 12 puntos (Modo de Arquitectura) posterior a ADR-037 (Convocatoria); cierre de huecos 2026-09-30.
 **Complementa:** `identity-resumen.md`. No reabre `Account`/`Organization`/`Membership`/`IdentityPrincipalPort`/`OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` (Fase 4/5).
 **Enmienda asociada:** `ADR-026-enmienda-desactivacion-platform-administrator.md` (guarda de `DeactivateAccount`).
