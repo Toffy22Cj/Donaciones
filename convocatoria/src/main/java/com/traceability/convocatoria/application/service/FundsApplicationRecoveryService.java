@@ -85,6 +85,11 @@ public class FundsApplicationRecoveryService {
         });
     }
 
+    /** Lectura de la intención para componer la génesis del {@code Fund} en el orquestador de {@code app}. */
+    public Optional<DonationIntent> findIntent(String intentId) {
+        return donationIntents.findById(intentId);
+    }
+
     /** Métricas de cada ejecución del scheduler (ADR-045 §2.6). */
     public RecoveryMetrics metrics() {
         return new RecoveryMetrics(donationIntents.countPendingExcludedByCloseOnTargetClose(),

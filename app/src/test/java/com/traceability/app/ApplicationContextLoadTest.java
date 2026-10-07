@@ -63,6 +63,15 @@ class ApplicationContextLoadTest {
     private com.traceability.contracts.authorization.IdentityPrincipalPort identityPrincipalPort;
 
     @Test
+    void fundsApplicationRecoveryScheduler_isDisabledByDefault() {
+        // ADR-045 §2.2: enabled=false por defecto, también en producción; el disparo inmediato sí existe.
+        assertThat(context.getBeansOfType(
+                com.traceability.app.application.funds.FundsApplicationRecoveryScheduler.class)).isEmpty();
+        assertThat(context.getBean(com.traceability.app.application.funds.FundsApplicationOrchestrator.class))
+                .isNotNull();
+    }
+
+    @Test
     void contextLoadsAndTransactionSmokeTestPasses() {
         // 1. Verificar la existencia del TransactionManager en el contexto
         MongoTransactionManager txManager = context.getBean(MongoTransactionManager.class);
