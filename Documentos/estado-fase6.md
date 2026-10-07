@@ -1,9 +1,35 @@
 # Estado — Fase 6
 
-**Última actualización:** a partir de la sesión de diseño y de la primera implementación real (Productor de MerkleBatch), ambas dentro de este mismo proyecto de planeación.
+**Última actualización:** 2026-10-07 — auditoría código vs. documentación sobre `develop` (`auditoria-fase6-codigo-vs-documentacion.md`). Las secciones históricas (§3, §3bis, §7) se conservan como registro; el estado vigente es §0 y la tabla de §2.
 **Alcance de este documento:** refleja únicamente resultado de ejecución real verificado en esta sesión (output de Surefire, código inspeccionado). No infiere estado de fases anteriores por memoria — donde algo se toma de `estado-fase5.md`/`documento-maestro-proyecto.md`, se cita como tal, no se reconstruye.
 
 ---
+
+## 0. Estado vigente (auditoría 2026-10-07, `develop` en `e269985`)
+
+| Capa | En `develop` | Abierto |
+|---|---|---|
+| Convocatoria | Primer corte + confirmación/aplicación de fondos del módulo (barrera `APPLY_FUNDS`, `FUNDING_REJECTED`, consulta de recuperables). Commit `81cf87c`, fusionado en PR #29. `app → convocatoria` con `OrganizationVerificationAdapter` real (`e269985`) | Orquestador de aplicación de fondos, disparo y scheduler (`app`); T1 y P8 en `core`; P1–P7, R3, R4; aprobación de Enmienda 2 (BORRADOR); documento de recuperación de fondos citado como "ADR-043" ausente y con número en colisión (§0.1); duración real de `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` |
+| Identidad | ADR-038 tareas 1–8 fusionadas (`aebedb2`): `HumanActor`, Platform Administrator con bootstrap, verificación de `Organization`, reintentos C+ | JWT/autenticación HTTP (ADR-038 §2.7), endpoints de plataforma, `AccountNotFoundException` en `contracts`, deuda ADR-038 §9.4 |
+| Blockchain | Productor de `MerkleBatch` (Fases 1–3), `IntegrityVerificationPort`, recuperación automática de batches `COLLECTING` abandonados, partición contigua por presupuesto, `leafHashes` persistidos, `verifyAllAnchored` en streaming | Migración de batches legacy, `correlationId` de scheduler, límite/paginación explícita de `verifyAllAnchored` (§4) |
+| IA | Pipeline de donación individual (`DonorReportGenerator` sobre `AuditFactsPort`). `CampaignAuditFactsPort`/`CampaignAuditFactsDTO` como contrato | Productor y consumidor de `CampaignAuditFactsPort` — bloqueados por ADR-040 C2–C5; C8 |
+| APIs + Frontend | Solo los 3 endpoints públicos de Fase 3 | Todos los endpoints de Fase 6 (ADR-041) |
+
+Evidencia de tests de esta auditoría: §0.2.
+
+### 0.1 Colisión de número ADR-043
+
+Los documentos de Convocatoria citan `ADR-043-recuperacion-aplicacion-fondos-convocatoria.md` (recuperación automática de la aplicación de fondos, Propuesto). Ese archivo **no está en el repositorio**; el ADR-043 presente es `ADR-043-frontend-movil-paxfide-mobile.md`. **Decisión humana pendiente:** renumerar uno de los dos y versionar el documento de recuperación. Hasta entonces, toda mención de "ADR-043" en este documento se refiere al de recuperación de fondos.
+
+### 0.2 Evidencia (ejecución de esta sesión)
+
+`mvn clean test -fae` del reactor completo (9 módulos) sobre `develop` `e269985`, Docker real (Testcontainers `mongo:6.0` replica set), 2026-10-07:
+
+| Módulo | core | crypto | ai | api | identity | convocatoria | app | Total |
+|---|---|---|---|---|---|---|---|---|
+| Tests | 229 | 50 | 19 | 34 | 261 | 194 | 42 | **829** |
+
+Todos con `Failures: 0, Errors: 0, Skipped: 0` — `BUILD SUCCESS`. `app` pasa de 27 a 42 tests por el adaptador de `OrganizationVerificationPort` (`e269985`) y los tests de recuperación de `COLLECTING`; el resto coincide con las cifras ya registradas.
 
 ## 1. Resumen de una línea
 
@@ -15,10 +41,10 @@ Las cinco capas de diseño conceptual de Fase 6 quedaron cerradas con review for
 
 | Capa | ADR | Estado de diseño | Estado de implementación |
 |---|---|---|---|
-| Convocatoria + Ledger + Assignment + DonationIntent | ADR-037 + Enmienda 1 (aprobada) | Cerrado para el primer corte (`implementation_plan.md` rev. 2.2); P1–P7 y R4 abiertos | **`clearFundsGenesis` idempotencia verificada**. **Primer corte implementado y verificado (2026-10-01), sin commit — ver §3bis**. Resto pendiente |
-| Identidad (HumanActor, Platform Admin, verificación Organization, JWT) | ADR-038 | Approved — diseño conceptual; §7 cerrado (2026-09-30); enmiendas de implementación en ADR-038 §9; enmienda ADR-026 aplicada | **Implementado y verificado** en `feat/identity-adr-038` (último commit `2b2a68a`): tareas 1–8, sin JWT ni endpoints HTTP. Pendiente de merge a `develop` |
-| Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-039 (tentativo) | 12/12 cerrado | **Productor (Fase 1-3) y `IntegrityVerificationPort` implementados y verificados.** |
-| IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — C1 (nomenclatura de puerto) cerrado; 3 decisiones estructurales (A/B/C = C2–C4) y el productor (C5) siguen abiertos | `CampaignAuditFactsPort` + `CampaignAuditFactsDTO` definidos en `contracts` (puerto separado y deliberado, ADR-040 §2.1/§8). Sin implementación ni consumidor todavía: bloqueado por C2–C5. `AuditFactsPort` (donación individual) intacto |
+| Convocatoria + Ledger + Assignment + DonationIntent | ADR-037 + Enmienda 1 (aprobada) | Cerrado para el primer corte (`implementation_plan.md` rev. 2.2); P1–P7 y R4 abiertos | Primer corte y flujo de fondos del módulo implementados, commiteados (`81cf87c`) y fusionados (PR #29). Idempotencia de `clearFundsGenesis` ante reenvío verificada (`ProcessedCommandIdempotencyIntegrationTest`); T1/P8 abiertos. `app → convocatoria` añadido (`e269985`). Ver §0 y §3bis |
+| Identidad (HumanActor, Platform Admin, verificación Organization, JWT) | ADR-038 | Approved — diseño conceptual; §7 cerrado (2026-09-30); enmiendas de implementación en ADR-038 §9; enmienda ADR-026 aplicada | **Implementado, verificado y fusionado en `develop`** (`aebedb2`; último commit de la rama `2b2a68a`): tareas 1–8, sin JWT ni endpoints HTTP |
+| Blockchain (Productor MerkleBatch, IntegrityVerificationPort) | ADR-039 (tentativo) | 12/12 cerrado | **Productor (Fase 1-3), `IntegrityVerificationPort` y recuperación automática de `COLLECTING` implementados y verificados.** Pendientes vigentes en §4 |
+| IA (ConvocatoriaAuditFacts) | ADR-040 (tentativo) | Cerrado parcialmente — C1 (nomenclatura de puerto) cerrado; 3 decisiones estructurales (A/B/C = C2–C4) y el productor (C5) siguen abiertos | `CampaignAuditFactsPort` + `CampaignAuditFactsDTO` definidos en `contracts` (puerto separado y deliberado, ADR-040 §2.1/§8). Sin implementación ni consumidor todavía: bloqueado por C2–C5. `AuditFactsPort` (donación individual) intacto; su consumidor real es `DonorReportGenerator` (los documentos lo llaman `NarrativeGenerator`, nombre que no existe en el código) |
 | APIs + Frontend | ADR-041 (tentativo) | 12/12 cerrado — mapeo endpoint↔hueco de dominio consolidado | Sin código de esta sesión |
 
 *Nota de la consolidación (2026-10-03), fila Convocatoria:*
@@ -66,6 +92,8 @@ Nota de proceso: hubo un reporte intermedio de "`BUILD SUCCESS`" basado en `mvn 
 
 ## 3bis. Convocatoria — primer corte (2026-10-01, rama `develop`, HEAD `673eda92`, sin commit)
 
+*Nota de la auditoría 2026-10-07:* registro histórico. El código se commiteó después (`81cf87c`) y se fusionó en PR #29 (`4374d55`); `app → convocatoria` se añadió en `e269985`.
+
 Implementado según `implementation_plan.md` §15, Tareas 0–9. Módulo Maven `convocatoria` con `convocatoria → contracts` como única dependencia de proyecto (`mvn dependency:tree -pl convocatoria`); `app → convocatoria` **no** añadido (B-1); `app/**` sin cambios.
 
 | Verificación | Resultado (output literal de Surefire) |
@@ -110,10 +138,13 @@ Esta es la cifra vigente del módulo. Las de 168 y 190 se conservan arriba como 
 
 ## 4. Pendiente — Blockchain
 
-- Partición cuando un stream supera `maxEventsPerBatch` sin romper contigüidad.
-- Semántica de `matchedCount==0` en Fase 3 cuando dos workers compiten por el mismo `COLLECTING`.
-- Mecanismo operativo que descubre y reintenta batches `COLLECTING` abandonados.
-- Paginación/límite de `verifyAllAnchored()`.
+*Actualización 2026-10-07 (auditoría):* tres de los pendientes originales ya están implementados en `develop` (commit `793d4b8`) y se retiran de la lista:
+- ~~Partición cuando un stream supera `maxEventsPerBatch`~~ — `MongoUnanchoredEventAdapter.claimOrphansAndAssignBatch` reparte el presupuesto entre streams y reclama por `sequence ASC`; un stream grande se parte en batches contiguos (`MongoUnanchoredEventAdapterTest.claimOrphansAndAssignBatch_preservesContiguity`).
+- ~~Semántica de `matchedCount==0` en Fase 3~~ — no-op benigno con log (`BlockchainAnchorProducerTest.shouldHandleTransitionReturnsFalseGracefully`).
+- ~~Mecanismo que descubre y reintenta batches `COLLECTING` abandonados~~ — `BlockchainAnchorProducer.recoverStaleCollectingBatches()` con `recoveryAttempts` y `crypto.anchor.collecting-recovery.*` (7 tests en `BlockchainAnchorProducerTest`). También se persisten `leafHashes` en el batch (`LegacyBatchLeafHashesUnavailableException` para batches sin ellos).
+
+Siguen abiertos:
+- Límite/paginación explícita de `verifyAllAnchored()` — hoy devuelve un `Stream` respaldado por cursor (no carga todo en memoria), sin límite para el llamador.
 - Estrategia real de migración de `MerkleBatch` históricos (la excepción de §3.2 es una barrera de seguridad, no una migración).
 - Origen del `correlationId` para ejecuciones de scheduler/background.
 - Deuda técnica registrada aparte (no bloqueante): el test de integración multi-colección levanta todo el contexto de `app`, incluida configuración de IA (`spring.ai.openai.api-key` simulada) — candidato a acotar con un slice de test más estrecho (`@DataMongoTest` o equivalente).
@@ -129,14 +160,16 @@ Ver §7 de cada ADR para el detalle completo. Resumen de las piezas de mayor sev
   - la idempotencia de `clearFundsGenesis` en ejecución.
 
   Ver ADR-037 §7.1 y la Enmienda 2 §6.
-- **Identidad**: ADR-038 implementado en `feat/identity-adr-038` (detalle en §7 de este documento y en ADR-038 §9). Pendiente: merge a `develop`, emisión de JWT/autenticación HTTP (§2.7), endpoints de plataforma y la deuda técnica de ADR-038 §9.4.
+- **Identidad**: ADR-038 implementado y fusionado en `develop` (`aebedb2`; detalle en §7 y en ADR-038 §9). Pendiente: emisión de JWT/autenticación HTTP (§2.7), endpoints de plataforma y la deuda técnica de ADR-038 §9.4 (verificada vigente el 2026-10-07).
 - **IA**: contradicción C1 `AuditFactsPort`/`CampaignAuditFactsPort` **cerrada** (ADR-040 §7-A, §8): son dos contratos distintos por diseño (donación individual vs. agregado de convocatoria, Interface Segregation Principle). `CampaignAuditFactsPort` no es una interfaz fantasma sino un contrato pendiente de implementar; su implementación (productor en `core`, consumidor en `ai`) queda bloqueada por C2–C5.
 - **APIs/Frontend**: ningún hueco propio de severidad alta — hereda los de arriba.
 - **Dataset + narrativa de demo**: sin empezar, deliberadamente al final — depende de que el Golden Path funcione de extremo a extremo, lo cual hoy no ocurre (bloqueado por `HumanActor`+P7, entre otros; el modelo de identidad de ADR-038 ya está implementado, falta su exposición HTTP).
 
 ## 6. Próximo paso sugerido
 
-De los pendientes de mayor severidad, ninguno depende de otro para empezar. Orden por impacto en el Golden Path: (1) resolver la contradicción de puerto en IA, (2) completar pendientes de Convocatoria y core (T1, P8), (3) merge de Identidad a develop y endpoints HTTP.
+*Actualización 2026-10-07:* (1) la contradicción de puerto en IA está cerrada y (3) el merge de Identidad está hecho. Orden vigente por impacto en el Golden Path: (a) resolver la colisión ADR-043 y aprobar Enmienda 2 + documento de recuperación; (b) T1 y P8 en `core`, y después el orquestador de aplicación de fondos en `app`; (c) JWT/autenticación HTTP y endpoints de Fase 6 (ADR-041); (d) decisiones C2–C5 de IA.
+
+Texto original: De los pendientes de mayor severidad, ninguno depende de otro para empezar. Orden por impacto en el Golden Path: (1) resolver la contradicción de puerto en IA, (2) completar pendientes de Convocatoria y core (T1, P8), (3) merge de Identidad a develop y endpoints HTTP.
 
 ## 7. Identidad — implementación de ADR-038 (2026-10-01 → 2026-10-04)
 

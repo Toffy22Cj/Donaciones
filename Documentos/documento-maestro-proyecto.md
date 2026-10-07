@@ -2,7 +2,7 @@
 
 **Nombre comercial provisional (no usado en código):** el proyecto se ha referido a sí mismo informalmente como "PaxFide" en la conversación de diseño, pero esto es explícitamente **no vinculante** — puede cambiar sin afectar nada del dominio, la arquitectura ni el código.
 **Base package Java:** `com.traceability`
-**Fase actual:** Fase 5 — **CERRADA** (Fase 6 — en curso). Fases 1, 2, 3 y 4 formalmente cerradas. Ver `estado-fase5.md` para el detalle completo y las precisiones post-auditoría de la Fase 5.
+**Fase actual:** Fase 6 — **en curso**. Fases 1 a 5 formalmente cerradas (detalle de la Fase 5 en `estado-fase5.md`). Estado vigente de la Fase 6 en `estado-fase6.md` §0; última auditoría código vs. documentación: `auditoria-fase6-codigo-vs-documentacion.md` (2026-10-07, `develop` en `e269985`).
 
 ---
 
@@ -77,6 +77,13 @@ raíz/ (pom.xml, packaging=pom)
 │                  y de `contracts` (para `NarrativeReadPort`, único puerto que cruza
 │                  hacia `ai`). NUNCA importa `core.infrastructure.*` directamente —
 │                  verificado por su propio test de ArchUnit.
+├── convocatoria/→ Módulo de Convocatoria (Fase 6, ADR-037 + Enmiendas). Depende
+│                  ÚNICAMENTE de `contracts` (nunca de `core`, `identity` ni `app`,
+│                  verificado por ArchUnit y por el grafo Maven). Convocatoria,
+│                  CampaignFundingLedger, CampaignAssignment y DonationIntent: CRUD
+│                  + audit log propio, sin Event Sourcing. Sus dependencias hacia
+│                  Identidad salen por puertos propios (`OrganizationVerificationPort`)
+│                  o por `contracts` (`IdentityPrincipalPort`), compuestos en `app`.
 ├── identity/    → Módulo de Identidad y Cuentas (Fase 4, ADR-027). Depende ÚNICAMENTE
 │                  de spring-boot-starter, spring-data-mongodb y spring-security-crypto
 │                  (JAR aislado de hashing, NUNCA spring-boot-starter-security). NUNCA
@@ -85,8 +92,12 @@ raíz/ (pom.xml, packaging=pom)
 │                  `Account` y `Organization` sin Event Sourcing (CRUD + Audit Log
 │                  append-only, ADR-025). Estructura hexagonal equivalente a `core`.
 └── app/         → Módulo de ensamblaje (Bootstrap). Depende de core, crypto, ai, api,
-                   identity. Provee la configuración compartida (ej. MongoTransactionManager)
-                   y el punto de entrada (@SpringBootApplication). Cero lógica de dominio.
+                   identity y convocatoria (esta última desde `e269985`, Fase 6). Provee la
+                   configuración compartida (ej. MongoTransactionManager), el punto de entrada
+                   (@SpringBootApplication) y los orquestadores/adaptadores de composición entre
+                   módulos hermanos: `BlockchainAnchorProducer`, `IntegrityVerificationUseCase`,
+                   `PlatformAdminBootstrapRunner`, `OrganizationVerificationAdapter`
+                   (`convocatoria` ← `identity`). Cero lógica de dominio propia.
 ```
 
 Dependencias unidireccionales, verificadas por tests de ArchUnit que rompen el build si:
@@ -94,11 +105,12 @@ Dependencias unidireccionales, verificadas por tests de ArchUnit que rompen el b
 - `ai` o `crypto` importan cualquier clase bajo `core.*`.
 - cualquier clase bajo `api.*` importa algo de `core.infrastructure.*` (regla propia de `api`, Tarea 3.0, demostrada activa — falla ante una violación deliberada de prueba, no solo "nunca se dispara").
 - cualquier clase bajo `identity.domain` importa `org.springframework.*` o `com.mongodb.*`; cualquier clase bajo `identity.*` importa `core.infrastructure.*` (regla propia de `identity`, Tarea 4.0, mismo criterio de demostración activa).
+- cualquier clase de `convocatoria` importa `core` o `identity` (`ConvocatoriaArchitectureTest`, Fase 6); `app` no está en su classpath.
 
 ### 4.1 Árbol interno de `core`
 
 ```
-core/src/main/java/core/
+core/src/main/java/com/traceability/core/
 ├── domain/                    # Java puro, cero dependencias externas
 │   ├── shared/                # AggregateRoot, EventStream, excepciones base
 │   ├── event/                 # DomainEvent, DomainEventPayload, GENESIS_HASH
@@ -106,17 +118,18 @@ core/src/main/java/core/
 │   └── physicalasset/         # Aggregate PhysicalAsset + payloads
 │
 ├── application/
-│   ├── port/out/               # EventStorePort, OutboxPort, AuditFactsPort (contratos)
+│   ├── port/out/               # EventStorePort, OutboxPort, UnanchoredEventRepositoryPort, DonationReadPort
+│   │                           # (AuditFactsPort vive en `contracts`, no aquí)
 │   ├── event/                  # EventEnvelopeFactory, EventPayloadRegistry, EventCanonicalMapper
 │   ├── saga/                   # OutboxSagaCoordinator, SagaPolicy<T>
 │   ├── service/                # TransactionalEventPublisher
 │   └── projection/             # DonationProjectionHandler, DonationAuditFactsHandler,
-│                                # ProjectionEventHandler (interfaz común), ProjectionRetryScheduler
+│                                # ProjectionEventHandler (interfaz común), ProjectionRetryScheduler,
+│                                # AuditFactsPortImpl
 │
 └── infrastructure/
     ├── persistence/mongo/       # MongoEventStoreAdapter, MongoOutboxPort, documentos @Document
-    └── projection/               # ProjectionEventSource (Change Streams), documentos de lectura,
-                                   # AuditFactsPortImpl
+    └── projection/               # ProjectionEventSource (Change Streams), documentos de lectura
 ```
 
 ---
@@ -165,6 +178,27 @@ core/src/main/java/core/
 - **ADR-025 — Persistencia de Identidad y Cuentas.** Sin Event Sourcing: CRUD convencional sobre MongoDB para `Account`/`Organization`, con Audit Log append-only separado (sin cadena criptográfica — no es Event Store ni participa en reconstrucción de estado). Operaciones cross-aggregate en transacción ACID de MongoDB (`TransactionTemplate` programático, no `@Transactional` declarativo, para evitar el problema de auto-invocación de Spring AOP dentro del bucle de reintento). Reintento acotado (2–3 intentos) solo ante `TransientTransactionError` (detectado vía `MongoException.hasErrorLabel()`, inspeccionando la cadena de causas); los fallos deterministas de dominio nunca se reintentan y se propagan de inmediato.
 - **ADR-026 — Modelo de Dominio de Identidad.** Dos Aggregate Roots: `Account` (email, passwordHash, status, organizationId nullable) y `Organization` (type, members: List\<Membership\>). `Membership.roles: Set<Role>` nunca vacío — invariante protegido exclusivamente por el Aggregate, sin constraint de esquema MongoDB (riesgo aceptado). Roles: `REPRESENTATIVE` (exactamente uno por Organization en todo momento), `ADMINISTRATOR` (0..N, opcional), `EMPLOYEE` (rol base de incorporación). Pertenencia única: una Account pertenece a cero o una Organization (multi-tenancy descartado por falta de evidencia de negocio). Transferencia de representación mediante un único comando atómico `TransferRepresentativeAndRemove` — sin comando `TransferRepresentative` separado, sin `JoinOrganization` separado (la incorporación es `AddEmployee`). `RemoveMemberFromOrganization` nunca puede expulsar directamente a un Representative (exige pasar por la transferencia). `GOVERNMENT`/entidad pública queda fuera de alcance — requeriría análisis de invariantes propio.
 - **ADR-027 — Módulo Maven independiente `identity`.** Bounded context distinto de `core` (identidad vs. trazabilidad); mezclarlos contaminaría ciclo de vida y modelo de dominio. *Scope boundary* explícito: no modifica, reemplaza ni centraliza `donorRef`, `custodianRef`, `beneficiaryRef` ni `assetRef` — esos permanecen bajo ADR-014 y ADR-021-D, intactos. `AccountId` es un identificador opaco propio de Identidad, no sustituto de las referencias de `core`. Hashing de contraseñas: BCrypt vía `spring-security-crypto` (JAR aislado, sin `spring-boot-starter-security`, no contradice ADR-023), factor de costo 12 — decisión técnica documentada en `plan-ejecucion-agentes-fase4.md`, no amerita ADR propio.
+
+### VIII. Autorización y Actores (Fase 5)
+- **ADR-028 — Relación `Organization ↔ Fund`.** Reconstrucción histórica, aprobada en Fase 5.
+- **ADR-029 — `Organization ↔ PhysicalAsset` y Donación en Especie.** Aprobada en Fase 5, revisada (C3/C5) para el enforcement vigente de `organizationRef`. `PhysicalAsset` todavía no tiene `campaignRef` (ver ADR-040 §8).
+- **ADR-030 — `actorRef`: Ubicación y Persistencia.** Aprobada en Fase 5.
+- **ADR-031 — Taxonomía de `ActorRef`.** Aprobada en Fase 5.
+- **ADR-032 — Autorización de Comandos en `core`.** Puerto `Identity ↔ Core` (`IdentityPrincipalPort` en `contracts`), guardas de pertenencia y rol, matriz de autorización. Aprobada en Fase 5.
+- **ADR-033 — Contrato y Envelope de Asset Registration Saga.** Aprobado parcialmente.
+- **ADR-034 — Read Model de Pending Allocation.** Aprobado; sustituye a `FundAllocationSagaPolicy` por resolución manual auditada.
+- **ADR-035 — `HumanActor` como variante de `ActorRef`.** Approved.
+- **ADR-036 — Reversión Administrativa de Asignación.** Approved.
+- **ADR-042 — Orquestación Centralizada de Reintentos de Proyección (A7.2).** Aprobado e implementado en Fase 5; refina ADR-010/017.
+
+### IX. Fase 6 (en curso)
+Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están commiteados con esos números y este catálogo es la referencia para no reutilizarlos.
+- **ADR-037 — Convocatoria, CampaignFundingLedger, CampaignAssignment, DonationIntent.** Aprobado con Enmienda 1 (APROBADA). Enmienda 2 (confirmación y aplicación de fondos) en BORRADOR. Primer corte implementado en `develop` (aunque la cabecera del ADR aún dice "pendiente de implementación").
+- **ADR-038 — Identidad: HumanActor, Platform Administrator, Verificación de Organization, Autenticación.** Approved; tareas 1–8 implementadas y fusionadas (§9 del ADR prevalece sobre §2). JWT pendiente.
+- **ADR-039 — Productor de MerkleBatch e IntegrityVerificationPort.** Aprobado; implementado, incluida la recuperación de batches `COLLECTING`.
+- **ADR-040 — ConvocatoriaAuditFacts (IA).** Aprobado parcialmente; C1 cerrado (`CampaignAuditFactsPort` separado de `AuditFactsPort`), C2–C5 y C8 abiertos.
+- **ADR-041 — APIs de producto y Frontend.** Aprobado (arquitectura de la capa); sin código.
+- **ADR-043 — colisión de número.** En el repositorio, `ADR-043-frontend-movil-paxfide-mobile.md` (PROPUESTO). Los documentos de Convocatoria citan además un `ADR-043-recuperacion-aplicacion-fondos-convocatoria.md` (recuperación automática de la aplicación de fondos, Propuesto) que **no está en el repositorio**. Requiere renumeración por decisión humana (`estado-fase6.md` §0.1).
 
 ---
 
@@ -280,7 +314,9 @@ DomainEvent → EventCanonicalMapper (Map determinista)
              SHA-256, nunca incluye el propio eventHash en el material hasheado
            → eventHash sellado en el documento persistido
 ```
-`MerkleTree`: agrupa hashes periódicamente, duplica la última hoja si el número es impar, orden estrictamente de inserción. `MerkleBatch` con estado `PENDING`/`ANCHORED` — el anclaje real a blockchain (Web3j) es la Tarea 12, aún no implementada.
+`MerkleTree`: agrupa hashes periódicamente, duplica la última hoja si el número es impar, orden estrictamente de inserción. El anclaje real a blockchain (Web3j, ADR-019/ADR-022) **está implementado** (Tarea 13; la frase anterior de este documento que lo daba por pendiente estaba desactualizada). Ciclo de `MerkleBatch`: `COLLECTING → PENDING → SUBMITTING → SUBMITTED → {ANCHORED | ANCHOR_MISMATCH | STUCK | FAILED}`.
+
+**Fase 6 (ADR-039):** `BlockchainAnchorProducer` (en `app`) reclama eventos sin anclar del `event_store` (`UnanchoredEventRepositoryPort`, presupuesto repartido entre streams y contiguo por `sequence`), construye el árbol y pasa el batch de `COLLECTING` a `PENDING` con un update condicional. Recupera automáticamente los batches `COLLECTING` abandonados (`recoveryAttempts`, `crypto.anchor.collecting-recovery.*`). `MerkleBatch` guarda la cobertura multi-stream (`coverage`) y los `leafHashes`. `IntegrityVerificationUseCase` (en `app`) implementa `IntegrityVerificationPort` recomputando la raíz; los batches legacy sin `coverage`/`leafHashes` fallan explícitamente (`LegacyBatchCoverageUnavailableException`, `LegacyBatchLeafHashesUnavailableException`).
 
 ### 8.3 Reconstrucción del payload tipado
 
@@ -360,11 +396,25 @@ event_store (Mongo, colección real)
 
 **Métrica de calidad — Fase 4:** 66 tests del módulo `identity` en verde (dominio puro, persistencia, adaptador de hashing, Application Services), más el escenario end-to-end de la Tarea 4.10 con verificación exacta de orden y conteo del Audit Log. Reactor completo de 7 módulos (`contracts`, `core`, `crypto`, `ai`, `api`, `identity`, `app`) en verde desde la raíz — primera verificación de que `identity` se integra sin romper nada de lo existente. Mecanismo de reintento transaccional verificado con concurrencia real forzada, no simulada.
 
+**Métrica de calidad — Fase 6 (en curso, 2026-10-07):** reactor completo de 9 módulos (`contracts`, `core`, `crypto`, `ai`, `api`, `identity`, `convocatoria`, `app` + padre) en verde: 829 tests (core 229, crypto 50, ai 19, api 34, identity 261, convocatoria 194, app 42), `Failures: 0, Errors: 0`. Detalle en `estado-fase6.md` §0.2.
+
 **Fase 2: cerrada. Fase 3: cerrada. Fase 4: cerrada. Fase 5: cerrada.** El sistema expone tres endpoints públicos de lectura sobre el motor de trazabilidad completo, y ahora además gestiona cuentas de usuario y organizaciones (Fundación/Empresa) con roles, membresías y transferencia de representación, como un bounded context aislado que no toca el perímetro de privacidad ni las referencias opacas ya establecidas en Fases 1-3.
 
-**Estado Actual — Fase 6 (En Curso):** Diseño conceptual cerrado (ADR-037 a ADR-041). Implementación de Blockchain avanzada (Fase 1-3 de Productor de MerkleBatch e `IntegrityVerificationPort` completados y testeados). Verificada la idempotencia de `clearFundsGenesis` (máxima severidad de Convocatoria superada). Quedan pendientes las implementaciones del dominio de Convocatoria (Ledger, Assignment), las lógicas de verificación en Identidad y la resolución final de la contradicción de puertos en IA.
+**Estado Actual — Fase 6 (En Curso, auditado 2026-10-07 sobre `develop` `e269985`):**
 
-**Próximo hito inmediato:** Resolver los pendientes de Fase 6 (ver `estado-fase6.md`) y abordar las siguientes etapas del proyecto. Candidatos identificados: (a) donaciones físicas (en especie) con trazabilidad directa al donante; (b) integración HTTP/autenticación sobre el módulo `identity` (endpoints REST, login, Spring Security); (c) deuda técnica menor identificada.
+| Capa | Implementado en `develop` | Pendiente principal |
+|---|---|---|
+| Convocatoria (ADR-037) | Módulo `convocatoria`: convocatoria, ledger, asignaciones, intención de donación, confirmación y aplicación de fondos con barrera `APPLY_FUNDS`. Compuesto en `app` con verificación real de organización | Orquestador ledger + génesis + outbox en `app`; T1/P8 en `core`; Enmienda 2 en BORRADOR; colisión ADR-043 |
+| Identidad (ADR-038) | Platform Administrator con bootstrap, verificación de `Organization`, actor real en el Audit Log, reintentos C+ | JWT/autenticación HTTP y endpoints de plataforma |
+| Blockchain (ADR-039) | Productor de `MerkleBatch`, recuperación de `COLLECTING`, `IntegrityVerificationPort` | Migración de batches legacy, `correlationId` de scheduler |
+| IA (ADR-040) | Contrato `CampaignAuditFactsPort` (C1 cerrado) | Productor/consumidor, bloqueados por C2–C5 |
+| APIs (ADR-041) | — | Todos los endpoints de Fase 6 |
+
+Idempotencia de `clearFundsGenesis` ante reenvío del mismo `commandId`: verificada. Sigue abierto que el orquestador necesite un camino sin reintento interno (T1) y el mensaje de outbox de la génesis (P8).
+
+*Texto anterior (desactualizado, conservado como registro):* "Quedan pendientes las implementaciones del dominio de Convocatoria (Ledger, Assignment), las lógicas de verificación en Identidad y la resolución final de la contradicción de puertos en IA." — las tres están hechas.
+
+**Próximo hito inmediato:** Resolver los pendientes de Fase 6 en el orden de `estado-fase6.md` §6 (colisión ADR-043 y Enmienda 2 → T1/P8 y orquestador de fondos → JWT y endpoints de ADR-041 → C2–C5 de IA) y abordar las siguientes etapas del proyecto. Candidatos identificados: (a) donaciones físicas (en especie) con trazabilidad directa al donante; (b) integración HTTP/autenticación sobre el módulo `identity` (endpoints REST, login, Spring Security); (c) deuda técnica menor identificada.
 
 ## 9.1 Deudas Técnicas Identificadas
 
@@ -393,13 +443,15 @@ event_store (Mongo, colección real)
 
 ## 10. Diccionario de Conceptos
 
-**ADR (Architecture Decision Record):** documento formal que congela una decisión arquitectónica con su contexto, alternativas consideradas y consecuencias. En este proyecto, 16-17 ADRs numerados forman el contrato de dominio vigente.
+**ADR (Architecture Decision Record):** documento formal que congela una decisión arquitectónica con su contexto, alternativas consideradas y consecuencias. En este proyecto, los ADR-001 a ADR-043 (catálogo en §5; el número 043 tiene una colisión pendiente) forman el contrato vigente.
 
 **Aggregate / Aggregate Root:** entidad raíz que protege un conjunto de invariantes de negocio bajo un único límite de consistencia transaccional. En este proyecto: `Fund` y `PhysicalAsset`. Se reconstruye completamente a partir del replay de sus eventos.
 
 **allocationId:** identificador de una operación de asignación financiera específica (`Fund → PhysicalAsset`). Distinto de `sourceAllocationId` (heredado por los hijos de un split, que no tuvieron asignación propia).
 
-**AuditFactsDTO / AuditFactsPort:** contrato estable (vive en `contracts`) mediante el cual el módulo `ai` lee hechos deterministas de auditoría, sin conocer MongoDB ni la estructura interna de `core`.
+**AuditFactsDTO / AuditFactsPort:** contrato estable (vive en `contracts`) mediante el cual el módulo `ai` lee hechos deterministas de auditoría de **una donación**, sin conocer MongoDB ni la estructura interna de `core`. Lo implementa `AuditFactsPortImpl` (`core`) y lo consume `DonorReportGenerator` (`ai`; los documentos de diseño lo llaman `NarrativeGenerator`).
+
+**CampaignAuditFactsDTO / CampaignAuditFactsPort (Fase 6):** contrato separado en `contracts` para los hechos agregados de **una convocatoria** (ADR-040, C1). Sin implementación ni consumidor todavía.
 
 **Aggregate Boundary:** límite de consistencia transaccional de un Aggregate. Se decide por invariantes de negocio, nunca por conveniencia de modelado o relaciones "naturales" del dominio.
 
@@ -447,7 +499,7 @@ event_store (Mongo, colección real)
 
 **NarrativeReadPort (Fase 3):** puerto neutral en `contracts` (ADR-024) mediante el cual `api` obtiene el estado de la narrativa de IA de una donación sin depender de `ai` directamente. Método `getOrTriggerGeneration(fundId)` — el nombre expone deliberadamente que invocarlo puede disparar generación asíncrona como efecto colateral, en vez de esconderlo detrás de un nombre que sugiera lectura pura.
 
-**Modular Monolith:** estilo arquitectónico de un solo despliegue con fronteras internas estrictas entre módulos (aquí, `contracts`, `core`, `crypto`, `ai`), sin la complejidad operativa de microservicios reales.
+**Modular Monolith:** estilo arquitectónico de un solo despliegue con fronteras internas estrictas entre módulos (aquí, `contracts`, `core`, `crypto`, `ai`, `api`, `identity`, `convocatoria`, ensamblados en `app`), sin la complejidad operativa de microservicios reales.
 
 **OutboxSagaCoordinator / Transactional Outbox:** patrón para coordinar operaciones que cruzan dos Aggregate Roots (streams) sin transacción distribuida real: se persiste el evento de dominio y un "mensaje pendiente" en la misma transacción local; un proceso asíncrono relaya ese mensaje, con reintentos, backoff y compensación ante fallo permanente.
 
