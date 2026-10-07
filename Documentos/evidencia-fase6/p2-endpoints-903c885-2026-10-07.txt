@@ -1,0 +1,51 @@
+# P2 endpoints (8 puntos) en 903c885 (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: c7fad4c6cf30e3fb2d4596bad20d3cb47ad36ec0275662e9f12e40eada72bf9e
+# Línea base: develop 94ce9d1 (P3) = 1185 tests. Ahora: 1194 (app +9: P2EndpointsHttpIntegrationTest).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 153, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.290 s -- in com.traceability.app.auth.PublicRoutesInventoryIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.076 s -- in com.traceability.app.web.ConvocatoriaApiErrorMappingsExhaustivenessTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.51 s -- in com.traceability.app.web.P2EndpointsHttpIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.449 s -- in com.traceability.app.web.AppWebArchitectureTest
+
+# Antes (rojo): los tests de P2 con el código de producción de P2 apartado
+[ERROR] Tests run: 9, Failures: 9, Errors: 0, Skipped: 0, Time elapsed: 28.06 s <<< FAILURE! -- in com.traceability.app.web.P2EndpointsHttpIntegrationTest
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.discovery_neverListsPrivateLinkNorClosed_paginatesWithAnOpaqueCursor_andHidesInternalIds -- Time elapsed: 7.114 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.register_createsAnActiveAccountThatCanLogIn_andRejectsDuplicatesAndInvalidInput -- Time elapsed: 0.062 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.members_forAdministratorOrRepresentative_withRolesAndStatus_andNoEmail -- Time elapsed: 0.084 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.reject_andRequestInformation_onlyByThePlatform_with409OnAFinalState -- Time elapsed: 0.743 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.me_returnsExactlyTheFourFields_omittingNulls_withNoStore -- Time elapsed: 0.064 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.designateAdministrator_andRemoveResponsible_followTheDomainRules -- Time elapsed: 0.091 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.close_isTerminal_andIdempotentWithTheSameCommandId -- Time elapsed: 0.088 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.organizationCampaigns_onlyTheAdministratorOfThatOrganization_withResponsiblesAndAmounts -- Time elapsed: 0.207 s <<< FAILURE!
+[ERROR] com.traceability.app.web.P2EndpointsHttpIntegrationTest.organizationAssets_forAdministratorOrEmployee_withoutDonorData -- Time elapsed: 0.172 s <<< FAILURE!
+
+# Mutaciones (en a4ffd27, antes de integrar develop; el merge solo añadió métodos del predictor y documentos)
+- /me sin no-store: MUERTA  me_returnsExactlyTheFourFields_omittingNulls_withNoStore
+- descubrimiento con PRIVATE_LINK: MUERTA  discovery_neverListsPrivateLinkNorClosed_paginatesWithAnOpaqueCursor_andHidesInternalIds
+- descubrimiento con CLOSED: MUERTA  discovery_neverListsPrivateLinkNorClosed_paginatesWithAnOpaqueCursor_andHidesInternalIds
+- listado de la organización sin autorizar: MUERTA  organizationCampaigns_onlyTheAdministratorOfThatOrganization_withResponsiblesAndAmounts
+- miembros para cualquier rol: MUERTA  members_forAdministratorOrRepresentative_withRolesAndStatus_andNoEmail
+- activos sin frontera de organización: MUERTA  organizationAssets_forAdministratorOrEmployee_withoutDonorData
+- registro sin exigir contraseña: MUERTA  register_createsAnActiveAccountThatCanLogIn_andRejectsDuplicatesAndInvalidInput
+- cursor sin validar: MUERTA  discovery_neverListsPrivateLinkNorClosed_paginatesWithAnOpaqueCursor_andHidesInternalIds
+- retirar sin exigir actingRole del reemplazo: MUERTA  designateAdministrator_andRemoveResponsible_followTheDomainRules
+Restauración verificada contra HEAD. Mutaciones vivas: 0

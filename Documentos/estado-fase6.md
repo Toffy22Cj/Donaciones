@@ -185,7 +185,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Ninguna regla de dominio inventada:** todos los comandos existían; las lecturas nuevas solo leen. Huecos registrados: H-P2-1 (sin política de contraseña), H-P2-2 (sin `fullName`), H-P2-3 (el 409 del registro revela emails), H-P2-4 (retirar en `CLOSED` sin regla).
 - **Referencia:** `referencia-api-v1.md` (método, ruta, auth, cuerpo, respuestas y errores de toda la API implementada).
 - **Decisiones:** DD-48 a DD-56, `PENDIENTE DE RATIFICACIÓN`.
-- **Evidencia:** `evidencia-fase6/p2-endpoints-EVID`.
+- **Evidencia:** `evidencia-fase6/p2-endpoints-903c885-2026-10-07.txt`. Reactor **1194 tests**; 9 mutaciones, 9 muertas.
 
 ### 0.21 P3 — predictor de convocatorias en el backend (2026-10-07, `feat/p3-predictor`) — HECHO
 
