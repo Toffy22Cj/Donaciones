@@ -62,6 +62,23 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **B-PROJ (`plan-b-proj.md`) APROBADO**, siguiente bloque. Las proyecciones no procesan ningún stream real: el event store numera la génesis como 1 y los manejadores la esperan en 0 (D-SEQ: se mantiene 1), y además ignoran los payloads v2. Sin entornos con datos reales. El PR 2 (reconstrucción por JMX) necesita antes una enmienda de ADR-042.
 - **Sin fecha de demo.** Orden por dependencias: B-PROJ PR 1 → D-CAMPAIGN → ADR-047 + B3 → D-SPLIT/B1-bis, D-API/B6, D-ASSET, D-IA/B5 → B-PROJ PR 2 y B4.
 
+### 0.6 B-PROJ PR 1 hecho (2026-10-07, #42)
+
+- **Las proyecciones procesan por primera vez los streams escritos por los comandos reales.** No es una regresión arreglada: **nunca habían funcionado con datos reales**. Desde su implementación, el event store numera la génesis como 1 y los manejadores la esperaban en 0, y además ignoraban los payloads v2. Los tests de proyección construían los eventos a mano empezando en 0, así que no lo detectaban.
+- **Consecuencia para fases anteriores, que se registra tal cual:** el seguimiento público de la **Fase 3** se dio por bueno sin haber funcionado nunca con donaciones reales; para cualquiera de ellas devolvía 404. Su evidencia de cierre solo cubría proyecciones alimentadas con eventos construidos a mano.
+- **Cambios:**
+  - génesis = 1 (enmienda D-SEQ en el documento maestro);
+  - payloads v2 tratados;
+  - Camino B ignorado de forma explícita;
+  - declaraciones de payloads por manejador con un test de contrato;
+  - test de punta a punta con comandos reales y el *change stream* real.
+- **Evidencia:** reactor completo en verde, `core` de 235 a **255 tests**, cinco mutaciones comprobadas (detalle en #42).
+- **Sigue pendiente:**
+  - **PR 2** (reconstrucción operativa por JMX), que necesita antes una **enmienda de ADR-042** (mecanismo nuevo, regla 3.5). Sin entornos con datos reales, no es urgente.
+  - **Historial público de los activos del Camino B:** da 404 hasta que se decida dónde se proyecta una donación en especie (Q3 de la Enmienda 1 de ADR-029, con C5 de ADR-040).
+  - Deuda de ADR-042: guardar `aggregateType` en la cuarentena y hacer configurable la ventana de 4 horas.
+- **Siguiente bloque:** implementación de D-CAMPAIGN (`plan-d-campaign.md`, PROPUESTO).
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.
