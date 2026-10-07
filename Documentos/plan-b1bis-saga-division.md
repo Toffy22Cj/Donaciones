@@ -1,6 +1,6 @@
 # Plan B1-bis — Saga de la división: crear el hijo, compensar y barrera atómica
 
-**Estado:** **PROPUESTO** (2026-10-07). Necesita la aprobación de Carlos antes de cualquier código (regla 3.4).
+**Estado:** **APROBADO — Carlos, 2026-10-07** (Q1–Q4 con precisiones, §7). **Condición de merge:** `ADR-008-enmienda-1-recuperacion-coordinador-sagas.md` aprobada antes del merge del PR de código (regla 3.5), en su propio PR de documentación.
 **Origen:** `propuesta-d-split.md` (**APROBADO — Carlos, 2026-10-07**, S1–S8 y precisiones P1–P4).
 **Desbloquea:** criterios 15–18 del golden path (el 19 depende además de B5) y el endpoint de división de B6.
 **Revisión:** cubierto por la excepción a la regla 3.2. La evidencia de tests sustituye al segundo revisor.
@@ -68,10 +68,24 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`.
 - **`SplitPhysicalAssetSagaPolicy`** (`getSagaType() = "ASSET_SPLIT_SAGA"`), con dos métodos de servicio nuevos en `PhysicalAssetCommandService`, ambos dentro de `CommandRetryTemplate`:
   - `createSplitChild(parentAssetId, childAssetId)`: rehidrata el padre, busca su `ASSET_SPLIT` y aplica la barrera (§2). El actor es `SystemActor("SplitPhysicalAssetSagaPolicy")`, sin nueva autorización.
   - `compensateSplitChild(parentAssetId, childAssetId)`: igual, con la cantidad extraída de ese `ASSET_SPLIT`.
-- **`SplitResolutionReadPort`** (nuevo, solo lectura) para el recurso de estado de S7, que expone B6:
-  - `findStatus(parentAssetId, childAssetId)` devuelve `PENDING`, `CHILD_CREATED`, `COMPENSATED`, o vacío si el padre no tiene ese `ASSET_SPLIT`;
-  - según la decisión de Q2, también `UNRESOLVED`.
-- **Coordinador** (si se aprueba Q1): una excepción en `compensate` deja de marcar `QUARANTINED` sin más (ver Q1).
+- **`SplitResolutionReadPort`** (nuevo, solo lectura) para el recurso de estado de S7, que expone B6. `findStatus(parentAssetId, childAssetId)` devuelve un **estado nombrado** (`SplitResolutionStatus`, Q3), o vacío si el padre no tiene ese `ASSET_SPLIT`:
+  - `PENDING`: sin reclamo y el mensaje de la saga no está en cuarentena;
+  - `CHILD_CREATED`;
+  - `COMPENSATED`;
+  - `UNRESOLVED`: sin reclamo y el mensaje está `QUARANTINED`.
+- **Resolución de la división** (`SplitPhysicalAssetSagaPolicy.compensate`, enmienda D4, Q2): en este orden, bajo la barrera:
+  1. si hay reclamo, termina con éxito según su resultado;
+  2. compensar;
+  3. si el padre está `DELIVERED`, **crear el hijo igualmente** (recuperación hacia delante);
+  4. solo si crear el hijo también es imposible, `PermanentSagaFailureException`.
+- **Coordinador** (Q1, enmienda D1–D5):
+  - dos fases, ejecución y resolución, con 4 h cada una;
+  - `PermanentSagaFailureException` frente a transitorio;
+  - estado `RESOLVED`;
+  - `QUARANTINED` solo para lo que necesita a una persona, con ERROR y contador;
+  - el documento de outbox gana `resolutionStartedAt`, `lastFailureReason` y `manualNote`.
+- **Reloj inyectable en el coordinador** (`Clock`, por defecto el del sistema): hoy usa `Instant.now()`, y los tests 16 y 18 necesitan fijar el instante a ambos lados de las 4 h.
+- **MBean `SagaOutboxAdministration`** (enmienda D5): `quarantinedCount`, `listQuarantined`, `retryResolution` y `markResolvedManually`.
 - **Ventana:** el valor por defecto de `saga.quarantine.window` pasa a `PT4H` (S5).
 
 ### 3.3 Proyecciones (S6)
@@ -107,9 +121,17 @@ Los 14 tests de `propuesta-d-split.md` §4, con estas concreciones:
 | 13 | Ventana por defecto `PT4H` | unitario |
 | 14 | `SplitResolutionReadPort`: `PENDING` → `CHILD_CREATED`; un par padre/hijo inexistente da vacío | integración |
 
-**Además, por los hallazgos:**
-- **H1 (si se aprueba Q1):** un fallo transitorio de `compensate` no deja el mensaje `QUARANTINED`; en el ciclo siguiente se vuelve a compensar y termina `QUARANTINED` con la compensación hecha. Mismo test para `ASSET_REGISTRATION_SAGA`.
-- **H2 (según Q2):** padre `DELIVERED` y saga vencida → ni hijo ni compensación, log ERROR, contador JMX y estado `UNRESOLVED`.
+**Además, por las decisiones de Q1 y Q2 (enmienda §5):**
+
+| # | Caso | Tipo |
+|---|---|---|
+| 15 | Coordinador: fallo transitorio en resolución → `PENDING`; en el ciclo siguiente se resuelve → `RESOLVED` | unitario |
+| 16 | Coordinador: pasada la ventana de resolución (4 h) → `QUARANTINED` con ERROR y contador | unitario |
+| 17 | Coordinador: fallo permanente en ejecución → resolución inmediata, sin esperar 4 h; fallo permanente en resolución → `QUARANTINED` | unitario |
+| **18** | **Efecto de las 4 h sobre la saga de registro existente**, con el valor por defecto (contexto de Spring sin la propiedad): a las 3 h 59 min reintenta `confirmAllocation`; a las 4 h 1 min llama a `reverseAllocation`; un `reverseAllocation` que falla una vez se reintenta y el mensaje termina `RESOLVED` (antes quedaba `QUARANTINED` sin compensar) | integración |
+| 19 | JMX: `retryResolution` vuelve a resolver con ventana nueva; `markResolvedManually` pasa a `RESOLVED` con nota; las dos rechazan un mensaje que no está `QUARANTINED`; `quarantinedCount` y `listQuarantined` reflejan el estado | integración |
+| **20** | **Recuperación hacia delante (Q2):** padre `DELIVERED` y ejecución vencida → la resolución **crea el hijo** (reclamo `CHILD_CREATED`), mensaje `RESOLVED`, estado `CHILD_CREATED` | integración |
+| 21 | Padre `DELIVERED` y creación del hijo también imposible → `QUARANTINED`, estado `UNRESOLVED`; tras `retryResolution`, si la causa desapareció, se crea el hijo | integración |
 
 **Mutaciones** (cada una debe hacer fallar algún test):
 - quitar el reclamo común (cada rama con su propio `commandId`): debe fallar el test 7;
@@ -119,13 +141,19 @@ Los 14 tests de `propuesta-d-split.md` §4, con estas concreciones:
 - restaurar el estado en la proyección sin comprobar `DEPLETED`;
 - aceptar en `compensateSplit` una cantidad distinta de la extraída;
 - no guardar el resultado en el reclamo;
-- que `compensate` ignore `CHILD_CREATED`.
+- que `compensate` ignore `CHILD_CREATED`;
+- volver a marcar `QUARANTINED` tras una compensación fallida (H1): deben fallar los tests 15 y 18;
+- quitar la ventana de resolución: debe fallar el 16;
+- tratar `PermanentSagaFailureException` como transitorio: debe fallar el 17;
+- quitar la recuperación hacia delante: debe fallar el 20;
+- dejar el valor por defecto de la ventana en `PT24H`: deben fallar el 13 y el 18.
 
 **Verificación:** `mvn clean install -fae` del reactor completo, con la salida literal en el PR y el archivo de evidencia en `evidencia-fase6/`.
 
 ## 5. Forma de entrega
+- **Antes:** el PR de documentación con la enmienda de ADR-007/008 (este mismo). El PR de código **no se fusiona** hasta que la enmienda esté aprobada.
 - **Un PR, `feat/b1bis-split-saga`**, que solo toca `core`, más documentos.
-- **Commits:** tests que fallan con esqueleto → dominio → aplicación y barrera → proyección → coordinador (si Q1) → documentos → evidencia y paso a HECHO.
+- **Commits:** tests que fallan con esqueleto → dominio → aplicación y barrera → proyección → coordinador y MBean → documentos → evidencia y paso a HECHO.
 
 ## 6. Fuera de alcance
 - El endpoint HTTP de división y el del recurso de estado (B6).
@@ -133,11 +161,12 @@ Los 14 tests de `propuesta-d-split.md` §4, con estas concreciones:
 - La proyección de los hijos del Camino B (Q3 de la Enmienda 1 de ADR-029).
 - La demostración de la compensación (golden path §3: se prueba, no se demuestra).
 
-## 7. Preguntas para Carlos
+## 7. Decisiones de Carlos (2026-10-07)
 
-| # | Pregunta | Recomendación |
+| # | Pregunta | Decisión |
 |---|---|---|
-| Q1 | **H1:** hoy, si `compensate` lanza una excepción, el coordinador marca `QUARANTINED` y no vuelve a intentarlo. En la división, eso deja la cantidad perdida (ni hijo ni reintegro). ¿Se corrige el coordinador? | **Sí.** La política distingue el fallo **permanente** (`PermanentSagaFailureException`: dominio imposible, como un padre `DELIVERED`) del **transitorio**. Un fallo transitorio deja el mensaje `PENDING` con *backoff* (tope de 1 h) y en el ciclo siguiente se vuelve a compensar. Un fallo permanente → `QUARANTINED` con log ERROR y contador JMX. Afecta también a `ASSET_REGISTRATION_SAGA`, que es idempotente por `-comp` |
-| Q2 | **H2:** si el padre se entrega antes de que la saga resuelva, no se puede compensar (`DELIVERED` es terminal) y el hijo no se pudo crear durante 4 h. ¿Qué se hace? | **No resolver nada automáticamente.** No se toma el reclamo; log ERROR, contador JMX y estado `UNRESOLVED` en `SplitResolutionReadPort`, para que lo resuelva una persona. Se registra como limitación conocida. Ni "crear el hijo igualmente" ni "compensar sobre un `DELIVERED`" son seguros sin una decisión de negocio |
-| Q3 | El recurso de estado: ¿B1-bis entrega solo el puerto de lectura en `core` y B6 el endpoint HTTP? | Sí. Así B1-bis no toca `api` y el contrato queda probado en `core` |
-| Q4 | ¿Un único PR en `core`? | Sí. La barrera, la política y la proyección se prueban juntas |
+| Q1 | H1: la compensación fallida no se reintenta | **Sí**, distinguiendo permanente de transitorio, con **ventana máxima** de reintento (4 h, como ADR-042), **salida manual por JMX** de la cuarentena (regla 2.6) y **enmienda de ADR-007/008 aprobada antes del merge**, en su propio PR de documentación (`ADR-008-enmienda-1-recuperacion-coordinador-sagas.md`) |
+| Q2 | H2: el padre se entrega antes de resolver | **Recuperar hacia delante:** la resolución sigue intentando crear el hijo aunque el padre esté `DELIVERED`, porque la cantidad ya se extrajo. `UNRESOLVED` solo si además eso falla de forma permanente, con salida manual. **Alternativa descartada** y registrada en la enmienda: impedir entregar el padre con divisiones pendientes (exigiría un evento de resolución en el padre) |
+| Q3 | Recurso de estado | **Sí:** el puerto en `core` ahora y el endpoint en B6, con estados nombrados `PENDING`, `CHILD_CREATED`, `COMPENSATED` y `UNRESOLVED` |
+| Q4 | Un PR | **Sí, un PR de `core`**; la enmienda va antes, en su PR de documentación |
+| — | Comprobación pedida | Efecto de las 4 h sobre la saga de registro existente: enmienda D6 y test 18 |
