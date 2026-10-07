@@ -114,7 +114,9 @@ class PublicDonationControllerIntegrationTest {
 
         mockMvc.perform(get("/api/v1/donations/tracking")
                         .header("Authorization", "Bearer " + validToken))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                // TR-D1 (Q-B60-1, corregido en B6-d)
+                .andExpect(jsonPath("$.title").value("NotFound"));
     }
 
     @Test
