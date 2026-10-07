@@ -99,6 +99,7 @@ class PlatformAdministratorsHttpIntegrationTest {
     private List<String> administrators(String by) throws Exception {
         HttpResponse<String> r = send("GET", "/api/v1/platform/administrators", by, null);
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
+        assertThat(r.headers().firstValue("Cache-Control")).hasValueSatisfying(v -> assertThat(v).contains("no-store"));
         JsonNode items = json.readTree(r.body()).get("items");
         for (JsonNode item : items) {
             assertThat(item.fieldNames()).toIterable().containsExactlyInAnyOrder("accountId", "status");
