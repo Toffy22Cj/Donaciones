@@ -17,6 +17,10 @@ public enum CommandType {
     REMOVE_RESPONSIBLE(false),
     CLOSE_CONVOCATORIA(false),
     CREATE_DONATION_INTENT(false),
+    // Enmienda 4 de ADR-037 (D5)
+    REQUEST_CONFIGURATION_CHANGE(false),
+    APPROVE_CONFIGURATION_CHANGE(false),
+    REJECT_CONFIGURATION_CHANGE(false),
     /**
      * Aplicación de fondos de una {@code DonationIntent} ya {@code CONFIRMED}; {@code commandId = intentId}. Clave
      * conceptual {@code APPLY_FUNDS:{intentId}}, guardada como {@code _id = {commandType, commandId}}.

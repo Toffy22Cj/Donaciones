@@ -125,3 +125,35 @@ La incorporación reutiliza `AddEmployee` y `AssignAdministrator` (ADR-026). Cor
 - retirado, desaparece; cerrada, sigue con `CLOSED`;
 - quien cambia de organización no ve las asignaciones de la anterior;
 - `?accountId=` de otro no cambia nada.
+
+## 3.5 Editar la configuración con solicitud y aprobación (D3)
+
+**Diseño:** `ADR-037-enmienda-4-solicitud-y-aprobacion-de-configuracion.md`, aprobada como decisión delegada (DD-73). Sigue la §3.2 de la Enmienda 1 (D2/D3):
+- edición directa solo antes de la primera donación;
+- después, una solicitud que aprueba otro `ADMINISTRATOR` o el `REPRESENTATIVE`, nunca el solicitante;
+- sin aprobador válido, el cambio queda bloqueado; PaxFide nunca aprueba.
+
+| Endpoint | Auth | Entrada | Respuesta | Errores |
+|---|---|---|---|---|
+| `POST /campaigns/{ref}/configuration` | `ADMINISTRATOR`, `Command-Id` | `{expectedConfigurationVersion, configuration}` (la de CV-01) | `200 {campaignRef, configurationVersion}` | 400; 403; 409 `CampaignAlreadyHasDonations`, `ConfigurationVersionConflict`, `ConfigurationChangeOnClosedCampaign`, `MonetaryTermsChangeNotSupported` |
+| `POST /campaigns/{ref}/configuration-change-requests` | `ADMINISTRATOR`, `Command-Id` | ídem | `201 {requestId, status: "PENDING", baseConfigurationVersion}` | 400; 403; 409 ya hay una pendiente, versión, cerrada, `MonetaryTermsChangeNotSupported`, `MonetaryRemovalNotAllowed` |
+| `GET /campaigns/{ref}/configuration-change-requests` | `ADMINISTRATOR` o `REPRESENTATIVE` | — | `200 {items: [{requestId, status, baseConfigurationVersion, proposedConfiguration, requestedBy, requestedAt, decidedBy?, decidedAt?, resultingConfigurationVersion?}]}`, 50, `no-store` | 403 |
+| `POST …/{requestId}/approve` | otro `ADMINISTRATOR` o el `REPRESENTATIVE`, `Command-Id` | — | `200 {requestId, status: "APPROVED", configurationVersion}` | 403 (`SelfApprovalNotAllowed` si es el solicitante); 409 no pendiente, versión avanzada, cerrada, `MonetaryRemovalNotAllowed` |
+| `POST …/{requestId}/reject` | ídem, o el propio solicitante (retirarla) | — | `200 {requestId, status: "REJECTED"}` | 403; 409 no pendiente |
+
+**Reglas nuevas** (DD-73, enmienda D2 y D4):
+- una sola solicitud pendiente por convocatoria (índice único parcial, creado al arrancar);
+- la propuesta se valida al pedirla;
+- con intenciones de donación, nunca se quita `MONETARY`, porque se perdería el ledger.
+
+**Tests** (`CampaignConfigurationChangeHttpIntegrationTest`, 5, rojos primero):
+- edición directa y luego 409 con donaciones;
+- solicitud, segunda pendiente 409, autoaprobación 403;
+- aprobación por otro administrador y por el representante, visible en CV-07;
+- la intención anterior conserva su versión;
+- quitar `MONETARY` o cambiar la meta → 409;
+- configuración avanzada → la aprobación falla y la solicitud sigue pendiente; el solicitante la retira;
+- convocatoria cerrada → 409;
+- el mismo 403 para quien no debe.
+
+**Hallazgo H-IDX-1** (para revisar aparte): el `application.yml` de test de `app` sustituye al principal y no activa `auto-index-creation`. Los índices que el código declara solo con anotaciones sobre documentos sin repositorio de Spring Data no existen en los tests de `app`; por ejemplo, el índice único parcial de `campaign_assignments`. Este bloque crea el suyo de forma explícita.

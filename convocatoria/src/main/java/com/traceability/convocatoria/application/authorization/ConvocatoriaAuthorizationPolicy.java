@@ -48,6 +48,26 @@ public class ConvocatoriaAuthorizationPolicy {
     }
 
     /**
+     * Aprobar, rechazar o listar solicitudes de cambio de configuración (Enmienda 1 de ADR-037, §3.2; Enmienda 4, D2):
+     * {@code ADMINISTRATOR} o {@code REPRESENTATIVE} de la organización de la convocatoria. Que sea distinto del
+     * solicitante lo comprueba el servicio.
+     */
+    public ConvocatoriaActor requireApproverOf(String actorAccountId, String organizationRef) {
+        Objects.requireNonNull(actorAccountId, "actorAccountId");
+        Objects.requireNonNull(organizationRef, "organizationRef");
+        AuthorizationPrincipal principal = identityPrincipalPort.resolvePrincipal(actorAccountId);
+        if (!organizationRef.equals(principal.organizationId())) {
+            throw new ActorNotInCampaignOrganizationException(
+                    "Actor " + actorAccountId + " does not belong to organization " + organizationRef);
+        }
+        if (principal.roles() == null || !(principal.roles().contains(AuthorizationRole.ADMINISTRATOR)
+                || principal.roles().contains(AuthorizationRole.REPRESENTATIVE))) {
+            throw new ActorRoleNotAllowedException("Actor " + actorAccountId + " is neither ADMINISTRATOR nor REPRESENTATIVE");
+        }
+        return new ConvocatoriaActor(principal.accountId(), principal.organizationId(), principal.roles());
+    }
+
+    /**
      * X2: el destinatario de una asignación debe ser {@code EMPLOYEE} (o {@code ADMINISTRATOR}, según la operación)
      * de la misma organización; si no, {@link InvalidResponsibleRecipientException}.
      */
