@@ -240,8 +240,9 @@ class ProjectionChangeStreamE2ETest {
         Document projection = mongoTemplate.findById(fundId, Document.class, "donation_projections");
         return ((List<Document>) projection.get("logistics", List.class)).stream()
                 .filter(l -> assetId.equals(l.getString("assetId")))
+                .findFirst()
                 .map(l -> l.getString(field))
-                .findFirst().orElse(null);
+                .orElse(null);
     }
 
     @SuppressWarnings("unchecked")
