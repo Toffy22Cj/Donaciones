@@ -13,11 +13,9 @@ import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventD
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
 import com.traceability.core.infrastructure.projection.mongo.documents.AssetIndexDocument;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationAuditFactsDocument;
-import com.traceability.core.infrastructure.projection.mongo.documents.ProjectionRetryDocument;
 import com.traceability.core.infrastructure.projection.mongo.properties.AuditThresholdProperties;
 import com.traceability.core.infrastructure.projection.mongo.repositories.AssetIndexRepository;
 import com.traceability.core.infrastructure.projection.mongo.repositories.DonationAuditFactsRepository;
-import com.traceability.core.infrastructure.projection.mongo.repositories.ProjectionRetryRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -38,20 +36,17 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
     private final EventCanonicalMapper canonicalMapper;
     private final AssetIndexRepository assetIndexRepository;
     private final DonationAuditFactsRepository auditFactsRepository;
-    private final ProjectionRetryRepository retryRepository;
     private final AuditThresholdProperties thresholds;
 
     public DonationAuditFactsHandler(MongoTemplate mongoTemplate,
                                      EventCanonicalMapper canonicalMapper,
                                      AssetIndexRepository assetIndexRepository,
                                      DonationAuditFactsRepository auditFactsRepository,
-                                     ProjectionRetryRepository retryRepository,
                                      AuditThresholdProperties thresholds) {
         this.mongoTemplate = mongoTemplate;
         this.canonicalMapper = canonicalMapper;
         this.assetIndexRepository = assetIndexRepository;
         this.auditFactsRepository = auditFactsRepository;
-        this.retryRepository = retryRepository;
         this.thresholds = thresholds;
     }
 
@@ -62,11 +57,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
 
     @Override
     public void handleEvent(TraceabilityEventDocument eventDoc) {
-        try {
-            processEvent(eventDoc);
-        } catch (DonationProjectionHandler.MissingDependencyException | DonationProjectionHandler.SequenceGapException e) {
-            enqueueForRetry(eventDoc);
-        }
+        processEvent(eventDoc);
     }
 
     private void processEvent(TraceabilityEventDocument eventDoc) {
@@ -98,7 +89,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             doc.setGeneratedAt(Instant.now());
         }
 
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
         Update update = new Update();
         update.set("auditMetadata.fundLastProcessedSequence", incomingSequence);
         update.set("generatedAt", Instant.now());
@@ -125,7 +116,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
     }
 
     private void processPhysicalAssetEvent(TraceabilityEventDocument eventDoc, String assetId, long incomingSequence) {
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
         
         String fundId = resolveFundId(assetId, payload);
         if (fundId == null) {
@@ -253,21 +244,5 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             }
         }
         return null;
-    }
-
-    private void enqueueForRetry(TraceabilityEventDocument eventDoc) {
-        ProjectionRetryDocument retryDoc = ProjectionRetryDocument.builder()
-            .id(eventDoc.getEventId() + "_" + getHandlerName())
-            .handlerName(getHandlerName())
-            .eventId(eventDoc.getEventId())
-            .streamId(eventDoc.getStreamId())
-            .sequence(eventDoc.getSequence())
-            .eventType(eventDoc.getEventType())
-            .payload(eventDoc.getPayload())
-            .occurredAt(eventDoc.getOccurredAt())
-            .firstAttemptAt(Instant.now().toString())
-            .lastAttemptAt(Instant.now().toString())
-            .build();
-        retryRepository.save(retryDoc);
     }
 }

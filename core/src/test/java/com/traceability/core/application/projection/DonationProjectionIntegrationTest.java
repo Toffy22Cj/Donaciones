@@ -14,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -24,7 +26,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import org.springframework.boot.test.mock.mockito.MockBean;
 import com.traceability.contracts.HashPort;
 import com.traceability.core.application.port.out.OutboxPort;
 
@@ -36,11 +37,18 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(properties = {
-    "core.projection.retry.delay=100",
+    DonationProjectionIntegrationTest.DISABLE_SCHEDULER_PROP,
     "core.projection.retry.timeout-minutes=5"
 })
 @Testcontainers
 class DonationProjectionIntegrationTest {
+
+    @MockBean
+    private IdentityPrincipalPort identityPrincipalPort;
+
+    // Spring ScheduledThreadPoolExecutor rejects delay <= 0 with IllegalArgumentException. 
+    // We use a large magic number (99999999 ms, ~115 days) to effectively disable the background scheduler during tests.
+    static final String DISABLE_SCHEDULER_PROP = "core.projection.retry.delay=99999999";
 
     @MockBean
     private HashPort hashPort;
@@ -113,6 +121,7 @@ class DonationProjectionIntegrationTest {
         doc.setSequence(seq);
         doc.setEventType(type);
         doc.setPayload(payload);
+        doc.setSchemaVersion("1.0");
         doc.setOccurredAt("2026-09-01T10:00:00Z");
         return doc;
     }
@@ -175,7 +184,25 @@ class DonationProjectionIntegrationTest {
         
         // Sequence 2 arrives before 1 (GAP)
         TraceabilityEventDocument ev2 = buildEvent("fund-3", "Fund", 2, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-1", "requestedAmount", 300));
-        projectionHandler.handleEvent(ev2);
+        try {
+            projectionHandler.handleEvent(ev2);
+            fail("Expected SequenceGapException");
+        } catch (com.traceability.core.application.projection.DonationProjectionHandler.SequenceGapException e) {
+            // Simulate ProjectionEventSource creating the retry doc
+            ProjectionRetryDocument retryDoc = new ProjectionRetryDocument();
+            retryDoc.setId("event-fund-3-2_DonationProjectionHandler");
+            retryDoc.setHandlerName("DonationProjectionHandler");
+            retryDoc.setStreamId("fund-3");
+            retryDoc.setSequence(2L);
+            retryDoc.setEventId(ev2.getEventId());
+            retryDoc.setEventType(ev2.getEventType());
+            retryDoc.setSchemaVersion(ev2.getSchemaVersion());
+            retryDoc.setPayload(ev2.getPayload());
+            retryDoc.setStatus("PENDING");
+            retryDoc.setProjectionId("fund-3");
+            retryDoc.setFirstAttemptAt(java.time.Instant.now().toString());
+            retryRepository.save(retryDoc);
+        }
         
         DonationProjectionDocument proj = projectionRepository.findById("fund-3").get();
         assertEquals(0, proj.getAllocations().size());
@@ -187,16 +214,16 @@ class DonationProjectionIntegrationTest {
         TraceabilityEventDocument ev1 = buildEvent("fund-3", "Fund", 1, "FUNDS_CLEARED", Map.of("clearedAmount", 500));
         projectionHandler.handleEvent(ev1);
         
-        // Wait for scheduler to process retries automatically
-        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
-            .until(() -> retryRepository.findByStatus("PENDING").isEmpty());
+        // Execute synchronously exactly once
+        retryScheduler.processRetries();
         
         proj = projectionRepository.findById("fund-3").get();
         assertEquals(500, proj.getFinancialSnapshot().getClearedAmount());
         assertEquals(1, proj.getAllocations().size());
         assertEquals(2, proj.getAuditMetadata().getFundLastProcessedSequence());
         
-        assertEquals(0, retryRepository.findByStatus("PENDING").size());
+        // Verify completely empty table (not just non-PENDING)
+        assertTrue(retryRepository.findAll().isEmpty(), "Retry table should be completely empty");
     }
 
     @Test
@@ -212,6 +239,7 @@ class DonationProjectionIntegrationTest {
             .streamId("fund-stuck")
             .sequence(1)
             .eventType("FUNDS_CLEARED")
+            .schemaVersion("1.0")
             .payload(Map.of("clearedAmount", 500L))
             .occurredAt("2026-09-01T10:00:00Z")
             .firstAttemptAt("2026-09-01T10:00:00Z")
@@ -221,9 +249,10 @@ class DonationProjectionIntegrationTest {
         stuckDoc.setProcessingStartedAt(java.time.Instant.now().minus(10, java.time.temporal.ChronoUnit.MINUTES).toString());
         retryRepository.save(stuckDoc);
 
-        // Await processing (scheduler should pick it up because it timed out)
-        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10))
-            .until(() -> retryRepository.findById("event-stuck_DonationProjectionHandler").isEmpty());
+        // Execute synchronously exactly once
+        retryScheduler.processRetries();
+
+        assertTrue(retryRepository.findById("event-stuck_DonationProjectionHandler").isEmpty(), "Document should be fully processed and deleted");
 
         DonationProjectionDocument proj = projectionRepository.findById("fund-stuck").get();
         assertEquals(500L, proj.getFinancialSnapshot().getClearedAmount());
@@ -311,9 +340,26 @@ class DonationProjectionIntegrationTest {
         TraceabilityEventDocument ev3 = buildEvent("fund-5", "Fund", 3, "FUNDS_REFUNDED", Map.of("refundId", "ref-1", "refundAmount", 100));
         TraceabilityEventDocument ev1 = buildEvent("fund-5", "Fund", 1, "FUNDS_CLEARED", Map.of("clearedAmount", 500));
         
-        projectionHandler.handleEvent(ev2);
-        projectionHandler.handleEvent(ev3);
-        projectionHandler.handleEvent(ev1);
+        for (TraceabilityEventDocument ev : List.of(ev2, ev3, ev1)) {
+            try {
+                projectionHandler.handleEvent(ev);
+                fail("Expected an exception");
+            } catch (Exception e) {
+                ProjectionRetryDocument retryDoc = new ProjectionRetryDocument();
+                retryDoc.setId("event-fund-5-" + ev.getSequence() + "_DonationProjectionHandler");
+                retryDoc.setHandlerName("DonationProjectionHandler");
+                retryDoc.setStreamId("fund-5");
+                retryDoc.setSequence(ev.getSequence());
+                retryDoc.setEventId(ev.getEventId());
+                retryDoc.setEventType(ev.getEventType());
+                retryDoc.setSchemaVersion(ev.getSchemaVersion());
+                retryDoc.setPayload(ev.getPayload());
+                retryDoc.setStatus("QUARANTINED");
+                retryDoc.setProjectionId("fund-5");
+                retryDoc.setFirstAttemptAt(java.time.Instant.now().toString());
+                retryRepository.save(retryDoc);
+            }
+        }
         
         List<ProjectionRetryDocument> quarantined = retryRepository.findByProjectionIdAndStatusOrderBySequenceAsc("fund-5", "QUARANTINED");
         assertEquals(3, quarantined.size());

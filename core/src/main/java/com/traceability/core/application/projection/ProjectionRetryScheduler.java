@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -43,42 +46,69 @@ public class ProjectionRetryScheduler {
 
     @Scheduled(fixedDelayString = "${core.projection.retry.delay:60000}")
     public void processRetries() {
-        while (true) {
-            Optional<ProjectionRetryDocument> optRetryDoc = retryRepository.claimNextPendingRetry(processingTimeoutMinutes);
-            if (optRetryDoc.isEmpty()) {
-                break;
+        // Each document is attempted at most once per run: retryable failures stay PROCESSING (not claimable)
+        // until the run ends and are only then released to PENDING, so the scheduler's fixedDelay is the
+        // backoff. Releasing them immediately made the loop re-claim the same document without pause.
+        List<ProjectionRetryDocument> deferred = new ArrayList<>();
+        Set<String> attemptedThisRun = new HashSet<>();
+        try {
+            while (true) {
+                Optional<ProjectionRetryDocument> optRetryDoc = retryRepository.claimNextPendingRetry(processingTimeoutMinutes);
+                if (optRetryDoc.isEmpty()) {
+                    break;
+                }
+
+                ProjectionRetryDocument retryDoc = optRetryDoc.get();
+                if (!attemptedThisRun.add(retryDoc.getId())) {
+                    // Re-claimed within this run (processing lease expired): leave it for the next run.
+                    deferred.add(retryDoc);
+                    continue;
+                }
+                try {
+                    TraceabilityEventDocument eventDoc = toEventDoc(retryDoc);
+                    ProjectionEventHandler handler = handlers.get(retryDoc.getHandlerName());
+                    if (handler != null) {
+                        handler.handleEvent(eventDoc);
+                        retryRepository.delete(retryDoc);
+                    } else {
+                        // Unknown handler, quarantine immediately
+                        quarantine(retryDoc);
+                    }
+                } catch (Exception e) {
+                    boolean isPermanent = isPermanentError(e);
+                    if (isPermanent) {
+                        quarantine(retryDoc);
+                    } else {
+                        // Still failing with retryable error. Check if 4 hours have passed
+                        Instant firstAttempt = Instant.parse(retryDoc.getFirstAttemptAt());
+                        if (firstAttempt.plus(4, ChronoUnit.HOURS).isBefore(Instant.now())) {
+                            quarantine(retryDoc);
+                        } else {
+                            retryDoc.setRetryCount(retryDoc.getRetryCount() + 1);
+                            retryDoc.setLastAttemptAt(Instant.now().toString());
+                            deferred.add(retryDoc);
+                        }
+                    }
+                }
             }
-            
-            ProjectionRetryDocument retryDoc = optRetryDoc.get();
-            try {
-                TraceabilityEventDocument eventDoc = toEventDoc(retryDoc);
-                ProjectionEventHandler handler = handlers.get(retryDoc.getHandlerName());
-                if (handler != null) {
-                    handler.handleEvent(eventDoc);
-                    retryRepository.delete(retryDoc);
-                } else {
-                    // Unknown handler, quarantine immediately
-                    quarantine(retryDoc);
-                }
-            } catch (DonationProjectionHandler.SequenceGapException | DonationProjectionHandler.MissingDependencyException e) {
-                // Still failing. Check if 4 hours have passed
-                Instant firstAttempt = Instant.parse(retryDoc.getFirstAttemptAt());
-                if (firstAttempt.plus(4, ChronoUnit.HOURS).isBefore(Instant.now())) {
-                    quarantine(retryDoc);
-                } else {
-                    retryDoc.setRetryCount(retryDoc.getRetryCount() + 1);
-                    retryDoc.setLastAttemptAt(Instant.now().toString());
-                    retryDoc.setStatus("PENDING"); // Revert back to PENDING so it can be claimed again
-                    retryDoc.setProcessingStartedAt(null);
-                    retryRepository.save(retryDoc);
-                }
-            } catch (DonationProjectionHandler.ProjectionPausedException e) {
-                quarantine(retryDoc);
-            } catch (Exception e) {
-                // Other unexpected errors, quarantine immediately
-                quarantine(retryDoc);
+        } finally {
+            for (ProjectionRetryDocument retryDoc : deferred) {
+                retryDoc.setStatus("PENDING"); // Revert back to PENDING so the next run can claim it again
+                retryDoc.setProcessingStartedAt(null);
+                retryRepository.save(retryDoc);
             }
         }
+    }
+
+    private boolean isPermanentError(Exception e) {
+        if (e instanceof com.traceability.core.application.projection.DonationProjectionHandler.SequenceGapException ||
+            e instanceof com.traceability.core.application.projection.DonationProjectionHandler.MissingDependencyException ||
+            e instanceof org.springframework.dao.DataAccessException ||
+            e.getClass().getName().contains("MongoSocketException") ||
+            e.getClass().getName().contains("MongoTimeoutException")) {
+            return false; // Retryable
+        }
+        return true; // NullPointerException, IllegalArgumentException, ProjectionPausedException, etc are permanent
     }
 
     private void quarantine(ProjectionRetryDocument retryDoc) {
@@ -117,12 +147,9 @@ public class ProjectionRetryScheduler {
                     retryRepository.delete(retryDoc);
                 }
             } catch (Exception e) {
-                // If it fails again during resume, the handleEvent will enqueue it to retry_pending
-                // Wait, handleEvent catches SequenceGap and calls enqueueForRetry.
-                // We should delete the old quarantined doc because handleEvent created a new one,
-                // but only if handleEvent successfully enqueued a new one.
-                // Actually, just delete the old one and let handleEvent do its thing.
-                retryRepository.delete(retryDoc);
+                // Handlers no longer enqueue their own retries (A7.2), so this document is the only copy of
+                // the event: keep it QUARANTINED and pause the projection again instead of deleting it.
+                quarantine(retryDoc);
                 break; // Stop processing further events for this projection to maintain order
             }
         }
@@ -135,6 +162,7 @@ public class ProjectionRetryScheduler {
         eventDoc.setSequence(retryDoc.getSequence());
         eventDoc.setEventType(retryDoc.getEventType());
         eventDoc.setPayload(retryDoc.getPayload());
+        eventDoc.setSchemaVersion(retryDoc.getSchemaVersion());
         eventDoc.setOccurredAt(retryDoc.getOccurredAt());
         // For projection purposes, we don't need the exact original metadata except what affects logic.
         // We assume aggregateType can be inferred.

@@ -48,7 +48,7 @@ class Web3jBlockchainAnchorAdapterTest {
     @Test
     void shouldThrowIllegalArgumentExceptionIfNonceIsNull() {
         MerkleBatch batchWithoutNonce = new MerkleBatch(
-                "batch-1", 1, 10, "0xabcdef", Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0xabcdef", Instant.now(), AnchorStatus.SUBMITTING,
                 "network", "0xContract", null, null, null, null, null, null
         );
 
@@ -61,7 +61,7 @@ class Web3jBlockchainAnchorAdapterTest {
     @Test
     void shouldThrowGasCapExceededExceptionWhenGasPriceIsTooHigh() throws IOException {
         MerkleBatch batch = new MerkleBatch(
-                "batch-1", 1, 10, "0xabcdef", Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0xabcdef", Instant.now(), AnchorStatus.SUBMITTING,
                 "network", "0xContract", 42L, null, null, null, null, null
         );
 
@@ -85,7 +85,7 @@ class Web3jBlockchainAnchorAdapterTest {
     @Test
     void shouldConstructExplicitNonceTransactionManagerWithExactBatchNonce() throws Exception {
         MerkleBatch batch = new MerkleBatch(
-                "batch-1", 1, 10, "0xabcdef", Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "0xabcdef", Instant.now(), AnchorStatus.SUBMITTING,
                 "network", "0xContract", 42L, null, null, null, null, null
         );
 

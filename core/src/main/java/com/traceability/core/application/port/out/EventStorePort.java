@@ -8,7 +8,7 @@ public interface EventStorePort {
     /**
      * Appends new events to the stream, ensuring exact sequence matching for concurrency control.
      */
-    void append(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, String actorRef);
+    void append(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef);
     
     /**
      * Loads the entire event stream sorted by sequence ascending.

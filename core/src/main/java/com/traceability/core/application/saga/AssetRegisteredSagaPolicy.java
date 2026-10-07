@@ -25,7 +25,7 @@ public class AssetRegisteredSagaPolicy implements SagaPolicy {
     public void execute(OutboxMessage message) {
         try {
             JsonNode payload = objectMapper.readTree(message.payload());
-            String allocationId = payload.path("sourceAllocationId").asText(null);
+            String allocationId = payload.path("allocationId").asText(null);
             String fundId = payload.path("fundId").asText(null); // Assuming fundId is known or correlationId is the fundId
             
             // For simplicity, we might assume the correlationId contains the fundId, or it's in the payload.
@@ -36,7 +36,7 @@ public class AssetRegisteredSagaPolicy implements SagaPolicy {
 
             if (allocationId != null && !allocationId.isEmpty() && !allocationId.equals("null") && fundId != null) {
                 // messageId is globally unique, great for idempotency
-                fundCommandService.confirmAllocation(message.messageId(), fundId, allocationId);
+                fundCommandService.confirmAllocation(message.messageId(), fundId, allocationId, new com.traceability.core.domain.event.SystemActor("AssetRegisteredSagaPolicy"));
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to process ASSET_REGISTRATION_SAGA", e);
@@ -47,7 +47,7 @@ public class AssetRegisteredSagaPolicy implements SagaPolicy {
     public void compensate(OutboxMessage message) {
         try {
             JsonNode payload = objectMapper.readTree(message.payload());
-            String allocationId = payload.path("sourceAllocationId").asText(null);
+            String allocationId = payload.path("allocationId").asText(null);
             String fundId = payload.path("fundId").asText(null);
             
             if (fundId == null || fundId.isEmpty() || fundId.equals("null")) {
@@ -55,7 +55,7 @@ public class AssetRegisteredSagaPolicy implements SagaPolicy {
             }
 
             if (allocationId != null && !allocationId.isEmpty() && !allocationId.equals("null") && fundId != null) {
-                fundCommandService.reverseAllocation(message.messageId() + "-comp", fundId, allocationId, "Asset registration saga failed/compensated");
+                fundCommandService.reverseAllocation(message.messageId() + "-comp", fundId, allocationId, "Asset registration saga failed/compensated", new com.traceability.core.domain.event.SystemActor("AssetRegisteredSagaPolicy"));
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to compensate ASSET_REGISTRATION_SAGA", e);

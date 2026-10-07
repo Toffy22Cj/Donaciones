@@ -39,6 +39,9 @@ public class AuditThresholdPropertiesTest {
     @Autowired
     private AuditThresholdProperties properties;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.traceability.contracts.authorization.IdentityPrincipalPort identityPrincipalPort;
+
     @Test
     void shouldLoadThresholdsFromApplicationYml() {
         // These values should come from application.yml, even if the java class has defaults

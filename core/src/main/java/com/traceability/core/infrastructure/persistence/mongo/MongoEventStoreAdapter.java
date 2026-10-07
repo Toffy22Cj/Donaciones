@@ -35,7 +35,7 @@ public class MongoEventStoreAdapter implements EventStorePort {
     }
 
     @Override
-    public void append(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, String actorRef) {
+    public void append(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef) {
         if (events == null || events.isEmpty()) return;
 
         String previousHash;
@@ -55,9 +55,9 @@ public class MongoEventStoreAdapter implements EventStorePort {
         long currentSequence = expectedVersion;
         String currentHash = previousHash;
         String origin = "TRACEABILITY_CORE";
-        String schemaVersion = "1.0";
 
         for (DomainEvent event : events) {
+            String schemaVersion = com.traceability.core.application.event.EventPayloadRegistry.getSchemaVersionForClass(event.payload().getClass());
             long newSequence = currentSequence + 1;
             String eventId = UUID.randomUUID().toString();
             Instant recordedAt = Instant.now();
@@ -72,7 +72,6 @@ public class MongoEventStoreAdapter implements EventStorePort {
                     schemaVersion,
                     event.occurredAt(),
                     recordedAt,
-                    actorRef,
                     origin,
                     event.payload()
             );
@@ -121,7 +120,7 @@ public class MongoEventStoreAdapter implements EventStorePort {
         List<TraceabilityEventDocument> docs = mongoTemplate.find(query, TraceabilityEventDocument.class);
 
         return docs.stream().map(doc -> {
-            DomainEventPayload typedPayload = canonicalMapper.convertPayload(doc.getPayload(), doc.getEventType());
+            DomainEventPayload typedPayload = canonicalMapper.convertPayload(doc.getPayload(), doc.getEventType(), doc.getSchemaVersion());
             return new DomainEvent(
                     () -> doc.getEventType(), 
                     typedPayload,

@@ -21,6 +21,9 @@
         <module>core</module>
         <module>crypto</module>
         <module>ai</module>
+        <module>api</module>
+        <module>identity</module>
+        <module>convocatoria</module>
         <module>app</module>
     </modules>
 

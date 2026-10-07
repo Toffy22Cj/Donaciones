@@ -28,10 +28,12 @@ public class TraceabilityEventDocument {
     private String schemaVersion;
     private String occurredAt;
     private String recordedAt;
-    private String actorRef;
+    private com.traceability.core.domain.event.ActorRef actorRef;
     private String origin;
     
     private Map<String, Object> payload;
+    
+    private String merkleBatchId;
     
     private String previousHash;
     private String eventHash;

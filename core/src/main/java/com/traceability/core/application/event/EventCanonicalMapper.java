@@ -39,7 +39,6 @@ public class EventCanonicalMapper {
             String schemaVersion,
             Instant occurredAt,
             Instant recordedAt,
-            String actorRef,
             String origin,
             DomainEventPayload payload) {
         
@@ -52,7 +51,6 @@ public class EventCanonicalMapper {
         map.put("schemaVersion", schemaVersion);
         map.put("occurredAt", occurredAt != null ? occurredAt.toString() : null);
         map.put("recordedAt", recordedAt != null ? recordedAt.toString() : null);
-        map.put("actorRef", actorRef);
         map.put("origin", origin);
 
         // Convert the strongly-typed payload into a generic Map
@@ -65,8 +63,8 @@ public class EventCanonicalMapper {
     /**
      * Converts a generic Map back into a strongly-typed DomainEventPayload.
      */
-    public DomainEventPayload convertPayload(Map<String, Object> payloadMap, String eventType) {
-        Class<? extends DomainEventPayload> clazz = EventPayloadRegistry.getClassForType(eventType);
+    public DomainEventPayload convertPayload(Map<String, Object> payloadMap, String eventType, String schemaVersion) {
+        Class<? extends DomainEventPayload> clazz = EventPayloadRegistry.getClassForType(eventType, schemaVersion);
         return mapper.convertValue(payloadMap, clazz);
     }
 }

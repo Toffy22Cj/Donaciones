@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -91,10 +92,10 @@ class MerkleBatchMongoAdapterTest {
         String contract = "0x123";
         adapter.seedNonceCounter(network, contract, 10L);
 
-        // Act & Assert
-        assertThrows(NoPendingBatchAvailableException.class, () -> {
-            adapter.claimNextPendingBatchAndAssignNonceWithRetry(network, contract);
-        });
+        // Act: claimNextPendingBatchAndAssignNonceWithRetry catches NoPendingBatchAvailableException internally
+        // and returns Optional.empty()
+        Optional<MerkleBatch> result = adapter.claimNextPendingBatchAndAssignNonceWithRetry(network, contract);
+        assertTrue(result.isEmpty(), "Should return empty when no PENDING batch exists");
 
         // Verify rollback: Counter should STILL be 10, not 11
         Web3NonceCounterDocument counter = mongoTemplate.findById(network + "-" + contract, Web3NonceCounterDocument.class);
@@ -106,7 +107,7 @@ class MerkleBatchMongoAdapterTest {
     void testFindSubmittingWithoutTxHashOlderThan_ShouldNotReturnNewlyClaimedBatch() {
         // Arrange
         MerkleBatch batch = new MerkleBatch(
-                "BATCH-NEWLY-CLAIMED", 101, 200, "root_new", Instant.now(), AnchorStatus.PENDING,
+                "BATCH-NEWLY-CLAIMED", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root_new", Instant.now(), AnchorStatus.PENDING,
                 null, null, null, null, null, null, null, null
         );
         adapter.save(batch);
@@ -140,7 +141,7 @@ class MerkleBatchMongoAdapterTest {
         adapter.seedNonceCounter(network, contract, 50L);
 
         MerkleBatch batch = new MerkleBatch(
-                "BATCH-1", 1, 100, "root1", Instant.now(), AnchorStatus.PENDING, 
+                "BATCH-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root1", Instant.now(), AnchorStatus.PENDING, 
                 null, null, null, null, null, null, null, null
         );
         adapter.save(batch);
@@ -149,21 +150,18 @@ class MerkleBatchMongoAdapterTest {
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         CountDownLatch latch = new CountDownLatch(1);
         List<Future<Optional<MerkleBatch>>> futures = new ArrayList<>();
-        AtomicInteger exceptionCount = new AtomicInteger(0);
 
-        // Act
+        // Act: claimNextPendingBatchAndAssignNonceWithRetry returns Optional.empty() when no batch
+        // is available (catches NoPendingBatchAvailableException internally)
         for (int i = 0; i < numThreads; i++) {
             futures.add(executor.submit(() -> {
                 try {
                     latch.await();
                     return adapter.claimNextPendingBatchAndAssignNonceWithRetry(network, contract);
-                } catch (NoPendingBatchAvailableException e) {
-                    exceptionCount.incrementAndGet();
-                    return Optional.empty();
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     LOG.severe("Thread interrupted: " + ie.getMessage());
-                    return Optional.empty();
+                    return Optional.<MerkleBatch>empty();
                 }
             }));
         }
@@ -174,6 +172,7 @@ class MerkleBatchMongoAdapterTest {
 
         // Assert
         int successCount = 0;
+        int emptyCount = 0;
         MerkleBatch claimedBatch = null;
 
         for (Future<Optional<MerkleBatch>> future : futures) {
@@ -181,11 +180,13 @@ class MerkleBatchMongoAdapterTest {
             if (result.isPresent()) {
                 successCount++;
                 claimedBatch = result.get();
+            } else {
+                emptyCount++;
             }
         }
 
         assertEquals(1, successCount, "Exactly one thread should successfully claim the batch");
-        assertEquals(1, exceptionCount.get(), "Exactly one thread should get NoPendingBatchAvailableException");
+        assertEquals(1, emptyCount, "Exactly one thread should get Optional.empty()");
         
         assertNotNull(claimedBatch);
         assertEquals(AnchorStatus.SUBMITTING, claimedBatch.status());
@@ -198,9 +199,83 @@ class MerkleBatchMongoAdapterTest {
         assertEquals(51L, counter.getNextNonce(), "Nonce counter should advance exactly once");
     }
 
+    @Test
+    void testTransitionCollectingToPending_DoubleCallYieldsBenignNoOp() {
+        // Arrange
+        String batchId = "DOUBLE-TRANSITION-TEST";
+        MerkleBatch batch = new MerkleBatch(
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), null, Instant.now(), AnchorStatus.COLLECTING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(batch);
+
+        String merkleRoot = "0xroot123";
+        List<String> leafHashes = List.of("hash1", "hash2");
+
+        // Act 1: First attempt
+        boolean firstTransition = adapter.transitionCollectingToPending(batchId, merkleRoot, leafHashes);
+        
+        // Assert 1: First attempt should succeed and modify the document
+        assertTrue(firstTransition, "First transition should succeed because status is COLLECTING");
+        MerkleBatch afterFirst = adapter.findByBatchId(batchId).orElseThrow();
+        assertEquals(AnchorStatus.PENDING, afterFirst.status());
+        assertEquals(merkleRoot, afterFirst.merkleRoot());
+        assertEquals(leafHashes, afterFirst.leafHashes());
+
+        // Act 2: Second attempt with the exact same values
+        boolean secondTransition = adapter.transitionCollectingToPending(batchId, merkleRoot, leafHashes);
+
+        // Assert 2: Second attempt should return false, leaving the document intact
+        assertFalse(secondTransition, "Second transition should return false because status is no longer COLLECTING");
+        MerkleBatch afterSecond = adapter.findByBatchId(batchId).orElseThrow();
+        assertEquals(AnchorStatus.PENDING, afterSecond.status(), "Status should remain PENDING");
+        assertEquals(merkleRoot, afterSecond.merkleRoot(), "merkleRoot should remain intact");
+        assertEquals(leafHashes, afterSecond.leafHashes(), "leafHashes should remain intact");
+    }
+
     // ============================================================================
     // NEW TESTS FOR REPOSITORY EXTENSION METHODS
     // ============================================================================
+
+    @Test
+    void testStreamByStatus_evaluatesLazilyFromMongo() {
+        // Arrange
+        // We create 3 documents directly in Mongo to bypass the domain constraints on saving
+        // Batch 1: Valid
+        MerkleBatchDocument doc1 = new MerkleBatchDocument();
+        doc1.setBatchId("LAZY-BATCH-1");
+        doc1.setStatus(AnchorStatus.ANCHORED);
+        doc1.setCoverage(java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)));
+        mongoTemplate.save(doc1);
+
+        // Batch 2: Legacy (missing coverage) -> adapter.toDomain() throws LegacyBatchCoverageUnavailableException
+        MerkleBatchDocument doc2 = new MerkleBatchDocument();
+        doc2.setBatchId("LAZY-BATCH-2");
+        doc2.setStatus(AnchorStatus.ANCHORED);
+        doc2.setCoverage(null); // LEGACY BATCH
+        mongoTemplate.save(doc2);
+
+        // Batch 3: Valid
+        MerkleBatchDocument doc3 = new MerkleBatchDocument();
+        doc3.setBatchId("LAZY-BATCH-3");
+        doc3.setStatus(AnchorStatus.ANCHORED);
+        doc3.setCoverage(java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(11, 20)));
+        mongoTemplate.save(doc3);
+
+        // Act
+        // If streamByStatus was evaluating eagerly (e.g. converting everything to a List first), 
+        // this call would throw LegacyBatchCoverageUnavailableException immediately on LAZY-BATCH-2.
+        // Because it's truly lazy, it returns the stream successfully.
+        try (java.util.stream.Stream<MerkleBatch> stream = adapter.streamByStatus(AnchorStatus.ANCHORED)) {
+            assertNotNull(stream, "Stream should be returned successfully without evaluating elements");
+
+            // Assert
+            // We can safely consume the first element without triggering evaluation of the second
+            Optional<MerkleBatch> first = stream.findFirst();
+            assertTrue(first.isPresent());
+            assertEquals("LAZY-BATCH-1", first.get().batchId());
+        }
+    }
 
     @Test
     void testFindSubmittingWithoutTxHashAndNonce_returnsEmptyWhenNone() {
@@ -215,7 +290,7 @@ class MerkleBatchMongoAdapterTest {
         String batchId = "BATCH-TX-SEARCH";
         Instant submissionTime = Instant.now();
         MerkleBatch batch = new MerkleBatch(
-                batchId, 101, 200, "root2", Instant.now(), AnchorStatus.SUBMITTING,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root2", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0xabc", 42L, null, submissionTime, null, null, null
         );
         adapter.save(batch);
@@ -234,7 +309,7 @@ class MerkleBatchMongoAdapterTest {
     void testFindSubmittingWithoutTxHashAndNonce_ignoresBatchesWithTxHash() {
         // Arrange: Create a batch in SUBMITTING state WITH txHash (should be ignored)
         MerkleBatch batch = new MerkleBatch(
-                "BATCH-WITH-TX", 201, 300, "root3", Instant.now(), AnchorStatus.SUBMITTING,
+                "BATCH-WITH-TX", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root3", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0xdef", 50L, "0xTXHASH123", Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -253,7 +328,7 @@ class MerkleBatchMongoAdapterTest {
         Instant recentTime = Instant.parse("2026-01-01T00:00:00Z"); // After cutoff
         
         MerkleBatch batch = new MerkleBatch(
-                "RECENT-BATCH", 301, 400, "root4", Instant.now(), AnchorStatus.SUBMITTING,
+                "RECENT-BATCH", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root4", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0x111", 60L, null, recentTime, null, null, null
         );
         adapter.save(batch);
@@ -273,7 +348,7 @@ class MerkleBatchMongoAdapterTest {
         
         String batchId = "STALE-BATCH";
         MerkleBatch batch = new MerkleBatch(
-                batchId, 401, 500, "root5", Instant.now(), AnchorStatus.SUBMITTING,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root5", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0x222", 70L, null, oldTime, null, null, null
         );
         adapter.save(batch);
@@ -292,7 +367,7 @@ class MerkleBatchMongoAdapterTest {
         String batchId = "NONCE-KEEP-TEST";
         Long originalNonce = 88L;
         MerkleBatch batch = new MerkleBatch(
-                batchId, 501, 600, "root6", Instant.now(), AnchorStatus.SUBMITTING,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root6", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0x333", originalNonce, "0xOLDTXHASH", Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -312,7 +387,7 @@ class MerkleBatchMongoAdapterTest {
         // Arrange
         String batchId = "TIMEOUT-RECONCILE-TEST";
         MerkleBatch batch = new MerkleBatch(
-                batchId, 601, 700, "root7", Instant.now(), AnchorStatus.SUBMITTED,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root7", Instant.now(), AnchorStatus.SUBMITTED,
                 "polygon-amoy", "0x444", null, "0xTXHASH", Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -332,7 +407,7 @@ class MerkleBatchMongoAdapterTest {
         // Arrange
         String batchId = "STUCK-TEST";
         MerkleBatch batch = new MerkleBatch(
-                batchId, 701, 800, "root8", Instant.now(), AnchorStatus.SUBMITTING,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root8", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0x555", 11L, null, Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -350,7 +425,7 @@ class MerkleBatchMongoAdapterTest {
         // Arrange
         String batchId = "FAILED-TEST";
         MerkleBatch batch = new MerkleBatch(
-                batchId, 801, 900, "root9", Instant.now(), AnchorStatus.SUBMITTING,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root9", Instant.now(), AnchorStatus.SUBMITTING,
                 "polygon-amoy", "0x666", 12L, null, Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -371,7 +446,7 @@ class MerkleBatchMongoAdapterTest {
         Instant anchorTime = Instant.parse("2026-01-15T12:00:00Z");
         
         MerkleBatch batch = new MerkleBatch(
-                batchId, 901, 1000, "root10", Instant.now(), AnchorStatus.SUBMITTED,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root10", Instant.now(), AnchorStatus.SUBMITTED,
                 "polygon-amoy", "0x777", 13L, "0xTXHASH", Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -391,7 +466,7 @@ class MerkleBatchMongoAdapterTest {
         // Arrange
         String batchId = "MISMATCH-TEST";
         MerkleBatch batch = new MerkleBatch(
-                batchId, 1001, 1100, "root11", Instant.now(), AnchorStatus.SUBMITTED,
+                batchId, java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root11", Instant.now(), AnchorStatus.SUBMITTED,
                 "polygon-amoy", "0x888", 14L, "0xTXHASH", Instant.now(), null, null, null
         );
         adapter.save(batch);
@@ -411,11 +486,11 @@ class MerkleBatchMongoAdapterTest {
         Instant time2 = Instant.parse("2024-01-02T00:00:00Z");
         
         MerkleBatch batch1 = new MerkleBatch(
-                "SUBMITTED-1", 1101, 1200, "root12", Instant.now(), AnchorStatus.SUBMITTED,
+                "SUBMITTED-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root12", Instant.now(), AnchorStatus.SUBMITTED,
                 "polygon-amoy", "0x999", 15L, "0xTX1", time2, null, null, null
         );
         MerkleBatch batch2 = new MerkleBatch(
-                "SUBMITTED-2", 1201, 1300, "root13", Instant.now(), AnchorStatus.SUBMITTED,
+                "SUBMITTED-2", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), "root13", Instant.now(), AnchorStatus.SUBMITTED,
                 "polygon-amoy", "0xaaa", 16L, "0xTX2", time1, null, null, null
         );
         
@@ -429,5 +504,112 @@ class MerkleBatchMongoAdapterTest {
         assertEquals(2, submitted.size(), "Should find both SUBMITTED batches");
         assertEquals("SUBMITTED-2", submitted.get(0).batchId(), "Oldest should come first");
         assertEquals("SUBMITTED-1", submitted.get(1).batchId(), "Newer should come second");
+    }
+
+    // ============================================================================
+    // COLLECTING RECOVERY TESTS
+    // ============================================================================
+
+    @Test
+    void findCollectingOlderThan_ignoresRecentBatches() {
+        // Arrange: a COLLECTING batch created NOW (within any reasonable timeout)
+        MerkleBatch recentBatch = new MerkleBatch(
+                "RECENT-COLLECTING", java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)),
+                null, Instant.now(), AnchorStatus.COLLECTING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(recentBatch);
+
+        // Act: cutoff is 5 minutes ago — recent batch should NOT appear
+        Instant cutoff = Instant.now().minusSeconds(300);
+        List<MerkleBatch> result = adapter.findCollectingOlderThan(cutoff, 10);
+
+        // Assert
+        assertTrue(result.isEmpty(), "Recent COLLECTING batch should NOT be returned");
+    }
+
+    @Test
+    void findCollectingOlderThan_returnsExpiredBatches() {
+        // Arrange: insert a COLLECTING batch document with createdAt set to 10 minutes ago (expired)
+        MerkleBatchDocument doc = new MerkleBatchDocument();
+        doc.setBatchId("EXPIRED-COLLECTING");
+        doc.setStatus(AnchorStatus.COLLECTING);
+        doc.setCreatedAt(Instant.now().minusSeconds(600));
+        doc.setCoverage(java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)));
+        mongoTemplate.save(doc);
+
+        // Act: cutoff is 5 minutes ago — the 10-minute-old batch should appear
+        Instant cutoff = Instant.now().minusSeconds(300);
+        List<MerkleBatch> result = adapter.findCollectingOlderThan(cutoff, 10);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("EXPIRED-COLLECTING", result.get(0).batchId());
+    }
+
+    @Test
+    void findCollectingOlderThan_respectsLimit() {
+        // Arrange: create 5 expired COLLECTING batches
+        for (int i = 1; i <= 5; i++) {
+            MerkleBatchDocument doc = new MerkleBatchDocument();
+            doc.setBatchId("LIMIT-BATCH-" + i);
+            doc.setStatus(AnchorStatus.COLLECTING);
+            doc.setCreatedAt(Instant.now().minusSeconds(600 + i)); // all expired, slightly staggered
+            doc.setCoverage(java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)));
+            mongoTemplate.save(doc);
+        }
+
+        // Act: cutoff is 5 minutes ago, but limit is 3
+        Instant cutoff = Instant.now().minusSeconds(300);
+        List<MerkleBatch> result = adapter.findCollectingOlderThan(cutoff, 3);
+
+        // Assert: only 3 batches, oldest first
+        assertEquals(3, result.size(), "Should only return limit count");
+        // Verify ordering: oldest first (highest minusSeconds offset)
+        assertTrue(result.get(0).createdAt().isBefore(result.get(1).createdAt()),
+                "Results should be ordered by createdAt ASC (oldest first)");
+    }
+
+    @Test
+    void incrementRecoveryAttempts_incrementsAtomically() {
+        // Arrange: COLLECTING batch with default recoveryAttempts = 0
+        MerkleBatch batch = new MerkleBatch(
+                "INC-TEST", java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)),
+                null, Instant.now(), AnchorStatus.COLLECTING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(batch);
+
+        // Verify initial state
+        assertEquals(0, adapter.findByBatchId("INC-TEST").orElseThrow().recoveryAttempts());
+
+        // Act & Assert: first increment → 1
+        int first = adapter.incrementRecoveryAttempts("INC-TEST");
+        assertEquals(1, first, "First increment should return 1");
+        assertEquals(1, adapter.findByBatchId("INC-TEST").orElseThrow().recoveryAttempts());
+
+        // Act & Assert: second increment → 2
+        int second = adapter.incrementRecoveryAttempts("INC-TEST");
+        assertEquals(2, second, "Second increment should return 2");
+        assertEquals(2, adapter.findByBatchId("INC-TEST").orElseThrow().recoveryAttempts());
+    }
+
+    @Test
+    void incrementRecoveryAttempts_returnsMinusOneIfNotCollecting() {
+        // Arrange: PENDING batch (not COLLECTING)
+        MerkleBatch batch = new MerkleBatch(
+                "NOT-COLLECTING", java.util.Map.of("s1", new com.traceability.contracts.SequenceRange(1, 5)),
+                "root", Instant.now(), AnchorStatus.PENDING,
+                null, null, null, null, null, null, null, null
+        );
+        adapter.save(batch);
+
+        // Act
+        int result = adapter.incrementRecoveryAttempts("NOT-COLLECTING");
+
+        // Assert: -1 because batch is not in COLLECTING state
+        assertEquals(-1, result, "Should return -1 for non-COLLECTING batch");
+        // Verify recoveryAttempts was NOT incremented
+        assertEquals(0, adapter.findByBatchId("NOT-COLLECTING").orElseThrow().recoveryAttempts());
     }
 }

@@ -3,11 +3,15 @@ package com.traceability.crypto.infrastructure.persistence.mongo;
 import com.traceability.crypto.domain.AnchorStatus;
 import com.traceability.crypto.domain.Resolution;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
+// Compound index supports findCollectingOlderThan(status=COLLECTING AND createdAt < cutoff),
+// invoked every scheduler cycle. Justified by design — not speculative.
+@CompoundIndex(name = "status_createdAt", def = "{'status': 1, 'createdAt': 1}")
 @Document(collection = "merkle_batches")
 public class MerkleBatchDocument {
 
@@ -17,11 +21,15 @@ public class MerkleBatchDocument {
     @Indexed(unique = true)
     private String batchId;
     
+    @Deprecated(forRemoval = false)
     @Indexed
     private long sequenceRangeStart;
     
+    @Deprecated(forRemoval = false)
     private long sequenceRangeEnd;
+    private java.util.Map<String, com.traceability.contracts.SequenceRange> coverage;
     private String merkleRoot;
+    private java.util.List<String> leafHashes;
     private Instant createdAt;
     
     @Indexed
@@ -36,6 +44,7 @@ public class MerkleBatchDocument {
     private Long confirmedBlockNumber;
     private Resolution resolution;
     private java.math.BigInteger maxFeePerGasOverride;
+    private int recoveryAttempts;
 
     // Getters and Setters
 
@@ -71,12 +80,28 @@ public class MerkleBatchDocument {
         this.sequenceRangeEnd = sequenceRangeEnd;
     }
 
+    public java.util.Map<String, com.traceability.contracts.SequenceRange> getCoverage() {
+        return coverage;
+    }
+
+    public void setCoverage(java.util.Map<String, com.traceability.contracts.SequenceRange> coverage) {
+        this.coverage = coverage;
+    }
+
     public String getMerkleRoot() {
         return merkleRoot;
     }
 
     public void setMerkleRoot(String merkleRoot) {
         this.merkleRoot = merkleRoot;
+    }
+
+    public java.util.List<String> getLeafHashes() {
+        return leafHashes;
+    }
+
+    public void setLeafHashes(java.util.List<String> leafHashes) {
+        this.leafHashes = leafHashes;
     }
 
     public Instant getCreatedAt() {
@@ -165,5 +190,13 @@ public class MerkleBatchDocument {
 
     public void setMaxFeePerGasOverride(java.math.BigInteger maxFeePerGasOverride) {
         this.maxFeePerGasOverride = maxFeePerGasOverride;
+    }
+
+    public int getRecoveryAttempts() {
+        return recoveryAttempts;
+    }
+
+    public void setRecoveryAttempts(int recoveryAttempts) {
+        this.recoveryAttempts = recoveryAttempts;
     }
 }

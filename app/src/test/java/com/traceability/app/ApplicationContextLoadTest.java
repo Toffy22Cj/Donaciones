@@ -59,6 +59,9 @@ class ApplicationContextLoadTest {
     @Autowired
     private com.traceability.core.application.port.out.OutboxPort outboxPort;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.traceability.contracts.authorization.IdentityPrincipalPort identityPrincipalPort;
+
     @Test
     void contextLoadsAndTransactionSmokeTestPasses() {
         // 1. Verificar la existencia del TransactionManager en el contexto
@@ -71,7 +74,7 @@ class ApplicationContextLoadTest {
         
         com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload realPayload = 
                 new com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload(
-                        streamId, "FOOD_RATION", 100L, "KGS", "WH-01", "CUST-01", null, null, null, null
+                        streamId, "FOOD_RATION", java.math.BigDecimal.valueOf(100L), "KGS", "WH-01", "CUST-01", null, null, null, null
                 );
         EventType dummyEventType = () -> "ASSET_REGISTERED";
         
@@ -98,9 +101,10 @@ class ApplicationContextLoadTest {
                 streamId,
                 "PhysicalAsset",
                 0L, // expectedVersion
-                event,
-                "system",
-                List.of(outboxMessage)
+                List.of(event),
+                new com.traceability.core.domain.event.SystemActor("system"),
+                List.of(outboxMessage),
+                UUID.randomUUID().toString() // commandId
         );
         
         // 3. Aserciones de Lectura (Event Store)
@@ -123,5 +127,10 @@ class ApplicationContextLoadTest {
         boolean foundInOutbox = pending.stream()
                 .anyMatch(msg -> streamId.equals(msg.sourceAggregateId()) && "domain_event".equals(msg.sagaType()));
         assertThat(foundInOutbox).isTrue();
+    }
+
+    @Test
+    void platformAdminBootstrapRunner_beanDoesNotExist_whenFlagDisabled() {
+        assertThat(context.getBeansOfType(com.traceability.app.bootstrap.PlatformAdminBootstrapRunner.class)).isEmpty();
     }
 }

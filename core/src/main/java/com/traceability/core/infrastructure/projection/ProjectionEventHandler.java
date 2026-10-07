@@ -14,7 +14,7 @@ public interface ProjectionEventHandler {
      * Implementations must handle their own idempotency and persistence logic.
      * @param eventDoc the raw event document from the event store
      */
-    void handleEvent(TraceabilityEventDocument eventDoc);
+    void handleEvent(TraceabilityEventDocument eventDoc) throws Exception;
 
     /**
      * Returns the unique name of this handler.

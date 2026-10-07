@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface SpringDataMerkleBatchRepository extends MongoRepository<MerkleBatchDocument, String> {
     Optional<MerkleBatchDocument> findByBatchId(String batchId);
     List<MerkleBatchDocument> findByStatus(AnchorStatus status);
+    java.util.stream.Stream<MerkleBatchDocument> streamByStatus(AnchorStatus status);
 }

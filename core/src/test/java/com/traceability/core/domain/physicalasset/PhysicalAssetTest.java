@@ -16,7 +16,7 @@ class PhysicalAssetTest {
     @Test
     void testRegisterAsset_Success() {
         PhysicalAsset asset = PhysicalAsset.register(
-            "A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null
+            "A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null
         );
 
         assertEquals("A1", asset.getAssetId());
@@ -25,14 +25,26 @@ class PhysicalAssetTest {
         assertEquals("LOC_A", asset.getCurrentLocation());
         assertEquals("LOC_A", asset.getLastKnownLocation());
         assertEquals("CUST_A", asset.getCustodianRef());
+        assertEquals("ORG_1", asset.getOrganizationRef());
+        assertNull(asset.getDonorRef());
 
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredPayload);
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV2Payload);
+    }
+
+    @Test
+    void testRegisterAsset_WithoutOrganization_ThrowsException() {
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.register("A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, null, null)
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.register("A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "  ", null)
+        );
     }
 
     @Test
     void testDispatchAsset_SuccessAndMaintainsLastKnownLocation() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.clearUncommittedEvents();
 
         asset.dispatch("CARRIER_1");
@@ -48,7 +60,7 @@ class PhysicalAssetTest {
 
     @Test
     void testReceiveAsset_Success() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.dispatch("CARRIER_1");
         asset.clearUncommittedEvents();
 
@@ -62,7 +74,7 @@ class PhysicalAssetTest {
 
     @Test
     void testTransferCustody_Success() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.clearUncommittedEvents();
 
         asset.transferCustody("CUST_B");
@@ -72,7 +84,7 @@ class PhysicalAssetTest {
     
     @Test
     void testDeliverAsset_Success() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.dispatch("CARRIER_1");
         asset.clearUncommittedEvents();
 
@@ -86,20 +98,20 @@ class PhysicalAssetTest {
 
     @Test
     void testDeliverAsset_RedundantDeliveryTreatedAsIdempotentSuccess() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.dispatch("CARRIER_1");
         Instant time = Instant.now();
         asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
         
-        // Exact same parameters throws RedundantDeliveryException
-        assertThrows(RedundantDeliveryException.class, () -> {
-            asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
-        });
+        int eventsBefore = asset.getUncommittedEvents().size();
+        // Exact same parameters is a no-op
+        asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
+        assertEquals(eventsBefore, asset.getUncommittedEvents().size());
     }
 
     @Test
     void testDeliverAsset_ConflictDeliveryTreatedAsError() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.dispatch("CARRIER_1");
         Instant time = Instant.now();
         asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", time);
@@ -110,11 +122,55 @@ class PhysicalAssetTest {
         });
     }
 
+    @Test
+    void testDeliverAsset_DifferentBeneficiaryIsNotRedundant() {
+        // Same custodian, location, evidence and time but another beneficiary is a different delivery fact
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z"));
+
+        assertThrows(InvalidAssetTransitionException.class, () ->
+                asset.deliver("CLINIC_1", "BENEFICIARY_2", "LOC_FINAL", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z")));
+        assertTrue(asset.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    void testDeliverAsset_RedundantAfterReplayIsNoOp() {
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z"));
+
+        asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z"));
+        assertTrue(asset.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    void testDeliverAsset_NullEvidenceRedundantIsNoOp() {
+        // evidenceRef is nullable in the ASSET_DELIVERED contract (Task 2, ADR-014)
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", null, Instant.parse("2026-01-01T00:00:00Z"));
+
+        assertDoesNotThrow(() ->
+                asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", null, Instant.parse("2026-01-01T00:00:00Z")));
+        assertTrue(asset.getUncommittedEvents().isEmpty());
+    }
+
+    @Test
+    void testDeliverAsset_NullEvidenceThenDifferentEvidenceIsRejected() {
+        PhysicalAsset asset = rehydrateDelivered("BENEFICIARY_1", null, Instant.parse("2026-01-01T00:00:00Z"));
+
+        assertThrows(InvalidAssetTransitionException.class, () ->
+                asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", Instant.parse("2026-01-01T00:00:00Z")));
+    }
+
+    private PhysicalAsset rehydrateDelivered(String beneficiaryRef, String evidenceRef, Instant deliveredAt) {
+        PhysicalAsset original = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
+        original.dispatch("CARRIER_1");
+        original.deliver("CLINIC_1", beneficiaryRef, "LOC_FINAL", evidenceRef, deliveredAt);
+        List<DomainEventPayload> payloads = original.getUncommittedEvents().stream().map(DomainEvent::payload).toList();
+        return PhysicalAsset.rehydrate("A1", payloads, payloads.size());
+    }
+
     // -- Exception Tests --
 
     @Test
     void testDispatchFromInvalidStatus_ThrowsException() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         asset.dispatch("C1");
         
         // Cannot dispatch again since it's already dispatched
@@ -122,21 +178,40 @@ class PhysicalAssetTest {
     }
 
     @Test
-    void testTransferCustodyRedundant_ThrowsException() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
-        assertThrows(RedundantCustodyTransferException.class, () -> asset.transferCustody("CUST_A"));
+    void testTransferCustodyRedundant_IsNoOp() {
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
+        int eventsBefore = asset.getUncommittedEvents().size();
+        asset.transferCustody("CUST_A");
+        assertEquals(eventsBefore, asset.getUncommittedEvents().size());
     }
 
     @Test
     void testSplitWithInsufficientQuantity_ThrowsException() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         assertThrows(InsufficientQuantityException.class, () -> asset.split("A2", new java.math.BigDecimal("150.0000")));
     }
     
     @Test
     void testSplitWithSelfId_ThrowsException() {
-        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null);
+        PhysicalAsset asset = PhysicalAsset.register("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null);
         assertThrows(InvalidSplitTargetException.class, () -> asset.split("A1", new java.math.BigDecimal("50.0000")));
+    }
+
+    // -- Entregable 5 Test: Rejection on v1 assets without organization --
+
+    @Test
+    void testWriteCommandsOnAssetWithoutOrganization_ThrowsException() {
+        PhysicalAsset asset = PhysicalAsset.rehydrate("A1", List.of(
+            new AssetRegisteredPayload("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null)
+        ), 1);
+
+        assertNull(asset.getOrganizationRef());
+        assertThrows(PhysicalAssetNotAssociatedToOrganizationException.class, () -> asset.dispatch("CARRIER_1"));
+        assertThrows(PhysicalAssetNotAssociatedToOrganizationException.class, () -> asset.receive("LOC_B", "CUST_B"));
+        assertThrows(PhysicalAssetNotAssociatedToOrganizationException.class, () -> asset.transferCustody("CUST_B"));
+        assertThrows(PhysicalAssetNotAssociatedToOrganizationException.class, () -> asset.split("A2", new java.math.BigDecimal("50.0000")));
+        assertThrows(PhysicalAssetNotAssociatedToOrganizationException.class, () -> asset.compensateSplit("A2", new java.math.BigDecimal("50.0000")));
+        assertThrows(PhysicalAssetNotAssociatedToOrganizationException.class, () -> asset.deliver("CLINIC_1", "BENEFICIARY_1", "LOC_FINAL", "EVIDENCE_1", Instant.now()));
     }
 
     // -- Complex Replay Test (ADR-008 & ADR-009) --
@@ -146,7 +221,7 @@ class PhysicalAssetTest {
         PhysicalAsset asset = new PhysicalAsset();
         
         List<DomainEventPayload> historicalPayloads = List.of(
-            new AssetRegisteredPayload("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null),
+            new AssetRegisteredV2Payload("A1", "V", new java.math.BigDecimal("100.0000"), "U", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", null, null),
             new AssetDispatchedPayload("CARRIER_1", "LOC_A"),
             new AssetReceivedPayload("LOC_B", "CUST_B"),
             // Split 1 (extract 40)
@@ -161,11 +236,159 @@ class PhysicalAssetTest {
         asset.replay(historicalPayloads, 7);
 
         assertEquals(new java.math.BigDecimal("60.0000"), asset.getQuantity());
+        assertEquals("ORG_1", asset.getOrganizationRef());
         // Lifecycle status resurrects to RECEIVED (what it was before Split 2 depleted it)
         assertEquals(AssetLifecycleStatus.RECEIVED, asset.getLifecycleStatus());
         assertEquals(7, asset.getVersion());
         
         // Cannot compensate again
         assertThrows(DuplicateCompensationException.class, () -> asset.compensateSplit("A3", new java.math.BigDecimal("60.0000")));
+    }
+
+    // -- Camino B (In-Kind Donation Genesis) Tests --
+
+    @Test
+    void testCreateAssetFromDonation_Success() {
+        PhysicalAsset asset = PhysicalAsset.create(
+            "A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "WAREHOUSE_1", "CUST_1", null, "A1", null, null, "ORG_1", "DONOR_1", "DONATION_100"
+        );
+
+        assertEquals("A1", asset.getAssetId());
+        assertEquals(new java.math.BigDecimal("50.0000"), asset.getQuantity());
+        assertEquals(AssetLifecycleStatus.REGISTERED, asset.getLifecycleStatus());
+        assertEquals("ORG_1", asset.getOrganizationRef());
+        assertEquals("DONOR_1", asset.getDonorRef());
+        assertEquals("DONATION_100", asset.getDonationRef());
+
+        assertEquals(1, asset.getUncommittedEvents().size());
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV2Payload);
+        AssetRegisteredV2Payload payload = (AssetRegisteredV2Payload) asset.getUncommittedEvents().get(0).payload();
+        assertEquals("MEDICINE", payload.assetType());
+        assertEquals("ORG_1", payload.organizationRef());
+        assertEquals("DONOR_1", payload.donorRef());
+        assertEquals("DONATION_100", payload.donationRef());
+    }
+
+    @Test
+    void testCreateAssetFromDonation_MissingRequiredFields_ThrowsException() {
+        // Missing organizationRef
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, null, "DONOR_1", "DONATION_100")
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "  ", "DONOR_1", "DONATION_100")
+        );
+
+        // Missing donorRef
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", null, "DONATION_100")
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", "  ", "DONATION_100")
+        );
+
+        // Missing donationRef
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", "DONOR_1", null)
+        );
+        assertThrows(IllegalArgumentException.class, () ->
+            PhysicalAsset.create("A1", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "W1", "C1", null, "A1", null, null, "ORG_1", "DONOR_1", "  ")
+        );
+    }
+
+    @Test
+    void testSharedSchema_CaminoAAndCaminoBShareSameSchemaVersion() {
+        PhysicalAsset assetCaminoA = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", "DONOR_1"
+        );
+        PhysicalAsset assetCaminoB = PhysicalAsset.create(
+            "A2", "MEDICINE", new java.math.BigDecimal("50.0000"), "Box", "LOC_B", "CUST_B", null, "A2", null, null, "ORG_1", "DONOR_1", "DONATION_100"
+        );
+
+        DomainEventPayload payloadA = assetCaminoA.getUncommittedEvents().get(0).payload();
+        DomainEventPayload payloadB = assetCaminoB.getUncommittedEvents().get(0).payload();
+
+        // Same record class schema
+        assertEquals(AssetRegisteredV2Payload.class, payloadA.getClass());
+        assertEquals(AssetRegisteredV2Payload.class, payloadB.getClass());
+
+        AssetRegisteredV2Payload pA = (AssetRegisteredV2Payload) payloadA;
+        AssetRegisteredV2Payload pB = (AssetRegisteredV2Payload) payloadB;
+
+        // Structural equality of components count/types, differing only in value for donationRef
+        assertNull(pA.donationRef());
+        assertEquals("DONATION_100", pB.donationRef());
+    }
+
+    // -- Tarea 5.5: Split Inheritance Tests --
+
+    @Test
+    void testSplit_CaminoA_InheritsOrganizationAndNullDonorAndDonationRefs() {
+        PhysicalAsset parent = PhysicalAsset.register(
+            "A1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null
+        );
+        parent.clearUncommittedEvents();
+
+        parent.split("A2", new java.math.BigDecimal("40.0000"));
+
+        assertEquals(1, parent.getUncommittedEvents().size());
+        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV2Payload);
+        AssetSplitV2Payload payload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+
+        assertEquals("A2", payload.childAssetId());
+        assertEquals(new java.math.BigDecimal("40.0000"), payload.extractedQuantity());
+        assertEquals("ORG_1", payload.organizationRef());
+        assertNull(payload.donorRef());
+        assertNull(payload.donationRef());
+    }
+
+    @Test
+    void testSplit_CaminoB_InheritsOrganizationDonorAndDonationRefs() {
+        PhysicalAsset parent = PhysicalAsset.create(
+            "A1", "MEDICINE", new java.math.BigDecimal("100.0000"), "Box", "LOC_A", "CUST_A", null, "A1", null, null, "ORG_1", "DONOR_1", "DONATION_100"
+        );
+        parent.clearUncommittedEvents();
+
+        parent.split("A2", new java.math.BigDecimal("40.0000"));
+
+        assertEquals(1, parent.getUncommittedEvents().size());
+        assertTrue(parent.getUncommittedEvents().get(0).payload() instanceof AssetSplitV2Payload);
+        AssetSplitV2Payload payload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+
+        assertEquals("A2", payload.childAssetId());
+        assertEquals(new java.math.BigDecimal("40.0000"), payload.extractedQuantity());
+        assertEquals("ORG_1", payload.organizationRef());
+        assertEquals("DONOR_1", payload.donorRef());
+        assertEquals("DONATION_100", payload.donationRef());
+    }
+
+    // Valida que el evento AssetSplitV2Payload transporta organizationRef, donorRef y donationRef heredados
+    // y que un activo hijo puede instanciarse recibiendo esos metadatos de procedencia.
+    // (Nota: La creación automática/orquestada del stream del activo hijo está pendiente de diseño e implementación).
+    @Test
+    void testSplit_ChildAssetCreation_InheritsAllRefsFromParent() {
+        // Given a parent asset created via Camino B
+        PhysicalAsset parent = PhysicalAsset.create(
+            "PARENT_1", "VACCINE", new java.math.BigDecimal("100.0000"), "Vial", "LOC_A", "CUST_A", null, "PARENT_1", null, null, "ORG_100", "DONOR_200", "DONATION_300"
+        );
+        parent.clearUncommittedEvents();
+
+        // When parent is split
+        parent.split("CHILD_1", new java.math.BigDecimal("30.0000"));
+        AssetSplitV2Payload splitPayload = (AssetSplitV2Payload) parent.getUncommittedEvents().get(0).payload();
+
+        // And child aggregate is created using split event payload references
+        PhysicalAsset child = PhysicalAsset.create(
+            splitPayload.childAssetId(), "VACCINE", splitPayload.extractedQuantity(), splitPayload.unitOfMeasure(),
+            splitPayload.childLocation(), splitPayload.childCustodianRef(), parent.getAssetId(), splitPayload.rootAssetRef(),
+            null, null, splitPayload.organizationRef(), splitPayload.donorRef(), splitPayload.donationRef()
+        );
+
+        // Then child aggregate holds exact inherited state
+        assertEquals("CHILD_1", child.getAssetId());
+        assertEquals(new java.math.BigDecimal("30.0000"), child.getQuantity());
+        assertEquals("ORG_100", child.getOrganizationRef());
+        assertEquals("DONOR_200", child.getDonorRef());
+        assertEquals("DONATION_300", child.getDonationRef());
     }
 }

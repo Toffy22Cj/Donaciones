@@ -88,7 +88,7 @@ class Web3jBlockchainAnchorAdapterIntegrationTest {
 
         // --- STEP 1: Send with exact correct nonce (which is 1) ---
         MerkleBatch correctBatch = new MerkleBatch(
-                "batch-1", 1, 10, validRoot1, Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-1", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), validRoot1, Instant.now(), AnchorStatus.SUBMITTING,
                 "network", contractAddress, 1L, null, null, null, null, null
         );
 
@@ -106,7 +106,7 @@ class Web3jBlockchainAnchorAdapterIntegrationTest {
         // with "nonce too low" or similar error.
         
         MerkleBatch collisionBatch = new MerkleBatch(
-                "batch-2", 11, 20, validRoot2, Instant.now(), AnchorStatus.SUBMITTING,
+                "batch-2", java.util.Map.of("dummy", new com.traceability.contracts.SequenceRange(1, 10)), validRoot2, Instant.now(), AnchorStatus.SUBMITTING,
                 "network", contractAddress, 1L, null, null, null, null, null
         );
 

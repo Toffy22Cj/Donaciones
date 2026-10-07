@@ -33,29 +33,22 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     private final AssetIndexRepository assetIndexRepository;
     private final DonationProjectionRepository projectionRepository;
     private final AssetHistoryProjectionRepository historyRepository;
-    private final ProjectionRetryRepository retryRepository;
 
     public DonationProjectionHandler(MongoTemplate mongoTemplate,
                                      EventCanonicalMapper canonicalMapper,
                                      AssetIndexRepository assetIndexRepository,
                                      DonationProjectionRepository projectionRepository,
-                                     AssetHistoryProjectionRepository historyRepository,
-                                     ProjectionRetryRepository retryRepository) {
+                                     AssetHistoryProjectionRepository historyRepository) {
         this.mongoTemplate = mongoTemplate;
         this.canonicalMapper = canonicalMapper;
         this.assetIndexRepository = assetIndexRepository;
         this.projectionRepository = projectionRepository;
         this.historyRepository = historyRepository;
-        this.retryRepository = retryRepository;
     }
 
     @Override
     public void handleEvent(TraceabilityEventDocument eventDoc) {
-        try {
-            processEvent(eventDoc);
-        } catch (MissingDependencyException | SequenceGapException | ProjectionPausedException e) {
-            enqueueForRetry(eventDoc);
-        }
+        processEvent(eventDoc);
     }
 
     private void processEvent(TraceabilityEventDocument eventDoc) {
@@ -90,7 +83,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             throw new ProjectionPausedException("Projection is PAUSED");
         }
 
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
 
         // Update Snapshot and Allocations using MongoTemplate update for efficiency if exists, 
         // but for Fund it's easier to modify the object and save it since it's a single document
@@ -152,7 +145,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     }
 
     private void processPhysicalAssetEvent(TraceabilityEventDocument eventDoc, String assetId, long incomingSequence) {
-        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
+        DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
         
         String projectionId = resolveProjectionId(assetId, payload);
         if (projectionId == null) {
@@ -193,6 +186,10 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
+        } else if (payload instanceof AssetSplitV2Payload p) {
+            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
+            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
+            // Child asset registration is handled by the ASSET_REGISTERED event of the child.
         } else if (payload instanceof AssetSplitPayload p) {
             update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
             update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
@@ -276,7 +273,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 transition.setCustodian(p.receiverRef());
             }
-        } else if (payload instanceof AssetSplitPayload) {
+        } else if (payload instanceof AssetSplitV2Payload || payload instanceof AssetSplitPayload) {
             transition.setStatus("SPLIT");
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             transition.setCustodian(p.newCustodianRef());
@@ -302,43 +299,6 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         mongoTemplate.updateFirst(q, u, AssetHistoryProjectionDocument.class);
     }
 
-    private void enqueueForRetry(TraceabilityEventDocument eventDoc) {
-        ProjectionRetryDocument retryDoc = ProjectionRetryDocument.builder()
-            .id(eventDoc.getEventId() + "_" + getHandlerName())
-            .handlerName(getHandlerName())
-            .eventId(eventDoc.getEventId())
-            .streamId(eventDoc.getStreamId())
-            .sequence(eventDoc.getSequence())
-            .eventType(eventDoc.getEventType())
-            .payload(eventDoc.getPayload())
-            .occurredAt(eventDoc.getOccurredAt())
-            .firstAttemptAt(Instant.now().toString())
-            .lastAttemptAt(Instant.now().toString())
-            .build();
-        
-        // PAUSED rule: if we can determine the projectionId and it is PAUSED, quarantine immediately.
-        String projectionId = null;
-        if ("Fund".equals(eventDoc.getAggregateType())) {
-            projectionId = eventDoc.getStreamId();
-        } else {
-            try {
-                DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType());
-                projectionId = resolveProjectionId(eventDoc.getStreamId(), payload);
-            } catch (Exception ignored) {}
-        }
-        
-        retryDoc.setProjectionId(projectionId);
-        
-        if (projectionId != null) {
-            DonationProjectionDocument proj = projectionRepository.findById(projectionId).orElse(null);
-            if (proj != null && "PAUSED".equals(proj.getStatus())) {
-                retryDoc.setStatus("QUARANTINED");
-            }
-        }
-        
-        retryRepository.save(retryDoc);
-    }
-    
     public static class SequenceGapException extends RuntimeException {
         public SequenceGapException(String message) { super(message); }
     }

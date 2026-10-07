@@ -51,9 +51,9 @@ public class DonorReportGenerator {
         this.properties = properties;
     }
 
-    public DonorReportDTO generate(String donationId) {
+    public CompletableFuture<DonorReportDTO> generateAsync(String donationId) {
         AuditFactsDTO facts = auditFactsPort.getAuditFacts(donationId)
-                .orElseThrow(() -> new IllegalArgumentException("Facts not found for donationId: " + donationId));
+                .orElseThrow(() -> new com.traceability.ai.domain.exception.AuditFactsNotYetAvailableException("Facts not found for donationId: " + donationId));
 
         CacheKey cacheKey = new CacheKey(
                 donationId,
@@ -76,15 +76,26 @@ public class DonorReportGenerator {
             if (cached.source() == NarrativeSource.FALLBACK_TEMPLATE) {
                 if (cached.nextRetryAt() != null && cached.nextRetryAt().isAfter(Instant.now())) {
                     log.info("Returning cached fallback for donation {}", donationId);
-                    return cached;
+                    return CompletableFuture.completedFuture(cached);
                 }
                 log.info("Fallback TTL expired for donation {}, re-attempting generation", donationId);
             } else {
-                return cached;
+                return CompletableFuture.completedFuture(cached);
             }
         }
 
-        return cacheCoordinator.getOrCompute(cacheKey, () -> CompletableFuture.supplyAsync(() -> doGenerate(facts, cacheKey))).join();
+        return cacheCoordinator.getOrCompute(cacheKey, () -> CompletableFuture.supplyAsync(() -> doGenerate(facts, cacheKey)));
+    }
+
+    public DonorReportDTO generate(String donationId) {
+        try {
+            return generateAsync(donationId).join();
+        } catch (java.util.concurrent.CompletionException e) {
+            if (e.getCause() instanceof RuntimeException re) {
+                throw re;
+            }
+            throw e;
+        }
     }
 
     private DonorReportDTO doGenerate(AuditFactsDTO facts, CacheKey cacheKey) {
