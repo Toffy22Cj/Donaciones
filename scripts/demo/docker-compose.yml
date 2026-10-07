@@ -22,3 +22,10 @@ services:
     command: ["--deterministic", "--chain.chainId", "1337"]
     ports:
       - "8545:8545"
+  mailpit:
+    # ADR-049 D1: SMTP de la demo (1025) y bandeja web para ver los correos de invitación (http://localhost:8025)
+    image: axllent/mailpit:v1.21
+    container_name: paxfide-demo-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"

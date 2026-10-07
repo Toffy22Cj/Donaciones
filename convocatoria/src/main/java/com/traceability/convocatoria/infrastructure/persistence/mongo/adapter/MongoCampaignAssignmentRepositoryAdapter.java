@@ -54,6 +54,14 @@ public class MongoCampaignAssignmentRepositoryAdapter implements CampaignAssignm
     }
 
     @Override
+    public List<CampaignAssignment> findActiveByResponsible(String responsibleRef) {
+        Query query = Query.query(Criteria.where("employeeRef").is(responsibleRef)
+                .and("status").is(AssignmentStatus.ACTIVE.name())).with(Sort.by("assignedAt"));
+        return mongoTemplate.find(query, CampaignAssignmentDocument.class).stream()
+                .map(CampaignAssignmentMapper::toDomain).toList();
+    }
+
+    @Override
     public List<CampaignAssignment> findByCampaignRef(String campaignRef) {
         Query query = Query.query(Criteria.where("campaignRef").is(campaignRef)).with(Sort.by("assignedAt"));
         return mongoTemplate.find(query, CampaignAssignmentDocument.class).stream()

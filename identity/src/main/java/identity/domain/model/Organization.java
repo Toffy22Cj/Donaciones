@@ -3,7 +3,9 @@ package identity.domain.model;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotMemberOfOrganizationException;
 import identity.domain.exception.AccountNotRepresentativeException;
+import identity.domain.exception.InvalidMemberRoleException;
 import identity.domain.exception.InvalidVerificationTransitionException;
+import identity.domain.exception.MemberAlreadyHasRoleException;
 import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.SelfTransferNotAllowedException;
 import identity.domain.exception.TransferTargetNotMemberException;
@@ -176,6 +178,43 @@ public class Organization {
             .orElseThrow(() -> new AccountNotMemberOfOrganizationException("Account is not a member of this organization"));
 
         return membership.removeRole(Role.EMPLOYEE);
+    }
+
+    /**
+     * Cambia el rol de un miembro (ADR-049 D7; operación nueva, no contradice ADR-026). {@code REPRESENTATIVE} nunca se
+     * toca aquí: se cambia solo con la transferencia.
+     * <ul>
+     *   <li>{@code ADMINISTRATOR}: añade {@code ADMINISTRATOR} y conserva el resto;</li>
+     *   <li>{@code EMPLOYEE}: añade {@code EMPLOYEE} si falta y quita {@code ADMINISTRATOR}.</li>
+     * </ul>
+     * Si ya está en el estado pedido, {@link MemberAlreadyHasRoleException} (DD-66: la opción restrictiva).
+     */
+    public void changeMemberRole(AccountId accountId, Role target) {
+        if (accountId == null) {
+            throw new IllegalArgumentException("AccountId cannot be null");
+        }
+        if (target != Role.ADMINISTRATOR && target != Role.EMPLOYEE) {
+            throw new InvalidMemberRoleException("Role must be ADMINISTRATOR or EMPLOYEE");
+        }
+        Membership membership = findMembership(accountId)
+            .orElseThrow(() -> new AccountNotMemberOfOrganizationException("Account is not a member of this organization"));
+        if (target == Role.ADMINISTRATOR) {
+            if (!membership.addRole(Role.ADMINISTRATOR)) {
+                throw new MemberAlreadyHasRoleException("Member already has the ADMINISTRATOR role");
+            }
+            return;
+        }
+        if (membership.hasRole(Role.EMPLOYEE) && !membership.hasRole(Role.ADMINISTRATOR)) {
+            throw new MemberAlreadyHasRoleException("Member already has the EMPLOYEE role only");
+        }
+        // primero EMPLOYEE, para que quitar ADMINISTRATOR nunca deje la membresía sin roles (invariante 4)
+        membership.addRole(Role.EMPLOYEE);
+        membership.removeRole(Role.ADMINISTRATOR);
+    }
+
+    /** La membresía de una cuenta, si es miembro. */
+    public Optional<Membership> membershipOf(AccountId accountId) {
+        return findMembership(accountId);
     }
 
     /**
