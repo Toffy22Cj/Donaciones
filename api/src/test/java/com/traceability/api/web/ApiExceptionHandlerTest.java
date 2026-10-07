@@ -66,7 +66,7 @@ class ApiExceptionHandlerTest {
     @RestController
     static class ThrowingController {
         @GetMapping("/t/throw/{kind}")
-        String doThrow(@PathVariable String kind) {
+        String doThrow(@PathVariable("kind") String kind) {
             throw THROWERS.get(kind).get();
         }
 
@@ -153,6 +153,17 @@ class ApiExceptionHandlerTest {
         String second = JSON.readTree(call("unexpected").getContentAsString()).get(ApiExceptionHandler.CORRELATION_ID).asText();
 
         assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void theBody_neverEchoesTheRequestPath_soItHasNoInstance() throws Exception {
+        MockHttpServletResponse r = mvc.perform(get("/t/throw/notFound").param("q", MARKER)).andReturn().getResponse();
+        MockHttpServletResponse unknownKind = mvc.perform(get("/t/throw/" + MARKER)).andReturn().getResponse();
+
+        assertThat(JSON.readTree(r.getContentAsString()).has("instance")).isFalse();
+        assertThat(r.getContentAsString()).doesNotContain("/t/throw").doesNotContain(MARKER);
+        assertThat(unknownKind.getStatus()).isEqualTo(500);
+        assertThat(unknownKind.getContentAsString()).doesNotContain(MARKER);
     }
 
     @Test

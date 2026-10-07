@@ -1,6 +1,9 @@
 package com.traceability.app.auth;
 
 import com.traceability.api.web.CurrentActor;
+import com.traceability.api.web.CurrentActorRouteValidator;
+import com.traceability.core.application.authorization.CrossOrganizationAccessException;
+import org.springframework.context.ApplicationContext;
 import com.traceability.app.TraceabilityApplication;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
@@ -50,6 +53,8 @@ class CurrentActorRealServerIntegrationTest {
 
     static final String PROTECTED_ACTOR = "/api/v1/b6-test/actor";
     static final String PROTECTED_PRINCIPAL = "/api/v1/b6-test/principal";
+    static final String PROTECTED_FORBIDDEN = "/api/v1/b6-test/forbidden";
+    static final String PROTECTED_BROKEN = "/api/v1/b6-test/broken";
     /** Ruta de JWT opcional de {@code PublicRoutes} que aún no tiene controlador real (CV-11 llega en B6-b). */
     static final String OPTIONAL_JWT = "/api/v1/public/campaigns/demo/donation-intents";
 
@@ -64,6 +69,16 @@ class CurrentActorRealServerIntegrationTest {
         @GetMapping(PROTECTED_PRINCIPAL)
         String principal(@CurrentActor AuthorizationPrincipal principal) {
             return "principal:" + principal.accountId() + "/" + principal.organizationId() + "/" + principal.roles();
+        }
+
+        @GetMapping(PROTECTED_FORBIDDEN)
+        String forbidden(@CurrentActor HumanActor actor) {
+            throw new CrossOrganizationAccessException("org-x of " + actor.accountId());
+        }
+
+        @GetMapping(PROTECTED_BROKEN)
+        String broken(@CurrentActor HumanActor actor) {
+            throw new IllegalStateException("internal detail of " + actor.accountId());
         }
 
         @PostMapping("/api/v1/public/campaigns/{publicCode}/donation-intents")
@@ -83,6 +98,7 @@ class CurrentActorRealServerIntegrationTest {
     @LocalServerPort private int port;
     @Autowired private TokenIssuerPort tokenIssuerPort;
     @MockitoBean private IdentityPrincipalPort identityPrincipalPort;
+    @Autowired private ApplicationContext context;
 
     @BeforeEach
     void principals() {
@@ -125,5 +141,21 @@ class CurrentActorRealServerIntegrationTest {
 
         assertThat(r.status()).isEqualTo(200);
         assertThat(r.body()).isEqualTo("some:acc-3");
+    }
+
+    @Test
+    void theRouteValidatorRunsInTheWebApplication() {
+        assertThat(context.getBeansOfType(CurrentActorRouteValidator.class)).hasSize(1);
+    }
+
+    @Test
+    void theExceptionHandler_answersOnTheRealServer_403AndOpaque500() throws Exception {
+        RawHttp.Response forbidden = RawHttp.send(port, "GET", PROTECTED_FORBIDDEN, tokenIssuerPort.issue("acc-4"), null);
+        RawHttp.Response broken = RawHttp.send(port, "GET", PROTECTED_BROKEN, tokenIssuerPort.issue("acc-5"), null);
+
+        assertThat(forbidden.status()).isEqualTo(403);
+        assertThat(forbidden.body()).contains("\"title\":\"Forbidden\"").doesNotContain("org-x").doesNotContain("acc-4");
+        assertThat(broken.status()).isEqualTo(500);
+        assertThat(broken.body()).contains("\"correlationId\"").doesNotContain("internal detail").doesNotContain("acc-5");
     }
 }

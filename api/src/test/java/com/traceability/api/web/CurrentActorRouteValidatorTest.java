@@ -61,6 +61,14 @@ class CurrentActorRouteValidatorTest {
         }
     }
 
+    @RestController
+    static class CommandIdNotAString {
+        @PostMapping("/api/v1/organizations/{orgId}/commands")
+        String create(@CommandId java.util.UUID commandId) {
+            return "x";
+        }
+    }
+
     private final WebApplicationContextRunner runner = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
                     HttpMessageConvertersAutoConfiguration.class))
@@ -70,9 +78,9 @@ class CurrentActorRouteValidatorTest {
     void requiredActorOnAnOptionalJwtRoute_preventsTheStart() {
         runner.withUserConfiguration(RequiredActorOnOptionalJwtRoute.class).run(ctx -> {
             assertThat(ctx).hasFailed();
-            assertThat(ctx.getStartupFailure()).rootCause()
-                    .hasMessageContaining("RequiredActorOnOptionalJwtRoute")
-                    .hasMessageContaining("Optional");
+            assertThat(ctx.getStartupFailure())
+                    .hasStackTraceContaining("RequiredActorOnOptionalJwtRoute")
+                    .hasStackTraceContaining("must be Optional");
         });
     }
 
@@ -85,7 +93,15 @@ class CurrentActorRouteValidatorTest {
     void unsupportedParameterType_preventsTheStart() {
         runner.withUserConfiguration(UnsupportedActorType.class).run(ctx -> {
             assertThat(ctx).hasFailed();
-            assertThat(ctx.getStartupFailure()).rootCause().hasMessageContaining("UnsupportedActorType");
+            assertThat(ctx.getStartupFailure()).hasStackTraceContaining("UnsupportedActorType");
+        });
+    }
+
+    @Test
+    void commandIdThatIsNotAString_preventsTheStart() {
+        runner.withUserConfiguration(CommandIdNotAString.class).run(ctx -> {
+            assertThat(ctx).hasFailed();
+            assertThat(ctx.getStartupFailure()).hasStackTraceContaining("@CommandId must be a String");
         });
     }
 
