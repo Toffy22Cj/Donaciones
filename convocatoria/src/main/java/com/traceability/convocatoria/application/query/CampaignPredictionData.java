@@ -10,9 +10,12 @@ import java.util.List;
  *
  * @param targetAmount solo con {@code MONETARY}; {@code null} si no
  * @param targetPolicy solo con {@code MONETARY}; {@code null} si no
+ * @param targetAmount en unidades mínimas de {@code currency} (Q-CV01-3)
+ * @param currency     ISO 4217; solo con {@code MONETARY}
  */
 public record CampaignPredictionData(String campaignRef, String organizationRef, String status, String visibility,
-                                     String targetPolicy, Long targetAmount, Instant startDate, Instant endDate,
+                                     String targetPolicy, Long targetAmount, String currency, Instant startDate,
+                                     Instant endDate,
                                      int paymentMethodsEnabled, long orgPriorCampaigns, List<IntentOutcome> intents,
                                      boolean truncated) {
 

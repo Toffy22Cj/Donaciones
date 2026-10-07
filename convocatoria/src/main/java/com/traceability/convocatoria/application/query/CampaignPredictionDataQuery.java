@@ -55,7 +55,8 @@ public class CampaignPredictionDataQuery {
         }
         return new CampaignPredictionData(c.getCampaignRef(), c.getOrganizationRef(), c.getStatus().name(),
                 c.getVisibility().name(), monetary ? config.targetPolicy().name() : null,
-                monetary ? config.targetAmount() : null, c.getStartDate(), c.getEndDate(),
+                monetary ? config.targetAmount() : null, monetary ? config.currency() : null,
+                c.getStartDate(), c.getEndDate(),
                 monetary ? config.acceptedPaymentMethods().size() : 0,
                 convocatorias.countByOrganizationStartedBefore(c.getOrganizationRef(), c.getStartDate()),
                 List.copyOf(outcomes), truncated);

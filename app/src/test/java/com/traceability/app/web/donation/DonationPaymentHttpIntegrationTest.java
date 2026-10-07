@@ -116,16 +116,16 @@ class DonationPaymentHttpIntegrationTest {
     private static String otherDonor;
 
     private String account() {
-        return accounts.createAccount(new Email(UUID.randomUUID() + "@b6b.test"), "Pass123!").getAccountId().value();
+        return accounts.createAccount(new Email(UUID.randomUUID() + "@b6b.test"), "Pass123!Pass123!").getAccountId().value();
     }
 
     @BeforeEach
     void world() {
         if (publicCode != null) return;
         String email = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(email), "Pass123!");
+        accounts.createAccount(new Email(email), "Pass123!Pass123!");
         String platformAdmin = bootstrap.bootstrap(email).value();
-        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@b6b.test"), "Pass123!");
+        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@b6b.test"), "Pass123!Pass123!");
         Organization org = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION,
                 representative.getAccountId(), "Fundación B6-b");
         String admin = account();

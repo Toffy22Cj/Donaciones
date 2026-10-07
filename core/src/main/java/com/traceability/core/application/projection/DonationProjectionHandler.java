@@ -182,9 +182,11 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
 
         Query query = new Query(Criteria.where("_id").is(fundId));
         if (isNew) {
-            // Insert
-            projectionRepository.save(projection);
-            mongoTemplate.updateFirst(query, update, DonationProjectionDocument.class);
+            // Alta en UNA escritura (upsert con $setOnInsert): con save + update, un lector veía durante un instante la
+            // proyección con importes a 0 (hallazgo H-CI-1, visto como fallo intermitente de
+            // ProjectionChangeStreamE2ETest bajo carga)
+            update.setOnInsert("status", projection.getStatus());
+            mongoTemplate.upsert(query, update, DonationProjectionDocument.class);
         } else {
             mongoTemplate.updateFirst(query, update, DonationProjectionDocument.class);
         }
@@ -331,12 +333,8 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         Query q = new Query(Criteria.where("_id").is(assetId));
         Update u = new Update().push("transitions", transition);
         
-        if (historyRepository.findById(assetId).isEmpty()) {
-            AssetHistoryProjectionDocument doc = new AssetHistoryProjectionDocument();
-            doc.setAssetId(assetId);
-            historyRepository.save(doc);
-        }
-        mongoTemplate.updateFirst(q, u, AssetHistoryProjectionDocument.class);
+        // una sola escritura: el historial nunca existe vacío, ni siquiera un instante (H-CI-1)
+        mongoTemplate.upsert(q, u, AssetHistoryProjectionDocument.class);
     }
 
     public static class SequenceGapException extends RuntimeException {
