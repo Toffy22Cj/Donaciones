@@ -91,7 +91,8 @@ class ApiExceptionHandlerTest {
                 org.junit.jupiter.params.provider.Arguments.of("terminal", 409, "AssetTerminalState"),
                 org.junit.jupiter.params.provider.Arguments.of("campaignNotFound", 409, "CampaignNotAvailable"),
                 org.junit.jupiter.params.provider.Arguments.of("campaignOtherOrg", 409, "CampaignNotAvailable"),
-                org.junit.jupiter.params.provider.Arguments.of("illegalArgument", 400, "BadRequest"),
+                // Carlos, 2026-10-07: IllegalArgumentException es un fallo interno; solo las validaciones con nombre dan 400
+                org.junit.jupiter.params.provider.Arguments.of("illegalArgument", 500, "InternalError"),
                 org.junit.jupiter.params.provider.Arguments.of("conflict", 409, "ConcurrentModification"),
                 org.junit.jupiter.params.provider.Arguments.of("retryExhausted", 409, "ConcurrentModification"),
                 org.junit.jupiter.params.provider.Arguments.of("unexpected", 500, "InternalError"),

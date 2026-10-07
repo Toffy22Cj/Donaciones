@@ -331,7 +331,8 @@ class DonationPaymentHttpIntegrationTest {
     }
 
     @Test
-    void aDuplicateCv11_returnsTheSameIntentWithoutTheTokenAgain() throws Exception {
+    void aDuplicateCv11_returnsTheSameIntentWithANewToken_andTheOldOneStopsWorking() throws Exception {
+        // DD-18 sustituida por Carlos (2026-10-07): el reenvío emite un statusToken nuevo y anula el anterior
         String commandId = newId();
         String path = "/api/v1/public/campaigns/" + publicCode + "/donation-intents";
 
@@ -342,8 +343,11 @@ class DonationPaymentHttpIntegrationTest {
         JsonNode second = json.readTree(again.body());
         assertThat(second.get("intentId")).isEqualTo(first.get("intentId"));
         assertThat(second.get("paymentRedirectUrl")).isEqualTo(first.get("paymentRedirectUrl"));
-        assertThat(second.has("statusToken")).isFalse();
-        assertThat(first.has("statusToken")).isTrue();
+        assertThat(second.get("statusToken").asText()).isNotBlank().isNotEqualTo(first.get("statusToken").asText());
+        String statusPath = "/api/v1/public/donation-intents/" + first.get("intentId").asText();
+        assertThat(send("GET", statusPath, null, null, null, DonationIntentController.INTENT_TOKEN_HEADER,
+                first.get("statusToken").asText()).statusCode()).isEqualTo(404);
+        assertThat(status(second).get("status").asText()).isEqualTo("PENDING");
     }
 
     @Test
