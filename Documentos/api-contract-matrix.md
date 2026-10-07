@@ -29,7 +29,7 @@
 | Endpoint | Auth | Domain op | Response | Estado |
 |---|---|---|---|---|
 | `POST /organizations/{id}/campaigns` | JWT + `ADMINISTRATOR` org | crear `Convocatoria` | `{campaignRef, publicCode, status, ...}` | DISEÑO CERRADO — módulo `convocatoria` sin código todavía |
-| `POST /campaigns/{campaignRef}/employees` | JWT + `ADMINISTRATOR` org | asignar empleado | `{campaignRef, accountId, status}` | DISEÑO CERRADO |
+| `POST /campaigns/{campaignRef}/employees` | JWT + `ADMINISTRATOR` org | asignar empleado | `201 {assignmentId}` (Q-B6A-3, `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-06; antes `{campaignRef, accountId, status}`) | **IMPLEMENTADO en B6-a** |
 | `GET /public/campaigns/{publicCode}` | pública | `ConvocatoriaReadPort.findPublicByCode` | `ConvocatoriaReadModel` (matriz ADR-021-D ya cerrada) | DISEÑO CERRADO |
 | `GET /public/campaigns` (descubrimiento) | pública | `ConvocatoriaReadPort.listPublicOpen(cursor,limit)` | lista paginada | **PENDIENTE** — método mencionado, no diseñado en detalle |
 

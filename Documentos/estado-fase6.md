@@ -178,6 +178,18 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.13 B6-a — convocatoria por HTTP (2026-10-07, `feat/b6-a-convocatoria-http`) — HECHO
+
+- **Proceso:** autorización de trabajo autónomo de Carlos (2026-10-07). Q-B6A-1 la decidió Carlos (opción (a)); **Q-B6A-2 a 5 y Q-B60-6 son decisiones delegadas `PENDIENTE DE RATIFICACIÓN`** (DD-01, DD-03 a DD-07 y DD-17 en `decisiones-delegadas-2026-10.md`).
+- **Qué hace:**
+  - **Rutas:** CV-01 (`201 {campaignRef, publicCode}`), CV-02 (`201 {assignmentId}`), CV-07 (detalle público, sin JWT) y verificar organización (`200 {organizationId, verificationStatus}`, sin `Command-Id`). Todas en `app.web`.
+  - **Deudas de la ficha CV-01:** D-1 (ISO 4217), D-2 (no antes de `now − 5 min`), D-3 (`publicCode` de 130 bits), D-7, D-8 y D-9, cada una con excepción nombrada y test de regresión.
+  - **CV-02:** no se asigna en una convocatoria `CLOSED` (409). Destinatario ajeno, inexistente o `INACTIVE`: el mismo 409. Convocatoria inexistente, ajena o actor sin rol: el mismo 403.
+  - **CV-07:** campos de §2.3 con `acceptedPaymentMethods` y el nombre de la organización (`OrganizationPublicNamePort`, nombre opcional en `Organization`); `PRIVATE_LINK` y `CLOSED` se devuelven; un código inexistente o mal formado da el mismo 404; el `publicCode` no aparece en los logs (test de captura).
+  - **Traducciones** de `convocatoria` e `identity` una a una, con un test de exhaustividad que rompe el build ante una excepción nueva sin decidir.
+- **Efecto en los tests existentes:** los *fixtures* que creaban convocatorias con fechas ya pasadas (2026-10-01) pasan a 2027; la regla D-2 los rechazaba. Ninguna aserción cambió.
+- **Evidencia:** `evidencia-fase6/b6-a-convocatoria-http-dff182f-2026-10-07.txt`. Reactor **1119 tests** en verde (con B6-c); 15 mutaciones, 15 muertas.
+
 ### 0.3 Revisión externa de la auditoría (2026-10-07)
 
 Ver `auditoria-fase6-codigo-vs-documentacion.md` §10: hallazgos nuevos B-9/B-10 (severidad A) e incumplimientos de proceso (regla 3.5 en PR #29 y en Blockchain; reglas 3.1/3.2 en tres commits directos a `develop`). **Fuente válida:** el repositorio manda sobre cualquier copia de los documentos fuera de él.

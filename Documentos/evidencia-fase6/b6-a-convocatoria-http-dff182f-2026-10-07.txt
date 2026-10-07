@@ -1,0 +1,51 @@
+# B6-a — evidencia sobre feat/b6-a-convocatoria-http en dff182f (2026-10-07), merge de develop (B6-c, #61) incluido
+# mvn clean test -fae, Docker real. sha256 del log completo: dedbd41026ccb7187ddb4c879411466f15d74bc3924e290d7d0af120dd54b23c
+# Línea base: develop 7ddcd92 = 1089 tests. Ahora: 1119 (convocatoria +15, app +15).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 122, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 230, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 107, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Reactor sobre la base anterior (a5eb6c5, sin B6-c), commit 1183404: 312/50/19/122/268/230/99, BUILD SUCCESS
+
+# Antes (esqueleto, cb84ad2)
+[ERROR] Tests run: 11, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 15.03 s <<< FAILURE! -- in com.traceability.convocatoria.application.service.CreateConvocatoriaIntegrationTest
+[ERROR] Tests run: 11, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.557 s <<< FAILURE! -- in com.traceability.convocatoria.application.service.AssignEmployeeIntegrationTest
+[ERROR] Tests run: 13, Failures: 10, Errors: 0, Skipped: 0, Time elapsed: 0.137 s <<< FAILURE! -- in com.traceability.convocatoria.domain.model.CampaignCreationDebtsTest
+[ERROR] Tests run: 14, Failures: 12, Errors: 2, Skipped: 0, Time elapsed: 12.26 s <<< FAILURE! -- in com.traceability.app.web.campaign.CampaignHttpIntegrationTest
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.376 s <<< FAILURE! -- in com.traceability.app.web.ConvocatoriaApiErrorMappingsExhaustivenessTest
+
+# Mutaciones (scripts/mutaciones.py; restauración con git checkout verificada contra HEAD)
+# Nota: 'excepción de convocatoria sin traducir' sustituye una traducción por otra repetida, así que además la aplicación no arranca (registro de traducciones duplicadas, B6-0); la mata también el test de exhaustividad.
+- D-1 sin comprobar ISO 4217: MUERTA  d1_aCurrencyThatIsNotAnIso4217Code_isRejected[1]; d1_aCurrencyThatIsNotAnIso4217Code_isRejected[2]; d1_aCurrencyThatIsNotAnIso4217Code_isRejected[3]; d1_aCurrencyThatIsNotAnIso4217Code_isRejected[4]; d1_aCurrencyThatIsNotAnIso4217Code_isRejected[5]; d1_aCurrencyThatIsNotAnIso4217Code_isRejected[6]
+- D-2 sin comprobar fechas pasadas: MUERTA  d2_datesBeforeNowMinusFiveMinutes_areRejectedWithoutWriting; d2_datesMayBeUpToFiveMinutesInThePast_notOneSecondMore
+- D-2 tolerancia de 6 minutos: MUERTA  d2_datesMayBeUpToFiveMinutesInThePast_notOneSecondMore
+- D-3 publicCode de 10 caracteres: MUERTA  createsMonetaryConvocatoriaWithLedgerAuditAndProcessedCommand
+- D-7 medios de pago aceptados en IN_KIND: MUERTA  d7_paymentMethodsInAnInKindOnlyCampaign_areRejected
+- D-8 visibilidad opcional: MUERTA  d8_visibilityIsRequired
+- D-9 descripción sin límite: MUERTA  d9_descriptionUpTo5000Characters
+- asignar en convocatoria CLOSED: MUERTA  assigningOnAClosedCampaign_isRejectedWithoutWriting
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+- CampaignNotFound en CV-02 como 404: MUERTA  cv02_unknownCampaign_foreignCampaign_andNotAdministrator_giveTheSame403
+- CV-07 con targetPolicy: MUERTA  cv07_monetary_hasExactlyThePublicFields_withoutJwt
+- fechas aceptadas sin Z: MUERTA  cv01_invalidBodies_are400_withoutEcho_andWriteNothing
+- destinatario inexistente con otro cuerpo: MUERTA  cv02_foreignNonexistentAndInactiveRecipients_giveTheSame409
+- excepción de convocatoria sin traducir: MUERTA  cv01_aCommandIdOfAnotherCommand_is409; cv01_createsAndAnswersExactlyCampaignRefAndPublicCode_andADuplicateIsIdentical; cv01_invalidBodies_are400_withoutEcho_andWriteNothing; cv01_otherOrganization_andNonexistentOrganization_giveTheSame403_andUnverifiedIs409; cv02_assigns_andADuplicateIsIdentical; cv02_foreignNonexistentAndInactiveRecipients_giveTheSame409; cv02_onAClosedCampaign_is409; cv02_unknownCampaign_foreignCampaign_andNotAdministrator_giveTheSame403; cv07_inKind_hasNoMonetaryFields_andAnOrganizationWithoutNameOmitsIt; cv07_monetary_hasExactlyThePublicFields_withoutJwt; cv07_privateLinkAndClosedCampaigns_areReturned_unknownAndMalformedCodesGiveTheSame404; cv07_thePublicCodeNeverReachesTheLogs; everyConcreteConvocatoriaException_isTranslatedOrExplicitlyOutOfB6a; verify_onlyThePlatformAdministrator_once_andAnUnknownOrganizationIs404; verify_returnsTheNewStatus
+- CV-07 de una PRIVATE_LINK como no encontrada: MUERTA  cv07_privateLinkAndClosedCampaigns_areReturned_unknownAndMalformedCodesGiveTheSame404
+- verificar sin exigir autoridad (403 → 200): MUERTA  verify_onlyThePlatformAdministrator_once_andAnUnknownOrganizationIs404
+Restauración verificada contra HEAD. Mutaciones vivas: 0
