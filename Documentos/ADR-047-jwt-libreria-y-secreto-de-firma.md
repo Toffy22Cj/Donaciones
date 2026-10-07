@@ -1,7 +1,7 @@
 # ADR-047 — JWT: librería, algoritmo y secreto de firma (D-JWT)
 
 ## Status
-**PROPUESTO** — 2026-10-07. Redactado por el agente a petición de Carlos (decisión D-JWT de `plan-cierre-fase6-codigo.md`). Dueño: Identidad. Necesita aprobación antes de cualquier código (regla 3.5: dependencia nueva; `plan-ejecucion-agentes-adr-038.md:62`).
+**APROBADO — Carlos, 2026-10-07**, con Q1–Q5 según la recomendación y las precisiones P1–P4 de la revisión, ya incorporadas en D4, D5, D7 y en la definición de hecho. Los riesgos residuales de §"Riesgos aceptados" los acepta Carlos por escrito. Redactado por el agente a petición de Carlos (decisión D-JWT de `plan-cierre-fase6-codigo.md`). Dueño: Identidad. Cubre la dependencia nueva (regla 3.5); el código de B3 necesita además su plan aprobado (regla 3.4).
 
 Complementa ADR-038 §2.7 sin cambiar nada de lo que ya decide. Bloquea B3 y, a través de B3, los criterios 4 y 6 del golden path (donación con cuenta e historial autenticado).
 
@@ -31,7 +31,7 @@ Complementa ADR-038 §2.7 sin cambiar nada de lo que ya decide. Bloquea B3 y, a 
 - El código de seguimiento ya es un token HMAC-SHA256 hecho a mano con la JDK (`HmacTrackingCodeService.java:22-23, 89`), con comparación en tiempo constante.
 - No existe todavía ningún servicio de login, `LoginController`, filtro JWT ni `TokenIssuerPort` (`propuesta-apis-fase6.md` §7.1).
 
-## Decision (propuesta)
+## Decision
 
 ### D1. Librería: Nimbus JOSE + JWT (`com.nimbusds:nimbus-jose-jwt`)
 
@@ -56,15 +56,32 @@ Complementa ADR-038 §2.7 sin cambiar nada de lo que ya decide. Bloquea B3 y, a 
 
 - Cada token lleva cabecera `kid` (identificador corto de la clave).
 - El verificador acepta la clave **actual** y, si está configurada, **una anterior** (`JWT_SIGNING_SECRET_PREVIOUS`, `kid` propio) durante el tiempo de vida de los tokens emitidos con ella. Se firma siempre con la actual.
+- **La clave anterior caduca (P2).** Una clave rotada por estar comprometida no puede seguir aceptándose indefinidamente porque nadie la quitó de la configuración:
+  - Junto a la clave anterior es **obligatorio** `JWT_SIGNING_SECRET_PREVIOUS_ACCEPT_UNTIL` (instante ISO-8601). Si falta, la aplicación no arranca.
+  - Ese instante no puede quedar más allá de **arranque + `exp`**: no hace falta más para que caduquen los tokens firmados con ella. Si queda más allá, la aplicación no arranca.
+  - Pasado ese instante, los tokens de la clave anterior dan 401, aunque siga configurada.
+  - Mientras esté configurada, un **WARN al arrancar** recuerda retirarla, con su `kid` y la fecha de fin, nunca con el secreto (D7).
 - Rotar = mover la actual a "anterior", poner una nueva y, pasado `exp`, retirar la anterior. Sin *vault*: coherente con `estado-fase3.md:132`.
 - Si se prefiere no tener rotación en este corte, la alternativa es solo `kid` fijo y rotación con cierre de todas las sesiones (todos los usuarios vuelven a entrar). Ver Q3.
 
 ### D5. Claims y validación
 
 - Claims: **solo** `sub` (= `accountId`), `iat`, `exp` (ADR-038). No se añaden `iss`/`aud`/`jti` (añadirlos sería ampliar ADR-038; ver Q4).
-- Validación en el filtro, en este orden: firma con algoritmo en lista blanca → `kid` conocido → `exp` con una tolerancia de reloj de **30 s** → `resolvePrincipal(sub)` (que rechaza `INACTIVE` y cuentas inexistentes).
+- **Validación en el filtro, en este orden exacto (P1):**
+  1. Parsear la cabecera. El `alg` debe ser `HS256`; cualquier otro, incluido `none`, da 401 sin seguir.
+  2. Leer el `kid` y **elegir la clave**. El `kid` **solo se busca como clave del mapa de claves configuradas** (actual y anterior vigente). Nunca se usa para construir una ruta, una consulta, un nombre de fichero ni nada parecido: es un vector conocido de inyección. Un `kid` desconocido da 401.
+  3. **Verificar la firma** con la clave elegida.
+  4. Comprobar `exp`, con una tolerancia de reloj de **30 s**.
+  5. `resolvePrincipal(sub)`, que rechaza las cuentas `INACTIVE` e inexistentes.
 - **Cualquier** fallo del filtro → 401 con **el mismo cuerpo** `ProblemDetail` (DH-51; "401 uniforme"): token ausente, mal formado, firma inválida, caducado, `kid` desconocido, cuenta `INACTIVE` o inexistente.
 - `exp`: **8 horas** por defecto, configurable (`traceability.security.jwt-ttl`). Motivo: sin *refresh* (ADR-043), un `exp` corto obliga a reentrar varias veces por jornada en campo; y la desactivación no depende de `exp`, porque `resolvePrincipal` se ejecuta en cada request. Es un valor de producto: lo confirma Carlos (Q2).
+
+### D7. Nunca registrar el token ni el secreto (P3)
+
+- Ni el token, ni el secreto, ni la cabecera `Authorization` aparecen en ningún log, **ni completos ni en parte** (ni prefijos, ni sufijos, ni hashes truncados), en ningún nivel.
+- Tampoco en los mensajes de excepción ni en el cuerpo de error (`ProblemDetail`).
+- Los logs pueden incluir el `kid` y el motivo interno del rechazo, nunca el material criptográfico.
+- El PR de B3 lo comprueba con un test que captura los logs de un login y de un rechazo y busca el token y el secreto.
 
 ### D6. Lo que no decide este ADR
 
@@ -97,15 +114,40 @@ Complementa ADR-038 §2.7 sin cambiar nada de lo que ya decide. Bloquea B3 y, a 
 - Con HS256, quien conozca el secreto puede emitir tokens: el secreto debe tratarse como el de `TRACKING_CODE_SECRET`.
 - `exp` de 8 h: un token robado sirve hasta 8 h mientras la cuenta siga `ACTIVE`.
 
-## Preguntas para Carlos
+## Riesgos aceptados — Carlos, 2026-10-07
 
-| # | Pregunta | Recomendación |
+Riesgos residuales que se aceptan para la demo. Constan como **decisión**, no como olvido:
+
+1. **Quien conozca el secreto puede emitir tokens** (HS256, emisor y verificador en el mismo monolito). Mitigación: secreto propio, *fail-fast*, rotación con fin de aceptación (D3, D4) y nunca en logs (D7).
+2. **Un token robado sirve hasta 8 h mientras la cuenta siga `ACTIVE`.** Mitigación: desactivar la cuenta surte efecto en la siguiente request, porque `resolvePrincipal` se ejecuta en cada una.
+3. **Sin límite de intentos (DH-56) el login admite fuerza bruta.** Como BCrypt(12) consume CPU, también facilita la **denegación de servicio**. El límite de intentos sigue abierto en `propuesta-apis-fase6.md`.
+
+## Preguntas — respondidas por Carlos el 2026-10-07 (todas según la recomendación)
+
+| # | Pregunta | Decisión |
 |---|---|---|
 | Q1 | Librería (D1) | Nimbus JOSE + JWT, solo en `api` |
 | Q2 | Duración de `exp` (D5) | 8 h, configurable |
-| Q3 | Rotación (D4) | `kid` + una clave anterior opcional |
+| Q3 | Rotación (D4) | `kid` + una clave anterior opcional, **con fin de aceptación obligatorio (P2)** |
 | Q4 | ¿Mantener los claims solo en `sub/iat/exp`? (D5) | Sí, tal como fija ADR-038 |
 | Q5 | ¿Mitigar el oráculo de tiempo del login en B3? (D6) | Sí, con un hash ficticio; no cambia el contrato |
+
+## Definición de hecho de B3 (P4)
+
+Lista mínima de tests. Sin ellos, B3 no se fusiona:
+
+1. `alg: none` → 401.
+2. Otro algoritmo (HS512, RS256) → 401.
+3. Payload alterado (firma que ya no corresponde) → 401.
+4. Token caducado → 401; caducado hace menos de 30 s → aceptado.
+5. `kid` desconocido → 401, y el `kid` no se usa en ninguna búsqueda fuera del mapa de claves.
+6. Clave anterior aceptada mientras está configurada y vigente; rechazada al retirarla y pasado su fin de aceptación.
+7. La aplicación no arranca: sin `JWT_SIGNING_SECRET`; con uno de menos de 32 bytes; con clave anterior sin fin de aceptación, o con un fin más allá de arranque + `exp`.
+8. Las tres causas de fallo del login (email inexistente, contraseña incorrecta, `INACTIVE`) dan **respuestas idénticas** (código y cuerpo, byte a byte), y el **tiempo no revela** si el email existe (Q5: se compara contra un hash ficticio cuando no existe).
+9. Ni el token ni el secreto aparecen en los logs (D7).
+10. Cuenta desactivada después de emitir el token → 401 en la siguiente request.
+11. Un fallo de `issue()` → 500, nunca 401.
+12. Separación de mecanismos: un token de seguimiento en una ruta JWT → 401, y un JWT en la ruta de seguimiento → 401.
 
 ## Implementación (B3, tras la aprobación y con plan propio, regla 3.4)
 
@@ -113,4 +155,4 @@ Complementa ADR-038 §2.7 sin cambiar nada de lo que ya decide. Bloquea B3 y, a 
 - `identity`: `AuthenticateAccountService` (respeta las reglas ArchUnit del módulo).
 - `api`: `JwtSecurityProperties` (fail-fast), `NimbusTokenIssuer` (implementa `TokenIssuerPort`), `JwtAuthFilter` (excluye `/api/v1/donations/tracking/**` y `/api/v1/auth/login`), `LoginController`.
 - `app`: conexión de los puertos.
-- Tests: indistinguibilidad byte a byte de los tres fallos; `alg: none` y otro algoritmo rechazados; firma inválida; `kid` desconocido; caducado y tolerancia de reloj; cuenta desactivada después de emitir el token → 401; fallo de `issue()` → 500; token de seguimiento en una ruta JWT → 401, y JWT en la ruta de seguimiento → 401; arranque rechazado sin secreto o con uno corto.
+- Tests: la definición de hecho de arriba (P4). Plan detallado en `plan-b3-jwt.md`.
