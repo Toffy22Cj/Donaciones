@@ -31,7 +31,10 @@ public final class CampaignFeatureBuilder {
 
     public static CampaignFeatures build(CampaignPredictionData data, Instant now) {
         double duration = days(data.startDate(), data.endDate());
+        // Importes en unidades mínimas (Q-CV01-3); el modelo se entrenó con unidades enteras de la moneda (pesos COP).
+        // Las razones no cambian; logTargetAmount sí, así que se calcula sobre la meta en unidades enteras.
         double target = data.targetAmount();
+        double minorPerUnit = Math.pow(10, java.util.Currency.getInstance(data.currency()).getDefaultFractionDigits());
         double t = days(data.startDate(), now) / duration;
 
         List<IntentOutcome> past = data.intents().stream().filter(i -> i.outcome() != Outcome.IN_PROGRESS).toList();
@@ -58,7 +61,7 @@ public final class CampaignFeatureBuilder {
         long failed = past.stream().filter(i -> i.outcome() == Outcome.FAILED).count();
 
         return new CampaignFeatures(
-                Math.log(target),
+                Math.log(target / minorPerUnit),
                 duration,
                 data.orgPriorCampaigns(),
                 data.paymentMethodsEnabled(),

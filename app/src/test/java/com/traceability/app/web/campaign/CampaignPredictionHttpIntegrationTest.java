@@ -87,11 +87,11 @@ class CampaignPredictionHttpIntegrationTest {
     private static String flexible, strict, inKind;
 
     private String account() {
-        return accounts.createAccount(new Email(UUID.randomUUID() + "@p3.test"), "Pass123!").getAccountId().value();
+        return accounts.createAccount(new Email(UUID.randomUUID() + "@p3.test"), "Pass123!Pass123!").getAccountId().value();
     }
 
     private String[] organization(String platformAdmin) throws Exception {
-        Account rep = accounts.createAccount(new Email(UUID.randomUUID() + "@p3.test"), "Pass123!");
+        Account rep = accounts.createAccount(new Email(UUID.randomUUID() + "@p3.test"), "Pass123!Pass123!");
         Organization o = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION, rep.getAccountId(), "Org P3");
         String a = account();
         employees.addEmployee(SETUP, o.getOrganizationId(), new AccountId(a));
@@ -123,7 +123,7 @@ class CampaignPredictionHttpIntegrationTest {
     void world() throws Exception {
         if (org != null) return;
         String email = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(email), "Pass123!");
+        accounts.createAccount(new Email(email), "Pass123!Pass123!");
         String platformAdmin = bootstrap.bootstrap(email).value();
         String[] mine = organization(platformAdmin);
         org = mine[0]; admin = mine[1]; representative = mine[2]; employee = mine[3];
