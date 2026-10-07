@@ -312,6 +312,7 @@ class P2EndpointsHttpIntegrationTest {
         ok(send("POST", "/api/v1/campaigns/" + closed.get("campaignRef").asText() + "/close", admin, null), 200);
 
         List<JsonNode> all = new ArrayList<>();
+        List<String> cursors = new ArrayList<>();
         String cursor = null;
         int pages = 0;
         do {
@@ -319,8 +320,19 @@ class P2EndpointsHttpIntegrationTest {
             assertThat(page.get("items").size()).isLessThanOrEqualTo(20);
             page.get("items").forEach(all::add);
             cursor = page.has("nextCursor") ? page.get("nextCursor").asText() : null;
+            if (cursor != null) cursors.add(cursor);
             pages++;
         } while (cursor != null && pages < 50);
+
+        // DD-53 rehecha (T-35): el cursor es opaco; no se puede leer ni fabricar a partir de un publicCode
+        for (String c : cursors) {
+            String decoded = new String(java.util.Base64.getUrlDecoder().decode(c), java.nio.charset.StandardCharsets.ISO_8859_1);
+            assertThat(decoded).doesNotMatch(".*[0-9A-HJKMNP-TV-Z]{26}.*");
+        }
+        String forged = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
+                publicCodes.iterator().next().getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        assertThat(send("GET", "/api/v1/public/campaigns?cursor=" + forged, null, null).statusCode())
+                .as("un cursor fabricado con un publicCode").isEqualTo(400);
 
         assertThat(pages).isGreaterThanOrEqualTo(2);
         Set<String> listed = new HashSet<>();

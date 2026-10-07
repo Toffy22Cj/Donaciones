@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 
@@ -20,7 +18,7 @@ import java.util.Set;
  * Descubrimiento público, {@code GET /api/v1/public/campaigns} (P2.6; Q-v2-3: sin filtros, solo {@code ?cursor=};
  * T-35: {@code {items, nextCursor}}, sin {@code nextCursor} en la última página, cursor inválido → 400). Nunca lista
  * {@code PRIVATE_LINK}. Sin {@code campaignRef} ni {@code organizationRef}: solo el nombre público de la organización.
- * El cursor es el último {@code publicCode} de la página, que ya es público, codificado en Base64 URL.
+ * El cursor es opaco ({@link DiscoveryCursorCodec}, T-35; DD-53 rehecha).
  */
 @RestController
 public class PublicCampaignDiscoveryController {
@@ -36,10 +34,16 @@ public class PublicCampaignDiscoveryController {
     private final PublicCampaignDiscoveryQuery discovery;
     private final OrganizationPublicNamePort organizationNames;
 
+    private final DiscoveryCursorCodec cursors;
+
     public PublicCampaignDiscoveryController(PublicCampaignDiscoveryQuery discovery,
-                                             OrganizationPublicNamePort organizationNames) {
+                                             OrganizationPublicNamePort organizationNames,
+                                             @org.springframework.beans.factory.annotation.Value(
+                                                     "${traceability.discovery.cursor-key:}") String cursorKey) {
         this.discovery = discovery;
         this.organizationNames = organizationNames;
+        this.cursors = cursorKey.isBlank() ? DiscoveryCursorCodec.withRandomKey()
+                : DiscoveryCursorCodec.fromConfiguredKey(cursorKey);
     }
 
     @GetMapping("/api/v1/public/campaigns")
@@ -56,19 +60,13 @@ public class PublicCampaignDiscoveryController {
                 s.clearedAmount() == null ? null : s.clearedAmount().toString());
     }
 
-    static String encode(String publicCode) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(publicCode.getBytes(StandardCharsets.US_ASCII));
+    private String encode(String publicCode) {
+        return cursors.encode(publicCode);
     }
 
-    static String decode(String cursor) {
-        try {
-            String publicCode = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.US_ASCII);
-            if (ConvocatoriaLifecycleService.PUBLIC_CODE_FORMAT.matcher(publicCode).matches()) {
-                return publicCode;
-            }
-        } catch (IllegalArgumentException e) {
-            // cae al 400
-        }
-        throw new InvalidRequestFieldException("cursor");
+    private String decode(String cursor) {
+        return cursors.decode(cursor)
+                .filter(code -> ConvocatoriaLifecycleService.PUBLIC_CODE_FORMAT.matcher(code).matches())
+                .orElseThrow(() -> new InvalidRequestFieldException("cursor"));
     }
 }
