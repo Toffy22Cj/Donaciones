@@ -178,6 +178,28 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.20 P1.4 — anclaje del recorrido en cadena local (2026-10-07, `feat/p1-anclaje-e2e`) — HECHO
+
+- **Qué hace:** `GoldenPathHttpIntegrationTest` levanta Ganache (Testcontainers, como los tests de `crypto`), despliega `AnchorRegistry` y deja correr los procesos reales: productor de `MerkleBatch`, envío y poller. Exige que **todos** los eventos de los dos fondos, del padre y del hijo estén en batches `ANCHORED` (el poller solo marca `ANCHORED` si la raíz leída de la cadena coincide) y que `verifyBatch` dé `MATCH` en cada uno. Escribe `app/target/golden-path-anclaje-evidencia.txt` (red, contrato, raíz, `txHash`, bloque; sin secretos).
+- **Testnet: no ejecutada** (es de Carlos). `Documentos/runbook-anclaje-testnet.md`: pasos, variables de entorno sin valores (`GOLDEN_PATH_ANCHOR_TARGET=testnet`, `WEB3_NODE_URL`, `WEB3_PRIVATE_KEY`, `CRYPTO_ANCHOR_*`) y qué evidencia guardar. El mismo test sirve en testnet con esas variables.
+- **Hallazgo H-P14-1:** el contador de nonce (`web3_nonce_counter`) empieza en 0 y `seedNonceCounter` no tiene llamador: la wallet de anclaje debe estar a nonce 0 (desplegar el contrato con otra) o sembrarse a mano. No se corrige (toca el anclaje).
+- **Golden path:** **19 de 19** criterios en el recorrido; 15 por HTTP y 4 (10, 11, 12 y 18) por los procesos internos del sistema, que no tienen ruta HTTP (matriz §6).
+- **Decisión:** DD-40, `PENDIENTE DE RATIFICACIÓN`.
+- **Evidencia:** `evidencia-fase6/p1-anclaje-e2e-2c330b3-2026-10-07.txt`. Reactor **1172 tests**; 2 mutaciones, 2 muertas.
+
+### 0.19 B5 — narrativa de convocatoria (2026-10-07, `feat/b5-narrativa-convocatoria`) — HECHO
+
+- **Qué hace** (`plan-b5-narrativa-convocatoria.md`): `GET /api/v1/public/campaigns/{publicCode}/narrative`: `200 AVAILABLE` con el texto validado, `202 PENDING` mientras se genera, `200 UNAVAILABLE` con "Narrativa no disponible" si no pasa el grounding o falla el proveedor; siempre con los hechos públicos (`clearedAmount`, unidades entregadas, receptores distintos).
+  - `core`: `CampaignDeliveryFactsQuery` lee del event store los activos de la convocatoria (Camino A, Camino B e hijos de una división) e índice `(eventType, payload.campaignRef)`. Ningún evento, hash ni Merkle cambia.
+  - `convocatoria`: `CampaignFundingFactsQuery`. `contracts`: `CampaignAuditFactsDTO` con `currency` y un instante por fuente.
+  - `ai`: `CampaignNarrativeGenerator` (caché en memoria por hash de los hechos), `CampaignGroundingValidator`, prompt solo con números y estados.
+  - `app`: `CampaignAuditFactsProducer` y la ruta.
+- **Condiciones de Carlos, con test:** el LLM solo recibe hechos deterministas (nunca título, descripción ni ids); sin grounding no se publica; "receptores distintos", nunca familias ni hogares; *prompt injection* en el título y la descripción con un LLM simulado: no llega al prompt, y una respuesta que la obedece no se publica.
+- **¿LLM real en la demo?** Solo con `SPRING_AI_OPENAI_API_KEY` en el entorno; sin ella, "Narrativa no disponible".
+- **Decisiones:** Q-DIA-1 a 6 de `propuesta-d-ia.md` = DD-33 a DD-38, más DD-39, `PENDIENTE DE RATIFICACIÓN`.
+- **Golden path:** criterios **14 y 19** en el recorrido → **15 de 19**.
+- **Evidencia:** `evidencia-fase6/b5-narrativa-convocatoria-7d32202-2026-10-07.txt`. Reactor **1172 tests**; 12 mutaciones, 12 muertas (una tras añadir un test del directorio).
+
 ### 0.18 P1.2 — criterio 13 por HTTP (2026-10-07, `feat/p1-narrativa-individual`) — HECHO
 
 - **Qué hace:** el recorrido (`GoldenPathHttpIntegrationTest`) pide la narrativa individual por HTTP con el `trackingCode` real y exige `AVAILABLE` con `source: LLM_GENERATED`. El LLM es simulado (un `LlmClientPort` de test que cita solo hechos presentes); la validación de grounding y el resto del pipeline son los reales. Solo test: el código ya lo cumplía.

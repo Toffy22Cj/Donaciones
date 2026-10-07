@@ -1,0 +1,62 @@
+# B5 narrativa de convocatoria (criterios 14 y 19) en 7d32202 (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: cd9f3b16dfa8242c05597c38ce96a030416801e0d00cb04170007c9c736fe9f4
+# Línea base: develop f25cb36 (P1.2) = 1147 tests. Ahora: 1172 (core +2, ai +20, app +3).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 325, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 131, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes (rojo)
+## core, consulta devolviendo cero:
+[ERROR] Tests run: 2, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 15.72 s <<< FAILURE! -- in com.traceability.core.application.query.CampaignDeliveryFactsQueryIntegrationTest
+expected: 15
+ but was: 0
+expected: 15
+## app, sin el controlador de la ruta:
+[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 16.91 s <<< FAILURE! -- in com.traceability.app.web.campaign.CampaignNarrativeHttpIntegrationTest
+[ERROR] com.traceability.app.web.campaign.CampaignNarrativeHttpIntegrationTest.injectionInTitleAndDescription_neverReachesThePrompt_andTheGroundedNarrativeIsPublished -- Time elapsed: 3.362 s <<< FAILURE!
+[ERROR] com.traceability.app.web.campaign.CampaignNarrativeHttpIntegrationTest.anLlmAnswerThatObeysTheInjection_isNotPublished -- Time elapsed: 0.083 s <<< FAILURE!
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 39.96 s <<< FAILURE! -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+[ERROR] com.traceability.app.web.GoldenPathHttpIntegrationTest.theDemoPath_fromVerificationToPublicTracking_overHttp -- Time elapsed: 34.53 s <<< FAILURE!
+	at com.traceability.app.web.GoldenPathHttpIntegrationTest.theDemoPath_fromVerificationToPublicTracking_overHttp(GoldenPathHttpIntegrationTest.java:314)
+## ai: los tests del validador y del generador se escribieron junto al código; su capacidad de detectar fallos la prueban las mutaciones.
+
+# Después (verde, del reactor)
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.644 s -- in com.traceability.core.application.query.CampaignDeliveryFactsQueryIntegrationTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.243 s -- in com.traceability.ai.application.service.CampaignNarrativeGeneratorTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.148 s -- in com.traceability.ai.application.service.CampaignGroundingValidatorTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.827 s -- in com.traceability.app.web.campaign.CampaignNarrativeHttpIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.980 s -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+
+# Mutaciones
+- cifras sin citar aceptadas: MUERTA  aNumberInTheTextThatIsNotACitedFact_isRejected; aNumberThatIsAFactButIsNotCited_isRejected
+- familias aceptadas: MUERTA  familiesOrHouseholds_areRejected[1]; familiesOrHouseholds_areRejected[2]; familiesOrHouseholds_areRejected[3]; familiesOrHouseholds_areRejected[4]; familiesOrHouseholds_areRejected[5]; familiesOrHouseholds_areRejected[6]
+- valor citado sin comparar: MUERTA  citationOfAFactThatDoesNotExist_isRejected; citationWithAValueDifferentFromTheFact_isRejected
+- sin citas aceptado: MUERTA  withoutCitations_isRejected
+- publicar sin grounding: MUERTA  groundingFailure_isNeverPublished
+- caché que ignora los hechos: MUERTA  sameFacts_doNotCallTheLlmAgain_andNewFacts_regenerate
+- sin reintento tras fallo del proveedor: MUERTA  providerFailure_isUnavailable_andIsRetriedAfterTheInterval
+- contar activos no entregados: MUERTA  sumsDeliveredUnits_ofCaminoA_caminoB_andSplitChildren_andCountsDistinctRecipients
+- receptores con repetición: MUERTA  sumsDeliveredUnits_ofCaminoA_caminoB_andSplitChildren_andCountsDistinctRecipients
+- directorio sin filtrar por convocatoria: VIVA  
+- título en el prompt: MUERTA  injectionInTitleAndDescription_neverReachesThePrompt_andTheGroundedNarrativeIsPublished
+- UNAVAILABLE con 202: MUERTA  anLlmAnswerThatObeysTheInjection_isNotPublished
+Restauración verificada contra HEAD. Mutaciones vivas: 1 (la siguiente)
+# La superviviente se mató con un test nuevo del directorio (commit siguiente):
+- directorio sin filtrar por convocatoria: MUERTA  sumsDeliveredUnits_ofCaminoA_caminoB_andSplitChildren_andCountsDistinctRecipients
+Restauración verificada contra HEAD. Mutaciones vivas: 0

@@ -50,17 +50,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Plan B6-d: el recorrido de la demo por HTTP, de punta a punta, contra Tomcat real y todos los módulos reales
  * (golden path §2, pasos 1–5 y 7 sin narrativa ni anclaje). Criterios de §8 cubiertos: 1, 2, 3, 4, 5, 6, 7 (Camino A),
- * 8, 9, 13 (narrativa individual con LLM simulado y grounding real), 15, 16 y 17. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
+ * 8, 9, 13 (narrativa individual con LLM simulado y grounding real), 14 y 19 (narrativa de convocatoria, plan B5), 15,
+ * 16 y 17; y 10, 11, 12 y 18 (anclaje real en una cadena local Ganache y verifyBatch, plan P1.4), los únicos que no
+ * son acciones HTTP sino procesos del sistema. Desde P1.1 todo es HTTP: los fondos de la organización y la asignación tienen ruta (cierra H-B6C-1
  * y H-B6D-1).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
 @TestPropertySource(properties = {
-    "crypto.anchor.poll.delay=9999999",
-    "crypto.anchor.submit.delay=9999999",
+    // Anclaje real contra una cadena local (Ganache), criterios 10, 11, 12 y 18 (plan P1.4); la red y el contrato
+    // llegan por @DynamicPropertySource. Confirmaciones 0: Ganache mina al instante y no avanza solo
+    "crypto.anchor.submit.delay=500",
+    "crypto.anchor.poll.delay=500",
     "crypto.anchor.stuck-monitor.delay=9999999",
-    "crypto.web3j.private-key=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-    "crypto.web3j.node-url=http://dummy-node",
+    "crypto.anchor.confirmations-required=0",
+    "crypto.anchor.network=ganache-local",
+    "crypto.anchor.chain-id=1337",
+    "traceability.anchor.producer.interval-ms=500",
     "spring.ai.openai.api-key=dummy-api-key",
     "saga.outbox.delay=200",
     "traceability.demo.simulated-payments=true",
@@ -92,14 +98,105 @@ class GoldenPathHttpIntegrationTest {
                                 "Tu donación está en camino.", List.of());
             };
         }
+
+        /** LLM simulado de la narrativa de convocatoria (criterios 14 y 19): cita los hechos que recibe. */
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        com.traceability.ai.application.port.out.CampaignLlmClientPort simulatedCampaignLlmClient() {
+            return (facts, version) -> {
+                String cleared = com.traceability.ai.domain.narrative.CampaignNarrativeFacts.plain(facts.clearedAmount());
+                String units = com.traceability.ai.domain.narrative.CampaignNarrativeFacts.plain(facts.unitsDelivered());
+                String recipients = Long.toString(facts.distinctRecipients());
+                return new com.traceability.ai.domain.narrative.CampaignLlmNarrativeResponse(
+                        "Se recaudaron " + cleared + " " + facts.currency() + "; se entregaron " + units
+                                + " unidades a " + recipients + " receptores distintos.",
+                        List.of(new com.traceability.ai.domain.narrative.CampaignCitedFact(
+                                        com.traceability.ai.domain.narrative.CampaignFactType.CLEARED_AMOUNT, cleared),
+                                new com.traceability.ai.domain.narrative.CampaignCitedFact(
+                                        com.traceability.ai.domain.narrative.CampaignFactType.UNITS_DELIVERED, units),
+                                new com.traceability.ai.domain.narrative.CampaignCitedFact(
+                                        com.traceability.ai.domain.narrative.CampaignFactType.DISTINCT_RECIPIENTS, recipients)));
+            };
+        }
     }
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
 
+    // =====================================================================
+    // SOLO PARA TESTS: cuenta determinista #0 de Ganache (`--deterministic`), pública y sin fondos reales; la misma
+    // que usan los tests de `crypto`. Nunca una clave de testnet ni de producción (runbook-anclaje-testnet.md).
+    // =====================================================================
+    static final String GANACHE_TEST_KEY = "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d";
+    /** Cuenta determinista #1 de Ganache, solo para desplegar el contrato: la #0 ancla y su contador de nonce empieza
+     *  en 0 (nadie lo siembra; hallazgo H-P14-1, runbook-anclaje-testnet.md). */
+    static final String GANACHE_DEPLOYER_TEST_KEY = "0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1";
+
+    @Container
+    static org.testcontainers.containers.GenericContainer<?> ganache =
+            new org.testcontainers.containers.GenericContainer<>(DockerImageName.parse("trufflesuite/ganache:latest"))
+                    .withExposedPorts(8545)
+                    .withCommand("--deterministic")
+                    .waitingFor(org.testcontainers.containers.wait.strategy.Wait.forLogMessage(".*Listening on.*", 1));
+
+    /**
+     * Con {@code GOLDEN_PATH_ANCHOR_TARGET=testnet} el recorrido ancla en la testnet que indiquen las variables de
+     * entorno de {@code runbook-anclaje-testnet.md} en lugar de Ganache. Lo ejecuta Carlos; los valores nunca están en
+     * el código ni en un log.
+     */
+    static final boolean TESTNET = "testnet".equals(System.getenv("GOLDEN_PATH_ANCHOR_TARGET"));
+
+    static String env(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Falta la variable de entorno " + name + " (runbook-anclaje-testnet.md)");
+        }
+        return value;
+    }
+
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
+        if (TESTNET) {
+            registry.add("crypto.web3j.node-url", () -> env("WEB3_NODE_URL"));
+            registry.add("crypto.web3j.private-key", () -> env("WEB3_PRIVATE_KEY"));
+            registry.add("crypto.anchor.smart-contract", () -> env("CRYPTO_ANCHOR_SMART_CONTRACT"));
+            registry.add("crypto.anchor.network", () -> env("CRYPTO_ANCHOR_NETWORK"));
+            registry.add("crypto.anchor.chain-id", () -> env("CRYPTO_ANCHOR_CHAIN_ID"));
+            registry.add("crypto.anchor.confirmations-required", () -> env("CRYPTO_ANCHOR_CONFIRMATIONS_REQUIRED"));
+            registry.add("crypto.anchor.submit.delay", () -> "5000");
+            registry.add("crypto.anchor.poll.delay", () -> "5000");
+            registry.add("traceability.anchor.producer.interval-ms", () -> "5000");
+            return;
+        }
+        registry.add("crypto.web3j.node-url", GoldenPathHttpIntegrationTest::ganacheUrl);
+        registry.add("crypto.web3j.private-key", () -> GANACHE_TEST_KEY);
+        registry.add("crypto.anchor.smart-contract", GoldenPathHttpIntegrationTest::anchorRegistry);
+    }
+
+    static String ganacheUrl() {
+        return "http://" + ganache.getHost() + ":" + ganache.getMappedPort(8545);
+    }
+
+    private static String anchorRegistry;
+
+    /** Despliega el {@code AnchorRegistry} compilado de {@code crypto} en la cadena local, una vez. */
+    static synchronized String anchorRegistry() {
+        if (anchorRegistry != null) return anchorRegistry;
+        try {
+            org.web3j.protocol.Web3j web3j = org.web3j.protocol.Web3j.build(new org.web3j.protocol.http.HttpService(ganacheUrl()));
+            org.web3j.tx.RawTransactionManager tm = new org.web3j.tx.RawTransactionManager(web3j,
+                    org.web3j.crypto.Credentials.create(GANACHE_DEPLOYER_TEST_KEY), web3j.ethChainId().send().getChainId().longValue());
+            String binary = java.nio.file.Files.readString(
+                    java.nio.file.Path.of("../crypto/src/test/resources/solidity/build/AnchorRegistry.bin")).trim();
+            String txHash = tm.sendTransaction(org.web3j.tx.gas.DefaultGasProvider.GAS_PRICE,
+                    org.web3j.tx.gas.DefaultGasProvider.GAS_LIMIT, null, binary, java.math.BigInteger.ZERO).getTransactionHash();
+            anchorRegistry = new org.web3j.tx.response.PollingTransactionReceiptProcessor(web3j, 500, 30)
+                    .waitForTransactionReceipt(txHash).getContractAddress();
+            return anchorRegistry;
+        } catch (Exception e) {
+            throw new IllegalStateException("No se pudo desplegar AnchorRegistry en Ganache", e);
+        }
     }
 
     @LocalServerPort private int port;
@@ -112,6 +209,8 @@ class GoldenPathHttpIntegrationTest {
     @Autowired private EventStorePort eventStore;
     @Autowired private SimulatedWebhookSignature signature;
     @Autowired private MongoTemplate mongoTemplate;
+    @Autowired private com.traceability.crypto.application.port.in.IntegrityVerificationPort integrity;
+    @Autowired private com.traceability.crypto.application.port.out.MerkleBatchRepositoryPort batches;
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
@@ -139,7 +238,12 @@ class GoldenPathHttpIntegrationTest {
     }
 
     private JsonNode until(String what, Callable<JsonNode> read, Predicate<JsonNode> done) throws Exception {
-        Instant deadline = Instant.now().plusSeconds(30);
+        return until(what, read, done, Duration.ofSeconds(30));
+    }
+
+    private JsonNode until(String what, Callable<JsonNode> read, Predicate<JsonNode> done, Duration timeout)
+            throws Exception {
+        Instant deadline = Instant.now().plus(timeout);
         JsonNode last = null;
         while (Instant.now().isBefore(deadline)) {
             last = read.call();
@@ -287,5 +391,65 @@ class GoldenPathHttpIntegrationTest {
         }, n -> n.get("content").asText().contains("entregados"));
         assertThat(narrative.get("status").asText()).isEqualTo("AVAILABLE");
         assertThat(narrative.get("source").asText()).isEqualTo("LLM_GENERATED");
+
+        // Criterios 14 y 19 (plan B5): la narrativa pública de la convocatoria pasa el grounding real y cuenta las
+        // unidades del padre (6) y del hijo (4); los dos se entregaron al mismo receptor
+        JsonNode campaignNarrative = until("campaign narrative", () -> {
+            HttpResponse<String> r = send("GET", "/api/v1/public/campaigns/" + publicCode + "/narrative", null, null);
+            return r.statusCode() == 200 ? json.readTree(r.body()) : null;
+        }, n -> n.get("status").asText().equals("AVAILABLE"));
+        assertThat(campaignNarrative.get("source").asText()).isEqualTo("LLM_GENERATED");
+        assertThat(campaignNarrative.get("content").asText())
+                .isEqualTo("Se recaudaron 100000 COP; se entregaron 10 unidades a 1 receptores distintos.");
+        assertThat(campaignNarrative.get("facts").get("clearedAmount").asText()).isEqualTo("100000");
+        assertThat(campaignNarrative.get("facts").get("unitsDelivered").asText()).isEqualTo("10");
+        assertThat(campaignNarrative.get("facts").get("distinctRecipients").asLong()).isEqualTo(1);
+
+        // Criterios 10, 11, 12 y 18 (plan P1.4): todos los eventos del recorrido (los dos fondos, el padre y el hijo)
+        // quedan en MerkleBatch ANCHORED en la cadena local, y verifyBatch recomputa la misma raíz (MATCH). El
+        // poller solo marca ANCHORED si la raíz leída de la cadena coincide con la del batch
+        List<String> routeStreams = new java.util.ArrayList<>(List.of(parentRef, childRef));
+        orgFunds.forEach(f -> routeStreams.add(f.get("fundId").asText()));
+        JsonNode anchored = until("route anchored", () -> {
+            List<Document> events = mongoTemplate.getCollection("event_store")
+                    .find(new Document("streamId", new Document("$in", routeStreams))).into(new java.util.ArrayList<>());
+            java.util.Set<String> batchIds = new java.util.TreeSet<>();
+            for (Document e : events) {
+                if (e.getString("merkleBatchId") == null) return null;
+                batchIds.add(e.getString("merkleBatchId"));
+            }
+            boolean allAnchored = batchIds.stream().allMatch(id -> batches.findByBatchId(id)
+                    .map(b -> b.status() == com.traceability.crypto.domain.AnchorStatus.ANCHORED).orElse(false));
+            return allAnchored ? json.valueToTree(batchIds) : null;
+        }, ids -> ids.size() >= 1, TESTNET ? Duration.ofMinutes(30) : Duration.ofSeconds(30));
+        StringBuilder evidence = new StringBuilder("# Evidencia de anclaje del golden path (criterios 10, 11, 12 y 18)\n")
+                .append("destino=").append(TESTNET ? "testnet" : "ganache-local").append('\n');
+        java.util.Set<String> streamsInAnchoredBatches = new java.util.HashSet<>();
+        for (JsonNode id : anchored) {
+            com.traceability.crypto.domain.MerkleBatch batch = batches.findByBatchId(id.asText()).orElseThrow();
+            assertThat(batch.transactionHash()).isNotBlank();
+            assertThat(batch.confirmedBlockNumber()).isNotNull();
+            streamsInAnchoredBatches.addAll(batch.coverage().keySet());
+            com.traceability.crypto.domain.VerificationResult result = integrity.verifyBatch(batch.batchId());
+            assertThat(result.status()).isEqualTo(com.traceability.crypto.domain.VerificationStatus.MATCH);
+            assertThat(result.recomputedRoot()).isEqualTo(batch.merkleRoot());
+            evidence.append("batch=").append(batch.batchId()).append(" status=").append(batch.status())
+                    .append(" network=").append(batch.network()).append(" contract=").append(batch.smartContractAddress())
+                    .append(" merkleRoot=").append(batch.merkleRoot()).append(" txHash=").append(batch.transactionHash())
+                    .append(" block=").append(batch.confirmedBlockNumber()).append(" streams=").append(batch.coverage().size())
+                    .append(" verifyBatch=").append(result.status()).append('\n');
+        }
+        // Sin secretos: solo ids de batch, raíces, hashes de transacción y bloques, que son públicos en la cadena
+        java.nio.file.Files.writeString(java.nio.file.Path.of("target", "golden-path-anclaje-evidencia.txt"),
+                evidence.toString());
+        assertThat(streamsInAnchoredBatches).contains(parentRef, childRef);
+        for (String stream : List.of(parentRef, childRef)) {
+            long last = eventStore.loadStream(stream).size();
+            assertThat(java.util.stream.StreamSupport.stream(anchored.spliterator(), false)
+                    .map(id -> batches.findByBatchId(id.asText()).orElseThrow().coverage().get(stream))
+                    .filter(java.util.Objects::nonNull)
+                    .mapToLong(com.traceability.contracts.SequenceRange::toSequence).max().orElse(0))
+                    .as("el último evento de %s (DELIVERED) está anclado", stream).isEqualTo(last);
+        }
     }
 }
