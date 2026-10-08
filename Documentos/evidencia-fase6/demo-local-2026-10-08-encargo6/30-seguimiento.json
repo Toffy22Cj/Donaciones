@@ -1,0 +1,42 @@
+{
+  "paso": "seguimiento",
+  "metodo": "GET",
+  "ruta": "/api/v1/donations/tracking",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "financialSnapshot": {
+      "currency": "COP",
+      "originalAmount": 6000000,
+      "clearedAmount": 6000000,
+      "pendingAllocationAmount": 0,
+      "confirmedAllocationAmount": 5000000,
+      "refundedAmount": 0
+    },
+    "campaignRef": "13251fb3-2da4-4367-829c-c49bb184ff9c",
+    "logistics": [
+      {
+        "assetRef": "F3O9B2JfdAXVCEp8U9LSBaaa8aZkNhKrtpZnktSDH7w",
+        "lifecycleStatus": "DELIVERED",
+        "assetType": "BLANKET",
+        "unitOfMeasure": "UNITS",
+        "quantity": "6.0000",
+        "locationZone": null,
+        "custodianCategory": "LAST_MILE_CARRIER"
+      },
+      {
+        "assetRef": "Pr2M5-yOJqn1qYc-843DHRLRg0Mgm5D16WNvQduPlJ8",
+        "lifecycleStatus": "RECEIVED",
+        "assetType": "BLANKET",
+        "unitOfMeasure": "UNITS",
+        "quantity": "4.0000",
+        "locationZone": null,
+        "custodianCategory": "REGIONAL_WAREHOUSE"
+      }
+    ],
+    "status": "ACTIVA"
+  }
+}

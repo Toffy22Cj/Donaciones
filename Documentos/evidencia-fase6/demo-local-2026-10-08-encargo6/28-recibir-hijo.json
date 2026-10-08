@@ -1,0 +1,19 @@
+{
+  "paso": "recibir-hijo",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/3cb5469e-c7f3-580d-9465-58782f5a2ee5/receive",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "9687c6c5-c586-4fd1-89af-a06e5d342b91"
+  },
+  "cuerpo": {
+    "facilityLocation": "centro-1",
+    "receiverRef": "recibe-1"
+  },
+  "estado": 200,
+  "respuesta": {
+    "assetRef": "3cb5469e-c7f3-580d-9465-58782f5a2ee5",
+    "status": "RECEIVED"
+  }
+}

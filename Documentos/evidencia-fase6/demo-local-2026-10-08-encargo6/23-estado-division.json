@@ -1,0 +1,13 @@
+{
+  "paso": "estado-division",
+  "metodo": "GET",
+  "ruta": "/api/v1/physical-assets/4922bc1f-9aeb-52b4-bb61-df0a63c415d7/splits/3cb5469e-c7f3-580d-9465-58782f5a2ee5",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "status": "CHILD_CREATED"
+  }
+}

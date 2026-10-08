@@ -1,0 +1,14 @@
+{
+  "paso": "estado-intencion-con-cuenta",
+  "metodo": "GET",
+  "ruta": "/api/v1/public/donation-intents/492aa1aa-395f-4b84-b438-ccf742d7bfb5",
+  "cabeceras": {
+    "Intent-Token": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "status": "CONFIRMED",
+    "trackingCode": "***"
+  }
+}

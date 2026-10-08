@@ -1,0 +1,20 @@
+webhook 200
+### GET /donations/tracking/integrity (donación nueva tras el recorrido, backend real, anclaje en Ganache, verificación B4)
+200 {
+ "batches": [
+  {
+   "anchorStatus": "ANCHORED",
+   "merkleRoot": "75f9545b210dfada5cdb031ca5f52ad51924ee1556e571c859db3335de152c5b",
+   "transactionHash": "0xea0e605ba2b2addb76a12083728b54bc69e6d1bdf5d141f4fc9f018d236c6ec7",
+   "network": "ganache-local",
+   "anchoredAt": "2026-10-08T08:19:57.547Z",
+   "confirmedBlockNumber": 4,
+   "eventsOfThisDonation": 1,
+   "verification": {
+    "result": "MATCH"
+   }
+  }
+ ],
+ "unanchoredEvents": 0,
+ "checkedAt": "2026-10-08T08:19:58.549534321Z"
+}

@@ -1,0 +1,14 @@
+{
+  "paso": "estado-intencion-anonima",
+  "metodo": "GET",
+  "ruta": "/api/v1/public/donation-intents/77a0ee5a-d1cd-4004-b72b-8f380ee4d68e",
+  "cabeceras": {
+    "Intent-Token": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "status": "CONFIRMED",
+    "trackingCode": "***"
+  }
+}
