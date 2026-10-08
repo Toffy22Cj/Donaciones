@@ -45,6 +45,10 @@ class ValueObjectsTest {
         // encargo 5 (4): un email es el mismo sin distinguir mayúsculas; se guarda y se compara en minúsculas
         assertEquals("ana.perez@example.org", new Email("Ana.Perez@Example.ORG").value());
         assertEquals(new Email("ana.perez@example.org"), new Email("ANA.PEREZ@EXAMPLE.ORG"));
+        // DD-74 ratificada con añadido (Carlos, 2026-10-08): también quita los espacios de los extremos
+        assertEquals("ana.perez@example.org", new Email("  Ana.Perez@Example.ORG\t ").value());
+        assertThrows(InvalidEmailFormatException.class, () -> new Email("   "));
+        assertThrows(InvalidEmailFormatException.class, () -> new Email("ana perez@example.org"));
         assertThrows(InvalidEmailFormatException.class, () -> new Email(null));
         assertThrows(InvalidEmailFormatException.class, () -> new Email(""));
         assertThrows(InvalidEmailFormatException.class, () -> new Email("invalid-email"));
