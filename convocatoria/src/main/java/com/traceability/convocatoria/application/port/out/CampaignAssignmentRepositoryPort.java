@@ -22,7 +22,16 @@ public interface CampaignAssignmentRepositoryPort {
     /** Asignaciones {@code ACTIVE} de un responsable en cualquier convocatoria (ADR-049 D9; "mis convocatorias"). */
     List<CampaignAssignment> findActiveByResponsible(String responsibleRef);
 
+    /** {@code ACTIVE} o {@code HISTORICAL} (cerradas con el responsable puesto): "mis convocatorias" (DD-72, D-06). */
+    List<CampaignAssignment> findActiveOrHistoricalByResponsible(String responsibleRef);
+
     Optional<CampaignAssignment> findById(String assignmentId);
+
+    /**
+     * Al cerrar la convocatoria (D-06): todas sus asignaciones {@code ACTIVE → HISTORICAL}, con {@code removedAt} =
+     * {@code closedAt}. Devuelve cuántas.
+     */
+    long markHistoricalByCampaignRef(String campaignRef, Instant closedAt);
 
     /** Escritura condicional {@code ACTIVE → REMOVED}. Devuelve si se aplicó. */
     boolean markRemovedIfActive(String assignmentId, Instant removedAt);
