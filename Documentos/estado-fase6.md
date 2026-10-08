@@ -182,7 +182,20 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
 - **DD-57 y DD-59 a DD-73: RATIFICADAS — Carlos, 2026-10-08.**
 - **Deuda registrada (DD-66): transferir el papel de `REPRESENTATIVE` por HTTP.** El dominio lo tiene (`TransferRepresentativeAndRemove`, ADR-026), pero no hay ruta. Hoy los roles del representante solo los cambia él mismo y no puede quitarse.
-- **H-IDX-1: confirmado y corregido.** Con la aplicación real arrancada en perfil `dev` sobre una base vacía, antes de cualquier petición solo existían 21 índices. Faltaban el único `(streamId, sequence)` del event store, el único parcial de `campaign_assignments`, todos los de `donation_intents`, el único de `unacceptable_payment_events`, el de seudónimos y varias colecciones enteras (`processed_commands` y `convocatoria_processed_commands`, entre otras). Solo se creaban los índices de documentos con repositorio de Spring Data. Ahora `MongoIndexInitializer` crea, antes de servir tráfico, las 30 colecciones `@Document` y sus 23 índices declarados (53 índices en total, contando `_id`). `MongoIndexesAtStartupIntegrationTest` falla si falta alguno. Evidencia: `evidencia-fase6/h-idx-1-indices-al-arrancar-2026-10-08.txt`.
+- **H-IDX-1: confirmado y corregido.** Con la aplicación real arrancada en perfil `dev` sobre una base vacía, antes de cualquier petición solo existían 21 índices. Faltaban el único `(streamId, sequence)` del event store, el único parcial de `campaign_assignments`, todos los de `donation_intents`, el único de `unacceptable_payment_events`, el de seudónimos y varias colecciones enteras (`processed_commands` y `convocatoria_processed_commands`, entre otras). Solo se creaban los índices de documentos con repositorio de Spring Data. Ahora `MongoIndexInitializer` crea, antes de servir tráfico, las 30 colecciones `@Document` y sus 23 índices declarados (53 índices en total, contando `_id`). `MongoIndexesAtStartupIntegrationTest` falla si falta alguno. Evidencia: `evidencia-fase6/h-idx-1-indices-al-arrancar-2026-10-08.txt`. (#92)
+- **Encargo 5, puntos (2) a (6):**
+
+| Punto | Resultado | PR |
+|---|---|---|
+| (2) D-06 | Cerrar una convocatoria pasa sus asignaciones `ACTIVE` a `HISTORICAL` dentro de la misma transacción del cierre (`Command-Id`). Si el cierre falla, ni la convocatoria ni las asignaciones cambian. El empleado queda libre para otra convocatoria | #93 |
+| (3) Predicción fuera de rango | Con `t < 0,15` o `t > 0,50` responde `OUTSIDE_TRAINED_RANGE` con el motivo explícito y ninguna cifra; los bordes están incluidos | #94 |
+| (4) Emails en minúsculas | `Email` normaliza con `toLowerCase(Locale.ROOT)`: el registro, el login, la unicidad, el arranque de plataforma y las invitaciones usan el mismo valor. Sin migración (la demo tenía 0 cuentas con mayúsculas). DD-74, pendiente de ratificación | #95 |
+| (5) H-DEMO-2 | El texto de respaldo de la narrativa individual va en español y sin `fundId` ni secuencia; solo lleva los recuentos | #96 |
+| (6) Runbook CORS | `demo.env.example` y `runbook-demo-local.md` usan el puerto 3000 (`localhost` y `127.0.0.1`), también en el enlace de las invitaciones. Comprobado con el backend real: 3000 → 200 con `Allow-Origin`; 5173 y un origen ajeno → 403 | #96 |
+
+  Cada PR lleva dentro su evidencia (rojo, verde, mutaciones y `ci-local.sh` sobre su último commit). Ningún commit directo a `develop`. Dos `ci-local.sh` fallaron primero y su salida va dentro del PR:
+  - en H-IDX-1, 3 tests reutilizaban un `EMPLOYEE` en varias convocatorias activas, y el índice ahora presente lo impide;
+  - en D-06, el escenario completo esperaba la regla vieja.
 
 ### 0.26 Cierre del encargo 3 y de la tercera autorización (2026-10-08)
 
@@ -217,10 +230,10 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
 **Hallazgos de estos encargos:**
 - **H-DEMO-1:** corregido en #78.
-- **H-DEMO-2 (abierto, decisión de Carlos):** el texto de respaldo de la narrativa individual está en inglés y expone el `fundId`.
+- **H-DEMO-2: CERRADO (encargo 5, #96).** El texto de respaldo de la narrativa individual va en español y sin identificadores.
 - **H-CI-1:** alta no atómica de las proyecciones de `core`; corregido en #84 y #87.
 - **H-IDX-1 (sospecha, por verificar):** índices declarados solo por anotación que quizá no existen en los tests de `app` ni, hasta su primer uso, en producción.
-- **Normalización de `Email`:** las invitaciones comparan en minúsculas, pero la unicidad de cuentas distingue mayúsculas (ADR-049, Consequences).
+- **Normalización de `Email`: CERRADO (encargo 5, #95, DD-74).** `Email` se guarda y se compara en minúsculas.
 
 **Decisiones delegadas nuevas, pendientes de ratificar:** DD-57, DD-59 a DD-73. DD-58 está marcada como corregida por Carlos.
 
@@ -275,7 +288,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - semilla `DemoSeedRunner`, solo para el perfil `dev`.
 - **Hallazgos al probar la demo:**
   - **H-DEMO-1 (corregido en `fix/narrativa-fallback-cacheado`):** sin clave de LLM, la narrativa individual no salía nunca de `PENDING`. El fallback se guardaba con otro identificador de modelo y no se encontraba, así que cada consulta llamaba al proveedor y guardaba otro documento: 90 en una prueba. Los tests no lo veían porque siempre había un LLM simulado que respondía.
-  - **H-DEMO-2 (abierto, decisión de Carlos):** el texto de respaldo de la narrativa individual está en inglés e **incluye el `fundId` interno** en una respuesta pública de seguimiento. Propuesta: texto en español sin ids.
+  - **H-DEMO-2: CERRADO (encargo 5, #96).** Antes, el texto de respaldo estaba en inglés e incluía el `fundId` interno; ahora va en español y sin ids.
 
 ### 0.23 P4 y cierre de la segunda autorización (2026-10-07)
 

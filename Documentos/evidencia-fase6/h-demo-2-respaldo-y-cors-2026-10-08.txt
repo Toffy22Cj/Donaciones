@@ -1,0 +1,74 @@
+# H-DEMO-2 y runbook CORS (encargo 5, puntos 5 y 6) — 2026-10-08
+
+## Punto 5: texto de respaldo de la narrativa individual
+Antes (inglés y con el fundId interno en una respuesta pública de seguimiento):
+  "The donation for fund %s has been processed up to sequence %d. It has %d transition(s) and %d flag(s) registered. Detailed AI narrative is temporarily unavailable."
+Después (español, sin fundId ni secuencia):
+  "La narrativa detallada de tu donación no está disponible en este momento. Por ahora tiene registrados 3 cambios de estado y 1 alerta financiera."
+
+## Rojo (commit del test, antes de la corrección)
+[ERROR] Tests run: 2, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 1.106 s <<< FAILURE! -- in com.traceability.ai.application.service.FallbackNarrativeTemplateServiceTest
+[ERROR] com.traceability.ai.application.service.FallbackNarrativeTemplateServiceTest.theText_isInSpanish_withTheCountsOnly -- Time elapsed: 1.048 s <<< FAILURE!
+[ERROR] com.traceability.ai.application.service.FallbackNarrativeTemplateServiceTest.theText_carriesNoIdentifier -- Time elapsed: 0.011 s <<< FAILURE!
+[ERROR] Tests run: 9, Failures: 3, Errors: 0, Skipped: 0, Time elapsed: 0.936 s <<< FAILURE! -- in com.traceability.ai.application.service.DonorReportGeneratorTest
+[ERROR] com.traceability.ai.application.service.DonorReportGeneratorTest.testGroundingFailure_GeneratesFallback -- Time elapsed: 0.310 s <<< FAILURE!
+[ERROR] com.traceability.ai.application.service.DonorReportGeneratorTest.testTimeout_GeneratesFallback -- Time elapsed: 0.008 s <<< FAILURE!
+[ERROR] com.traceability.ai.application.service.DonorReportGeneratorTest.testProviderException_GeneratesFallback -- Time elapsed: 0.008 s <<< FAILURE!
+
+## Verde (mvn -pl ai -am test)
+[INFO] Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- vuelve a incluir el fundId: MUERTA  theText_carriesNoIdentifier; theText_isInSpanish_withTheCountsOnly
+- vuelve a incluir la secuencia: MUERTA  theText_carriesNoIdentifier; theText_isInSpanish_withTheCountsOnly
+- plural siempre: MUERTA  theText_isInSpanish_withTheCountsOnly
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+## Punto 6: CORS con el puerto 3000 — comprobación con el backend real
+Backend arrancado con 'mvn -pl app spring-boot:run' y demo.env (perfil dev) con:
+  TRACEABILITY_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+  TRACEABILITY_WEB_BASE_URL=http://localhost:3000
+La API solo expone GET y POST (sin @Put/@Patch/@DeleteMapping), así que GET,POST,OPTIONS basta.
+
+### preflight Origin: http://localhost:3000
+$ curl -si -X OPTIONS http://localhost:8080/api/v1/public/campaigns -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: GET'
+HTTP/1.1 200 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Methods: GET,POST,OPTIONS
+
+### preflight Origin: http://127.0.0.1:3000
+$ curl -si -X OPTIONS http://localhost:8080/api/v1/public/campaigns -H 'Origin: http://127.0.0.1:3000' -H 'Access-Control-Request-Method: GET'
+HTTP/1.1 200 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: http://127.0.0.1:3000
+Access-Control-Allow-Methods: GET,POST,OPTIONS
+
+### preflight Origin: http://localhost:5173
+$ curl -si -X OPTIONS http://localhost:8080/api/v1/public/campaigns -H 'Origin: http://localhost:5173' -H 'Access-Control-Request-Method: GET'
+HTTP/1.1 403 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+
+### preflight Origin: http://evil.example
+$ curl -si -X OPTIONS http://localhost:8080/api/v1/public/campaigns -H 'Origin: http://evil.example' -H 'Access-Control-Request-Method: GET'
+HTTP/1.1 403 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+
+### GET real con Origin: http://localhost:3000
+HTTP/1.1 200 
+Access-Control-Allow-Origin: http://localhost:3000
+
+### preflight POST con cabeceras de la web, Origin: http://localhost:3000
+$ curl -si -X OPTIONS http://localhost:8080/api/v1/organizations -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,content-type,command-id'
+HTTP/1.1 200 
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Methods: GET,POST,OPTIONS
+Access-Control-Allow-Headers: authorization, content-type, command-id
