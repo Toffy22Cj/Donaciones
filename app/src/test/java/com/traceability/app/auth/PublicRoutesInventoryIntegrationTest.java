@@ -84,7 +84,14 @@ class PublicRoutesInventoryIntegrationTest {
             // §3.2: administradores de plataforma
             "GET /api/v1/platform/administrators",
             "POST /api/v1/platform/administrators",
-            "POST /api/v1/platform/administrators/{accountId}/revoke");
+            "POST /api/v1/platform/administrators/{accountId}/revoke",
+            // §3.3 (ADR-049): invitaciones y miembros; aceptar exige JWT
+            "POST /api/v1/organizations/{organizationId}/invitations",
+            "GET /api/v1/organizations/{organizationId}/invitations",
+            "POST /api/v1/organizations/{organizationId}/invitations/{invitationId}/revoke",
+            "POST /api/v1/invitations/accept",
+            "POST /api/v1/organizations/{organizationId}/members/{accountId}/role",
+            "POST /api/v1/organizations/{organizationId}/members/{accountId}/remove");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

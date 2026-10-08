@@ -11,15 +11,15 @@
 
 | Herramienta | Versión probada | Para qué |
 |---|---|---|
-| Docker con Compose v2 | Docker 29.8, Compose 5.6 | MongoDB en réplica y Ganache |
+| Docker con Compose v2 | Docker 29.8, Compose 5.6 | MongoDB en réplica, Ganache y Mailpit |
 | Java | 21 (21.0.12) | backend |
 | Maven | 3.9 (3.9.11) | compilar y arrancar el backend |
 | Python | 3.10 o superior (3.13) | `scripts/demo/recorrido.py` (solo biblioteca estándar) |
 | `curl`, `git` | cualquiera | despliegue del contrato |
 
-Puertos libres: 27017 (MongoDB), 8545 (Ganache) y 8080 (backend).
+Puertos libres: 27017 (MongoDB), 8545 (Ganache), 1025 y 8025 (Mailpit) y 8080 (backend).
 
-## 1. Infraestructura: MongoDB en réplica y Ganache
+## 1. Infraestructura: MongoDB en réplica, Ganache y Mailpit
 
 ```bash
 # en la raíz del repositorio, rama develop
@@ -29,6 +29,7 @@ docker compose -f scripts/demo/docker-compose.yml ps     # mongo debe quedar "he
 
 - MongoDB arranca como réplica `rs0` de un nodo: las transacciones del backend la exigen. El *healthcheck* la inicia la primera vez.
 - Ganache arranca con `--deterministic` y chain id 1337: las mismas cuentas de prueba en cada arranque.
+- Mailpit (ADR-049) recibe por SMTP en el puerto 1025 los correos de invitación del perfil `dev`; se leen en **http://localhost:8025**. Ningún correo sale de la máquina.
 
 ## 2. Variables de entorno
 
@@ -42,7 +43,8 @@ cp scripts/demo/demo.env.example scripts/demo/demo.env   # demo.env está en .gi
 - secretos de seguimiento y del webhook simulado (al menos 32 caracteres);
 - clave del cursor del descubrimiento (`TRACEABILITY_DISCOVERY_CURSOR_KEY`, 32 bytes en Base64, distinta de los demás secretos; para otra máquina: `openssl rand -base64 32`);
 - semilla de la demo y su contraseña (al menos 12 caracteres);
-- CORS para un frontend local.
+- CORS y URL base para un frontend local (`TRACEABILITY_WEB_BASE_URL`, la del enlace de las invitaciones);
+- correo: el perfil `dev` ya usa Mailpit. Para probar con Gmail (contraseña de aplicación), las variables `SPRING_MAIL_*` van en la terminal y nunca en el fichero.
 
 `SPRING_AI_OPENAI_API_KEY` es opcional. Sin ella, la narrativa individual sale con el texto de respaldo y la de convocatoria muestra "Narrativa no disponible", que es lo esperado y nunca texto sin validar. Con una clave real (la de Carlos), en su terminal y nunca en el fichero, el LLM es real y pasa el mismo grounding.
 
@@ -106,6 +108,22 @@ Para conservar la evidencia de una sesión, se ejecuta con `--salida Documentos/
 
 **Repetir el recorrido sobre la misma base** funciona: crea otra convocatoria. Pero el empleado ya es responsable de la anterior, y un `EMPLOYEE` solo puede serlo de una convocatoria activa, así que la asignación da 409 y el guion avisa. Para una evidencia limpia, empezar de cero (paso 7).
 
+## 5b. Invitar a un miembro (ADR-049)
+
+Con el backend en marcha y la sesión del administrador de la semilla:
+
+```bash
+TOKEN=$(curl -s localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d "{\"email\":\"administrador@demo.paxfide.local\",\"password\":\"$TRACEABILITY_DEMO_SEED_PASSWORD\"}" | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+ORG=$(curl -s localhost:8080/api/v1/me -H "Authorization: Bearer $TOKEN" | python3 -c 'import sys,json;print(json.load(sys.stdin)["organizationId"])')
+curl -s localhost:8080/api/v1/organizations/$ORG/invitations -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"email":"nueva@demo.paxfide.local","role":"EMPLOYEE"}'
+```
+
+- La respuesta es `202 {invitationId, role, expiresAt}`, exista o no una cuenta con ese email.
+- El correo aparece en **http://localhost:8025** con el enlace `http://localhost:5173/invitaciones#token=…`. El token va en el fragmento, que el navegador no envía al servidor.
+- La web toma el token del fragmento, lo borra de la barra y llama a `POST /api/v1/invitations/accept` con `{token}` en el cuerpo y la sesión de la cuenta invitada, que debe tener ese mismo email.
+
 ## 6. Recorrido automático (sin backend en marcha)
 
 ```bash
@@ -127,6 +145,8 @@ docker compose -f scripts/demo/docker-compose.yml down -v   # -v borra los datos
 |---|---|---|
 | El backend no arranca: `TRACKING_CODE_SECRET`, `TRACEABILITY_DEMO_WEBHOOK_SECRET` o la contraseña de la semilla | Variables no cargadas | `set -a; . scripts/demo/demo.env; set +a` en la misma terminal |
 | El backend no arranca: `TRACEABILITY_DISCOVERY_CURSOR_KEY` | Falta la clave del cursor del descubrimiento, no tiene 32 bytes en Base64 o coincide con otro secreto (DD-53: sin valor por defecto) | Cargar `demo.env`; para otra máquina, `openssl rand -base64 32`. El mensaje de error nunca muestra la clave |
+| El backend no arranca: `SPRING_MAIL_HOST`, `TRACEABILITY_MAIL_FROM` o `TRACEABILITY_WEB_BASE_URL` | Sin perfil `dev` no hay valores por defecto (DD-61) | Arrancar con `SPRING_PROFILES_ACTIVE=dev` (`demo.env`) o dar las tres variables |
+| No llega el correo de invitación | Mailpit parado | `docker compose -f scripts/demo/docker-compose.yml up -d mailpit`; la lista de invitaciones lo muestra como `delivery: FAILED` |
 | `nonce too low` en el log del backend | Ganache reiniciada o contrato desplegado con la cuenta #0 | `down -v`, y repetir los pasos 1, 3 y 4 |
 | El recorrido espera mucho al anclaje | Intervalos por defecto | Comprobar `TRACEABILITY_ANCHOR_PRODUCER_INTERVAL_MS`, `CRYPTO_ANCHOR_SUBMIT_DELAY` y `CRYPTO_ANCHOR_POLL_DELAY` en `demo.env` |
 | `verificar-organizacion: 409` | La organización ya se verificó en otra ejecución | Es correcto; el guion lo acepta |

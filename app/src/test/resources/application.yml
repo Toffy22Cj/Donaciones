@@ -1,4 +1,15 @@
+# Correo de los tests (ADR-049): un servidor que no existe; los tests que envían sustituyen JavaMailSender o usan
+# Mailpit por Testcontainers.
+spring:
+  mail:
+    host: localhost
+    port: 1
+
 traceability:
+  mail:
+    from: no-reply@tests.paxfide.local
+  web:
+    base-url: https://web.tests.paxfide.local
   security:
     tracking-code-secret: dummy-tracking-code-secret-for-test
     asset-ref-secret: dummy-asset-ref-secret-for-test

@@ -6,6 +6,12 @@ import com.traceability.api.web.ApiExceptionHandler;
 import com.traceability.app.web.platform.PlatformAuthorityTargetInactiveException;
 import com.traceability.app.web.platform.PlatformAuthorityTargetNotFoundException;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
+import identity.domain.exception.ActiveCampaignResponsibleException;
+import identity.domain.exception.InvalidMemberRoleException;
+import identity.domain.exception.InvitationNotAcceptableException;
+import identity.domain.exception.InvitationNotPendingException;
+import identity.domain.exception.MemberAlreadyHasRoleException;
+import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.LastPlatformAdministratorException;
 import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
 import identity.domain.exception.PlatformAuthorityNotHeldException;
@@ -70,6 +76,13 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(PlatformAuthorityNotHeldException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(LastPlatformAdministratorException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(PlatformAuthorityTargetInactiveException.class, HttpStatus.CONFLICT, null),
-                new ApiErrorMapping(PlatformAuthorityTargetNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND));
+                new ApiErrorMapping(PlatformAuthorityTargetNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                // §3.3 (ADR-049): invitaciones y miembros
+                new ApiErrorMapping(InvalidMemberRoleException.class, HttpStatus.BAD_REQUEST, null),
+                new ApiErrorMapping(InvitationNotAcceptableException.class, HttpStatus.FORBIDDEN, null),
+                new ApiErrorMapping(InvitationNotPendingException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(MemberAlreadyHasRoleException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(ActiveCampaignResponsibleException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(RepresentativeTransferRequiredException.class, HttpStatus.CONFLICT, null));
     }
 }

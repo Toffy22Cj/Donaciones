@@ -1,0 +1,30 @@
+# §3.3 — miembros e invitaciones por correo (ADR-049): fase roja y mutaciones
+tests (rojo): b039e03; código verde: 0a8e0c0; test del adaptador: ec2c86c
+
+## Fase roja (controladores apartados con git stash)
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 7.207 s <<< FAILURE! -- in com.traceability.app.web.organization.InvitationMailpitIntegrationTest
+[ERROR] Tests run: 18, Failures: 18, Errors: 0, Skipped: 0, Time elapsed: 23.63 s <<< FAILURE! -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- se guarda el token en vez del hash: MUERTA  theToken_has256RandomBits_andItsHashIsSha256_andToStringNeverShowsIt
+- token en la query: MUERTA  accepting_withTheInvitedAccount_joinsWithTheInvitedRole_effectiveOnTheNextRequest; anAccountThatAlreadyBelongsToAnOrganization_gets409_onlyAfterTheTokenAndEmailAreValid; anActiveCampaignResponsible_isNeitherDemotedNorRemoved_untilReplacedOrTheCampaignCloses; anExpiredInvitation_isRejected_andDisappearsFromTheList; changingTheRole_isRestrictive_whenTheMemberIsAlreadyInThatState; everyRejection_isTheSame403_andAnotherAccountLeavesTheInvitationPending; reinvitingTheSameEmail_revokesThePreviousLink; removing_isOnlyForManagers_andOnlyForMembers; revoking_aPendingInvitation_invalidatesItsLink_andRevokingAgainIs409; theInvitation_storesOnlyTheHashOfA256BitToken_andTheMailCarriesItInTheFragment; theLink_carriesTheTokenOnlyInTheFragment; theList_masksTheEmail_andNeverShowsTheTokenOrItsHash; theTokenNeverAppearsInTheLogs; twoSimultaneousAcceptancesOfTheSameToken_onlyOneWins
+- reinvitar no revoca la anterior: MUERTA  reinvitingTheSameEmail_revokesThePreviousLink
+- sin caducidad: MUERTA  anInvitation_storesOnlyTheHash_theLowercaseEmail_andExpiresInSevenDays
+- cualquier cuenta acepta: MUERTA  anInvitation_storesOnlyTheHash_theLowercaseEmail_andExpiresInSevenDays
+- aceptar sin escritura condicional: VIVA  
+- token aceptado en la query: MUERTA  everyRejection_isTheSame403_andAnotherAccountLeavesTheInvitationPending
+- un EMPLOYEE gestiona miembros: MUERTA  changingTheRole_isRestrictive_whenTheMemberIsAlreadyInThatState; onlyAdministratorOrRepresentative_invite_andTheRolesAreAdministratorOrEmployee; removing_isOnlyForManagers_andOnlyForMembers; revoking_aPendingInvitation_invalidatesItsLink_andRevokingAgainIs409
+- ascender a quien ya es administrador: MUERTA  changeMemberRole_promotesKeepingTheRest_demotesKeepingEmployee_andRejectsTheSameState
+- un administrador cambia los roles del representante: MUERTA  theRepresentativesRoles_areOnlyChangedByTheRepresentative
+- quitar a un responsable activo: MUERTA  anActiveCampaignResponsible_isNeitherDemotedNorRemoved_untilReplacedOrTheCampaignCloses
+- degradar a un responsable activo: MUERTA  anActiveCampaignResponsible_isNeitherDemotedNorRemoved_untilReplacedOrTheCampaignCloses
+- convocatoria cerrada sigue contando: MUERTA  anActiveCampaignResponsible_isNeitherDemotedNorRemoved_untilReplacedOrTheCampaignCloses
+- email sin enmascarar: MUERTA  anInvitation_storesOnlyTheHash_theLowercaseEmail_andExpiresInSevenDays
+- fallo SMTP como SENT: MUERTA  anSmtpFailure_stillAnswers202_andIsVisibleAsFailedDelivery_withoutLeakingTheEmail
+Restauración verificada contra HEAD. Mutaciones vivas: 1
+
+## Mutación viva en la primera pasada, matada con OrganizationInvitationPersistenceIntegrationTest
+- aceptar sin escritura condicional: MUERTA  acceptingAndRevoking_onlyApplyToAPendingInvitation_once
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+Nota: con transacciones de Mongo, el conflicto de escritura ya impide dos aceptaciones; la escritura condicional es defensa en profundidad y ahora tiene su propio test.

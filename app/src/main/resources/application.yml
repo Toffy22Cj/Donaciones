@@ -1,4 +1,9 @@
 spring:
+  # ADR-049 D1 (DD-61): SMTP estándar por SPRING_MAIL_HOST/PORT/USERNAME/PASSWORD y
+  # SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH/STARTTLS_ENABLE (Gmail: smtp.gmail.com, 587, contraseña de aplicación).
+  # Sin host la aplicación no arranca; credenciales solo en el entorno, nunca en este fichero.
+  mail:
+    host: ${SPRING_MAIL_HOST}
   application:
     name: traceability-engine
 
@@ -45,7 +50,11 @@ crypto:
       warn-after-attempts: ${CRYPTO_ANCHOR_COLLECTING_RECOVERY_WARN_AFTER_ATTEMPTS:5}
 
 traceability:
+  # ADR-049 D1 (DD-61): remitente de los correos y base de los enlaces de la web, sin valor por defecto fuera de dev
+  mail:
+    from: ${TRACEABILITY_MAIL_FROM}
   web:
+    base-url: ${TRACEABILITY_WEB_BASE_URL}
     cors:
       # S-03: orígenes exactos (desarrollo y demo) separados por comas; nunca '*'. Sin valor, ningún origen cruzado.
       allowed-origins: ${TRACEABILITY_CORS_ALLOWED_ORIGINS:}

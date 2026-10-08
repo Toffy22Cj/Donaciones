@@ -19,6 +19,9 @@ public interface CampaignAssignmentRepositoryPort {
 
     List<CampaignAssignment> findByCampaignRef(String campaignRef);
 
+    /** Asignaciones {@code ACTIVE} de un responsable en cualquier convocatoria (ADR-049 D9; "mis convocatorias"). */
+    List<CampaignAssignment> findActiveByResponsible(String responsibleRef);
+
     Optional<CampaignAssignment> findById(String assignmentId);
 
     /** Escritura condicional {@code ACTIVE → REMOVED}. Devuelve si se aplicó. */
