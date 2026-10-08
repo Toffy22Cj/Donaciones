@@ -43,7 +43,7 @@ cp scripts/demo/demo.env.example scripts/demo/demo.env   # demo.env está en .gi
 - secretos de seguimiento y del webhook simulado (al menos 32 caracteres);
 - clave del cursor del descubrimiento (`TRACEABILITY_DISCOVERY_CURSOR_KEY`, 32 bytes en Base64, distinta de los demás secretos; para otra máquina: `openssl rand -base64 32`);
 - semilla de la demo y su contraseña (al menos 12 caracteres);
-- CORS y URL base para un frontend local (`TRACEABILITY_WEB_BASE_URL`, la del enlace de las invitaciones);
+- frontend local en el **puerto 3000**: `TRACEABILITY_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000` (orígenes exactos, nunca `*`) y `TRACEABILITY_WEB_BASE_URL=http://localhost:3000`, la base del enlace de las invitaciones. Si la web corre en otro puerto, hay que cambiar las dos;
 - correo: el perfil `dev` ya usa Mailpit. Para probar con Gmail (contraseña de aplicación), las variables `SPRING_MAIL_*` van en la terminal y nunca en el fichero.
 
 `SPRING_AI_OPENAI_API_KEY` es opcional. Sin ella, la narrativa individual sale con el texto de respaldo y la de convocatoria muestra "Narrativa no disponible", que es lo esperado y nunca texto sin validar. Con una clave real (la de Carlos), en su terminal y nunca en el fichero, el LLM es real y pasa el mismo grounding.
@@ -121,12 +121,12 @@ curl -s localhost:8080/api/v1/organizations/$ORG/invitations -H "Authorization: 
 ```
 
 - La respuesta es `202 {invitationId, role, expiresAt}`, exista o no una cuenta con ese email.
-- El correo aparece en **http://localhost:8025** con el enlace `http://localhost:5173/invitaciones#token=…`. El token va en el fragmento, que el navegador no envía al servidor.
+- El correo aparece en **http://localhost:8025** con el enlace `http://localhost:3000/invitaciones#token=…`. El token va en el fragmento, que el navegador no envía al servidor.
 - La web toma el token del fragmento, lo borra de la barra y llama a `POST /api/v1/invitations/accept` con `{token}` en el cuerpo y la sesión de la cuenta invitada, que debe tener ese mismo email.
 
 **Probado en vivo el 2026-10-08T00:10Z**, con los pasos tal cual, desde `down -v`:
 - la invitación responde `202`;
-- el correo llega a Mailpit con el asunto "Invitación a Fundación Demo PaxFide en PaxFide" y el enlace `http://localhost:5173/invitaciones#token=…`;
+- el correo llega a Mailpit con el asunto "Invitación a Fundación Demo PaxFide en PaxFide" y el enlace `http://localhost:3000/invitaciones#token=…`;
 - la cuenta `nueva@demo.paxfide.local` se registra, acepta con el token en el cuerpo (`200 {organizationId, roles: ["EMPLOYEE"]}`) y su `/me` ya trae la organización;
 - repetir la aceptación da `403`;
 - el token no aparece ni una vez en el log del backend.
@@ -154,6 +154,7 @@ docker compose -f scripts/demo/docker-compose.yml down -v   # -v borra los datos
 | El backend no arranca: `TRACEABILITY_DISCOVERY_CURSOR_KEY` | Falta la clave del cursor del descubrimiento, no tiene 32 bytes en Base64 o coincide con otro secreto (DD-53: sin valor por defecto) | Cargar `demo.env`; para otra máquina, `openssl rand -base64 32`. El mensaje de error nunca muestra la clave |
 | El backend no arranca: `SPRING_MAIL_HOST`, `TRACEABILITY_MAIL_FROM` o `TRACEABILITY_WEB_BASE_URL` | Sin perfil `dev` no hay valores por defecto (DD-61) | Arrancar con `SPRING_PROFILES_ACTIVE=dev` (`demo.env`) o dar las tres variables |
 | No llega el correo de invitación | Mailpit parado | `docker compose -f scripts/demo/docker-compose.yml up -d mailpit`; la lista de invitaciones lo muestra como `delivery: FAILED` |
+| La web en `localhost:3000` recibe errores de CORS ("blocked by CORS policy") | `TRACEABILITY_CORS_ALLOWED_ORIGINS` no incluye el origen exacto de la web (esquema, host y puerto) o el backend se arrancó sin cargar `demo.env` | Cargar `demo.env` y reiniciar el backend. Comprobar con `curl -si -X OPTIONS http://localhost:8080/api/v1/public/campaigns -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: GET'`: debe devolver `Access-Control-Allow-Origin: http://localhost:3000` |
 | `nonce too low` en el log del backend | Ganache reiniciada o contrato desplegado con la cuenta #0 | `down -v`, y repetir los pasos 1, 3 y 4 |
 | El recorrido espera mucho al anclaje | Intervalos por defecto | Comprobar `TRACEABILITY_ANCHOR_PRODUCER_INTERVAL_MS`, `CRYPTO_ANCHOR_SUBMIT_DELAY` y `CRYPTO_ANCHOR_POLL_DELAY` en `demo.env` |
 | `verificar-organizacion: 409` | La organización ya se verificó en otra ejecución | Es correcto; el guion lo acepta |
