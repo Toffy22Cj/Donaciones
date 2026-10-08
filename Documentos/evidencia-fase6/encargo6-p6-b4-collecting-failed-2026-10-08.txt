@@ -1,0 +1,45 @@
+# Encargo 6, P6 (B4) — Enmienda 1 de ADR-039 §2.3: COLLECTING_FAILED, RETRY y RELEASE — 2026-10-08
+
+## Rojo (commit del test)
+[ERROR] Tests run: 6, Failures: 2, Errors: 3, Skipped: 0, Time elapsed: 15.51 s <<< FAILURE! -- in com.traceability.app.scheduler.CollectingRecoveryIntegrationTest
+[ERROR] com.traceability.app.scheduler.CollectingRecoveryIntegrationTest.anUnreadableCollectingBatch_doesNotStopClaimingNewEventsInTheSameCycle -- Time elapsed: 1.095 s <<< ERROR!
+[ERROR] com.traceability.app.scheduler.CollectingRecoveryIntegrationTest.aBatchThatExhaustsTheCap_becomesCollectingFailed_andStopsBlockingTheQueue -- Time elapsed: 0.136 s <<< FAILURE!
+[ERROR] com.traceability.app.scheduler.CollectingRecoveryIntegrationTest.releaseAndRetry_onlyActOnCollectingFailed_andChangeNothingOtherwise -- Time elapsed: 0.039 s <<< FAILURE!
+[ERROR] com.traceability.app.scheduler.CollectingRecoveryIntegrationTest.release_freesOnlyThisBatchsEventsInItsCoverage_andWritesTheAudit -- Time elapsed: 0.034 s <<< ERROR!
+[ERROR] com.traceability.app.scheduler.CollectingRecoveryIntegrationTest.retry_putsItBackToCollectingWithZeroAttempts_andItIsRecovered -- Time elapsed: 0.047 s <<< ERROR!
+(DoD 10, contigüidad, ya se cumplía: queda como protección)
+
+## Verde (tras integrar develop con #102)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.79 s -- in com.traceability.app.web.tracking.TrackingIntegrityHttpIntegrationTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.101 s -- in com.traceability.app.scheduler.CollectingRecoveryIntegrationTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.682 s -- in com.traceability.app.scheduler.BlockchainAnchorProducerTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.374 s -- in com.traceability.app.application.integrity.TrackingIntegrityServiceTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.729 s -- in com.traceability.app.application.service.IntegrityRecomputationIntegrationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.311 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- sin tope: MUERTA  aBatchThatExhaustsTheCap_becomesCollectingFailed_andStopsBlockingTheQueue
+- la recuperación que falla detiene la reclamación: MUERTA  anUnreadableCollectingBatch_doesNotStopClaimingNewEventsInTheSameCycle
+- RELEASE libera eventos de otros batches: MUERTA  release_freesOnlyThisBatchsEventsInItsCoverage_andWritesTheAudit
+- RELEASE sin auditoría: MUERTA  release_freesOnlyThisBatchsEventsInItsCoverage_andWritesTheAudit
+- RETRY sin poner a cero los intentos: MUERTA  retry_putsItBackToCollectingWithZeroAttempts_andItIsRecovered
+- RELEASE sin pasar a RELEASED: MUERTA  releaseAndRetry_onlyActOnCollectingFailed_andChangeNothingOtherwise; release_freesOnlyThisBatchsEventsInItsCoverage_andWritesTheAudit
+- transiciones de salida desde cualquier estado: MUERTA  releaseAndRetry_onlyActOnCollectingFailed_andChangeNothingOtherwise
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+(Primera pasada: 'RELEASE sobre cualquier estado' sobrevivió por ser equivalente: el servicio repetía la condición de la transición condicional. Se quitó la repetición y se mutó la transición.)
+
+## Definición de hecho (§5) cubierta
+6 tope → COLLECTING_FAILED y deja de bloquear la cola (max-per-cycle = 1): aBatchThatExhaustsTheCap_becomesCollectingFailed_andStopsBlockingTheQueue
+7 RELEASE → RELEASED, eventos de su cobertura reclamables, auditoría, eventos de otro batch intactos: release_freesOnlyThisBatchsEventsInItsCoverage_andWritesTheAudit
+   y RETRY/RELEASE solo sobre COLLECTING_FAILED: releaseAndRetry_onlyActOnCollectingFailed_andChangeNothingOtherwise
+8 RETRY → COLLECTING con 0 intentos y se recupera: retry_putsItBackToCollectingWithZeroAttempts_andItIsRecovered
+9 batch ilegible → la reclamación sigue en el mismo ciclo: anUnreadableCollectingBatch_doesNotStopClaimingNewEventsInTheSameCycle
+10 evento entre dos reclamaciones → batches contiguos: anEventAppendedBetweenTwoClaims_leavesSuccessiveBatchesContiguous
+
+## Consumidores de AnchorStatus revisados
+      1 app/src/main/java/com/traceability/app/application/integrity/TrackingIntegrityService.java
+      2 app/src/main/java/com/traceability/app/application/service/IntegrityVerificationUseCase.java
+      1 app/src/main/java/com/traceability/app/scheduler/BlockchainAnchorProducer.java
+     21 crypto/src/main/java/com/traceability/crypto/infrastructure/persistence/mongo/MerkleBatchMongoAdapter.java
+Ningún switch sobre AnchorStatus; las consultas usan estados concretos y no ven COLLECTING_FAILED ni RELEASED.

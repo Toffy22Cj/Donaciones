@@ -15,7 +15,12 @@
 
 **El corte**, en UTC, es la fecha del commit `0579f41`: 2026-09-17T02:49:04Z (DD-78).
 
-**Implementación:** §2.2 en el PR de B4 "verificación recalculada"; §2.3, en el PR siguiente.
+**Implementación:**
+- §2.2, en #102.
+- §2.3, en el PR de B4 "COLLECTING_FAILED":
+  - tope `crypto.anchor.collecting-recovery.max-attempts` (10 por defecto; P5, DD-79);
+  - JMX `CollectingFailedBatchAdminOperations.resolveCollectingFailedBatch(batchId, RETRY|RELEASE, operator, reason)`;
+  - auditoría en `batch_release_audit`.
 **Dirección aprobada por Carlos (2026-10-07):** poner tope y estado de salida a los batches `COLLECTING` que no se pueden recuperar. **Todo el diseño concreto de este documento es una propuesta**: `COLLECTING_FAILED`, `RETRY`/`RELEASE`, `RELEASED`, el recálculo de `eventHash` e `inconclusiveReason`.
 **Origen:** `auditoria-fase6-codigo-vs-documentacion.md` §10 (hallazgos B-5, B-6, B-9 y B-10).
 **Complementa:** ADR-039, `blockchain-resumen.md`. No reabre ADR-019/022 (anclaje EVM).
