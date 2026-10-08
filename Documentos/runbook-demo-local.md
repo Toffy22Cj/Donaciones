@@ -77,6 +77,38 @@ En el primer arranque, la **semilla** (`DemoSeedRunner`, solo con el perfil `dev
 
 Todas entran con `TRACEABILITY_DEMO_SEED_PASSWORD`. En arranques siguientes la semilla no crea nada. Para comprobar que el backend responde: `curl -s localhost:8080/api/v1/public/campaigns` → `{"items":[]}`.
 
+## 4b. Escenario completo de la presentación (perfil `demo-seed`)
+
+Alternativa al paso 4 para la presentación: en lugar de la semilla mínima, **todo el escenario** (encargo 6, P5).
+
+```bash
+docker compose -f scripts/demo/docker-compose.yml down -v && docker compose -f scripts/demo/docker-compose.yml up -d
+# repetir el paso 3 (contrato) con la Ganache nueva
+set -a; . scripts/demo/demo.env; set +a
+export SPRING_PROFILES_ACTIVE=dev,demo-seed TRACEABILITY_DEMO_SEED_ENABLED=false
+mvn -q -pl app spring-boot:run
+# en el log: "Semilla de la demo completa; credenciales locales en …/app/demo-evidencia/credenciales-locales.md"
+```
+
+La semilla (`DemoScenarioSeeder`) corre al arrancar, **solo sobre una base vacía**. Si la base no está vacía, el arranque se detiene con `La base de datos no está vacía {…}` y no crea nada. Pasa por la **API HTTP** de la propia aplicación y, solo donde no hay ruta (arranque del administrador de plataforma y altas de miembros), por los servicios de aplicación. **Nunca hace inserciones directas.** Deja:
+
+- **Cuentas** (contraseña: `TRACEABILITY_DEMO_SEED_PASSWORD`):
+  - administrador de plataforma;
+  - Fundación Demo PaxFide (verificada), con representante, administrador y dos empleados;
+  - Empresa Aliada Demo, pendiente, que aparece en la cola de la plataforma;
+  - un donante con cuenta.
+- **Convocatorias:**
+  - **activa**: el día de la demo (`TRACEABILITY_DEMO_SEED_DEMO_DAY`, por defecto 2026-10-21T15:00:00Z) está en el 30 % de su duración, así que la predicción da cifra y las estimaciones históricas de 0,15 y 0,25 ya son pasadas;
+  - **cerrada**: su empleado pasa a histórico (D-06) y luego es responsable de la privada;
+  - **privada por enlace**.
+- **Donaciones y activos:**
+  - donaciones anónima y con cuenta, y un pago fallido;
+  - camino A (con división y las dos partes entregadas) y camino B (en tránsito);
+  - seguimiento, integridad (anclada en Ganache) y narrativa de convocatoria con contenido.
+- **El fichero** con usuarios, contraseña de ejemplo, `organizationId`, `publicCode` y `trackingCode`: **solo locales**. Copia de una ejecución real: `Documentos/demo-credenciales-locales.md`.
+
+Si la semilla corre a menos de un día del día de la demo, la activa dura 40 días desde ese momento y el fichero lo avisa.
+
 ## 5. Recorrido del golden path, guardando la evidencia
 
 ```bash
