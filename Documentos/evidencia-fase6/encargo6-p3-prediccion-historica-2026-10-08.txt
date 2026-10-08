@@ -1,0 +1,93 @@
+# Encargo 6, P3 (S-10) — estimaciones históricas desde el event store — 2026-10-08
+
+## Valor esperado de Python (scripts/predictor/e2e_history_expected.py, build_snapshot del entrenamiento, scikit-learn 1.9.1)
+{
+  "modelVersion": "baseline-0.2.0",
+  "cuts": {
+    "0.15": {
+      "features": {
+        "logTargetAmount": 15.89495209964411,
+        "durationDays": 40,
+        "orgPriorCampaigns": 0,
+        "paymentMethodsEnabled": 1,
+        "pctTimeElapsed": 0.15,
+        "pctRaised": 0.0,
+        "nDonations": 0,
+        "nDistinctDonors": 0,
+        "meanDonationPctOfTarget": 0.0,
+        "recentVelocity": 0.0,
+        "overallVelocity": 0.0,
+        "requiredVelocity": 0.029411764705882353,
+        "paceRatio": 0.0,
+        "failedRate": 0.0,
+        "targetPolicy": "FLEXIBLE",
+        "visibility": "PUBLIC"
+      },
+      "pctRaised": 0.0,
+      "probabilityReachTarget": 0.0012828707889455566,
+      "finalPctOfTarget": 0.41801346292482955
+    },
+    "0.25": {
+      "features": {
+        "logTargetAmount": 15.89495209964411,
+        "durationDays": 40,
+        "orgPriorCampaigns": 0,
+        "paymentMethodsEnabled": 1,
+        "pctTimeElapsed": 0.25,
+        "pctRaised": 0.2625,
+        "nDonations": 2,
+        "nDistinctDonors": 2,
+        "meanDonationPctOfTarget": 0.13125,
+        "recentVelocity": 0.065625,
+        "overallVelocity": 0.026250000000000002,
+        "requiredVelocity": 0.024583333333333336,
+        "paceRatio": 1.05,
+        "failedRate": 0.0,
+        "targetPolicy": "FLEXIBLE",
+        "visibility": "PUBLIC"
+      },
+      "pctRaised": 0.2625,
+      "probabilityReachTarget": 0.030467931919022476,
+      "finalPctOfTarget": 0.7310299169211777
+    }
+  }
+}
+## Rojo (4cb24e2)
+[ERROR] Tests run: 8, Failures: 2, Errors: 1, Skipped: 0, Time elapsed: 15.66 s <<< FAILURE! -- in com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest
+[ERROR] com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest.history_isAnEstimateEnvelope_withThreeCuts_andAFutureCutHasNoFigure -- Time elapsed: 0.036 s <<< FAILURE!
+[ERROR] com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest.history_strictHasNoCuts -- Time elapsed: 0.023 s <<< ERROR!
+[ERROR] com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest.history_onlyAdministratorOrRepresentative_andEverythingElseIsTheSame403 -- Time elapsed: 0.018 s <<< FAILURE!
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 5.844 s <<< FAILURE! -- in com.traceability.app.web.campaign.CampaignPredictionHistoryEndToEndTest
+[ERROR] com.traceability.app.web.campaign.CampaignPredictionHistoryEndToEndTest.pastCuts_matchScikitLearnOnTheDataOfThatMoment_andTheFutureCutHasNoFigure -- Time elapsed: 1.419 s <<< FAILURE!
+[ERROR] Tests run: 8, Failures: 1, Errors: 7, Skipped: 0, Time elapsed: 1.054 s <<< FAILURE! -- in com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.pastCuts_useOnlyWhatTheEventStoreHadCleared_beforeEachCut_andAFutureCutHasNoFigure -- Time elapsed: 0.149 s <<< ERROR!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.aCutWhereTheTargetWasAlreadyReached_givesTheRaisedFactButNoEstimate -- Time elapsed: 0.008 s <<< ERROR!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.strictOtherCurrenciesAndNoMonetaryTarget_haveNoCutsAtAll -- Time elapsed: 0.005 s <<< ERROR!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.aClosedCampaign_keepsItsPastCuts_butNotTheOnesAfterTheClose -- Time elapsed: 0.003 s <<< ERROR!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.tooManyClearedFunds_isAnExplicitReason -- Time elapsed: 0.015 s <<< ERROR!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.onlyAdministratorOrRepresentativeOfTheOwningOrganization -- Time elapsed: 0.008 s <<< FAILURE!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.aConfigurationChangedAfterTheCut_isNotReconstructedWithTodaysValues -- Time elapsed: 0.004 s <<< ERROR!
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest.theCurrentStateOfTheIntents_neverEntersAPastCut -- Time elapsed: 0.004 s <<< ERROR!
+
+## Verde
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.272 s -- in com.traceability.app.web.campaign.CampaignPredictionHttpIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.589 s -- in com.traceability.app.web.campaign.CampaignPredictionHistoryEndToEndTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.256 s -- in com.traceability.app.web.campaign.CampaignPredictionCopEndToEndTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.324 s -- in com.traceability.app.web.AppWebArchitectureTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.136 s -- in com.traceability.app.application.prediction.CampaignPredictorModelParityTest
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.399 s -- in com.traceability.app.application.prediction.CampaignPredictionUseCaseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.054 s -- in com.traceability.app.application.prediction.CampaignFeatureBuilderParityTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.760 s -- in com.traceability.app.application.prediction.CampaignPredictionHistoryUseCaseTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.00 s -- in com.traceability.app.auth.PublicRoutesInventoryIntegrationTest
+(PublicRoutesInventoryIntegrationTest: la ruta nueva se declara protegida en el inventario)
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- el evento del instante exacto del corte cuenta: MUERTA  aCutWhereTheTargetWasAlreadyReached_givesTheRaisedFactButNoEstimate; pastCuts_useOnlyWhatTheEventStoreHadCleared_beforeEachCut_andAFutureCutHasNoFigure
+- usa el estado actual de las intenciones: MUERTA  aCutWhereTheTargetWasAlreadyReached_givesTheRaisedFactButNoEstimate; pastCuts_useOnlyWhatTheEventStoreHadCleared_beforeEachCut_andAFutureCutHasNoFigure; theCurrentStateOfTheIntents_neverEntersAPastCut
+- corte futuro con cifra: MUERTA  pastCuts_useOnlyWhatTheEventStoreHadCleared_beforeEachCut_andAFutureCutHasNoFigure
+- sin comprobar el cierre: MUERTA  aClosedCampaign_keepsItsPastCuts_butNotTheOnesAfterTheClose
+- cambio de configuración al revés: MUERTA  aConfigurationChangedAfterTheCut_isNotReconstructedWithTodaysValues
+- sin tope de eventos: MUERTA  tooManyClearedFunds_isAnExplicitReason
+- estimación con la meta ya alcanzada: MUERTA  aCutWhereTheTargetWasAlreadyReached_givesTheRaisedFactButNoEstimate
+- STRICT con cortes: MUERTA  strictOtherCurrenciesAndNoMonetaryTarget_haveNoCutsAtAll
+Restauración verificada contra HEAD. Mutaciones vivas: 0
