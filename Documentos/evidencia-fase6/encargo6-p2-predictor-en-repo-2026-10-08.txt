@@ -1,0 +1,51 @@
+# Encargo 6, P2 — predictor dentro del repositorio — 2026-10-08
+
+## Origen
+c28f3a0 Claude 2026-10-07 docs(predictor): presentar también el empeoramiento del MAE del regresor y firmar la decisión de D3
+40e2989 Claude 2026-10-07 feat(predictor): baseline-0.2.0 — STRICT fuera del modelo v1 (ADR-044 P7/D3) y artefactos regenerados
+a7a1f6a Carlos 2026-10-06 actulizacion
+b010103 Adonis Pérez 2026-10-06 feat(predictor): incorporar dataset sintetico, scripts de entrenamiento y baseline del modelo predictivo
+
+## Fuera del build de Maven (módulos del pom raíz)
+        <module>contracts</module>
+        <module>core</module>
+        <module>crypto</module>
+        <module>ai</module>
+        <module>api</module>
+        <module>identity</module>
+        <module>convocatoria</module>
+        <module>app</module>
+
+## .gitignore
+32:__pycache__/
+33:*.pyc
+34:paxfide-predictor/.venv/
+git ls-files con __pycache__ o .pyc: 0
+
+## Datos: solo sintéticos, sin datos personales
+  "synthetic": true,
+  "warning": "Datos inventados. No representan convocatorias reales. No cargar en MongoDB ni en el Event Store (ADR-044 §2).",
+Emails en paxfide-predictor/: 0 ficheros
+donorRef que no siguen el patrón sintético dnr-NNNNNN-NNNNN: 0 de 318218
+
+## Ficheros del componente
+paxfide-predictor/RESULTADOS-baseline-0.2.0.md
+paxfide-predictor/data/campaigns.csv
+paxfide-predictor/data/donation_intents.csv
+paxfide-predictor/data/manifest.json
+paxfide-predictor/data/snapshots.csv
+paxfide-predictor/generate_mock_v2.py
+paxfide-predictor/generate_synthetic_dataset.py
+paxfide-predictor/output/calibration.png
+paxfide-predictor/output/chart_advanced.png
+paxfide-predictor/output/chart_basic.png
+paxfide-predictor/output/metrics.json
+paxfide-predictor/output/mock_predictions_response_v2.json
+paxfide-predictor/output/model_final_pct_regressor.joblib
+paxfide-predictor/output/model_hist_gradient_boosting.joblib
+paxfide-predictor/output/model_logistic_regression.joblib
+paxfide-predictor/output/model_pace_baseline.joblib
+paxfide-predictor/output/reliability_by_t.png
+paxfide-predictor/output/sample_predictions.json
+paxfide-predictor/requirements.txt
+paxfide-predictor/train_baseline.py
