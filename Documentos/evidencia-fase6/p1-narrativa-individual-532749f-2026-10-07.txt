@@ -1,0 +1,37 @@
+# P1.2 criterio 13 (narrativa individual) en el recorrido por HTTP, en 532749f (2026-10-07)
+# mvn clean test -fae, Docker real. sha256 del log completo: bafd5fdb8b95f04f8bc4c542be566035a18e9345c7b45ffc1c635eff8c8718f0
+# Línea base: develop 5ddb002 (P1.1) = 1147 tests. Ahora: 1147 (el criterio 13 se añade al test del recorrido existente).
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 323, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 123, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 236, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 128, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.055 s -- in com.traceability.ai.application.service.DonorReportGeneratorTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.165 s -- in com.traceability.app.web.GoldenPathHttpIntegrationTest
+
+# Antes / después: el bloque solo añade test. El pipeline (DonorReportGenerator, GroundingValidatorImpl,
+# AiNarrativeReadAdapter) ya existía y cumplía el criterio; no hubo código que corregir, así que no hay rojo de
+# implementación. La capacidad del test para detectar un fallo la prueban las mutaciones:
+
+# Mutaciones
+- grounding individual siempre falla (la demo caería al fallback): MUERTA  theDemoPath_fromVerificationToPublicTracking_overHttp
+- publicar el texto del LLM sin validar: MUERTA  testGroundingFailure_GeneratesFallback; testPromptSanitization
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+# Demo: LLM real solo si existe la variable de entorno SPRING_AI_OPENAI_API_KEY (application.yml usa 'dummy' por
+# defecto); sin ella, cada intento cae al fallback y la narrativa sale con source FALLBACK_TEMPLATE.

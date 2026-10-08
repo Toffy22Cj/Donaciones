@@ -1,0 +1,26 @@
+{
+  "paso": "ver-convocatoria",
+  "metodo": "GET",
+  "ruta": "/api/v1/public/campaigns/Y27E5TEA4ETGK63YATTVVA25D5",
+  "cabeceras": {},
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "organizationName": "Fundación Demo PaxFide",
+    "title": "Abrigo para el invierno",
+    "description": "Convocatoria de la demo local",
+    "status": "OPEN",
+    "startDate": "2026-10-07T21:41:37Z",
+    "endDate": "2026-12-06T21:40:37Z",
+    "acceptedDonationTypes": [
+      "IN_KIND",
+      "MONETARY"
+    ],
+    "acceptedPaymentMethods": [
+      "GATEWAY"
+    ],
+    "currency": "COP",
+    "targetAmount": "50000000",
+    "clearedAmount": "0"
+  }
+}

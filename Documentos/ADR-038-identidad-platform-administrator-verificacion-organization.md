@@ -1,6 +1,6 @@
 # ADR-038 — Identidad: HumanActor, Platform Administrator, Verificación de Organization, Autenticación
 
-**Estado:** Approved — diseño conceptual. Decisiones de §7 aprobadas por el equipo el 2026-09-30. **Implementado** en la rama `feat/identity-adr-038` (2026-10-01 → 2026-10-04, último commit `2b2a68a`), pendiente de merge a `develop`. Las decisiones tomadas durante la implementación **prevalecen sobre el texto de §2** donde lo contradigan y se registran en §9.
+**Estado:** Approved — diseño conceptual. Decisiones de §7 aprobadas por el equipo el 2026-09-30. **Implementado** en la rama `feat/identity-adr-038` (2026-10-01 → 2026-10-04, último commit `2b2a68a`) y **fusionado en `develop`** (`aebedb2`, 2026-10-06). *Actualización 2026-10-07 (auditoría §4.3): ya no está pendiente de merge. Sigue pendiente la autenticación JWT (§2.7), cuya librería y secreto decide ADR-047 (PROPUESTO).* Las decisiones tomadas durante la implementación **prevalecen sobre el texto de §2** donde lo contradigan y se registran en §9.
 **Fecha:** Fase 6. Review formal de 12 puntos (Modo de Arquitectura) posterior a ADR-037 (Convocatoria); cierre de huecos 2026-09-30.
 **Complementa:** `identity-resumen.md`. No reabre `Account`/`Organization`/`Membership`/`IdentityPrincipalPort`/`OrganizationBoundaryPolicy`/`RoleAuthorizationPolicy` (Fase 4/5).
 **Enmienda asociada:** `ADR-026-enmienda-desactivacion-platform-administrator.md` (guarda de `DeactivateAccount`).
@@ -358,3 +358,7 @@ Todo el trabajo se hizo en una sola rama, `feat/identity-adr-038`, en lugar de l
 - `MongoTransactionRetryHelper` (`identity.application`) instancia `CommitRetryingMongoTransactionManager` (`identity.infrastructure`): es una dependencia de aplicación hacia infraestructura.
 - `MongoTransactionRetryHelper.getRetryCount()` es público solo para los tests.
 - Las clases de test con contenedor por clase necesitan `@DirtiesContext` para no reutilizar un contexto de Spring que apunta a un contenedor ya detenido. Mejora: contenedor singleton en `BaseMongoIntegrationTest`.
+
+## Nota de implementación — nombre público de la organización (B6-a, 2026-10-07)
+
+Adición, no cambio de decisión: `Organization` gana un **nombre público opcional** (máximo 200 caracteres), que recibe `CreateOrganizationService` y que solo lee `OrganizationPublicNamePort` (`contracts`) para el detalle público de una convocatoria (CV-07). Origen: Q7 de `propuesta-d-api.md` y Q-B6A-1 (a), decididas por Carlos el 2026-10-07. Que sea opcional, el límite y el nombre de la clase de lectura son `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-04 y DD-17 de `decisiones-delegadas-2026-10.md`).

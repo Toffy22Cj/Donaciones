@@ -54,6 +54,14 @@ public class MongoCampaignAssignmentRepositoryAdapter implements CampaignAssignm
     }
 
     @Override
+    public List<CampaignAssignment> findActiveByResponsible(String responsibleRef) {
+        Query query = Query.query(Criteria.where("employeeRef").is(responsibleRef)
+                .and("status").is(AssignmentStatus.ACTIVE.name())).with(Sort.by("assignedAt"));
+        return mongoTemplate.find(query, CampaignAssignmentDocument.class).stream()
+                .map(CampaignAssignmentMapper::toDomain).toList();
+    }
+
+    @Override
     public List<CampaignAssignment> findByCampaignRef(String campaignRef) {
         Query query = Query.query(Criteria.where("campaignRef").is(campaignRef)).with(Sort.by("assignedAt"));
         return mongoTemplate.find(query, CampaignAssignmentDocument.class).stream()
@@ -64,6 +72,23 @@ public class MongoCampaignAssignmentRepositoryAdapter implements CampaignAssignm
     public Optional<CampaignAssignment> findById(String assignmentId) {
         return Optional.ofNullable(mongoTemplate.findById(assignmentId, CampaignAssignmentDocument.class))
                 .map(CampaignAssignmentMapper::toDomain);
+    }
+
+    @Override
+    public List<CampaignAssignment> findActiveOrHistoricalByResponsible(String responsibleRef) {
+        Query query = Query.query(Criteria.where("employeeRef").is(responsibleRef)
+                .and("status").in(AssignmentStatus.ACTIVE.name(), AssignmentStatus.HISTORICAL.name()))
+                .with(Sort.by("assignedAt"));
+        return mongoTemplate.find(query, CampaignAssignmentDocument.class).stream()
+                .map(CampaignAssignmentMapper::toDomain).toList();
+    }
+
+    @Override
+    public long markHistoricalByCampaignRef(String campaignRef, Instant closedAt) {
+        Query query = Query.query(Criteria.where("campaignRef").is(campaignRef)
+                .and("status").is(AssignmentStatus.ACTIVE.name()));
+        Update update = new Update().set("status", AssignmentStatus.HISTORICAL.name()).set("removedAt", closedAt);
+        return mongoTemplate.updateMulti(query, update, CampaignAssignmentDocument.class).getModifiedCount();
     }
 
     @Override

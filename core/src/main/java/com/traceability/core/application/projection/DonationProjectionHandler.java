@@ -15,35 +15,68 @@ import org.bson.types.Decimal128;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 
+/**
+ * Proyección {@code DonationProjection} (+ {@code asset_index} y {@code asset_history}). B-PROJ: la génesis de un
+ * stream es la secuencia 1 ("nada procesado" = 0), se tratan los payloads v1 y v2, y los activos del Camino B se
+ * ignoran de forma explícita ({@link AssetProjectionRouting}). Primero en el orden: los demás manejadores dependen del
+ * {@code asset_index} que escribe.
+ */
 @Service
+@Order(0)
 public class DonationProjectionHandler implements ProjectionEventHandler {
     private static final Logger log = LoggerFactory.getLogger(DonationProjectionHandler.class);
+
+    private static final Set<Class<? extends DomainEventPayload>> HANDLED = Set.of(
+            FundRegisteredPayload.class, FundRegisteredV2Payload.class,
+            FundsClearedPayload.class, FundsClearedV2Payload.class,
+            AllocationRequestedPayload.class, AllocationConfirmedPayload.class, AllocationReversedPayload.class,
+            FundsRefundedPayload.class,
+            AssetRegisteredPayload.class, AssetRegisteredV2Payload.class, AssetRegisteredV3Payload.class,
+            AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetCustodyTransferredPayload.class,
+            AssetSplitPayload.class, AssetSplitV2Payload.class, AssetSplitV3Payload.class, AssetSplitCompensatedPayload.class,
+            AssetDepletedPayload.class, AssetDeliveredPayload.class);
 
     @Override
     public String getHandlerName() {
         return "DonationProjectionHandler";
     }
+
+    @Override
+    public Set<Class<? extends DomainEventPayload>> handledPayloads() {
+        return HANDLED;
+    }
+
+    @Override
+    public Set<Class<? extends DomainEventPayload>> ignoredPayloads() {
+        return Set.of();
+    }
     private final MongoTemplate mongoTemplate;
     private final EventCanonicalMapper canonicalMapper;
-    private final AssetIndexRepository assetIndexRepository;
     private final DonationProjectionRepository projectionRepository;
     private final AssetHistoryProjectionRepository historyRepository;
+    private final AssetProjectionRouting routing;
+    private final UndeclaredPayloadMonitor undeclaredPayloads;
 
     public DonationProjectionHandler(MongoTemplate mongoTemplate,
                                      EventCanonicalMapper canonicalMapper,
-                                     AssetIndexRepository assetIndexRepository,
                                      DonationProjectionRepository projectionRepository,
-                                     AssetHistoryProjectionRepository historyRepository) {
+                                     AssetHistoryProjectionRepository historyRepository,
+                                     AssetProjectionRouting routing,
+                                     UndeclaredPayloadMonitor undeclaredPayloads) {
         this.mongoTemplate = mongoTemplate;
         this.canonicalMapper = canonicalMapper;
-        this.assetIndexRepository = assetIndexRepository;
         this.projectionRepository = projectionRepository;
         this.historyRepository = historyRepository;
+        this.routing = routing;
+        this.undeclaredPayloads = undeclaredPayloads;
     }
 
     @Override
@@ -66,7 +99,9 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     private void processFundEvent(TraceabilityEventDocument eventDoc, String fundId, long incomingSequence) {
         DonationProjectionDocument projection = projectionRepository.findById(fundId).orElse(null);
         
-        long lastProcessed = projection != null ? projection.getAuditMetadata().getFundLastProcessedSequence() : -1;
+        boolean isNew = projection == null;
+        // Génesis = secuencia 1 (D-SEQ): "nada procesado" es 0.
+        long lastProcessed = isNew ? 0 : projection.getAuditMetadata().getFundLastProcessedSequence();
         
         if (incomingSequence <= lastProcessed) {
             return; // Duplicate, ignore
@@ -84,6 +119,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         }
 
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
+        undeclaredPayloads.checkDeclared(this, payload);
 
         // Update Snapshot and Allocations using MongoTemplate update for efficiency if exists, 
         // but for Fund it's easier to modify the object and save it since it's a single document
@@ -98,9 +134,20 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             update.set("financialSnapshot.originalAmount", p.pledgedAmount() != null ? p.pledgedAmount() : 0);
             if (p.currency() != null) update.set("currency", p.currency());
             if (p.campaignRef() != null) update.set("campaignRef", p.campaignRef());
+        } else if (payload instanceof FundRegisteredV2Payload p) {
+            update.set("financialSnapshot.originalAmount", p.pledgedAmount() != null ? p.pledgedAmount() : 0);
+            if (p.currency() != null) update.set("currency", p.currency());
+            if (p.campaignRef() != null) update.set("campaignRef", p.campaignRef());
         } else if (payload instanceof FundsClearedPayload p) {
             update.inc("financialSnapshot.clearedAmount", p.clearedAmount());
-            if (lastProcessed == -1) {
+            if (isNew) { // génesis directa (clearFundsGenesis): lo liquidado es el importe original
+                update.set("financialSnapshot.originalAmount", p.clearedAmount());
+            }
+            if (p.currency() != null) update.set("currency", p.currency());
+            if (p.campaignRef() != null) update.set("campaignRef", p.campaignRef());
+        } else if (payload instanceof FundsClearedV2Payload p) {
+            update.inc("financialSnapshot.clearedAmount", p.clearedAmount());
+            if (isNew) { // las liquidaciones posteriores (Fund.clearFunds) también son v2: no reescriben el original
                 update.set("financialSnapshot.originalAmount", p.clearedAmount());
             }
             if (p.currency() != null) update.set("currency", p.currency());
@@ -135,10 +182,19 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         }
 
         Query query = new Query(Criteria.where("_id").is(fundId));
-        if (projection.getAuditMetadata().getFundLastProcessedSequence() == 0 && projectionRepository.findById(fundId).isEmpty()) {
-            // Insert
-            projectionRepository.save(projection);
-            mongoTemplate.updateFirst(query, update, DonationProjectionDocument.class);
+        if (isNew) {
+            // Alta en UNA escritura (upsert con $setOnInsert): con save + update, un lector veía durante un instante la
+            // proyección con importes a 0 (hallazgo H-CI-1, visto como fallo intermitente de
+            // ProjectionChangeStreamE2ETest bajo carga)
+            update.setOnInsert("status", projection.getStatus());
+            // la forma completa que escribía el save anterior, sin pisar lo que el propio evento escribe
+            setOnInsertIfUntouched(update, "allocations", new java.util.ArrayList<>());
+            setOnInsertIfUntouched(update, "logistics", new java.util.ArrayList<>());
+            setOnInsertIfUntouched(update, "auditMetadata.assetLastProcessedSequences", new org.bson.Document());
+            for (String amount : List.of("originalAmount", "clearedAmount", "pendingAllocationAmount", "refundedAmount")) {
+                setOnInsertIfUntouched(update, "financialSnapshot." + amount, 0L);
+            }
+            mongoTemplate.upsert(query, update, DonationProjectionDocument.class);
         } else {
             mongoTemplate.updateFirst(query, update, DonationProjectionDocument.class);
         }
@@ -146,8 +202,17 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
 
     private void processPhysicalAssetEvent(TraceabilityEventDocument eventDoc, String assetId, long incomingSequence) {
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-        
-        String projectionId = resolveProjectionId(assetId, payload);
+        if (routing.isInKindAsset(assetId, payload)) {
+            // Camino B: ignorado de forma explícita hasta decidir su proyección (plan-b-proj.md §3.2).
+            if (AssetProjectionRouting.registration(payload).isPresent()) {
+                log.info("In-kind (camino B) asset {} not projected: no Fund to attach it to (B-PROJ)", assetId);
+            }
+            return;
+        }
+        undeclaredPayloads.checkDeclared(this, payload);
+        Optional<AssetProjectionRouting.Registration> registration = AssetProjectionRouting.registration(payload);
+
+        String projectionId = routing.resolveProjectionId(assetId, payload, true);
         if (projectionId == null) {
             throw new MissingDependencyException("Cannot resolve projectionId for asset " + assetId);
         }
@@ -160,7 +225,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             throw new ProjectionPausedException("Projection is PAUSED");
         }
 
-        long lastProcessed = projection.getAuditMetadata().getAssetLastProcessedSequences().getOrDefault(assetId, -1L);
+        long lastProcessed = projection.getAuditMetadata().getAssetLastProcessedSequences().getOrDefault(assetId, 0L);
         if (incomingSequence <= lastProcessed) {
             return; // Duplicate
         }
@@ -171,10 +236,13 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         Update update = new Update();
         update.set("auditMetadata.assetLastProcessedSequences." + assetId, incomingSequence);
 
-        if (payload instanceof AssetRegisteredPayload p) {
+        if (registration.isPresent()) {
+            AssetProjectionRouting.Registration p = registration.get();
             DonationProjectionDocument.LogisticsProjection log = new DonationProjectionDocument.LogisticsProjection(
-                assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(), 
-                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED", null
+                assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(),
+                p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED",
+                p.campaignRef(), // D7: solo del payload v3 del propio activo
+                new java.util.HashMap<>()
             );
             update.push("logistics", log);
         } else if (payload instanceof AssetDispatchedPayload p) {
@@ -186,24 +254,29 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
+        // El registro del hijo lo proyecta su propio ASSET_REGISTERED (creado por la saga de la división, B1-bis).
+        // El estado previo se guarda por childAssetId, como el agregado (D-SPLIT S6): un único campo lo pisaba cada división.
+        } else if (payload instanceof AssetSplitV3Payload p) {
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitV2Payload p) {
-            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
-            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
-            // Child asset registration is handled by the ASSET_REGISTERED event of the child.
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitPayload p) {
-            update.set("logistics.$[elem].quantity", p.parentQuantityAfter());
-            update.set("logistics.$[elem].statusBeforeSplit", p.statusBeforeSplit());
-            // Child asset registration is handled by the ASSET_REGISTERED event of the child.
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             update.set("logistics.$[elem].currentCustodian", p.newCustodianRef());
         } else if (payload instanceof AssetSplitCompensatedPayload p) {
+            // Como el dominio: solo un padre DEPLETED vuelve al estado previo a ESA división (D-SPLIT S6)
             DonationProjectionDocument.LogisticsProjection elem = projection.getLogistics().stream()
                 .filter(l -> l.getAssetId().equals(assetId)).findFirst().orElse(null);
-            if (elem != null && elem.getStatusBeforeSplit() != null) {
-                update.set("logistics.$[elem].lifecycleStatus", elem.getStatusBeforeSplit());
+            String before = elem == null || elem.getSplitsBeforeCompensation() == null
+                ? null : elem.getSplitsBeforeCompensation().get(p.childAssetId());
+            if (elem != null && "DEPLETED".equals(elem.getLifecycleStatus()) && before != null) {
+                update.set("logistics.$[elem].lifecycleStatus", before);
             }
             update.inc("logistics.$[elem].quantity", new Decimal128(p.reintegratedQuantity()));
-            update.set("logistics.$[elem].statusBeforeSplit", null);
+            if (p.childAssetId() != null) {
+                update.unset("logistics.$[elem].splitsBeforeCompensation." + p.childAssetId());
+            }
         } else if (payload instanceof AssetDepletedPayload) {
             update.set("logistics.$[elem].lifecycleStatus", "DEPLETED");
         } else if (payload instanceof AssetDeliveredPayload p) {
@@ -213,7 +286,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         }
 
         Query query = new Query(Criteria.where("_id").is(projectionId));
-        if (!(payload instanceof AssetRegisteredPayload)) {
+        if (registration.isEmpty()) {
             mongoTemplate.updateFirst(query, update.filterArray(Criteria.where("elem.assetId").is(assetId)), DonationProjectionDocument.class);
         } else {
             mongoTemplate.updateFirst(query, update, DonationProjectionDocument.class);
@@ -222,36 +295,11 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         appendAssetHistory(eventDoc, assetId, payload);
     }
 
-    private String resolveProjectionId(String assetId, DomainEventPayload payload) {
-        // First check asset_index
-        AssetIndexDocument index = assetIndexRepository.findById(assetId).orElse(null);
-        if (index != null) {
-            return index.getProjectionId();
+    private static void recordSplit(Update update, String childAssetId, Object parentQuantityAfter, String statusBeforeSplit) {
+        update.set("logistics.$[elem].quantity", parentQuantityAfter);
+        if (childAssetId != null && statusBeforeSplit != null) {
+            update.set("logistics.$[elem].splitsBeforeCompensation." + childAssetId, statusBeforeSplit);
         }
-
-        // If not in index, it must be an ASSET_REGISTERED event
-        if (payload instanceof AssetRegisteredPayload regPayload) {
-            if (regPayload.parentAssetRef() == null) {
-                // Root asset: lookup fundId via allocationId
-                Query q = new Query(Criteria.where("allocations.allocationId").is(regPayload.allocationId()));
-                q.fields().include("_id");
-                DonationProjectionDocument doc = mongoTemplate.findOne(q, DonationProjectionDocument.class);
-                if (doc != null) {
-                    AssetIndexDocument newIndex = new AssetIndexDocument(assetId, doc.getProjectionId(), assetId, 0);
-                    assetIndexRepository.save(newIndex);
-                    return doc.getProjectionId();
-                }
-            } else {
-                // Child asset: lookup projectionId from parent's index
-                AssetIndexDocument parentIndex = assetIndexRepository.findById(regPayload.parentAssetRef()).orElse(null);
-                if (parentIndex != null) {
-                    AssetIndexDocument newIndex = new AssetIndexDocument(assetId, parentIndex.getProjectionId(), parentIndex.getRootAssetRef(), 0);
-                    assetIndexRepository.save(newIndex);
-                    return parentIndex.getProjectionId();
-                }
-            }
-        }
-        return null;
     }
 
     private void appendAssetHistory(TraceabilityEventDocument eventDoc, String assetId, DomainEventPayload payload) {
@@ -260,9 +308,10 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         transition.setEventType(eventDoc.getEventType());
         transition.setTimestamp(eventDoc.getOccurredAt());
         
-        if (payload instanceof AssetRegisteredPayload p) {
-            transition.setLocation(p.currentLocation());
-            transition.setCustodian(p.custodianRef());
+        Optional<AssetProjectionRouting.Registration> registration = AssetProjectionRouting.registration(payload);
+        if (registration.isPresent()) {
+            transition.setLocation(registration.get().currentLocation());
+            transition.setCustodian(registration.get().custodianRef());
             transition.setStatus("REGISTERED");
         } else if (payload instanceof AssetDispatchedPayload p) {
             transition.setCustodian(p.carrierRef());
@@ -273,7 +322,8 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 transition.setCustodian(p.receiverRef());
             }
-        } else if (payload instanceof AssetSplitV2Payload || payload instanceof AssetSplitPayload) {
+        } else if (payload instanceof AssetSplitV3Payload || payload instanceof AssetSplitV2Payload
+                || payload instanceof AssetSplitPayload) {
             transition.setStatus("SPLIT");
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             transition.setCustodian(p.newCustodianRef());
@@ -291,12 +341,8 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         Query q = new Query(Criteria.where("_id").is(assetId));
         Update u = new Update().push("transitions", transition);
         
-        if (historyRepository.findById(assetId).isEmpty()) {
-            AssetHistoryProjectionDocument doc = new AssetHistoryProjectionDocument();
-            doc.setAssetId(assetId);
-            historyRepository.save(doc);
-        }
-        mongoTemplate.updateFirst(q, u, AssetHistoryProjectionDocument.class);
+        // una sola escritura: el historial nunca existe vacío, ni siquiera un instante (H-CI-1)
+        mongoTemplate.upsert(q, u, AssetHistoryProjectionDocument.class);
     }
 
     public static class SequenceGapException extends RuntimeException {
@@ -307,5 +353,12 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
     }
     public static class ProjectionPausedException extends RuntimeException {
         public ProjectionPausedException(String message) { super(message); }
+    }
+
+    /** {@code $setOnInsert} solo si el evento no escribe ya esa ruta (Mongo rechaza dos operadores sobre la misma). */
+    private static void setOnInsertIfUntouched(Update update, String path, Object value) {
+        if (!update.modifies(path)) {
+            update.setOnInsert(path, value);
+        }
     }
 }

@@ -30,6 +30,9 @@ class ExternalActorBypassTest {
         ProcessedCommandRepositoryPort processedCommandRepository = Mockito.mock(ProcessedCommandRepositoryPort.class);
         eventStore = Mockito.mock(EventStorePort.class);
         TransactionalEventPublisher eventPublisher = Mockito.mock(TransactionalEventPublisher.class);
+        // el publicador real devuelve true cuando escribe; un mock devolvería false (= reclamo ajeno, plan B6-c DD-11)
+        Mockito.when(eventPublisher.appendAndOutbox(Mockito.any(), Mockito.any(), Mockito.anyLong(), Mockito.any(),
+                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(true);
         RoleAuthorizationPolicy roleAuthorizationPolicy = Mockito.mock(RoleAuthorizationPolicy.class);
         OrganizationBoundaryPolicy organizationBoundaryPolicy = Mockito.mock(OrganizationBoundaryPolicy.class);
 
@@ -42,7 +45,8 @@ class ExternalActorBypassTest {
                 eventPublisher,
                 roleAuthorizationPolicy,
                 organizationBoundaryPolicy,
-                identityPrincipalPort
+                identityPrincipalPort,
+                new com.traceability.core.support.StubCampaignInKindEligibilityPort()
         );
     }
 

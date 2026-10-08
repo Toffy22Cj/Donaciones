@@ -1,7 +1,15 @@
 package com.traceability.core.application.saga;
 
 import com.traceability.core.application.port.out.OutboxPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -9,86 +17,127 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
 /**
  * Generic Saga Coordinator using the Transactional Outbox pattern.
- * Ref: ADR-007, ADR-008, ADR-009, ADR-010
+ * Ref: ADR-007, ADR-008, ADR-009, ADR-010; ADR-007/008 Enmienda 1.
+ *
+ * <ol>
+ *   <li><b>Ejecución</b>, hasta {@code createdAt + saga.quarantine.window} (4 h): {@code execute}; un fallo transitorio
+ *       reintenta con <i>backoff</i> {@code 2^n × 15 s}; uno permanente pasa a resolución en el acto.</li>
+ *   <li><b>Resolución</b>, hasta {@code resolutionStartedAt + saga.resolution.window} (4 h): {@code compensate}; éxito
+ *       → {@code RESOLVED}; fallo transitorio → reintento con tope de 1 h; fallo permanente o ventana agotada →
+ *       {@code QUARANTINED} con log ERROR (necesita a una persona: {@link SagaOutboxAdministration}).</li>
+ * </ol>
  */
 @Component
 public class OutboxSagaCoordinator {
 
+    public static final String DEFAULT_EXECUTION_WINDOW = "PT4H";
+    public static final String DEFAULT_RESOLUTION_WINDOW = "PT4H";
+    static final Duration MAX_RESOLUTION_BACKOFF = Duration.ofHours(1);
+
+    private static final Logger log = LoggerFactory.getLogger(OutboxSagaCoordinator.class);
+
     private final OutboxPort outboxPort;
     private final Map<String, SagaPolicy> policies;
-    private final Duration quarantineWindow;
+    private final Duration executionWindow;
+    private final Duration resolutionWindow;
+    private final Clock clock;
 
-    public OutboxSagaCoordinator(OutboxPort outboxPort, 
-                                 List<SagaPolicy> policyList, 
-                                 @Value("${saga.quarantine.window:PT24H}") Duration quarantineWindow) {
+    @Autowired
+    public OutboxSagaCoordinator(OutboxPort outboxPort,
+                                 List<SagaPolicy> policyList,
+                                 @Value("${saga.quarantine.window:" + DEFAULT_EXECUTION_WINDOW + "}") Duration executionWindow,
+                                 @Value("${saga.resolution.window:" + DEFAULT_RESOLUTION_WINDOW + "}") Duration resolutionWindow,
+                                 ObjectProvider<Clock> clock) {
+        this(outboxPort, policyList, executionWindow, resolutionWindow, clock.getIfAvailable(Clock::systemUTC));
+    }
+
+    public OutboxSagaCoordinator(OutboxPort outboxPort, List<SagaPolicy> policyList, Duration executionWindow,
+                                 Duration resolutionWindow, Clock clock) {
         this.outboxPort = outboxPort;
-        this.quarantineWindow = quarantineWindow;
+        this.executionWindow = executionWindow;
+        this.resolutionWindow = resolutionWindow;
+        this.clock = clock;
         this.policies = policyList.stream()
             .collect(Collectors.toMap(SagaPolicy::getSagaType, Function.identity()));
     }
 
+    public Duration executionWindow() {
+        return executionWindow;
+    }
+
+    public Duration resolutionWindow() {
+        return resolutionWindow;
+    }
+
     @Scheduled(fixedDelayString = "${saga.outbox.delay:500}")
     public void processPendingMessages() {
-        Instant now = Instant.now();
-        List<OutboxMessage> pendingMessages = outboxPort.fetchPendingMessages(now);
-
-        for (OutboxMessage message : pendingMessages) {
+        Instant now = clock.instant();
+        for (OutboxMessage message : outboxPort.fetchPendingMessages(now)) {
             SagaPolicy policy = policies.get(message.sagaType());
             if (policy == null) {
-                // Ignore messages for which we don't have a policy (or maybe log them)
-                continue;
+                continue; // sin política para este tipo de saga
             }
-
-            // 1. Evaluación de Expiración (Cuarentena Prioritaria)
-            if (now.isAfter(message.createdAt().plus(quarantineWindow))) {
-                try {
-                    policy.compensate(message);
-                } catch (Exception e) {
-                    // Si falla la compensación, se captura la excepción para no romper el lote.
-                    // El mensaje se marcará como QUARANTINED igualmente.
-                    // Idealmente registrar en logs: log.error("Fallo de compensacion para {}", message.messageId(), e);
-                }
-                
-                OutboxMessage quarantinedMessage = new OutboxMessage(
-                    message.messageId(), message.sagaType(), message.sourceAggregateId(),
-                    message.correlationId(), message.payload(), OutboxStatus.QUARANTINED,
-                    message.retryCount(), message.createdAt(), message.nextRetryAt()
-                );
-                
-                outboxPort.update(quarantinedMessage);
-                continue; // NO incrementar retryCount. NO intentar execute().
-            }
-
-            // 2. Evaluación de Ejecución Normal
-            try {
-                policy.execute(message);
-                
-                OutboxMessage completedMessage = new OutboxMessage(
-                    message.messageId(), message.sagaType(), message.sourceAggregateId(),
-                    message.correlationId(), message.payload(), OutboxStatus.COMPLETED,
-                    message.retryCount(), message.createdAt(), message.nextRetryAt()
-                );
-                outboxPort.update(completedMessage);
-                
-            } catch (Exception e) {
-                int nextRetryCount = message.retryCount() + 1;
-                // Backoff exponencial: 2^retryCount * 15s
-                long delaySeconds = (long) Math.pow(2, message.retryCount()) * 15L;
-                Instant nextRetryAt = now.plusSeconds(delaySeconds);
-                
-                OutboxMessage retryMessage = new OutboxMessage(
-                    message.messageId(), message.sagaType(), message.sourceAggregateId(),
-                    message.correlationId(), message.payload(), OutboxStatus.PENDING,
-                    nextRetryCount, message.createdAt(), nextRetryAt
-                );
-                outboxPort.update(retryMessage);
+            if (message.inResolution()) {
+                resolve(message, policy, now);
+            } else if (now.isAfter(message.createdAt().plus(executionWindow))) {
+                resolve(startResolution(message, now, "execution window expired"), policy, now);
+            } else {
+                execute(message, policy, now);
             }
         }
+    }
+
+    private void execute(OutboxMessage message, SagaPolicy policy, Instant now) {
+        try {
+            policy.execute(message);
+            outboxPort.update(message.withState(OutboxStatus.COMPLETED, message.retryCount(), message.nextRetryAt(),
+                    null, message.lastFailureReason()));
+        } catch (PermanentSagaFailureException e) {
+            resolve(startResolution(message, now, reason(e)), policy, now);
+        } catch (Exception e) {
+            // Backoff exponencial: 2^retryCount * 15s
+            long delaySeconds = (long) Math.pow(2, Math.min(message.retryCount(), 20)) * 15L;
+            outboxPort.update(message.withState(OutboxStatus.PENDING, message.retryCount() + 1,
+                    now.plusSeconds(delaySeconds), null, reason(e)));
+        }
+    }
+
+    private void resolve(OutboxMessage message, SagaPolicy policy, Instant now) {
+        try {
+            policy.compensate(message);
+            outboxPort.update(message.withState(OutboxStatus.RESOLVED, message.retryCount(), message.nextRetryAt(),
+                    message.resolutionStartedAt(), message.lastFailureReason()));
+        } catch (PermanentSagaFailureException e) {
+            quarantine(message, reason(e));
+        } catch (Exception e) {
+            if (now.isAfter(message.resolutionStartedAt().plus(resolutionWindow))) {
+                quarantine(message, reason(e));
+                return;
+            }
+            Duration delay = Duration.ofSeconds((long) Math.pow(2, Math.min(message.retryCount(), 20)) * 15L);
+            if (delay.compareTo(MAX_RESOLUTION_BACKOFF) > 0) {
+                delay = MAX_RESOLUTION_BACKOFF;
+            }
+            outboxPort.update(message.withState(OutboxStatus.PENDING, message.retryCount() + 1, now.plus(delay),
+                    message.resolutionStartedAt(), reason(e)));
+        }
+    }
+
+    private static OutboxMessage startResolution(OutboxMessage message, Instant now, String reason) {
+        return message.withState(OutboxStatus.PENDING, message.retryCount(), now, now, reason);
+    }
+
+    private void quarantine(OutboxMessage message, String reason) {
+        log.error("Saga message {} ({}, correlation {}) QUARANTINED: needs an operator (SagaOutboxAdministration). Reason: {}",
+                message.messageId(), message.sagaType(), message.correlationId(), reason);
+        outboxPort.update(message.withState(OutboxStatus.QUARANTINED, message.retryCount(), message.nextRetryAt(),
+                message.resolutionStartedAt(), reason));
+    }
+
+    private static String reason(Exception e) {
+        String reason = e.getClass().getSimpleName() + ": " + e.getMessage();
+        return reason.length() > 500 ? reason.substring(0, 500) : reason;
     }
 }

@@ -66,4 +66,12 @@ public class MongoAccountRepositoryAdapter implements AccountRepositoryPort {
         Query query = Query.query(Criteria.where("platformAuthority").ne(null));
         return mongoTemplate.exists(query, "accounts");
     }
+
+    @Override
+    public java.util.List<Account> findPlatformAdministrators(int limit) {
+        Query query = Query.query(Criteria.where("platformAuthority").is("ADMINISTRATOR"))
+                .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
+        return mongoTemplate.find(query, identity.infrastructure.persistence.mongo.documents.AccountDocument.class, "accounts")
+                .stream().map(AccountMapper::toDomain).toList();
+    }
 }

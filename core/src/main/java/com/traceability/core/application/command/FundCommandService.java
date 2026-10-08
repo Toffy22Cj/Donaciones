@@ -17,6 +17,8 @@ import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.core.application.authorization.CommandType;
 import com.traceability.core.domain.event.HumanActor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -86,14 +88,34 @@ public class FundCommandService {
         }
 
         retryTemplate.execute(() -> {
-            authorize(actorRef, organizationRef != null ? organizationRef.value() : null, CommandType.CLEAR_FUNDS_AS_GENESIS);
-
-            Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
-            List<DomainEvent> newEvents = fund.getUncommittedEvents();
-
-            eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
+            appendGenesis(commandId, fundId, organizationRef, campaignRef, donorRef, currency, amount, sourceRef, actorRef);
             return null;
         });
+    }
+
+    /**
+     * T1 — Génesis de {@code Fund} para el orquestador de aplicación de fondos de {@code app} (ADR-045, Tx 2).
+     * <p>
+     * Exige una transacción ya abierta ({@link Propagation#MANDATORY}) y se une a ella. <b>Sin reintento interno</b>:
+     * un conflicto o un error transitorio de MongoDB aborta la transacción externa, así que reintentar aquí sería
+     * reintentar sobre una transacción ya abortada. Las excepciones se propagan tal cual, con su causa, para que el
+     * orquestador reintente la transacción completa (ADR-037 §2.3, E1 §6). Sin mensaje de outbox (D-P8, opción A).
+     *
+     * @return {@code true} si escribió la génesis; {@code false} si el {@code commandId} ya estaba reclamado
+     *         (no-op idempotente).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean clearFundsGenesisWithinTransaction(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        return appendGenesis(commandId, fundId, organizationRef, campaignRef, donorRef, currency, amount, sourceRef, actorRef);
+    }
+
+    private boolean appendGenesis(String commandId, String fundId, OrganizationRef organizationRef, String campaignRef, String donorRef, String currency, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        authorize(actorRef, organizationRef != null ? organizationRef.value() : null, CommandType.CLEAR_FUNDS_AS_GENESIS);
+
+        Fund fund = Fund.clearFundsGenesis(fundId, organizationRef, amount, sourceRef, currency, campaignRef, donorRef);
+        List<DomainEvent> newEvents = fund.getUncommittedEvents();
+
+        return eventPublisher.appendAndOutbox(fundId, "Fund", 0, newEvents, actorRef, java.util.List.of(), commandId);
     }
 
     public void clearFundsForPledge(String commandId, String fundId, long amount, String sourceRef, com.traceability.core.domain.event.ActorRef actorRef) {
@@ -117,15 +139,20 @@ public class FundCommandService {
         });
     }
 
+    /**
+     * Pide una asignación. Un reenvío del mismo {@code commandId} con la misma asignación es un no-op; con otra, un
+     * {@link com.traceability.core.application.exception.CommandIdReusedException} (plan P1.1, como DD-11). Un fondo
+     * inexistente es {@link com.traceability.core.application.exception.FundNotFoundException} (DD-30).
+     */
     public void requestAllocation(String commandId, String fundId, String allocationId, long amount, com.traceability.core.domain.event.ActorRef actorRef) {
+        String outcome = "REQUEST_ALLOCATION:" + fundId + ":" + allocationId;
         if (processedCommandRepository.exists(commandId)) {
+            assertSameCommand(commandId, outcome);
             return;
         }
 
-        retryTemplate.execute(() -> {
-            List<DomainEvent> events = eventStore.loadStream(fundId);
-            List<DomainEventPayload> payloads = events.stream().map(DomainEvent::payload).collect(Collectors.toList());
-            Fund fund = Fund.rehydrate(fundId, payloads, events.size());
+        boolean written = retryTemplate.execute(() -> {
+            Fund fund = loadExisting(fundId);
             long expectedVersion = fund.getVersion();
 
             authorize(actorRef, fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null, CommandType.REQUEST_ALLOCATION);
@@ -133,9 +160,51 @@ public class FundCommandService {
             fund.requestAllocation(allocationId, amount);
 
             List<DomainEvent> newEvents = fund.getUncommittedEvents();
-            eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId);
-            return null;
+            return eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, newEvents, actorRef, null, commandId, outcome);
         });
+        if (!written) {
+            assertSameCommand(commandId, outcome);
+        }
+    }
+
+    /** El reclamo existente es de este mismo comando, o el {@code commandId} se reutilizó (plan P1.1, como DD-11). */
+    private void assertSameCommand(String commandId, String expectedOutcome) {
+        String actual = processedCommandRepository.findOutcome(commandId).orElse(null);
+        if (!expectedOutcome.equals(actual)) {
+            throw new com.traceability.core.application.exception.CommandIdReusedException(commandId);
+        }
+    }
+
+    private Fund loadExisting(String fundId) {
+        List<DomainEvent> events = eventStore.loadStream(fundId);
+        if (events.isEmpty()) {
+            throw new com.traceability.core.application.exception.FundNotFoundException(fundId);
+        }
+        return Fund.rehydrate(fundId, events.stream().map(DomainEvent::payload).collect(Collectors.toList()), events.size());
+    }
+
+    /**
+     * Confirmación manual de una asignación por HTTP (plan P1.1, DD-32): reclamo con resultado, como
+     * {@link #requestAllocation}. La saga del registro usa {@link #confirmAllocation}, sin cambios.
+     */
+    public void confirmAllocationByCommand(String commandId, String fundId, String allocationId,
+                                           com.traceability.core.domain.event.ActorRef actorRef) {
+        String outcome = "CONFIRM_ALLOCATION:" + fundId + ":" + allocationId;
+        if (processedCommandRepository.exists(commandId)) {
+            assertSameCommand(commandId, outcome);
+            return;
+        }
+        boolean written = retryTemplate.execute(() -> {
+            Fund fund = loadExisting(fundId);
+            long expectedVersion = fund.getVersion();
+            authorize(actorRef, fund.getOrganizationRef() != null ? fund.getOrganizationRef().value() : null, CommandType.CONFIRM_ALLOCATION);
+            fund.confirmAllocation(allocationId);
+            return eventPublisher.appendAndOutbox(fundId, "Fund", expectedVersion, fund.getUncommittedEvents(), actorRef,
+                    null, commandId, outcome);
+        });
+        if (!written) {
+            assertSameCommand(commandId, outcome);
+        }
     }
 
     public void confirmAllocation(String commandId, String fundId, String allocationId, com.traceability.core.domain.event.ActorRef actorRef) {

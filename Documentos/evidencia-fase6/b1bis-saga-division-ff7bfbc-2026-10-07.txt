@@ -1,0 +1,52 @@
+# B1-bis — evidencia sobre feat/b1bis-split-saga en ff7bfbc (2026-10-07)
+# Los commits posteriores solo tocan Documentos/ (git diff ff7bfbc HEAD -- core api app identity convocatoria crypto ai contracts está vacío).
+# mvn -o clean install -fae, Docker real. sha256 del log completo: 1630859765e5a4bfc37167a170788727c7c4823c01d3162c55f6c856ea64b1be
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 310, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 76, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 215, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 75, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes (esqueleto, 68a97b4): tests de B1-bis en core
+[ERROR] Tests run: 11, Failures: 9, Errors: 1, Skipped: 0, Time elapsed: 0.244 s <<< FAILURE! -- in com.traceability.core.application.saga.OutboxSagaCoordinatorTest
+[ERROR] Tests run: 17, Failures: 6, Errors: 11, Skipped: 0, Time elapsed: 12.01 s <<< FAILURE! -- in com.traceability.core.application.saga.SplitSagaIntegrationTest
+[ERROR] Tests run: 36, Failures: 3, Errors: 0, Skipped: 0, Time elapsed: 20.80 s <<< FAILURE! -- in com.traceability.core.application.projection.DonationProjectionIntegrationTest
+[ERROR] Tests run: 6, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 5.736 s <<< FAILURE! -- in com.traceability.core.application.projection.ProjectionChangeStreamE2ETest
+[ERROR] Tests run: 6, Failures: 2, Errors: 4, Skipped: 0, Time elapsed: 0.012 s <<< FAILURE! -- in com.traceability.core.domain.physicalasset.PhysicalAssetSplitChildTest
+[ERROR] Tests run: 4, Failures: 3, Errors: 0, Skipped: 0, Time elapsed: 0.011 s <<< FAILURE! -- in com.traceability.core.domain.physicalasset.SplitChildIdsTest
+[ERROR] Tests run: 80, Failures: 23, Errors: 17, Skipped: 0
+
+# Mutaciones (core; cada una restaurada; tests: SplitChildIdsTest, PhysicalAssetSplitChildTest, OutboxSagaCoordinatorTest, SplitSagaIntegrationTest, DonationProjectionIntegrationTest; hasta 4 tests que fallan)
+- quitar el reclamo común (compensar con otra clave): MUERTA  eachBranchRespectsTheOther; executeFindingACompensatedSplit_completesTheMessageWithoutCreatingTheChild; manualResolutionOfASplit_isNamed_conditional_andAudited; manualResolution_failsWithoutChanges_ifTheSplitWasAlreadyResolved
+- derivar el id solo del commandId: MUERTA  sameParentAndCommand_giveTheSameChild_otherParentOrCommand_another; theChildIdIsTheV5OfParentAndCommand_inTheSplitNamespace
+- id aleatorio (como dentro del reintento): MUERTA  theSameCommand_returnsTheSameChild_withoutASecondSplit_andAnotherParentGetsAnotherChild; theSplitWritesTheEventAndTheSagaMessageTogether
+- ubicación y custodio del padre actual: MUERTA  theChildTakesLocationAndCustodianFromTheSplit_notFromTheCurrentParent; theChildTakesQuantityLocationAndCustodianFromTheSplit_andImmutableAttributesFromTheParent
+- proyección: restaurar sin comprobar DEPLETED: MUERTA  compensation_doesNotReviveAParentThatWasNotDepleted
+- compensateSplit acepta otra cantidad: MUERTA  compensatingWithAQuantityOtherThanTheExtracted_isRejected
+- no guardar el resultado en el reclamo: MUERTA  compensatingWithoutAChild_reintegratesTheQuantity_andRevivesADepletedParent; eachBranchRespectsTheOther; executeFindingACompensatedSplit_completesTheMessageWithoutCreatingTheChild; manualResolutionOfASplit_isNamed_conditional_andAudited
+- compensate no mira el reclamo antes (la barrera real es la transacción): MUERTA  compensatingWithoutAChild_reintegratesTheQuantity_andRevivesADepletedParent; theBarrier_executeAndCompensateAtTheSameTime_neverBothNeverNeither
+- H1: QUARANTINED tras una compensación fallida: MUERTA  aTransientResolutionFailure_isRetried_andThenResolved_withoutBlockingOtherMessages; theResolutionBackoff_isCappedAtOneHour; whenTheResolutionWindowIsExhausted_aTransientFailureQuarantines_withAnErrorLog(CapturedOutput); parentDeliveredAndChildImpossible_isUnresolved_untilRetryResolutionFindsTheCauseGone
+- quitar la ventana de resolución: MUERTA  whenTheResolutionWindowIsExhausted_aTransientFailureQuarantines_withAnErrorLog(CapturedOutput)
+- tratar PermanentSagaFailureException como transitorio: MUERTA  aPermanentResolutionFailure_quarantinesAtOnce(CapturedOutput); parentDeliveredAndChildImpossible_isUnresolved_untilRetryResolutionFindsTheCauseGone
+- quitar la recuperación hacia delante: MUERTA  parentDeliveredAndChildImpossible_isUnresolved_untilRetryResolutionFindsTheCauseGone; parentDeliveredBeforeTheSagaResolves_theResolutionCreatesTheChildInstead
+- ventana por defecto PT24H: MUERTA  theDefaultExecutionWindow_isFourHours; parentDeliveredBeforeTheSagaResolves_theResolutionCreatesTheChildInstead; registrationSaga_withTheDefaultWindow_retriesUntilFourHours_thenReverses_andRetriesAFailedReversal
+- markResolvedManually no toma el reclamo: MUERTA  manualResolutionOfASplit_isNamed_conditional_andAudited; manualResolution_failsWithoutChanges_ifTheSplitWasAlreadyResolved
+- resolución manual no condicional: VIVA  
+
+# Comprobaciones dirigidas
+- quitar el reclamo común — solo el test de la barrera: MUERTA  theBarrier_executeAndCompensateAtTheSameTime_neverBothNeverNeither
+- resolución manual no condicional — las dos capas (comprobación previa y escritura condicionada): MUERTA  manualResolutionOfASplit_isNamed_conditional_andAudited
+# La mutación 15 sobrevive porque solo quita la comprobación previa: la escritura condicionada updateIfStatus(..., QUARANTINED) sigue garantizando la condición; quitando las dos capas, el test falla.

@@ -6,26 +6,14 @@
 
 ---
 
-## 🔴 Hallazgo crítico, resolver antes que cualquier otro ítem: colisión de numeración de ADR entre Fase 5 y Fase 6
+## ✅ Colisión de numeración de ADR entre Fase 5 y Fase 6 (RESUELTO)
 
-**Hallazgo:** los ADR-033 a ADR-036 de **Fase 5** (saga de registro de activos, visibilidad de pending allocation, HumanActor, reversión administrativa) usan exactamente los mismos números que los ADR-033 a ADR-036 de **Fase 6** generados en esta sesión (Convocatoria, Identidad, Blockchain, IA respectivamente) — dos conjuntos de decisiones completamente distintas con la misma numeración. El propio documento de Fase 5 lo admite: *"Aviso de Colisión Documental: Existe una colisión de numeración para ADR-033 a ADR-036 introducida posteriormente por el trabajo de Fase 6."*
+**Hallazgo:** los ADR-033 a ADR-036 de **Fase 5** usaban los mismos números que los de **Fase 6**.
 
-**Por qué es urgente y no solo una deuda documental:** cualquier referencia futura a "ADR-035" es ambigua sin contexto — podría significar HumanActor (Fase 5) o el diseño de MerkleBatch (Fase 6, Blockchain). Ya generamos cinco ADR de Fase 6 en esta sesión con esta numeración en conflicto.
-
-**Acción:**
-1. Confirmar el número real más alto del catálogo de ADR existente (Fase 5 llega hasta ADR-036 según la fuente más reciente — verificar que no haya nada más entre ADR-036 y el inicio de Fase 6 antes de asumir el siguiente número disponible).
-2. Renumerar los cinco ADR de Fase 6 generados en esta sesión a partir del siguiente número libre confirmado (candidato, sujeto a confirmación: ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend).
-3. Actualizar cualquier referencia cruzada entre esos cinco documentos que cite el número antiguo.
-
-**Criterio de éxito:** un único catálogo de ADR sin números duplicados, confirmado contra el repositorio real.
-
-**Responsable sugerido:** quien mantenga el catálogo de ADR — es una corrección administrativa urgente, no requiere debate de arquitectura.
-
-**Estado (C5/C6, verificado contra `feat/fase5-a7-1-a7-2`, `develop` local y `origin/develop`): ⏳ PENDIENTE DE DECISIÓN HUMANA — sin renumerar.**
-- La colisión 033–036 sigue en el repositorio y ADR-037 (APIs/Frontend) sigue marcado como "número tentativo".
-- La propuesta del punto 2 (037–041) ya no puede aplicarse tal cual: ADR-037 está ocupado por APIs/Frontend y `develop` local contiene ADR-038 (supersedido, no se porta) y ADR-039 (A7.1, pendiente de numeración). Hay que decidir de nuevo el rango destino.
-- Para no agravar la colisión, el ADR de A7.2 se creó como **ADR-042**, primer número libre en todas las ramas y fuera del rango reservado aquí (037–041).
-- Detalle del catálogo: `estado-fase5.md` §1.
+**Estado:** **✅ CERRADO**.
+- Los documentos de la Fase 6 fueron renumerados correctamente del 037 al 041 (`ADR-037-convocatoria-ledger-assignment-donationintent.md`, `ADR-038-identidad-platform-administrator-verificacion-organization.md`, `ADR-039-blockchain-merkle-producer-integrity-verification.md`, `ADR-040-ia-convocatoria-audit-facts.md`, `ADR-041-api-frontend-contratos-http.md`).
+- El ADR para orquestación centralizada de reintentos se asignó al número 042.
+- La colisión ya no existe en el repositorio.
 
 ---
 
@@ -33,7 +21,7 @@
 
 | Bloque | Ítems | Bloquea Fase 6 |
 |---|---|---|
-| Colisión de ADR | 1 hallazgo crítico — ⏳ pendiente de decisión humana | Sí — ambigüedad activa en cualquier referencia nueva a ADR-033/034/035/036 |
+| Colisión de ADR | 1 hallazgo crítico — ✅ RESUELTO (Renumerados a 037-041) | No bloquea |
 | A — Fase 5 / Core / Identity | 6 hallazgos (5 originales + A6 nuevo) — ✅ todos cerrados (C1–C6), con deudas explícitas | Ya no — ver estado por ítem |
 | B — IA / ADR-036 (Fase 6) | 3 decisiones estructurales + 1 contradicción + 4 verificaciones técnicas | No bloquea otras capas, sí bloquea completar el diseño de `ConvocatoriaAuditFacts` |
 
@@ -269,8 +257,7 @@ Salida:
 
 ```
 HOY, antes que cualquier otra cosa:
-  Colisión de ADR (renumerar los 5 documentos de Fase 6 — es rápido y evita
-  que se genere más trabajo referenciando números ambiguos)
+  Colisión de ADR (RESUELTO - ADRs 037-042 correctamente asignados)
 
 Inmediato (esta semana):
   A1 (arregla el bloqueo de hoy mismo, libera Blockchain y el reactor completo)

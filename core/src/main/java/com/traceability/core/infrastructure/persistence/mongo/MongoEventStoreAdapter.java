@@ -5,6 +5,7 @@ import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.application.exception.ConcurrencyConflictException;
 import com.traceability.core.application.exception.SequenceGapException;
 import com.traceability.core.application.port.out.EventStorePort;
+import com.traceability.core.application.port.out.EventStreamGenesisReadPort;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
 import org.springframework.dao.DuplicateKeyException;
@@ -18,11 +19,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-public class MongoEventStoreAdapter implements EventStorePort {
+public class MongoEventStoreAdapter implements EventStorePort, EventStreamGenesisReadPort {
 
     private final MongoTemplate mongoTemplate;
     private final HashPort hashPort;
@@ -127,5 +129,13 @@ public class MongoEventStoreAdapter implements EventStorePort {
                     doc.getOccurredAt() != null ? Instant.parse(doc.getOccurredAt()) : null
             );
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<DomainEventPayload> findGenesisPayload(String streamId) {
+        Query query = new Query(Criteria.where("streamId").is(streamId)
+                .and("sequence").is(EventStreamGenesisReadPort.FIRST_SEQUENCE));
+        return Optional.ofNullable(mongoTemplate.findOne(query, TraceabilityEventDocument.class))
+                .map(doc -> canonicalMapper.convertPayload(doc.getPayload(), doc.getEventType(), doc.getSchemaVersion()));
     }
 }

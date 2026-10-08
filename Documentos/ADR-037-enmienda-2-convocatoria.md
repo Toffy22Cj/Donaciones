@@ -1,9 +1,11 @@
 # ADR-037 — Enmienda 2 — Confirmación y aplicación de fondos de `DonationIntent`
 
-**Estado:** BORRADOR — recoge decisiones humanas aprobadas el 2026-10-02 (§1.1). El texto lo redactó el agente y requiere aprobación humana explícita (§9) para ser normativo.
+**Estado:** **APROBADA — Carlos, 2026-10-07**, con las condiciones C1–C3 (integradas en §4 y §9). Hasta esa fecha fue BORRADOR: recoge decisiones humanas aprobadas el 2026-10-02 (§1.1); el texto lo redactó el agente. La aprobación es en parte retroactiva: la barrera `APPLY_FUNDS`, `FUNDING_REJECTED` y la consulta de recuperables se fusionaron en el PR #29 antes de esta aprobación (incumplimiento de la regla 3.5 registrado en `auditoria-fase6-codigo-vs-documentacion.md` §10.4).
 **Fecha:** 2026-10-02.
 **ADR que enmienda:** ADR-037 (`ADR-037-convocatoria-ledger-assignment-donationintent.md`) y su Enmienda 1 (`ADR-037-enmienda-1-convocatoria.md`). "ADR-037 §X" y "Enmienda 1 §X" se refieren a esos archivos.
-**ADR asociado:** ADR-043 (recuperación automática de la aplicación de fondos), exigido por la regla 3.5 de `reglas-equipo-y-agentes.md`.
+*Nota de numeración (2026-10-07, dirección aprobada por Carlos):* este borrador citaba "ADR-043" en 6 lugares. Ese número lo ocupa `ADR-043-frontend-movil-paxfide-mobile.md` y el 044 está reservado al componente predictivo, así que el ADR de recuperación pasa a **ADR-045** (`ADR-045-recuperacion-aplicacion-fondos.md`, APROBADO el 2026-10-07). Ver `auditoria-fase6-codigo-vs-documentacion.md` §10 y `documento-maestro-proyecto.md` §5.
+
+**ADR asociado:** ADR-045 (recuperación automática de la aplicación de fondos), exigido por la regla 3.5 de `reglas-equipo-y-agentes.md`.
 **Fuentes:** decisiones humanas del 2026-10-02 registradas en `convocatoria-resumen.md` §6.20; auditorías temporales `auditoria-c01-postcorreccion.md`, `auditoria-cierre-f1-f2.md`, `auditoria-flujo-confirmed-fondos-v3.md`, `debate-cierre-confirmed-fondos.md`, `auditoria-preimplementacion-cierre-convocatoria.md`, `auditoria-delimitacion-cierre-convocatoria.md` (evidencia, no normativa).
 
 ---
@@ -28,7 +30,7 @@ Se mantienen las etiquetas de la Enmienda 1 ([DECISIÓN], [REQUISITO], [PENDIENT
 | D4 | P1 (registro del dinero rechazado) sigue fuera de este corte |
 | D5 | La confirmación manual solo la ejecuta un `ADMINISTRATOR` de la organización; una intención de pasarela no se confirma manualmente; `confirmedBy` es el actor real |
 | D6 | La aplicación la dispara el sistema; no requiere un segundo acto humano |
-| D7 | Esta enmienda y ADR-043, antes del código |
+| D7 | Esta enmienda y ADR-045, antes del código |
 | Claves | El espacio de claves se separa solo para el comando de sistema: entre comandos de cliente se mantiene I1 (`implementation_plan.md` §7.1) |
 
 ---
@@ -42,7 +44,7 @@ Se mantienen las etiquetas de la Enmienda 1 ([DECISIÓN], [REQUISITO], [PENDIENT
 | Estados de `DonationIntent` | ADR-037 §2.6: `PENDING`, `CONFIRMED`, `FAILED`, `EXPIRED-UNKNOWN` | Se añade `FUNDING_REJECTED` (terminal) | §4 |
 | Flujo del webhook | ADR-037 §2.6 paso 3: correlación válida → `clearFundsGenesis` | Dos actos: confirmación y aplicación posterior (§3) | §3 |
 | Registro de comandos procesados | Enmienda 1 §3.5: comandos de escritura del módulo, `commandId` del cliente | Añade comandos de sistema con espacio de claves propio | §3.3 |
-| Recuperación | No existía | Disparo inmediato + scheduler de respaldo (ADR-043) | §5 |
+| Recuperación | No existía | Disparo inmediato + scheduler de respaldo (ADR-045) | §5 |
 
 ---
 
@@ -56,7 +58,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
   CONFIRMED ──▶ reclamo (APPLY_FUNDS, intentId)   ← barrera (convocatoria)
               + incremento del ledger por política           (convocatoria, ADR-037 §2.2)
               + clearFundsGenesis(commandId derivado, fundId de la intención)  (core)
-              + outbox                                       (core; §3.2)
+              + outbox  [retirado: D-P8 opción A, 2026-10-07]   (core; §3.2)
   barrera ya reclamada  → no-op (el resultado original se conserva)
   rechazo permanente    → rollback + CONFIRMED → FUNDING_REJECTED en otra transacción (§4)
   fallo transitorio     → rollback completo + reintento de la transacción entera (Enmienda 1 §6)
@@ -74,11 +76,11 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 ### 3.2 Aplicación posterior
 
 - **[DECISIÓN]** La aplicación consume una intención `CONFIRMED`; una intención en otro estado no se aplica (F-1).
-- **[DECISIÓN]** La dispara el sistema (D6), por disparo inmediato o por el scheduler de respaldo (§5, ADR-043). No exige un segundo acto humano. En `core`, la génesis la ejecuta un `SystemActor`; `core` no comprueba roles para actores de sistema, así que **la autorización humana del movimiento de dinero es la de la confirmación** (§3.1).
-- **[DECISIÓN]** Ledger + génesis del `Fund` + outbox en **una** transacción MongoDB del orquestador de `app` (ADR-037 §2.3, sin cambios). `convocatoria` aporta la barrera y el incremento del ledger, uniéndose a la transacción externa y marcándola para rollback ante cualquier excepción; `core` aporta la génesis y el outbox.
+- **[DECISIÓN]** La dispara el sistema (D6), por disparo inmediato o por el scheduler de respaldo (§5, ADR-045). No exige un segundo acto humano. En `core`, la génesis la ejecuta un `SystemActor`; `core` no comprueba roles para actores de sistema, así que **la autorización humana del movimiento de dinero es la de la confirmación** (§3.1).
+- *(2026-10-07: sin outbox, por D-P8 opción A; ver P8 abajo y ADR-037 §2.3.)* **[DECISIÓN]** Ledger + génesis del `Fund` + outbox en **una** transacción MongoDB del orquestador de `app` (ADR-037 §2.3, sin cambios). `convocatoria` aporta la barrera y el incremento del ledger, uniéndose a la transacción externa y marcándola para rollback ante cualquier excepción; `core` aporta la génesis y el outbox.
 - **[REQUISITO]** Ninguna pieza reintenta dentro de la transacción del orquestador (Enmienda 1 §6): `convocatoria` reclama la barrera sin reintento interno cuando hay transacción activa; `clearFundsGenesis` necesita un camino sin reintento interno (T1, `implementation_plan.md` §8).
 - **[REQUISITO]** El `commandId` de `clearFundsGenesis` se deriva de forma determinista de la intención (Enmienda 1 §5.3, sin cambios).
-- **[PENDIENTE] P8** Contenido del mensaje de outbox de la génesis: ADR-037 §2.3 lo exige, pero hoy `clearFundsGenesis` no escribe ninguno y ningún documento define cuál debe ser. Se decide en `core`.
+- **[CERRADO 2026-10-07 — **D-P8 (opción A) — Carlos, 2026-10-07**]** La génesis no escribe mensaje de outbox (`propuesta-P8-outbox-genesis.md`; enmienda de ADR-037 §2.3). Texto original del pendiente: **P8** Contenido del mensaje de outbox de la génesis: ADR-037 §2.3 lo exige, pero hoy `clearFundsGenesis` no escribe ninguno y ningún documento define cuál debe ser. Se decide en `core`.
 
 ### 3.3 Barrera de idempotencia
 
@@ -100,6 +102,8 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 | Conflicto transitorio (`TransientTransactionError`, colisión del reclamo, `ConcurrencyConflictException` de la génesis) | Sigue `CONFIRMED`; reintento | No es rechazo |
 | `CampaignNotFoundException`, `InvalidFundingAmountException`, `InvalidFundGenesisException`, `DonationIntentNotFoundException` | Sigue `CONFIRMED`; se propaga | Anomalías de invariante, no rechazo de negocio |
 
+- **[CONDICIÓN C1 — 2026-10-07]** `FUNDING_REJECTED` es terminal **solo mientras** la meta de la convocatoria no se edite y el ledger no tenga operación de liberación. Cualquier cambio en una de esas dos premisas obliga a revisar esta sección antes de fusionarse.
+- **[REQUISITO — condición C2, 2026-10-07]** La transición a `FUNDING_REJECTED` registra **motivo y fecha en la misma transacción** que el cambio de estado. P10 (§7) queda solo para el formato completo de la entrada del audit log.
 - **[REQUISITO]** La transición a `FUNDING_REJECTED` se escribe en una transacción propia (la de la aplicación se revierte), condicionada a `status = CONFIRMED` y a que la barrera no esté reclamada. La operación verifica por sí misma que la condición es permanente (capacidad insuficiente en una política con límite); no se fía del llamador.
 - **[DEPENDENCIA] P1 (D4).** El dinero de una intención `FUNDING_REJECTED` queda sin registro mientras P1 siga fuera de corte (Enmienda 1 §3.3). Consecuencia: **no se habilita el flujo con dinero real** (webhook u orquestador en producción) hasta que exista el registro de dinero no aceptable. La intención sí tiene salida (estado terminal); el dinero no.
 
@@ -107,7 +111,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 
 ## 5. Recuperación
 
-- **[DECISIÓN]** Disparo inmediato de la aplicación tras confirmar, y scheduler de respaldo que recupera intenciones `CONFIRMED` sin aplicar (D2). Detalle en ADR-043.
+- **[DECISIÓN]** Disparo inmediato de la aplicación tras confirmar, y scheduler de respaldo que recupera intenciones `CONFIRMED` sin aplicar (D2). Detalle en ADR-045.
 - **[DECISIÓN]** La consulta de intenciones recuperables pertenece a `convocatoria`: intenciones `CONFIRMED` sin reclamo `APPLY_FUNDS`, excluidas las de convocatorias `CLOSE_ON_TARGET + CLOSE` mientras R4 no exista (P9, opción a). Una intención `FUNDING_REJECTED` nunca vuelve a la cola. El scheduler pertenece a `app`.
 - **[REQUISITO]** Seguridad con varias instancias: la proporciona la barrera (§3.3); el scheduler no añade una segunda lógica de negocio.
 - **[ESTADO]** `convocatoria` no puede llamar a `app` (regla de arquitectura), así que el disparo inmediato lo hace el caso de uso de `app` que invoca la confirmación.
@@ -120,7 +124,7 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 |---|---|---|
 | Implementación de producción de `OrganizationVerificationPort` (ADR-038) | `identity`/`app` | `app → convocatoria`: orquestador, disparo inmediato, scheduler |
 | T1: `clearFundsGenesis` sin reintento interno | `core` | La transacción única del Acto 2 |
-| P8: mensaje de outbox de la génesis | `core` | Cumplimiento literal de ADR-037 §2.3 |
+| P8: mensaje de outbox de la génesis | `core` | **Cerrado el 2026-10-07 (opción A, sin outbox)** |
 | P3: webhook | `app`/`api` | Confirmación de intenciones de pasarela |
 | ADR-041 / `api-contract-matrix.md` | `api` | Estado público `FUNDING_REJECTED`; contrato HTTP de la confirmación manual (no definido) |
 | R4 | `convocatoria` | Intenciones `CONFIRMED` con `CLOSE_ON_TARGET + CLOSE` |
@@ -132,9 +136,9 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 
 | # | Pendiente | Dónde se decide |
 |---|---|---|
-| P8 | Contenido del mensaje de outbox de la génesis | `core` / enmienda de ADR-037 §2.3 |
+| P8 | ✅ Cerrado el 2026-10-07: la génesis no escribe outbox (opción A, Carlos; enmienda de ADR-037 §2.3) | — |
 | P9 | ✅ Resuelto (decisión humana del 2026-10-02, opción a): las intenciones `CONFIRMED` de convocatorias `CLOSE_ON_TARGET + CLOSE` quedan fuera de la cola automática mientras R4 no exista; ni `FUNDING_REJECTED` ni reintento indefinido. R4 deberá definir cómo vuelven a ser elegibles | — |
-| P10 | Trazabilidad de `FUNDING_REJECTED` (fecha, motivo, entrada de audit log) | Enmienda posterior |
+| P10 | Formato completo de la entrada de audit log de `FUNDING_REJECTED`. Motivo y fecha en la misma transacción ya son requisito (C2, §4) | Enmienda posterior |
 | P1, P3, R4 | Sin cambios (Enmienda 1 §8) | — |
 
 ---
@@ -147,6 +151,6 @@ Acto 2 — aplicación posterior (sistema; orquestador de app, UNA transacción 
 
 ## 9. Aprobación
 
-- [ ] Aprobación humana explícita del texto de esta enmienda.
-- [ ] Aprobación humana de ADR-043.
+- [x] Aprobación humana explícita del texto de esta enmienda — **Carlos, 2026-10-07**, con C1 (§4), C2 (§4) y C3 (numeración: toda referencia al ADR de recuperación dice ADR-045; verificado con `grep`).
+- [x] Aprobación humana de ADR-045 — **Carlos, 2026-10-07** (`ADR-045-recuperacion-aplicacion-fondos.md`).
 - [ ] Apertura de las dependencias de §6 en sus módulos (no bloquea el código de `convocatoria`).

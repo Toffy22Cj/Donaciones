@@ -1,8 +1,11 @@
 # Hallazgos del diseño de frontend web (`paxfide-web`) — explicados
 
+*Nota de numeración (2026-10-07, decisión de Carlos):* el ADR del frontend web `paxfide-web` se renumera de ADR-042 a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`, repositorio `Toffy22Cj/PaxFide`) por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`, que conserva su número. Las referencias de este documento se actualizaron.
+
 **Estado:** documento de hallazgos, no ADR. No toma decisiones de backend: explica cada problema, por qué lo es, qué bloquea y cómo se sabrá que está resuelto. Las opciones que aparecen son **opciones**, no elecciones.
 **Origen:** Fase 2 del frontend (`front-fase2.md`). Algunos hallazgos son nuevos de esta fase y otros son heredados de documentos anteriores; se indica en cada caso.
-**Fuentes:** `front-fase2.md`, `front-fase1.md`, `api-contract-matrix.md`, `ADR-037`, `golden-path.md`, `contract-wiring-review.md`, `identity-resumen.md`, `convocatoria-resumen.md`.
+**Fuentes:** `front-fase2.md`, `front-fase1.md`, `api-contract-matrix.md`, `ADR-041`, `golden-path.md`, `contract-wiring-review.md`, `identity-resumen.md`, `convocatoria-resumen.md`.
+**Numeración de ADR:** las referencias usan la numeración de Fase 6 confirmada el 2026-09-28 (ADR-037 Convocatoria, ADR-038 Identidad, ADR-039 Blockchain, ADR-040 IA, ADR-041 APIs/Frontend; ADR-046 frontend web). Los archivos del catálogo que aún conserven la numeración anterior (033–037) se renombran según `plan-correccion-fase5-e-ia.md`.
 
 ---
 
@@ -48,7 +51,7 @@ Esto no es un error del frontend. El frontend **no debe** resolverlo inventando 
 | R11 | Idempotencia por `commandId` en comandos web | Comandos | **Crítica** | PhysicalAsset / Convocatoria |
 | R4 | Idempotencia de comandos administrativos | Comandos | **Crítica** | Convocatoria / Identity |
 | C2/H1 | `trackingCode` en la URL en web | Seguridad | **Crítica** | Frontend + verificación backend |
-| N1 | Contrato "quién soy / capacidades" | Identidad | **Alta** | Identity |
+| N1 | Contrato "quién soy / capacidades" | Identidad | **Alta** — ficha CONGELADA, pendiente de incorporación normativa (2026-10-05) | Identity |
 | R1 | Descubrimiento de organizaciones | Lecturas | **Alta** | Identity |
 | R6 | Lectura de miembros de la organización | Lecturas | **Alta** | Identity (+ `app`) |
 | R8 | Lectura para `from-donation` | Lecturas | **Alta** | Core / Convocatoria (+ `app`) |
@@ -94,7 +97,7 @@ Si NO lo es:
      no se pueden borrar, solo compensar.
 ```
 
-Para `split` hay un agravante. En Flutter, "Verificar estado" compara `lifecycleStatus`. Pero `PhysicalAssetOperationalReadModel` **excluye** la genealogía (`parentAssetRef`/`rootAssetRef`, ADR-037 §2.2), y los cuatro valores de `lifecycleStatus` no incluyen "dividido". **No existe forma honesta de comprobar desde web si una división ocurrió.** La idempotencia no es una mejora opcional para `split`: es la única protección posible.
+Para `split` hay un agravante. En Flutter, "Verificar estado" compara `lifecycleStatus`. Pero `PhysicalAssetOperationalReadModel` **excluye** la genealogía (`parentAssetRef`/`rootAssetRef`, ADR-041 §2.2), y los cuatro valores de `lifecycleStatus` no incluyen "dividido". **No existe forma honesta de comprobar desde web si una división ocurrió.** La idempotencia no es una mejora opcional para `split`: es la única protección posible.
 
 **Qué bloquea.**
 El despliegue de `split` en `/assets/:assetRef`, de "Registrar activo" en `PanelHome` y de "Crear convocatoria" en `/panel/campaigns`. Por G-W1, mientras R11 no esté resuelto, esas superficies **no existen** en producción: la ruta o acción responde 404, no "próximamente".
@@ -103,7 +106,7 @@ El despliegue de `split` en `/assets/:assetRef`, de "Registrar activo" en `Panel
 - Reintentar automáticamente al detectar un timeout.
 - Tratar un 5xx como "falló, se puede repetir": un 5xx no demuestra que no se ejecutó (P-W1a).
 - Generar un `commandId` nuevo en cada reintento: eso anula la idempotencia.
-- Confiar en "deshabilitar el botón" como protección: es UX, no idempotencia (ADR-037 §2.6).
+- Confiar en "deshabilitar el botón" como protección: es UX, no idempotencia (ADR-041 §2.6).
 - Desplegar `split` "de todos modos" con un mensaje de advertencia.
 
 **Direcciones posibles (no elegidas).**
@@ -126,7 +129,7 @@ Para cada uno de los tres comandos:
 Los comandos del panel administrativo no tienen definida qué pasa si llegan dos veces.
 
 **Dónde aparece.**
-`front-fase2.md` §6. ADR-037 §7-A.4 solo define idempotencia para la creación de `DonationIntent`. Para `POST /organizations/{id}/campaigns`, `POST /campaigns/{campaignRef}/employees` y `POST /platform/organizations/{id}/verify` no hay nada.
+`front-fase2.md` §6. ADR-041 §7-A.4 solo define idempotencia para la creación de `DonationIntent`. Para `POST /organizations/{id}/campaigns`, `POST /campaigns/{campaignRef}/employees` y `POST /platform/organizations/{id}/verify` no hay nada.
 
 **Por qué es un problema.**
 Una petición llega dos veces por causas normales: doble clic, reintento de red del navegador, un usuario que vuelve atrás y reenvía el formulario, o dos pestañas abiertas (con W2 cada pestaña es independiente).
@@ -146,15 +149,15 @@ Escenario concreto:
 
 Es distinto de R11. R11 trata de "¿puedo reintentar con seguridad después de un fallo ambiguo?". R4 trata de "¿qué ocurre con un duplicado, aunque no haya ningún fallo?". Crear convocatoria sufre ambos.
 
-Para `employees`, ADR-033 ya protege el caso concreto "un empleado en dos convocatorias activas" con un índice único parcial (`EmployeeAlreadyAssignedException`). Pero eso es una **invariante de dominio**, no idempotencia. Ante un duplicado exacto, el segundo intento recibe un 409 que la web mostraría como error, aunque la operación del usuario **sí** tuvo éxito.
+Para `employees`, ADR-037 ya protege el caso concreto "un empleado en dos convocatorias activas" con un índice único parcial (`EmployeeAlreadyAssignedException`). Pero eso es una **invariante de dominio**, no idempotencia. Ante un duplicado exacto, el segundo intento recibe un 409 que la web mostraría como error, aunque la operación del usuario **sí** tuvo éxito.
 
-`verify` hereda además un hueco de ADR-034: qué pasa si se verifica una organización que ya está `VERIFIED`.
+`verify` hereda además un hueco de ADR-038: qué pasa si se verifica una organización que ya está `VERIFIED`.
 
 **Qué bloquea.**
 Crear convocatoria y asignar empleado en `/panel/campaigns`. Verificar organización ya está fuera de v1 por R1.
 
 **Qué NO hacer.**
-- Introducir deduplicación HTTP genérica en `api`: ADR-037 §2.6 la descarta porque crearía una segunda semántica de idempotencia compitiendo con la del comando.
+- Introducir deduplicación HTTP genérica en `api`: ADR-041 §2.6 la descarta porque crearía una segunda semántica de idempotencia compitiendo con la del comando.
 - Deducir en el frontend que "un 409 después de un timeout significa éxito": sería inventar una semántica que el backend no ha declarado.
 
 **Direcciones posibles (no elegidas).**
@@ -226,7 +229,7 @@ No sabemos qué datos pide `POST /physical-assets/register`.
 `api-contract-matrix.md` §4 dice "ídem" en la respuesta (`{assetRef, status, donationRef, campaignRef}`) y no describe el cuerpo de la petición.
 
 **Por qué es un problema.**
-Sin cuerpo no se puede diseñar el formulario. Hay además una sospecha, no confirmada: si el registro exige `campaignRef`, aparece otro hueco de lectura. El empleado no tiene forma de consultar a qué convocatoria está asignado, porque `GET /organizations/{id}/campaigns` es solo para `ADMINISTRATOR` y no hay lectura de "mi asignación". No se numera porque puede que el backend derive la convocatoria de la asignación activa del empleado (ADR-033 garantiza que es única), y entonces el problema no existiría.
+Sin cuerpo no se puede diseñar el formulario. Hay además una sospecha, no confirmada: si el registro exige `campaignRef`, aparece otro hueco de lectura. El empleado no tiene forma de consultar a qué convocatoria está asignado, porque `GET /organizations/{id}/campaigns` es solo para `ADMINISTRATOR` y no hay lectura de "mi asignación". No se numera porque puede que el backend derive la convocatoria de la asignación activa del empleado (ADR-037 garantiza que es única), y entonces el problema no existiría.
 
 **Qué bloquea.**
 El formulario de "Registrar activo" en `PanelHome`.
@@ -316,7 +319,7 @@ La acción "Asignar empleado" en `/panel/campaigns`.
 
 **Qué NO hacer.**
 - Un campo de texto libre para el `accountId`.
-- Extraer los empleados de los `responsables` de otras convocatorias: eso solo muestra a quienes ya están asignados, justo los que no se pueden asignar a otra convocatoria activa (ADR-033), y además saca datos del perímetro para el que se diseñaron.
+- Extraer los empleados de los `responsables` de otras convocatorias: eso solo muestra a quienes ya están asignados, justo los que no se pueden asignar a otra convocatoria activa (ADR-037), y además saca datos del perímetro para el que se diseñaron.
 - Ampliar `IdentityPrincipalPort`: `contract-wiring-review.md` §P2 exige que conserve una sola responsabilidad.
 
 **Direcciones posibles (no elegidas).**
@@ -342,7 +345,7 @@ Registrar un activo físico a partir de una donación exige identificar la donac
 **Por qué es un problema.**
 Es el paso donde el dinero se convierte en ayuda física. El empleado necesita ver algo como "donaciones confirmadas de mi convocatoria, pendientes de convertirse en especie" para elegir cuál transformar. Esa lectura no existe.
 
-La solución obvia sería reutilizar `DonationReadModel` o `DonationProjection`, que ya existen desde Fase 3. **No se debe.** Se diseñaron para otro consumidor: el donante, que consulta **su** donación con su credencial de tracking. ADR-037 §2.2 establece que un `ReadModel` es una **frontera**, no un espejo de lo que hay en Mongo, y que estar autenticado no amplía el perímetro. Una lectura para empleados tiene otro consumidor, otra autorización y otro perímetro: el empleado necesita el importe y la convocatoria, pero probablemente no la referencia del donante. Hay que diseñarla alrededor de la operación `from-donation`, no heredarla.
+La solución obvia sería reutilizar `DonationReadModel` o `DonationProjection`, que ya existen desde Fase 3. **No se debe.** Se diseñaron para otro consumidor: el donante, que consulta **su** donación con su credencial de tracking. ADR-041 §2.2 establece que un `ReadModel` es una **frontera**, no un espejo de lo que hay en Mongo, y que estar autenticado no amplía el perímetro. Una lectura para empleados tiene otro consumidor, otra autorización y otro perímetro: el empleado necesita el importe y la convocatoria, pero probablemente no la referencia del donante. Hay que diseñarla alrededor de la operación `from-donation`, no heredarla.
 
 **Qué bloquea.**
 `from-donation`, que queda fuera de web v1. Aunque se resuelva R8, sigue bloqueado por `HumanAccount` + P7.
@@ -381,6 +384,13 @@ El QR **es** el mecanismo de descubrimiento, ya aprobado en el contrato. Una bú
 ### N1 — La interfaz no sabe quién es el usuario ni qué puede hacer
 
 **Severidad:** Alta · **Heredado de `front-fase1.md` §16, agravado en web** · **Dueño:** Identity
+
+**Estado (2026-10-05): ficha CONGELADA, pendiente de incorporación normativa.**
+- Contrato: `claude/ficha-N1-quien-soy.md` — `GET /api/v1/me`, respuesta con exactamente `accountId`, `organizationId`, `roles` y `platformAuthority` (nulos omitidos salvo `roles`), `Cache-Control: no-store`, 401 sin JWT válido o con cuenta `INACTIVE`. Respuestas Q-N1-1 a Q-N1-4 de Carlos, 2026-10-05.
+- Uso en el frontend: `claude/delta-front-fase2-N1.md`, **APROBADO** el 2026-10-05 (D-N1-1 a D-N1-4).
+- **No es normativo** hasta que se apruebe la Enmienda 1 de ADR-041 (prefijo, `ProblemDetail` y 401/403 son [DHR] en borrador).
+- **No está implementado:** depende de `feat/identity-adr-038` en `develop` del backend y del endpoint en `api`. Hasta entonces `/panel` y `/panel/campaigns` siguen aprobado-bloqueadas y responden 404 (D5 / G-W1).
+- El criterio de cierre de abajo sigue abierto: contrato en la matriz y tests en backend.
 
 **Qué es.**
 Tras el login, el cliente no sabe a qué organización pertenece el usuario ni qué roles tiene.
@@ -449,7 +459,7 @@ El `trackingCode` es una credencial: quien lo tiene, ve la donación. En web via
 **Dónde aparece.**
 - ADR-021-A/B: HMAC con validez embebida de 365 días por defecto.
 - Matriz §4b: el QR de tracking contiene la URL `/tracking/{trackingCode}`.
-- ADR-037 §2.7: tratar el código como secreto; no en logs, no en analítica, no en URLs externas.
+- ADR-041 §2.7: tratar el código como secreto; no en logs, no en analítica, no en URLs externas.
 
 **Por qué es un problema.**
 En Flutter, H1 era una pregunta acotada: ¿se persiste la ruta en el estado de navegación del dispositivo? En un navegador, una URL con una credencial se filtra por canales que la aplicación no controla:
@@ -469,7 +479,7 @@ Hay además una **discrepancia sin resolver**: la matriz §5 y `contract-wiring-
 
 **Qué NO hacer.**
 - Desplegar `/tracking` en web con la sensación de que `noindex` basta.
-- Añadir JWT al tracking "por seguridad": cambia la semántica del contrato (ADR-037 §2.2 y §4).
+- Añadir JWT al tracking "por seguridad": cambia la semántica del contrato (ADR-041 §2.2 y §4).
 
 **Direcciones posibles (no elegidas).**
 - Prohibir que el código permanezca en la URL tras cargar la página (reemplazar la entrada del historial).
@@ -513,13 +523,13 @@ El propio `golden-path.md` advierte que Fase 5 avanza en paralelo. Verificar con
 Cuando alguien abre `/c/ABC123` y ese código no existe, la web muestra "Convocatoria no encontrada" como estado de pantalla (P-W3). Como `/c` se renderiza en servidor, la respuesta HTTP debe llevar un código coherente, y no sabemos cuál devuelve el backend.
 
 **Por qué es un problema.**
-Si la página "no encontrada" se sirve con 200, un buscador o un servicio de vista previa la trata como contenido válido. `noindex` mitiga lo primero, pero el código HTTP sigue siendo parte del contrato. ADR-037 §2.5 **propone** 404 para "no encontrado", y lo marca como propuesta no confirmada por ninguna fuente.
+Si la página "no encontrada" se sirve con 200, un buscador o un servicio de vista previa la trata como contenido válido. `noindex` mitiga lo primero, pero el código HTTP sigue siendo parte del contrato. ADR-041 §2.5 **propone** 404 para "no encontrado", y lo marca como propuesta no confirmada por ninguna fuente.
 
 **Qué NO hacer.**
 Fijar 404 en el frontend "porque es lo normal". Si el backend distingue, por ejemplo, "no existe" de "existía y se cerró", el frontend necesita saberlo antes.
 
 **Criterio de cierre.**
-Mapeo de excepciones a HTTP de Convocatoria confirmado en la matriz o en ADR-033/037.
+Mapeo de excepciones a HTTP de Convocatoria confirmado en la matriz o en ADR-037/041.
 
 ---
 
@@ -547,15 +557,15 @@ Qué pantalla o acción queda desbloqueada al resolver cada hallazgo. Una superf
 
 | Superficie | Bloqueada por |
 |---|---|
-| `/c/:publicCode` | Módulo `convocatoria` sin código; narrativa: ADR-036; código HTTP de "no encontrada" |
+| `/c/:publicCode` | Módulo `convocatoria` sin código; narrativa: ADR-040; código HTTP de "no encontrada" |
 | `/tracking/:trackingCode` | C2/H1 + verificación del contrato de credencial |
-| `/login` | Implementación de `/auth/login`; fallo de `TokenIssuerPort` (ADR-034) |
+| `/login` | Implementación de `/auth/login`; fallo de `TokenIssuerPort` (ADR-038) |
 | `/assets/:assetRef` (lectura) | `PhysicalAssetOperationalReadPort` (verificar); R10 para `REPRESENTATIVE` |
 | `split` | P7; cuerpo; R10; **R11** |
 | Registrar activo | P7; cuerpo de `register`; R10; **R11** |
-| `/panel/campaigns` (listado) | **N1** |
-| Crear convocatoria | N1; **R4**; **R11**; firma (ADR-033) |
-| Asignar empleado | **R6**; R4; firma; D2 (ADR-033) |
+| `/panel/campaigns` (listado) | **N1** (ficha congelada; falta Enmienda 1 de ADR-041 + implementación backend) |
+| Crear convocatoria | N1; **R4**; **R11**; firma (ADR-037) |
+| Asignar empleado | **R6**; R4; firma; D2 (ADR-037) |
 | `/panel/platform/**` | **R1** (fuera de v1) |
 | `from-donation` | **R8**; `HumanAccount`; P7 (fuera de v1) |
 
@@ -563,7 +573,7 @@ Qué pantalla o acción queda desbloqueada al resolver cada hallazgo. Una superf
 
 Sugerencia de lectura, **no un orden decidido**: la prioridad la fija el equipo.
 
-- **N1** desbloquea todo `/panel/campaigns` y saca a `PanelHome` de su estado provisional. Es el de más superficie por unidad de trabajo.
+- **N1** desbloquea todo `/panel/campaigns` y saca a `PanelHome` de su estado provisional. Es el de más superficie por unidad de trabajo. *(2026-10-05: ficha congelada y delta de frontend aprobado; queda la parte normativa y la implementación.)*
 - **R11** es condición para desplegar los tres comandos web. Si `PhysicalAsset` ya tiene `commandId` desde Fase 1, puede ser sobre todo una verificación.
 - **P7** (`golden-path.md` §5.2) es condición de seguridad para cualquier comando de `PhysicalAsset`, en web y en móvil.
 - **Verificar `PhysicalAssetOperationalReadPort`** es barato y decide si `AssetPage` en modo lectura es la primera pantalla autenticada implementable.

@@ -29,7 +29,7 @@
 | Endpoint | Auth | Domain op | Response | Estado |
 |---|---|---|---|---|
 | `POST /organizations/{id}/campaigns` | JWT + `ADMINISTRATOR` org | crear `Convocatoria` | `{campaignRef, publicCode, status, ...}` | DISEÑO CERRADO — módulo `convocatoria` sin código todavía |
-| `POST /campaigns/{campaignRef}/employees` | JWT + `ADMINISTRATOR` org | asignar empleado | `{campaignRef, accountId, status}` | DISEÑO CERRADO |
+| `POST /campaigns/{campaignRef}/employees` | JWT + `ADMINISTRATOR` org | asignar empleado | `201 {assignmentId}` (Q-B6A-3, `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-06; antes `{campaignRef, accountId, status}`) | **IMPLEMENTADO en B6-a** |
 | `GET /public/campaigns/{publicCode}` | pública | `ConvocatoriaReadPort.findPublicByCode` | `ConvocatoriaReadModel` (matriz ADR-021-D ya cerrada) | DISEÑO CERRADO |
 | `GET /public/campaigns` (descubrimiento) | pública | `ConvocatoriaReadPort.listPublicOpen(cursor,limit)` | lista paginada | **PENDIENTE** — método mencionado, no diseñado en detalle |
 
@@ -49,12 +49,13 @@
 
 | Endpoint | Auth | Domain op | Response | Estado |
 |---|---|---|---|---|
-| `POST /physical-assets/from-donation` | JWT + `EMPLOYEE` | `REGISTER_PHYSICAL_ASSET_FROM_DONATION` | `{assetRef, status, donationRef, campaignRef}` | CONTRATO DEFINIDO / **BLOQUEADO** — `HumanAccount` (`golden-path.md` §5.1) + integración P7 (§5.2) |
-| `POST /physical-assets/register` | JWT + `EMPLOYEE`/`REPRESENTATIVE` backup | `REGISTER_PHYSICAL_ASSET` | ídem | CONTRATO DEFINIDO / integración P7 pendiente |
-| `POST /physical-assets/{assetRef}/split` | ídem | `SPLIT_PHYSICAL_ASSET` | assets resultantes | CONTRATO DEFINIDO / integración P7 pendiente |
-| `POST /physical-assets/{assetRef}/dispatch` | ídem | `DISPATCH_PHYSICAL_ASSET` (extensión de `CommandType`, ver §5.2) | `{assetRef, status}` | CONTRATO CONCEPTUAL — método ni siquiera expuesto en `PhysicalAssetCommandService` hoy |
-| `POST /physical-assets/{assetRef}/receive` | ídem | `RECEIVE_PHYSICAL_ASSET` (extensión) | ídem | CONTRATO CONCEPTUAL — mismo estado que dispatch |
-| `POST /physical-assets/{assetRef}/deliver` | Pendiente de decisión | `DELIVER_PHYSICAL_ASSET` aún no existe en `CommandType`; `deliverAsset` existe como método interno, pero no hay endpoint ni adapter HTTP implementado | Pendiente | CONTRATO FUTURO NO IMPLEMENTADO — requiere reconciliar exposición y autorización antes de publicarse |
+| `POST /physical-assets/from-donation` | JWT + `EMPLOYEE` | `REGISTER_PHYSICAL_ASSET_FROM_DONATION` | `201 {assetRef, status, donationRef, campaignRef}` (`campaignRef` omitido si no hay); la organización sale del JWT y el `donorRef` lo genera el servidor (DD-09, DD-10) | **IMPLEMENTADO en B6-c**, id determinista (Q9) |
+| `POST /physical-assets/register` | JWT + `EMPLOYEE`/`REPRESENTATIVE` backup | `REGISTER_PHYSICAL_ASSET` | `201 {assetRef, status, campaignRef}` | **IMPLEMENTADO en B6-c**, id determinista (Q9). Necesita una asignación previa sin endpoint (H-B6C-1) |
+| `POST /physical-assets/{assetRef}/split` | ídem | `SPLIT_PHYSICAL_ASSET` | **`202 Accepted`** + `Location` al recurso de estado + `{parentAssetRef, childAssetRef, status: "PENDING"}`. El hijo nace de forma asíncrona (saga); `childAssetRef` es determinista (UUID v5 de padre + `commandId`), así que un reenvío devuelve lo mismo (D-SPLIT S7; sustituye "assets resultantes") | CONTRATO DEFINIDO / núcleo hecho en B1-bis (`splitPhysicalAsset` devuelve `childAssetId`); HTTP en B6 |
+| `GET /physical-assets/{parentAssetRef}/splits/{childAssetRef}` | ídem (lectura del padre) | — (`SplitResolutionReadPort`) | `200 {status}`: `PENDING`, `CHILD_CREATED`, `COMPENSATED`, `UNRESOLVED` o `RESOLVED_MANUALLY`; un par que no corresponde a ninguna división → 404. El guion de la demo sondea hasta `CHILD_CREATED`. Mientras tanto, `GET` del activo hijo da 404, como cualquier activo inexistente | CONTRATO NUEVO (D-SPLIT S7) / puerto hecho en B1-bis; HTTP en B6 |
+| `POST /physical-assets/{assetRef}/dispatch` | ídem | `DISPATCH_PHYSICAL_ASSET` (extensión de `CommandType`, ver §5.2) | `200 {assetRef, status: "DISPATCHED"}` | **IMPLEMENTADO en B6-c** (D-ASSET) |
+| `POST /physical-assets/{assetRef}/receive` | ídem | `RECEIVE_PHYSICAL_ASSET` (extensión) | `200 {assetRef, status: "RECEIVED"}` | **IMPLEMENTADO en B6-c** (D-ASSET) |
+| `POST /physical-assets/{assetRef}/deliver` | JWT + `EMPLOYEE` | `DELIVER_ASSET` (nombre del código, A8 de D-API) | `200 {assetRef, status: "DELIVERED"}`; `deliveredAt` lo pone el servidor | **IMPLEMENTADO en B6-c** (`[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-14, DD-15). *Texto anterior: "CONTRATO FUTURO NO IMPLEMENTADO — `DELIVER_PHYSICAL_ASSET` aún no existe"* |
 
 ## 5. Tracking y narrativas
 
@@ -72,7 +73,7 @@
 
 | Endpoint | Auth | Read Model | Estado |
 |---|---|---|---|
-| `GET /organizations/{organizationId}/campaigns` | JWT + `ADMINISTRATOR` org + `OrganizationBoundaryPolicy` | `ConvocatoriaAdminReadModel` — distinto del público: `campaignRef, publicCode, title, status, visibility, targetAmount, targetPolicy, clearedAmount, responsables{accountId, fullName}, assignedEmployeeCount`, paginado | CONTRATO DEFINIDO |
+| `GET /organizations/{organizationId}/campaigns` | JWT + `ADMINISTRATOR` org + `OrganizationBoundaryPolicy` | `ConvocatoriaAdminReadModel` — distinto del público: `campaignRef, publicCode, title, status, visibility, currency, targetAmount, targetPolicy, clearedAmount, responsibles{accountId, actingRole}, assignedEmployeeCount`; una página de 100 (DD-49) | **IMPLEMENTADO en P2.3**. *Enmienda (Carlos, 2026-10-07, H-P2-2): `fullName` sale del contrato v1 — Identity no guarda nombres de cuenta. Texto anterior: `responsables{accountId, fullName}`, paginado* |
 
 No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide si hace falta cuando el frontend descubra si el listado es suficiente.
 
@@ -83,8 +84,10 @@ No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide s
 | QR | Payload | Destino (ruta UX) | Acceso |
 |---|---|---|---|
 | Campaign | `publicCode` | `/c/{publicCode}` | Público |
-| Tracking | `trackingCode` | `/tracking/{trackingCode}` | Público |
+| Tracking | URL `/tracking`, **sin el código** | `/tracking` (el donante introduce el `trackingCode`; la web lo envía solo en `Authorization: Bearer`) | Público |
 | Asset | `assetRef` | `/assets/{assetRef}` | Autenticado — entrada a acción de `EMPLOYEE`, no lectura pública |
+
+*Enmienda S-05 (Carlos, 2026-10-07):* el QR de seguimiento apunta a `/tracking` **sin el código**. El `trackingCode` es un secreto bearer (ADR-041 §2.7; C2/H1): en una URL quedaría en el historial del navegador, en registros de servidores intermedios y en la cabecera `Referer`. *Texto anterior de la fila: payload `trackingCode`, destino `/tracking/{trackingCode}`.*
 
 `/assets/{assetRef}` es ruta UX cerrada; el contrato HTTP subyacente que resuelve qué acción mostrar es el siguiente. Renderización de la imagen PNG/SVG queda como implementación pendiente (frontend o endpoint de presentación puro, sin lógica de dominio) — no bloquea nada.
 

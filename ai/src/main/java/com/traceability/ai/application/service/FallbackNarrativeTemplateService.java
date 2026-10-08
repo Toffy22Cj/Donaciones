@@ -10,27 +10,33 @@ import java.time.Instant;
 @Service
 public class FallbackNarrativeTemplateService {
 
+    /** El fallback no lo produce ningún modelo: se guarda con este identificador en lugar del modelo configurado. */
+    public static final String MODEL_IDENTIFIER = "FALLBACK";
+
+
     private final AiNarrativeProperties properties;
 
     public FallbackNarrativeTemplateService(AiNarrativeProperties properties) {
         this.properties = properties;
     }
 
+    private static String count(int n, String singular, String plural) {
+        return n + " " + (n == 1 ? singular : plural);
+    }
+
     public DonorReportDTO createFallback(AuditFactsDTO facts, String sourceFactsHash) {
-        String template = "The donation for fund %s has been processed up to sequence %d. " +
-                          "It has %d transition(s) and %d flag(s) registered. " +
-                          "Detailed AI narrative is temporarily unavailable.";
-        
-        String text = String.format(template, facts.fundId(), facts.auditFactsSequence(), 
-                                    facts.transitions().size(), facts.financialFlags().size());
-        
+        // H-DEMO-2: se muestra en el seguimiento público; en español y sin identificadores (ni fundId ni secuencia)
+        String text = "La narrativa detallada de tu donación no está disponible en este momento. Por ahora tiene registrados "
+                + count(facts.transitions().size(), "cambio de estado", "cambios de estado") + " y "
+                + count(facts.financialFlags().size(), "alerta financiera", "alertas financieras") + ".";
+
         Instant now = Instant.now();
         Instant nextRetry = now.plus(properties.getFallbackRetryInterval());
 
         return new DonorReportDTO(
             text,
             NarrativeSource.FALLBACK_TEMPLATE,
-            "FALLBACK",
+            MODEL_IDENTIFIER,
             properties.getPromptTemplateVersion(),
             sourceFactsHash,
             facts.auditFactsSequence(),

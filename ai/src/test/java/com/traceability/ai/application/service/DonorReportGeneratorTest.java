@@ -95,7 +95,7 @@ class DonorReportGeneratorTest {
         DonorReportDTO result = generator.generate("fund-2");
 
         assertEquals(NarrativeSource.FALLBACK_TEMPLATE, result.source());
-        assertTrue(result.narrativeText().contains("temporarily unavailable"));
+        assertTrue(result.narrativeText().contains("no está disponible en este momento"));
         assertNotNull(result.nextRetryAt());
     }
 
@@ -189,7 +189,7 @@ class DonorReportGeneratorTest {
         DonorReportDTO result = generator.generate("fund-timeout");
 
         assertEquals(NarrativeSource.FALLBACK_TEMPLATE, result.source());
-        assertTrue(result.narrativeText().contains("temporarily unavailable"));
+        assertTrue(result.narrativeText().contains("no está disponible en este momento"));
     }
 
     @Test
@@ -204,7 +204,7 @@ class DonorReportGeneratorTest {
         DonorReportDTO result = generator.generate("fund-err");
 
         assertEquals(NarrativeSource.FALLBACK_TEMPLATE, result.source());
-        assertTrue(result.narrativeText().contains("temporarily unavailable"));
+        assertTrue(result.narrativeText().contains("no está disponible en este momento"));
     }
 
     @Test

@@ -1,0 +1,69 @@
+# B3 — evidencia sobre feat/b3-jwt en 73d8253 (2026-10-07)
+# mvn -o clean install -fae, Docker real. sha256 del log completo: 617dbdc393fd80d602fdf3cf73dfdd7ea3ffa693d7fa32f6ff5e1ecf3ff04861
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 273, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 76, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 215, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 75, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Mutaciones (api/identity; cada una restaurada tras ejecutarse; primer test que falla)
+- firma antes de elegir la clave por kid (probar todas las claves): MUERTA  com.traceability.api.auth.jwt.JwtAuthFilterTest.neitherTheTokenNorTheSecret_appearInTheLogs(CapturedOutput) -- Time elapsed: 0.043 s <<< FAILURE!
+- aceptar alg none / cualquier algoritmo: MUERTA  com.traceability.api.auth.jwt.JwtTokenVerifierTest.order_algorithmIsCheckedBeforeKid_andKidBeforeSignature_andSignatureBeforeExpiry -- Time elapsed: 0
+- quitar la tolerancia de reloj: MUERTA  com.traceability.api.auth.jwt.JwtTokenVerifierTest.anExpiredToken_isRejected_butWithinTheThirtySecondSkew_isAccepted -- Time elapsed: 0.018 s <<< FAIL
+- no comprobar accept-until de la clave anterior: MUERTA  com.traceability.api.auth.jwt.JwtTokenVerifierTest.thePreviousKey_isAcceptedUntilItsAcceptUntil_andRejectedAfterwards -- Time elapsed: 0.018 s <<< FAI
+- quitar la comparación con el hash ficticio: MUERTA  identity.application.service.AuthenticateAccountPortImplTest.malformedEmail_isTreatedAsUnknown -- Time elapsed: 1.806 s <<< FAILURE!
+- registrar el token en un log: MUERTA  com.traceability.api.auth.jwt.JwtAuthFilterTest.neitherTheTokenNorTheSecret_appearInTheLogs(CapturedOutput) -- Time elapsed: 0.050 s <<< FAILURE!
+- 401 ante un fallo de issue(): MUERTA  com.traceability.api.auth.LoginControllerTest.anIssuanceFailure_is500_never401 -- Time elapsed: 0.251 s <<< FAILURE!
+- rutas no canónicas tratadas como públicas: MUERTA  com.traceability.api.auth.jwt.JwtAuthFilterTest.pathTricks_neverTurnAProtectedRouteIntoAPublicOne -- Time elapsed: 0.023 s <<< FAILURE!
+- JWT opcional degradado a anónimo con token inválido: MUERTA  com.traceability.api.auth.PublicRoutesTest.theListIsExactlyTheOneApprovedInThePlan -- Time elapsed: 0.135 s <<< FAILURE!
+- cuenta INACTIVE aceptada en el login: MUERTA  identity.application.service.AuthenticateAccountPortImplTest.inactiveAccount_failsWithTheSameException_evenWithTheRightPassword_andStillComparesThePas
+- fallo de datos disfrazado de 401: MUERTA  com.traceability.api.auth.jwt.JwtAuthFilterTest.aDataAccessFailureWhileResolvingThePrincipal_isNotDisguisedAs401 -- Time elapsed: 0.034 s <<< FAILURE!
+- ruta pública añadida sin decidir (login GET): MUERTA  com.traceability.api.auth.PublicRoutesTest.theListIsExactlyTheOneApprovedInThePlan -- Time elapsed: 0.125 s <<< FAILURE!
+
+# Mutaciones contra Tomcat real (app)
+- sin comprobación de ruta canónica: MUERTA  PathEvasionRealServerIntegrationTest — 3 de 4 fallan (//api/v1/... -> 404, ../ con código de seguimiento -> 404, en vez de 401)
+- fallo de Mongo tratado como 401: MUERTA  PrincipalResolutionFailureRealServerIntegrationTest — expected: 500 but was: 401
+
+# Estado por ruta contra Tomcat real (PathEvasionRealServerIntegrationTest)
+PATH-EVASION 400 con-codigo-de-seguimiento /api/v1/b3-test%2Fprotected
+PATH-EVASION 400 con-codigo-de-seguimiento /api/v1/donations/tracking%2F..%2F..%2Fb3-test%2Fprotected
+PATH-EVASION 400 con-codigo-de-seguimiento /api/v1/donations/tracking/%2E%2E%2F%2E%2E%2Fb3-test/protected
+PATH-EVASION 400 con-codigo-de-seguimiento /api/v1/donations/tracking/..%5c..%5cb3-test%5cprotected
+PATH-EVASION 400 sin-cabecera /api/v1/b3-test%2Fprotected
+PATH-EVASION 400 sin-cabecera /api/v1/donations/tracking%2F..%2F..%2Fb3-test%2Fprotected
+PATH-EVASION 400 sin-cabecera /api/v1/donations/tracking/%2E%2E%2F%2E%2E%2Fb3-test/protected
+PATH-EVASION 400 sin-cabecera /api/v1/donations/tracking/..%5c..%5cb3-test%5cprotected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/auth/login/../../b3-test/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/b3-test/protected;jsessionid=x
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/b3-test;x=y/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/donations/tracking/%2e%2e/%2e%2e/b3-test/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/donations/tracking/../../b3-test/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/donations/tracking/..;/..;/b3-test/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/donations/tracking/./../../b3-test/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/donations/tracking;/../../b3-test/protected
+PATH-EVASION 401 con-codigo-de-seguimiento /api/v1/public/campaigns/x/../../../b3-test/protected
+PATH-EVASION 401 sin-cabecera //api/v1/b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1//b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/auth/login/../../b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/b3-test//protected
+PATH-EVASION 401 sin-cabecera /api/v1/b3-test/protected;jsessionid=x
+PATH-EVASION 401 sin-cabecera /api/v1/b3-test;x=y/protected
+PATH-EVASION 401 sin-cabecera /api/v1/donations/tracking/%2e%2e/%2e%2e/b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/donations/tracking/../../b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/donations/tracking/..;/..;/b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/donations/tracking/./../../b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/donations/tracking;/../../b3-test/protected
+PATH-EVASION 401 sin-cabecera /api/v1/public/campaigns/x/../../../b3-test/protected

@@ -34,6 +34,8 @@ public class PhysicalAsset extends AggregateRoot {
     private String organizationRef;
     private String donorRef;
     private String donationRef;
+    /** Convocatoria del activo (ADR-029 Enmienda 1). Inmutable; {@code null} = sin convocatoria. */
+    private String campaignRef;
 
     // final delivery metadata for idempotency checking.
     // finalBeneficiaryRef is only replayed from ASSET_DELIVERED to compare redeliveries; it never
@@ -44,6 +46,8 @@ public class PhysicalAsset extends AggregateRoot {
 
     private final Map<String, AssetLifecycleStatus> splitsBeforeCompensation = new HashMap<>();
     private final Set<String> compensatedSplits = new HashSet<>();
+    /** Lo que fijó cada {@code ASSET_SPLIT} para su hijo (D-SPLIT S3). */
+    private final Map<String, SplitRecord> splits = new HashMap<>();
 
     // Protected constructor for rehydration via AggregateRoot
     protected PhysicalAsset() {
@@ -56,11 +60,25 @@ public class PhysicalAsset extends AggregateRoot {
         return asset;
     }
 
+    /** Camino A sin convocatoria (equivale a {@code campaignRef = null}). */
     public static PhysicalAsset register(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef) {
+        return register(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null);
+    }
+
+    /**
+     * Camino A. Escribe {@code ASSET_REGISTERED} 3.0 (ADR-029 Enmienda 1, D1). {@code campaignRef} es el del
+     * {@code Fund} (D2): lo resuelve el servicio de aplicación, nunca el llamador; puede ser {@code null}.
+     */
+    public static PhysicalAsset register(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String campaignRef) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -80,17 +98,33 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV2Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
-                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null));
+                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null,
+                campaignRef));
         return asset;
     }
 
+    /** Camino B sin convocatoria (equivale a {@code campaignRef = null}). */
     public static PhysicalAsset create(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef, String donationRef) {
+        return create(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef, null);
+    }
+
+    /**
+     * Camino B. Escribe {@code ASSET_REGISTERED} 3.0 (ADR-029 Enmienda 1, D1). {@code campaignRef} lo recibe el comando
+     * y lo valida el servicio de aplicación contra {@code convocatoria} antes de llegar aquí (D3); puede ser
+     * {@code null}.
+     */
+    public static PhysicalAsset create(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String donationRef, String campaignRef) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -116,10 +150,42 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV2Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
-                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef));
+                parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef,
+                campaignRef));
         return asset;
+    }
+
+    /**
+     * Génesis del hijo de una división (D-SPLIT S3; B1-bis). Escribe {@code ASSET_REGISTERED} 3.0. Origen de cada
+     * atributo (P4):
+     * <ul>
+     *   <li>del {@code ASSET_SPLIT}: cantidad, unidad, ubicación y custodio <em>en el momento de la división</em> (son
+     *       mutables en el padre), {@code rootAssetRef} y las referencias heredadas {@code organizationRef},
+     *       {@code donorRef}, {@code donationRef} y {@code campaignRef} (ADR-029 §3; Enmienda 1, D4);</li>
+     *   <li>del padre, solo atributos inmutables desde su registro: {@code assetType} y la asignación de origen
+     *       ({@code allocationId} del padre o, si el padre ya es hijo, su {@code sourceAllocationId}).</li>
+     * </ul>
+     * No exige nada de {@code donorRef}/{@code donationRef}: el hijo hereda lo que tenga el padre, de cualquier camino.
+     */
+    public static PhysicalAsset registerSplitChild(PhysicalAsset parent, String childAssetId) {
+        SplitRecord split = parent.findSplit(childAssetId).orElseThrow(() -> new IllegalArgumentException(
+                "Asset " + parent.assetId + " has no split with child " + childAssetId));
+        String sourceAllocationId = parent.allocationId != null ? parent.allocationId : parent.sourceAllocationId;
+
+        PhysicalAsset child = new PhysicalAsset();
+        child.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
+                childAssetId, parent.assetType, split.extractedQuantity(), split.unitOfMeasure(),
+                split.childLocation(), split.childCustodianRef(), parent.assetId, split.rootAssetRef(),
+                null, sourceAllocationId, split.organizationRef(), split.donorRef(), split.donationRef(),
+                split.campaignRef()));
+        return child;
+    }
+
+    /** El {@code ASSET_SPLIT} (v1, v2 o v3) que generó ese hijo. */
+    public java.util.Optional<SplitRecord> findSplit(String childAssetId) {
+        return java.util.Optional.ofNullable(splits.get(childAssetId));
     }
 
     private void checkOrganizationAssigned() {
@@ -186,11 +252,12 @@ public class PhysicalAsset extends AggregateRoot {
 
         BigDecimal previousQ = this.quantity;
 
-        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV2Payload(
+        // ADR-029 Enmienda 1, D4: el hijo hereda también el campaignRef del padre (3.0).
+        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV3Payload(
                 childAssetId, extractedQuantity, this.unitOfMeasure, previousQ,
                 previousQ.subtract(extractedQuantity), this.lifecycleStatus.name(),
                 this.currentLocation, this.custodianRef, this.rootAssetRef,
-                this.organizationRef, this.donorRef, this.donationRef));
+                this.organizationRef, this.donorRef, this.donationRef, this.campaignRef));
 
         if (this.quantity.compareTo(BigDecimal.ZERO) == 0) {
             raiseEvent(PhysicalAssetEventType.ASSET_DEPLETED, new AssetDepletedPayload(previousQ));
@@ -210,6 +277,11 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         reintegratedQuantity = reintegratedQuantity.setScale(4, RoundingMode.HALF_UP);
+        BigDecimal extracted = splits.get(childAssetId).extractedQuantity();
+        if (extracted != null && reintegratedQuantity.compareTo(extracted) != 0) {
+            throw new InvalidCompensationQuantityException("Compensation of split " + childAssetId + " must reintegrate "
+                    + extracted + ", not " + reintegratedQuantity);
+        }
         raiseEvent(PhysicalAssetEventType.ASSET_SPLIT_COMPENSATED, new AssetSplitCompensatedPayload(
                 childAssetId, reintegratedQuantity));
     }
@@ -239,6 +311,25 @@ public class PhysicalAsset extends AggregateRoot {
     @Override
     protected void apply(DomainEventPayload payload) {
         switch (payload) {
+            case AssetRegisteredV3Payload p -> {
+                this.assetId = p.assetId();
+                this.assetType = p.assetType();
+                this.quantity = p.quantity().setScale(4, RoundingMode.HALF_UP);
+                this.unitOfMeasure = p.unitOfMeasure();
+                this.lifecycleStatus = AssetLifecycleStatus.REGISTERED;
+                this.currentLocation = p.currentLocation();
+                this.lastKnownLocation = p.currentLocation();
+                this.custodianRef = p.custodianRef();
+                this.parentAssetRef = p.parentAssetRef();
+                this.rootAssetRef = p.rootAssetRef();
+                this.allocationId = p.allocationId();
+                this.sourceAllocationId = p.sourceAllocationId();
+                this.organizationRef = p.organizationRef();
+                this.donorRef = p.donorRef();
+                this.donationRef = p.donationRef();
+                this.campaignRef = p.campaignRef();
+            }
+            // 1.0 y 2.0 (histórico): sin convocatoria, nunca se infiere (ADR-029 Enmienda 1, D5/D6).
             case AssetRegisteredV2Payload p -> {
                 this.assetId = p.assetId();
                 this.assetType = p.assetType();
@@ -285,12 +376,27 @@ public class PhysicalAsset extends AggregateRoot {
             case AssetCustodyTransferredPayload p -> {
                 this.custodianRef = p.newCustodianRef();
             }
+            case AssetSplitV3Payload p -> {
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        p.organizationRef(), p.donorRef(), p.donationRef(), p.campaignRef()));
+                this.splitsBeforeCompensation.put(p.childAssetId(),
+                        AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
+                this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
+            }
             case AssetSplitV2Payload p -> {
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        p.organizationRef(), p.donorRef(), p.donationRef(), null));
                 this.splitsBeforeCompensation.put(p.childAssetId(),
                         AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
                 this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetSplitPayload p -> {
+                // 1.0: sin referencias en el payload; se toman del padre, inmutables desde su registro
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        this.organizationRef, this.donorRef, this.donationRef, null));
                 this.splitsBeforeCompensation.put(p.childAssetId(),
                         AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
                 this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
@@ -318,6 +424,10 @@ public class PhysicalAsset extends AggregateRoot {
         }
     }
 
+    private static BigDecimal scaled(BigDecimal quantity) {
+        return quantity == null ? null : quantity.setScale(4, RoundingMode.HALF_UP);
+    }
+
     // Getters for testing
     public String getAssetId() {
         return assetId;
@@ -329,6 +439,15 @@ public class PhysicalAsset extends AggregateRoot {
 
     public BigDecimal getQuantity() {
         return quantity;
+    }
+
+    /** Beneficiario sellado en {@code ASSET_DELIVERED} (ADR-014); {@code null} si no está entregado. */
+    public String getFinalBeneficiaryRef() {
+        return finalBeneficiaryRef;
+    }
+
+    public String getUnitOfMeasure() {
+        return unitOfMeasure;
     }
 
     public String getCurrentLocation() {
@@ -351,7 +470,31 @@ public class PhysicalAsset extends AggregateRoot {
         return donorRef;
     }
 
+    public String getCampaignRef() {
+        return campaignRef;
+    }
+
     public String getDonationRef() {
         return donationRef;
+    }
+
+    public String getAssetType() {
+        return assetType;
+    }
+
+    public String getAllocationId() {
+        return allocationId;
+    }
+
+    public String getSourceAllocationId() {
+        return sourceAllocationId;
+    }
+
+    public String getParentAssetRef() {
+        return parentAssetRef;
+    }
+
+    public String getRootAssetRef() {
+        return rootAssetRef;
     }
 }

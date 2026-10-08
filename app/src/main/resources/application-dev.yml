@@ -1,0 +1,28 @@
+# Perfil de desarrollo (activar con --spring.profiles.active=dev).
+convocatoria:
+  donation-intent:
+    # PROVISIONAL — no es valor de producto (estado-fase6.md §0). Desbloquea el arranque local;
+    # producción sigue sin valor por defecto (CONVOCATORIA_BANK_TRANSFER_EXPIRATION obligatoria).
+    bank-transfer-expiration: PT72H
+
+# ADR-049 D1: Mailpit de scripts/demo (SMTP 1025, web 8025), sin autenticación. Se puede sustituir por entorno.
+spring:
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+
+traceability:
+  mail:
+    from: ${TRACEABILITY_MAIL_FROM:no-reply@demo.paxfide.local}
+  web:
+    base-url: ${TRACEABILITY_WEB_BASE_URL:http://localhost:5173}
+  security:
+    jwt:
+      # SOLO DESARROLLO — nunca un valor productivo (ADR-047 D3). Producción exige JWT_SIGNING_SECRET.
+      signing-secret: dev-only-jwt-signing-secret-not-for-production
+  # Proveedor de pago simulado y su webhook (Enmienda 3 de ADR-037, D2; plan B6-b): SOLO dev/demo. Fuera de estos
+  # perfiles la propiedad es false, el proveedor y la ruta no existen y convocatoria rechaza SIMULATED (E3-Q1).
+  # El secreto de firma no tiene valor por defecto: sin TRACEABILITY_DEMO_WEBHOOK_SECRET (>= 32 bytes) no arranca.
+  demo:
+    simulated-payments: true
+    webhook-secret: ${TRACEABILITY_DEMO_WEBHOOK_SECRET}

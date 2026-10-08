@@ -1,0 +1,31 @@
+# Infraestructura local de la demo (runbook-demo-local.md). Herramienta local, no una dependencia del proyecto.
+# MongoDB en réplica de un nodo (las transacciones lo exigen) y Ganache determinista (cadena local de anclaje).
+name: paxfide-demo
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: paxfide-demo-mongo
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    healthcheck:
+      # inicia la réplica la primera vez; después solo comprueba que hay primario
+      test: ["CMD", "mongosh", "--quiet", "--eval",
+             "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+  ganache:
+    image: trufflesuite/ganache:latest
+    container_name: paxfide-demo-ganache
+    # cuentas deterministas (públicas, sin valor) y chain id 1337
+    command: ["--deterministic", "--chain.chainId", "1337"]
+    ports:
+      - "8545:8545"
+  mailpit:
+    # ADR-049 D1: SMTP de la demo (1025) y bandeja web para ver los correos de invitación (http://localhost:8025)
+    image: axllent/mailpit:v1.21
+    container_name: paxfide-demo-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"

@@ -1,0 +1,15 @@
+# D-06 (Carlos, 2026-10-08, punto 2): cerrar una convocatoria pasa sus asignaciones a históricas en la misma transacción
+commit: cfa4f53
+
+## Fase roja (rama local rojo/d06: el cierre sin la escritura de historial)
+[ERROR] Tests run: 9, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 9.401 s <<< FAILURE! -- in com.traceability.convocatoria.application.service.CloseConvocatoriaIntegrationTest
+[ERROR] com.traceability.convocatoria.application.service.CloseConvocatoriaIntegrationTest.closing_movesTheActiveAssignmentsToHistory_andFreesTheEmployeeForAnotherCampaign
+[ERROR] com.traceability.convocatoria.application.service.CloseConvocatoriaIntegrationTest.ifTheCloseFails_theAssignmentsStayActive_andTheCampaignStaysOpen
+
+## Verde
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- historial fuera de la transacción: MUERTA  closing_movesTheActiveAssignmentsToHistory_andFreesTheEmployeeForAnotherCampaign; ifTheCloseFails_theAssignmentsStayActive_andTheCampaignStaysOpen
+- también las retiradas pasan a historial: MUERTA  closing_movesTheActiveAssignmentsToHistory_andFreesTheEmployeeForAnotherCampaign
+- mis convocatorias sin las cerradas: MUERTA  eachResponsible_seesOnlyTheirOwnActiveAssignments_withTheirRoleAndTheCampaignStatus
+Restauración verificada contra HEAD. Mutaciones vivas: 0

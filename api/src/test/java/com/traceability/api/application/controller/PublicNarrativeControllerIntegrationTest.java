@@ -52,7 +52,9 @@ class PublicNarrativeControllerIntegrationTest {
             "com.traceability.api.application.mapper"
     })
     @EnableMongoRepositories(basePackages = "com.traceability.core.infrastructure.security.mongo")
-    @Import(TrackingSecurityProperties.class)
+    // el manejador único de errores de B6-0, como en la aplicación (TR-D1: el 404 del seguimiento lo compone él)
+    @Import({TrackingSecurityProperties.class, com.traceability.api.web.ApiExceptionHandler.class,
+            com.traceability.api.web.ApiBaseErrorMappings.class})
     static class TestApp {
         @Bean
         public TrackingCodeService trackingCodeService(
@@ -105,7 +107,9 @@ class PublicNarrativeControllerIntegrationTest {
 
         mockMvc.perform(get("/api/v1/donations/tracking/narrative")
                         .header("Authorization", "Bearer " + validToken))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                // TR-D1 (Q-B60-1, corregido en B6-d): mismo ProblemDetail fijo que TR-01
+                .andExpect(jsonPath("$.title").value("NotFound"));
     }
 
     @Test

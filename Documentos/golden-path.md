@@ -2,6 +2,8 @@
 
 **Estado:** Escenario conceptual cerrado. **No es ejecutable hoy** — depende de precondiciones de implementación explícitas (§5; las de dominio de Fase 5 ya están resueltas, quedan las de HTTP/Fase 6). Sirve para derivar el dataset mínimo, los contratos de API y las pantallas del frontend a partir de una única historia real, no de una lista de endpoints inventados.
 
+*Enmienda del 2026-10-07 (Carlos):* **`ASSET_SPLIT` entra en la demo** (paso 4B de §2). Se incorporan §7 (consultas y evidencia final) y §8 (criterios de aceptación 1–14 y 15–19 de la división), tomados de una copia del proyecto del 2026-09-20 que nunca se había commiteado. Su §9 de exclusiones **no** se incorpora: manda el §3 de este repositorio, con tres exclusiones añadidas. **La Fase 6 se cierra cuando se cumplen los criterios de §8 con evidencia real** (`estado-fase6.md` §0.4).
+
 ---
 
 ## 1. Precondiciones (ya deben existir antes de que arranque el recorrido en vivo)
@@ -29,7 +31,7 @@
        inicia intención de donación (monto X) → redirige a pasarela de pago
        webhook confirma pago → clearFundsGenesis(organizationRef, campaignRef,
          donorRef, currency, amount, sourceRef, commandId, actorRef)
-       → Fund nace ya CLEARED (sequence=0, sin estado PLEDGED intermedio)
+       → Fund nace ya CLEARED (sequence=1, la génesis de todo stream, sin estado PLEDGED intermedio)
          + CampaignFundingLedger actualizado (misma transacción)
        → trackingCode calculado inmediatamente tras el éxito de clearFundsGenesis
          (HMAC sobre fundId ya confirmado)
@@ -60,8 +62,19 @@
      por acto de donación. No depende de un Fund (ADR-029).
    Estado: ambos caminos implementados en core; sin endpoint HTTP (ver §5).
 
+4B. División del activo (ASSET_SPLIT) — añadido el 2026-10-07
+   Actor: EMPLOYEE asignado. splitPhysicalAsset sobre el activo del paso 4:
+   el padre conserva la cantidad restante (> 0, sigue vivo; ADR-005) y el hijo
+   nace por saga, vía outbox (ADR-007), de forma ASÍNCRONA, con la cantidad
+   extraída y las referencias heredadas (organizationRef, donorRef, donationRef,
+   campaignRef). El guion de la demo ESPERA a que el hijo exista antes de seguir.
+   Padre e hijo recorren el paso 5 por separado hasta DELIVERED.
+   Estado (2026-10-07): la saga del hijo NO existe (B1-bis). PhysicalAsset ya
+   tiene campaignRef (D-CAMPAIGN, ASSET_SPLIT 3.0 lo hereda del padre).
+
 5. Ciclo logístico
    DISPATCH → RECEIVE → DELIVER. beneficiaryRef se sella en DELIVER (ADR-014).
+   Con la división, se aplica al padre y al hijo por separado.
 
 6. Anclaje blockchain
    MerkleBatch Producer (diseño Fase 6) reclama los eventos del recorrido,
@@ -89,6 +102,12 @@
 - Fallos del proveedor de IA (`FallbackNarrativeTemplateService` se prueba, no se demuestra en vivo).
 - Panel administrativo de Platform Administrator (usuarios/organizaciones/gráficas — consultas cross-organización, diseño pendiente aparte).
 
+- *Añadido el 2026-10-07:* la compensación de la división (`ASSET_SPLIT_COMPENSATED`). Es un flujo de error: se implementa y se prueba, pero no se demuestra.
+- *Añadido el 2026-10-07:* la división hasta `DEPLETED`.
+- *Añadido el 2026-10-07:* cualquier comportamiento todavía no aprobado mediante ADR.
+
+*Antecedente:* la copia del proyecto del 2026-09-20 excluía `ASSET_SPLIT` ("diseño diferido"). Esa exclusión queda sustituida por la decisión de Carlos del 2026-10-07. El resto de su lista de exclusiones no se incorporó.
+
 ## 4. Real vs. fixture en la demo
 
 | Elemento | Real | Fixture/preparado |
@@ -108,6 +127,13 @@
 > - **Sigue pendiente:** no hay endpoints HTTP de escritura que construyan un `HumanActor` (la integración real con Identity solo está demostrada para `registerFund`), ni derivación de `organizationRef` para `ExternalActor` (webhook), ni §5.4. El Golden Path sigue **sin ser ejecutable de extremo a extremo**, ahora por la capa HTTP/Fase 6 y no por el dominio.
 >
 > El texto original de §5.1–§5.3 se conserva abajo como registro de la inspección que lo motivó.
+>
+> **Nota del 2026-10-07 (verificado en `develop`):** hay tres huecos para cumplir §8.
+> - **Saga del hijo de la división:** `PhysicalAssetCommandService.splitPhysicalAsset` no escribe mensaje de outbox y `SplitPhysicalAssetSagaPolicy` no existe, así que el hijo nunca se crea (criterios 15–19).
+> - **`campaignRef`:** ~~ningún `PhysicalAsset` lo tiene~~. *Resuelto el 2026-10-07 (D-CAMPAIGN, ADR-029 Enmienda 1): los activos nuevos llevan `campaignRef` en `ASSET_REGISTERED`/`ASSET_SPLIT` 3.0. En el Camino A se hereda del `Fund`; en el Camino B lo recibe el comando y lo valida `convocatoria`; en la división se hereda del padre. Para el criterio 14 falta la agregación de la narrativa (B5).*
+> - **Donación con cuenta e historial autenticado (criterios 4 y 6):** dependen del JWT (no existe) y de `GET /account/donations`, que no existe y cuya relación `accountId` ↔ `donorRef` no está verificada.
+>
+> Ver `plan-cierre-fase6-codigo.md` (D-SPLIT, D-CAMPAIGN, D-API).
 
 **5.1 — `HumanAccount`.** `RegisterPhysicalAssetFromDonation` está bloqueado desde Fase 5 (ADR-031) hasta que exista `HumanAccount`. El Golden Path completo, tal como está descrito, **no es ejecutable hoy de extremo a extremo** — describe el producto deseado, no el estado actual.
 
@@ -132,3 +158,67 @@ Esto no reabre Identidad — el contrato de `HumanAccount` ya está cerrado conc
 ## 6. Nota de procedencia
 
 Este documento combina decisiones ya cerradas en `convocatoria-resumen.md`, `identity-resumen.md`, `blockchain-resumen.md` e `ia-resumen.md` en un único recorrido concreto. No introduce decisiones de dominio nuevas — solo selecciona, de todo lo ya diseñado, el subconjunto mínimo que forma una historia demostrable de principio a fin, y expone la precondición de implementación que esa selección revela.
+
+## 7. Consultas y evidencia final
+
+*Incorporado el 2026-10-07 desde la copia del proyecto del 2026-09-20; texto literal.*
+
+### 7.1 Trazabilidad
+
+- **Actor:** usuario de consulta
+- **Comando:** consulta por `trackingCode`
+- **Estado anterior:** evidencia generada y disponible
+- **Estado posterior:** sin mutación de dominio
+- **Evidencia visible:** historial de la donación y del `PhysicalAsset`.
+
+### 7.2 Verificación de integridad
+
+- **Actor:** sistema de verificación
+- **Comando:** `IntegrityVerificationPort.verifyBatch`
+- **Estado anterior:** `MerkleBatch = ANCHORED`
+- **Estado posterior:** resultado `MATCH`
+- **Evidencia visible:** root esperado y root recomputado coinciden.
+
+### 7.3 Narrativa individual
+
+- **Actor:** sistema IA
+- **Comando:** generación narrativa sobre `DonationAuditFacts`
+- **Estado anterior:** hechos deterministas disponibles
+- **Estado posterior:** narrativa estructurada validada por grounding
+- **Evidencia visible:** narrativa de la donación individual.
+
+### 7.4 Narrativa de convocatoria
+
+- **Actor:** sistema IA
+- **Comando:** generación narrativa sobre `ConvocatoriaAuditFacts`
+- **Estado anterior:** hechos deterministas de convocatoria disponibles
+- **Estado posterior:** narrativa estructurada validada por grounding
+- **Evidencia visible:** resumen de la convocatoria con `clearedAmount`, unidades entregadas y receptores distintos.
+
+*Restricción semántica: "receptores distintos", no "familias alcanzadas".*
+
+## 8. Criterios de aceptación
+
+*Criterios 1–14: texto literal de la copia del proyecto del 2026-09-20. Criterios 15–19: añadidos el 2026-10-07 al entrar `ASSET_SPLIT` en la demo (paso 4B). Son el criterio de cierre de la Fase 6.*
+
+1. Organización `VERIFIED`.
+2. Convocatoria `PUBLIC`.
+3. Donación sin cuenta liquidada.
+4. Donación con cuenta liquidada.
+5. Ambas convergen en el mismo flujo de `Fund`.
+6. Donación autenticada visible en historial.
+7. `PhysicalAsset` creado y asociado a la donación.
+8. Asset alcanza `DELIVERED`.
+9. `beneficiaryRef` queda sellado.
+10. Eventos incluidos en `MerkleBatch`.
+11. Batch termina `ANCHORED`.
+12. `verifyBatch` produce `MATCH`.
+13. Narrativa individual pasa grounding.
+14. Narrativa de convocatoria pasa grounding.
+15. El hijo de la división existe con la cantidad extraída y hereda `organizationRef`, `donorRef`, `donationRef` y `campaignRef`.
+16. La cantidad del padre se reduce en lo extraído.
+17. Padre e hijo alcanzan `DELIVERED`.
+18. Los streams del padre y del hijo quedan incluidos en un `MerkleBatch` `ANCHORED`.
+
+> **Decisión de Carlos (2026-10-07T21:07Z) — criterios 10, 11, 12 y 18:** se cierran con la evidencia de la **cadena local (Ganache)**: el recorrido real ancla sus eventos en Ganache, el poller marca `ANCHORED` solo si la raíz leída de la cadena coincide con la del batch, y `verifyBatch` da `MATCH` (`GoldenPathHttpIntegrationTest`; demo en vivo con `runbook-demo-local.md`). Motivo: no depender de *faucets*, cuotas de proveedor ni disponibilidad de la red el día de la demo. La ejecución en una testnet pública pasa a ser **opcional**, como demostración adicional (`runbook-anclaje-testnet.md`). **Limitación aceptada:** un anclaje en Ganache es real dentro de la cadena local, pero **no es verificable públicamente por terceros**.
+19. La narrativa de convocatoria cuenta las unidades de ambos.

@@ -1,0 +1,49 @@
+# B6-0 — evidencia sobre feat/b6-0-base-http en 2363fda (2026-10-07)
+# Los commits posteriores solo tocan scripts/ y Documentos/ (git diff 2363fda HEAD -- contracts core crypto ai api identity convocatoria app está vacío).
+# mvn -o clean test -fae, Docker real. sha256 del log completo: 1193f6fdd4dc5b94e76c72881030eafb76996aabecceb69cf90b2537164c5aa7
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 312, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 122, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 268, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 215, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 84, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+# Antes (esqueleto, 078c04f): tests nuevos de B6-0
+[ERROR] Tests run: 3, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 0.699 s <<< FAILURE! -- in com.traceability.api.web.ApiErrorMappingsRegistryTest
+[ERROR] Tests run: 4, Failures: 3, Errors: 0, Skipped: 0, Time elapsed: 1.681 s <<< FAILURE! -- in com.traceability.api.web.CurrentActorRouteValidatorTest
+[ERROR] Tests run: 5, Failures: 5, Errors: 0, Skipped: 0, Time elapsed: 0.369 s <<< FAILURE! -- in com.traceability.api.web.CurrentActorArgumentResolverTest
+[ERROR] Tests run: 19, Failures: 16, Errors: 2, Skipped: 0, Time elapsed: 0.567 s <<< FAILURE! -- in com.traceability.api.web.ApiExceptionHandlerTest
+[ERROR] Tests run: 11, Failures: 11, Errors: 0, Skipped: 0, Time elapsed: 0.152 s <<< FAILURE! -- in com.traceability.api.web.CommandIdArgumentResolverTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.351 s -- in com.traceability.api.architecture.ControllerPrincipalAccessTest
+[ERROR] Tests run: 5, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 36.81 s <<< FAILURE! -- in com.traceability.app.auth.CurrentActorRealServerIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.055 s -- in com.traceability.app.web.AppWebArchitectureTest
+[ERROR] Tests run: 7, Failures: 4, Errors: 0, Skipped: 0
+# (ControllerPrincipalAccessTest y AppWebArchitectureTest pasan ya en rojo: las reglas no tienen violaciones en producción y sus controladores de prueba demuestran que detectan cada forma de leer el principal)
+
+# Mutaciones (scripts/mutaciones.py, módulo api, restauración con git checkout)
+- M1 mensaje de la excepción en el cuerpo: MUERTA  anUnreadableBody_is400_withoutEchoingTheInput; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[10]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[1]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[2]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[3]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[4]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[5]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[6]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[7]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[8]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[9]; theBody_neverEchoesTheRequestPath_soItHasNoInstance
+- M2 403 distinto para falta de rol: MUERTA  eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[2]; the403_isIdenticalByteForByte_forOtherOrganizationAndMissingRole
+- M3 aceptar Command-Id no UUID: MUERTA  invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[1]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[2]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[3]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[4]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[5]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[6]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[7]; invalidHeader_is400_withoutEchoingTheValue_andTheUseCaseIsNeverCalled[8]
+- M4 HumanActor nulo en vez de fallar: MUERTA  anAttributeOfAnotherType_isNotAPrincipal; requiredActorWithoutPrincipal_is500_withErrorLog_andTheHandlerNeverRuns
+- M5 quitar correlationId del 500: MUERTA  each500_hasItsOwnCorrelationId; the500_carriesACorrelationId_thatIsInTheErrorLog_withClassButNoMessageNorStackTrace
+- M6 no normalizar a minúsculas: MUERTA  lowercaseAndUppercaseOfTheSameId_areTheSameCommand; validHeader_reachesTheUseCase_normalizedToLowercase
+- M7 aceptar mapeos duplicados: MUERTA  theSameExceptionTwiceInOneModule_alsoPreventsTheStart; twoModulesMappingTheSameException_preventTheStart_namingBothModulesAndTheException
+- M8 validador no exige Optional: MUERTA  requiredActorOnAnOptionalJwtRoute_preventsTheStart; requiredPrincipalOnAPublicRoute_preventsTheStart
+- M9 mensaje en el log del 500: MUERTA  requiredActorWithoutPrincipal_is500_withErrorLog_andTheHandlerNeverRuns; the500_carriesACorrelationId_thatIsInTheErrorLog_withClassButNoMessageNorStackTrace; the500_logDoesNotIncludeTheMessageOfTheCause_either
+- M10 409 de convocatoria distinto por subclase: MUERTA  eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[6]; eachRowOfTheTable_givesItsStatusAndProblemDetail_withoutTheExceptionMessage[7]; theCampaign409_isIdenticalByteForByte_forNotFoundAndOtherOrganization
+- M11 errores de Spring pierden su código: MUERTA  springErrorResponses_keepTheirStatus_withAFixedBody
+- M12 validador acepta tipos no admitidos: MUERTA  unsupportedParameterType_preventsTheStart
+- M13 mensajes de las causas en el log: MUERTA  the500_logDoesNotIncludeTheMessageOfTheCause_either
+Restauración verificada contra HEAD. Mutaciones vivas: 0

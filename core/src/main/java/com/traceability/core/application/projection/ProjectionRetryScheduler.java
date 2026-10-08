@@ -19,6 +19,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jmx.export.annotation.ManagedAttribute;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -31,14 +32,28 @@ public class ProjectionRetryScheduler {
     private final ProjectionRetryRepository retryRepository;
     private final Map<String, ProjectionEventHandler> handlers;
     private final DonationProjectionRepository projectionRepository;
+    private final UndeclaredPayloadMonitor undeclaredPayloads;
 
     public ProjectionRetryScheduler(ProjectionRetryRepository retryRepository,
                                     List<ProjectionEventHandler> handlerList,
-                                    DonationProjectionRepository projectionRepository) {
+                                    DonationProjectionRepository projectionRepository,
+                                    UndeclaredPayloadMonitor undeclaredPayloads) {
         this.retryRepository = retryRepository;
         this.handlers = handlerList.stream()
             .collect(Collectors.toMap(ProjectionEventHandler::getHandlerName, Function.identity()));
         this.projectionRepository = projectionRepository;
+        this.undeclaredPayloads = undeclaredPayloads;
+    }
+
+    /** B-PROJ: payloads no declarados por algún manejador (log de error en cada uno). Debe ser 0. */
+    @ManagedAttribute(description = "Payloads that reached a projection handler without being declared (should be 0)")
+    public long getUndeclaredPayloadCount() {
+        return undeclaredPayloads.total();
+    }
+
+    @ManagedAttribute(description = "Undeclared payloads per projection handler")
+    public String getUndeclaredPayloadCountByHandler() {
+        return undeclaredPayloads.byHandler().toString();
     }
 
     @Value("${core.projection.retry.timeout-minutes:5}")

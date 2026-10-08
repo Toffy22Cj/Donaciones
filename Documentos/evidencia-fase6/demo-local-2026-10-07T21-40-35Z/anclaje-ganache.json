@@ -1,0 +1,49 @@
+{
+  "nota": "Anclaje real en la cadena local (Ganache); no verificable públicamente por terceros. El poller solo marca ANCHORED si la raíz leída de la cadena coincide con la del batch.",
+  "estado": {
+    "events": 12,
+    "sinBatch": 0,
+    "batches": [
+      {
+        "batchId": "3d134a2c-c92b-422d-80a1-4370ce737cc7",
+        "status": "ANCHORED",
+        "merkleRoot": "107a53d351bb09da25bd173798e8dbc4c960fe41ea06d827a9714ccef088d0a9",
+        "txHash": "0x1292a390b175569ba596d15531940245ef8259cdb8411814310579d595d56d05",
+        "block": {
+          "high": 0,
+          "low": 2,
+          "unsigned": false
+        }
+      },
+      {
+        "batchId": "7a6df038-34da-4efc-97ce-93119bb5674e",
+        "status": "ANCHORED",
+        "merkleRoot": "db8f81a88cc46218a1b14ae3454aafdea097709dcafff73fadf27e60e47ed8a3",
+        "txHash": "0xa1662d0adcf5acb673ec9adf36fc18e61e4cdaff1db73fdda9683695c52ba27c",
+        "block": {
+          "high": 0,
+          "low": 3,
+          "unsigned": false
+        }
+      }
+    ]
+  },
+  "recibos": [
+    {
+      "batchId": "3d134a2c-c92b-422d-80a1-4370ce737cc7",
+      "merkleRoot": "107a53d351bb09da25bd173798e8dbc4c960fe41ea06d827a9714ccef088d0a9",
+      "txHash": "0x1292a390b175569ba596d15531940245ef8259cdb8411814310579d595d56d05",
+      "status": "0x1",
+      "blockNumber": 2,
+      "to": "0xd3aa556287afe63102e5797bfddd2a1e8dbb3ea5"
+    },
+    {
+      "batchId": "7a6df038-34da-4efc-97ce-93119bb5674e",
+      "merkleRoot": "db8f81a88cc46218a1b14ae3454aafdea097709dcafff73fadf27e60e47ed8a3",
+      "txHash": "0xa1662d0adcf5acb673ec9adf36fc18e61e4cdaff1db73fdda9683695c52ba27c",
+      "status": "0x1",
+      "blockNumber": 3,
+      "to": "0xd3aa556287afe63102e5797bfddd2a1e8dbb3ea5"
+    }
+  ]
+}

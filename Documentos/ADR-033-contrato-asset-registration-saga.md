@@ -38,4 +38,5 @@ Las siguientes decisiones representan el estado *táctico* y comprobado del sist
 
 ## Consecuencias
 - Queda resuelto el diseño del payload para confirmación de asignaciones de activos raíz.
+- **Precisión de B1-bis (2026-10-07; `propuesta-d-split.md` S4, aprobada):** en una saga cuya compensación compite con la operación principal sobre streams distintos, como la división, el `commandId` de las dos ramas no es `messageId` ni `messageId-comp`, sino una **clave común** (`SPLIT_RESOLUTION:{childAssetId}`) que actúa de barrera atómica: solo una de las dos ramas puede confirmarse. La convención de esta saga de registro no cambia.
 - El territorio de la taxonomía de identificadores definido en **ADR-013** queda protegido: la regla `commandId := messageId` es una derivación específica de esta saga; `messageId` sigue siendo un identificador distinto y no se convierte arbitrariamente en `allocationId`, `externalEventId` ni en otro identificador definido por ADR-013. No se ratifica `-comp` ni el fallback de `correlationId` como patrones arquitectónicos globales.

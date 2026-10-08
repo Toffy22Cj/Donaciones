@@ -1,4 +1,26 @@
+# Correo de los tests (ADR-049): un servidor que no existe; los tests que envían sustituyen JavaMailSender o usan
+# Mailpit por Testcontainers.
+spring:
+  mail:
+    host: localhost
+    port: 1
+
 traceability:
+  mail:
+    from: no-reply@tests.paxfide.local
+  web:
+    base-url: https://web.tests.paxfide.local
   security:
     tracking-code-secret: dummy-tracking-code-secret-for-test
     asset-ref-secret: dummy-asset-ref-secret-for-test
+    jwt:
+      # Solo para tests; nunca un valor productivo (ADR-047 D3)
+      signing-secret: test-only-jwt-signing-secret-not-for-production
+      kid: test-k1
+  discovery:
+    # Solo para tests (32 bytes en Base64): "test-only-discovery-cursor-key!!"
+    cursor-key: dGVzdC1vbmx5LWRpc2NvdmVyeS1jdXJzb3Ita2V5ISE=
+
+convocatoria:
+  donation-intent:
+    bank-transfer-expiration: PT72H

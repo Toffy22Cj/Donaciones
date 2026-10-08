@@ -204,4 +204,16 @@ class AssignEmployeeIntegrationTest extends AbstractConvocatoriaServiceIntegrati
         assertEquals(1, count(CampaignAssignmentDocument.COLLECTION));
         assertEquals(1, counter(campaign) + counter(other));
     }
+
+    @Test
+    void assigningOnAClosedCampaign_isRejectedWithoutWriting() {
+        lifecycle.closeConvocatoria(new com.traceability.convocatoria.application.command.CloseConvocatoriaCommand(
+                newCommandId(), ADMIN, campaign));
+        clearInvocations(assignments, responsibleState, auditLog);
+
+        assertThrows(com.traceability.convocatoria.domain.exception.ResponsibleAssignmentOnClosedCampaignException.class,
+                () -> assign(newCommandId(), ADMIN, campaign, EMPLOYEE));
+        assertNoWrites();
+    }
+
 }

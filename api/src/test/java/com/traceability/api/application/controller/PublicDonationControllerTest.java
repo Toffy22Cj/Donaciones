@@ -23,9 +23,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.springframework.test.context.ContextConfiguration;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @WebMvcTest(controllers = PublicDonationController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
-@ContextConfiguration(classes = PublicDonationController.class)
+@ContextConfiguration(classes = {PublicDonationController.class, com.traceability.api.web.ApiExceptionHandler.class,
+        com.traceability.api.web.ApiBaseErrorMappings.class})
 class PublicDonationControllerTest {
 
     @Autowired
@@ -65,6 +67,9 @@ class PublicDonationControllerTest {
         mockMvc.perform(get("/api/v1/donations/tracking")
                 .requestAttr(TrackingCodeAuthFilter.FUND_ID_ATTRIBUTE, fundId))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$").doesNotExist());
+                // TR-D1 (Q-B60-1, corregido en B6-d): el 404 lleva el ProblemDetail fijo de la ficha TR-01
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("NotFound"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(fundId))));
     }
 }

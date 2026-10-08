@@ -37,6 +37,11 @@
             <artifactId>identity</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.traceability</groupId>
+            <artifactId>convocatoria</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot Data MongoDB -->
         <dependency>
@@ -44,10 +49,22 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
+        <!-- Correo SMTP de las invitaciones (ADR-049 D1): la única dependencia nueva autorizada por Carlos -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>

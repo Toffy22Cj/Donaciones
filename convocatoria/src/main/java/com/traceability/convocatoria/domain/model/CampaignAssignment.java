@@ -69,8 +69,8 @@ public final class CampaignAssignment {
 
     /** {@code ACTIVE → REMOVED}; sin reactivación (ADR-037 §2.4, §7). */
     public void remove(Instant at) {
-        if (status == AssignmentStatus.REMOVED) {
-            throw new AssignmentAlreadyRemovedException("Assignment " + assignmentId + " is already REMOVED");
+        if (status != AssignmentStatus.ACTIVE) {
+            throw new AssignmentAlreadyRemovedException("Assignment " + assignmentId + " is already " + status);
         }
         this.status = AssignmentStatus.REMOVED;
         this.removedAt = Objects.requireNonNull(at, "at");

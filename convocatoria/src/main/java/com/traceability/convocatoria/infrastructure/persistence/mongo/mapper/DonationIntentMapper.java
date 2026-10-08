@@ -28,6 +28,10 @@ public final class DonationIntentMapper {
         d.configurationVersion = i.getConfigurationVersion();
         d.paymentSessionId = i.getPaymentSessionId();
         d.providerEventId = i.getProviderEventId();
+        DonationIntent.Access a = i.getAccess();
+        d.paymentProvider = a.paymentProvider();
+        d.statusTokenHash = a.statusTokenHash();
+        d.statusTokenExpiresAt = a.statusTokenExpiresAt();
         d.expiresAt = i.getExpiresAt();
         d.status = i.getStatus().name();
         DonationIntent.Confirmation c = i.getConfirmation();
@@ -36,6 +40,20 @@ public final class DonationIntentMapper {
             d.confirmedAt = c.confirmedAt();
             d.confirmationPaymentMethod = c.paymentMethod().name();
             d.confirmationReference = c.reference();
+        }
+        DonationIntent.ApplicationTracking t = i.getApplicationTracking();
+        if (!DonationIntent.ApplicationTracking.NONE.equals(t)) {
+            d.fundsAppliedAt = t.fundsAppliedAt();
+            d.applicationAttempts = t.attempts();
+            d.firstApplicationAttemptAt = t.firstAttemptAt();
+            d.lastApplicationAttemptAt = t.lastAttemptAt();
+            d.lastApplicationError = t.lastError();
+            d.applicationQuarantined = t.quarantined();
+        }
+        DonationIntent.FundingRejection r = i.getFundingRejection();
+        if (r != null) {
+            d.fundingRejectedAt = r.rejectedAt();
+            d.fundingRejectionReason = r.reason();
         }
         return d;
     }
@@ -46,6 +64,13 @@ public final class DonationIntentMapper {
         return DonationIntent.reconstitute(d.intentId, d.fundId, d.organizationRef, d.campaignRef, d.donorRef,
                 d.amount, d.currency, PaymentMethod.valueOf(d.paymentMethod),
                 ConfirmationSource.valueOf(d.confirmationSource), d.configurationVersion, d.paymentSessionId,
-                d.providerEventId, d.expiresAt, DonationIntentStatus.valueOf(d.status), confirmation);
+                d.providerEventId, d.expiresAt, DonationIntentStatus.valueOf(d.status), confirmation,
+                new DonationIntent.ApplicationTracking(d.fundsAppliedAt,
+                        d.applicationAttempts == null ? 0 : d.applicationAttempts,
+                        d.firstApplicationAttemptAt, d.lastApplicationAttemptAt, d.lastApplicationError,
+                        Boolean.TRUE.equals(d.applicationQuarantined)),
+                d.fundingRejectedAt == null ? null
+                        : new DonationIntent.FundingRejection(d.fundingRejectedAt, d.fundingRejectionReason),
+                new DonationIntent.Access(d.paymentProvider, d.statusTokenHash, d.statusTokenExpiresAt));
     }
 }

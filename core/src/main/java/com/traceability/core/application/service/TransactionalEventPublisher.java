@@ -22,11 +22,28 @@ public class TransactionalEventPublisher {
         this.processedCommandRepositoryPort = processedCommandRepositoryPort;
     }
 
+    /**
+     * @return {@code true} si escribió los eventos; {@code false} si el {@code commandId} ya estaba reclamado
+     *         (no-op idempotente, no se escribe nada).
+     */
     @Transactional
-    public void appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId) {
+    public boolean appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId) {
+        return appendAndOutbox(streamId, aggregateType, expectedVersion, events, actorRef, outboxMessages, commandId, null);
+    }
+
+    /**
+     * Igual que {@link #appendAndOutbox(String, String, long, List, com.traceability.core.domain.event.ActorRef, List, String)},
+     * guardando en el reclamo el resultado que lo ganó ({@code claimOutcome}). Es la barrera de la división (plan B1-bis
+     * §2): el reclamo y su efecto se confirman juntos o no se confirma ninguno.
+     */
+    @Transactional
+    public boolean appendAndOutbox(String streamId, String aggregateType, long expectedVersion, List<DomainEvent> events, com.traceability.core.domain.event.ActorRef actorRef, List<OutboxMessage> outboxMessages, String commandId, String claimOutcome) {
         if (commandId != null) {
-            if (!processedCommandRepositoryPort.tryClaim(commandId)) {
-                return;
+            boolean claimed = claimOutcome == null
+                    ? processedCommandRepositoryPort.tryClaim(commandId)
+                    : processedCommandRepositoryPort.tryClaim(commandId, claimOutcome);
+            if (!claimed) {
+                return false;
             }
         }
         
@@ -37,5 +54,6 @@ public class TransactionalEventPublisher {
                 outboxPort.save(msg);
             }
         }
+        return true;
     }
 }

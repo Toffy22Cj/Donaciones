@@ -29,11 +29,13 @@ public class EventPayloadRegistry {
         // PhysicalAsset Events
         register("ASSET_REGISTERED", "1.0", AssetRegisteredPayload.class);
         register("ASSET_REGISTERED", "2.0", AssetRegisteredV2Payload.class);
+        register("ASSET_REGISTERED", "3.0", AssetRegisteredV3Payload.class); // ADR-029 Enmienda 1 (campaignRef)
         register("ASSET_DISPATCHED", "1.0", AssetDispatchedPayload.class);
         register("ASSET_RECEIVED", "1.0", AssetReceivedPayload.class);
         register("ASSET_CUSTODY_TRANSFERRED", "1.0", AssetCustodyTransferredPayload.class);
         register("ASSET_SPLIT", "1.0", AssetSplitPayload.class);
         register("ASSET_SPLIT", "2.0", AssetSplitV2Payload.class);
+        register("ASSET_SPLIT", "3.0", AssetSplitV3Payload.class); // ADR-029 Enmienda 1 (campaignRef)
         register("ASSET_DEPLETED", "1.0", AssetDepletedPayload.class);
         register("ASSET_SPLIT_COMPENSATED", "1.0", AssetSplitCompensatedPayload.class);
         register("ASSET_DELIVERED", "1.0", AssetDeliveredPayload.class);
@@ -47,6 +49,14 @@ public class EventPayloadRegistry {
         register("ALLOCATION_CONFIRMED", "1.0", AllocationConfirmedPayload.class);
         register("ALLOCATION_REVERSED", "1.0", AllocationReversedPayload.class);
         register("FUNDS_REFUNDED", "1.0", FundsRefundedPayload.class);
+    }
+
+    /**
+     * Todas las entradas registradas, {@code (eventType, schemaVersion) → clase}, de solo lectura. Las usa el test de
+     * contrato de las proyecciones (B-PROJ): cada manejador debe declarar cada clase como tratada o ignorada.
+     */
+    public static Map<EventKey, Class<? extends DomainEventPayload>> registeredPayloads() {
+        return Map.copyOf(registry);
     }
 
     /**

@@ -18,4 +18,11 @@ public interface OrganizationRepositoryPort {
      * @param organization the organization to save
      */
     void save(Organization organization);
+
+    /**
+     * Página de la cola de verificación: organizaciones con alguno de los estados dados y {@code organizationId}
+     * mayor que {@code afterOrganizationId} (ULID, orden de creación), ascendente, como mucho {@code limit}.
+     */
+    java.util.List<Organization> findByVerificationStatusAfter(java.util.Set<identity.domain.model.VerificationStatus> statuses,
+                                                               String afterOrganizationId, int limit);
 }

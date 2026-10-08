@@ -28,7 +28,11 @@ buildNumber.properties
 .vscode/
 *.swp
 
-# Python ML Component
+# Python (también paxfide-predictor/, fuera del build de Maven)
+__pycache__/
+*.pyc
 paxfide-predictor/.venv/
-paxfide-predictor/__pycache__/
-paxfide-predictor/*.pyc
+
+# Demo local: variables de la máquina (scripts/demo/demo.env.example es la plantilla)
+scripts/demo/demo.env
+demo-evidencia/

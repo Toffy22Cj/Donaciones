@@ -11,7 +11,7 @@ import com.traceability.core.application.port.out.OutboxPort;
 import com.traceability.core.application.service.TransactionalEventPublisher;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.HumanActor;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
@@ -141,7 +141,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
         DomainEvent event = stream.get(0);
         assertEquals("ASSET_REGISTERED", event.eventType().name());
 
-        AssetRegisteredV2Payload payload = (AssetRegisteredV2Payload) event.payload();
+        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) event.payload();
         assertEquals("ORG-456", payload.organizationRef());
         assertEquals("DONOR-ABC", payload.donorRef());
         assertNotNull(payload.donationRef());
