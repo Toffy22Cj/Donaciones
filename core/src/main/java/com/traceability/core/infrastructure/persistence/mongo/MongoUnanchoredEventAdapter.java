@@ -115,6 +115,18 @@ public class MongoUnanchoredEventAdapter implements UnanchoredEventRepositoryPor
 
     @Override
     public List<String> releaseClaim(String batchId, Map<String, SequenceRange> coverage) {
-        throw new UnsupportedOperationException("pendiente");
+        List<String> released = new ArrayList<>();
+        for (Map.Entry<String, SequenceRange> e : coverage.entrySet()) {
+            Criteria own = Criteria.where("merkleBatchId").is(batchId).and("streamId").is(e.getKey())
+                    .and("sequence").gte(e.getValue().fromSequence()).lte(e.getValue().toSequence());
+            List<String> ids = mongoTemplate.find(new Query(own), TraceabilityEventDocument.class).stream()
+                    .map(TraceabilityEventDocument::getEventId).toList();
+            if (!ids.isEmpty()) {
+                mongoTemplate.updateMulti(new Query(Criteria.where("_id").in(ids).and("merkleBatchId").is(batchId)),
+                        new Update().set("merkleBatchId", null), TraceabilityEventDocument.class);
+                released.addAll(ids);
+            }
+        }
+        return released;
     }
 }

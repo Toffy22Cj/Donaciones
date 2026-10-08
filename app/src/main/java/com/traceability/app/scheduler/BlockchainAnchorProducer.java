@@ -32,6 +32,7 @@ public class BlockchainAnchorProducer {
     private final int collectingRecoveryTimeoutSeconds;
     private final int collectingRecoveryMaxPerCycle;
     private final int collectingRecoveryWarnAfterAttempts;
+    private final int collectingRecoveryMaxAttempts;
 
     public BlockchainAnchorProducer(
             UnanchoredEventRepositoryPort unanchoredEventRepositoryPort,
@@ -41,7 +42,8 @@ public class BlockchainAnchorProducer {
             @Value("${traceability.anchor.producer.max-events-per-batch:1000}") int maxEventsPerBatch,
             @Value("${crypto.anchor.collecting-recovery.timeout-seconds:300}") int collectingRecoveryTimeoutSeconds,
             @Value("${crypto.anchor.collecting-recovery.max-per-cycle:10}") int collectingRecoveryMaxPerCycle,
-            @Value("${crypto.anchor.collecting-recovery.warn-after-attempts:5}") int collectingRecoveryWarnAfterAttempts) {
+            @Value("${crypto.anchor.collecting-recovery.warn-after-attempts:5}") int collectingRecoveryWarnAfterAttempts,
+            @Value("${crypto.anchor.collecting-recovery.max-attempts:10}") int collectingRecoveryMaxAttempts) {
         this.unanchoredEventRepositoryPort = unanchoredEventRepositoryPort;
         this.merkleBatchRepositoryPort = merkleBatchRepositoryPort;
         this.transactionTemplate = transactionTemplate;
@@ -50,6 +52,7 @@ public class BlockchainAnchorProducer {
         this.collectingRecoveryTimeoutSeconds = collectingRecoveryTimeoutSeconds;
         this.collectingRecoveryMaxPerCycle = collectingRecoveryMaxPerCycle;
         this.collectingRecoveryWarnAfterAttempts = collectingRecoveryWarnAfterAttempts;
+        this.collectingRecoveryMaxAttempts = collectingRecoveryMaxAttempts;
     }
 
     /**
@@ -65,7 +68,12 @@ public class BlockchainAnchorProducer {
         log.info("Starting MerkleBatch production cycle...");
 
         // ── Recovery: abandoned COLLECTING batches ──────────────────────────
-        recoverStaleCollectingBatches();
+        // Enmienda 1 de ADR-039 §2.3: un fallo al leer o recuperar batches no impide reclamar eventos nuevos
+        try {
+            recoverStaleCollectingBatches();
+        } catch (RuntimeException e) {
+            log.error("Recovery of stale COLLECTING batches failed; new orphans are still claimed in this cycle", e);
+        }
 
         // ── Normal flow: claim new orphans ──────────────────────────────────
         claimAndBuildNewBatch();
@@ -103,6 +111,15 @@ public class BlockchainAnchorProducer {
         int attempts = merkleBatchRepositoryPort.incrementRecoveryAttempts(batchId);
         if (attempts < 0) {
             log.info("Recovery skip: Batch {} is no longer in COLLECTING state (already recovered by another worker).", batchId);
+            return;
+        }
+
+        // Enmienda 1 de ADR-039 §2.3: al superar el tope, COLLECTING_FAILED (terminal hasta RETRY o RELEASE por JMX)
+        if (attempts > collectingRecoveryMaxAttempts) {
+            if (merkleBatchRepositoryPort.markCollectingFailed(batchId)) {
+                log.error("Batch {} exceeded {} recovery attempts; marked COLLECTING_FAILED (manual RETRY or RELEASE)",
+                        batchId, collectingRecoveryMaxAttempts);
+            }
             return;
         }
 

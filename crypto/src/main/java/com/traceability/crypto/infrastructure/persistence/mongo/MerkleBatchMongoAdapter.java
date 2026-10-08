@@ -337,17 +337,24 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
 
     @Override
     public boolean markCollectingFailed(String batchId) {
-        throw new UnsupportedOperationException("pendiente");
+        return transition(batchId, AnchorStatus.COLLECTING, new Update().set("status", AnchorStatus.COLLECTING_FAILED));
     }
 
     @Override
     public boolean retryCollectingFailed(String batchId) {
-        throw new UnsupportedOperationException("pendiente");
+        return transition(batchId, AnchorStatus.COLLECTING_FAILED,
+                new Update().set("status", AnchorStatus.COLLECTING).set("recoveryAttempts", 0));
     }
 
     @Override
     public boolean markReleased(String batchId) {
-        throw new UnsupportedOperationException("pendiente");
+        return transition(batchId, AnchorStatus.COLLECTING_FAILED, new Update().set("status", AnchorStatus.RELEASED));
+    }
+
+    /** Transición condicional (Enmienda 1 de ADR-039 §2.3): solo si el batch sigue en {@code from}. */
+    private boolean transition(String batchId, AnchorStatus from, Update update) {
+        Query query = new Query(Criteria.where("batchId").is(batchId).and("status").is(from));
+        return mongoTemplate.updateFirst(query, update, MerkleBatchDocument.class).getModifiedCount() == 1;
     }
 
     private MerkleBatch toDomain(MerkleBatchDocument doc) {
