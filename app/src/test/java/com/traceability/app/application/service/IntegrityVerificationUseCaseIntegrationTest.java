@@ -54,7 +54,8 @@ class IntegrityVerificationUseCaseIntegrationTest {
         public IntegrityVerificationPort integrityVerificationPort(
                 MerkleBatchRepositoryPort merkleBatchRepositoryPort,
                 UnanchoredEventRepositoryPort unanchoredEventRepositoryPort) {
-            return new IntegrityVerificationUseCase(merkleBatchRepositoryPort, unanchoredEventRepositoryPort);
+            // eventos con hashes ficticios: este test cubre la raíz y las hojas; el recálculo, IntegrityRecomputationIntegrationTest
+            return new IntegrityVerificationUseCase(merkleBatchRepositoryPort, unanchoredEventRepositoryPort, coverage -> java.util.List.of());
         }
     }
 

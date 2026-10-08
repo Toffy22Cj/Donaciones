@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
+import com.traceability.core.application.integrity.EventIntegrityChecker;
 import com.traceability.core.application.port.out.UnanchoredEventRepositoryPort;
 import com.traceability.crypto.application.port.in.IntegrityVerificationPort;
 import com.traceability.crypto.application.port.out.MerkleBatchRepositoryPort;
@@ -24,11 +25,14 @@ public class IntegrityVerificationUseCase implements IntegrityVerificationPort {
 
     private final MerkleBatchRepositoryPort merkleBatchRepositoryPort;
     private final UnanchoredEventRepositoryPort unanchoredEventRepositoryPort;
+    private final EventIntegrityChecker eventIntegrityChecker;
 
     public IntegrityVerificationUseCase(MerkleBatchRepositoryPort merkleBatchRepositoryPort,
-                                        UnanchoredEventRepositoryPort unanchoredEventRepositoryPort) {
+                                        UnanchoredEventRepositoryPort unanchoredEventRepositoryPort,
+                                        EventIntegrityChecker eventIntegrityChecker) {
         this.merkleBatchRepositoryPort = merkleBatchRepositoryPort;
         this.unanchoredEventRepositoryPort = unanchoredEventRepositoryPort;
+        this.eventIntegrityChecker = eventIntegrityChecker;
     }
 
     @Override
