@@ -4,7 +4,6 @@ import com.traceability.core.application.port.out.UnanchoredEventRepositoryPort;
 import com.traceability.crypto.application.port.out.BatchReleaseAuditPort;
 import com.traceability.crypto.application.port.out.BatchReleaseAuditPort.BatchRelease;
 import com.traceability.crypto.application.port.out.MerkleBatchRepositoryPort;
-import com.traceability.crypto.domain.AnchorStatus;
 import com.traceability.crypto.domain.MerkleBatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +23,8 @@ import java.util.List;
  *   solo en los eventos de ese batch dentro de su cobertura, más el registro de auditoría (batch, cobertura, eventos,
  *   operador y motivo). El batch conserva su cobertura como registro.</li>
  * </ul>
- * Las dos solo actúan sobre un batch en {@code COLLECTING_FAILED}; si no, {@link IllegalStateException} y nada cambia.
+ * Las dos solo actúan sobre un batch en {@code COLLECTING_FAILED} (transición condicional en la base); si no,
+ * {@link IllegalStateException} y nada cambia.
  */
 @Service
 public class CollectingFailedBatchService {
@@ -48,9 +48,8 @@ public class CollectingFailedBatchService {
     }
 
     public void retry(String batchId) {
-        requireCollectingFailed(batchId);
         if (!batches.retryCollectingFailed(batchId)) {
-            throw new IllegalStateException("Batch " + batchId + " is no longer COLLECTING_FAILED");
+            throw new IllegalStateException("Batch " + batchId + " is not COLLECTING_FAILED");
         }
         log.warn("Batch {} RETRY: COLLECTING_FAILED -> COLLECTING (recoveryAttempts = 0)", batchId);
     }
@@ -59,10 +58,11 @@ public class CollectingFailedBatchService {
         if (operator == null || operator.isBlank() || reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("RELEASE needs an operator and a reason for the audit");
         }
-        MerkleBatch batch = requireCollectingFailed(batchId);
+        MerkleBatch batch = batches.findByBatchId(batchId)
+                .orElseThrow(() -> new IllegalStateException("Batch " + batchId + " not found"));
         List<String> released = transactions.execute(status -> {
             if (!batches.markReleased(batchId)) {
-                throw new IllegalStateException("Batch " + batchId + " is no longer COLLECTING_FAILED");
+                throw new IllegalStateException("Batch " + batchId + " is not COLLECTING_FAILED");
             }
             List<String> ids = events.releaseClaim(batchId, batch.coverage());
             audit.record(new BatchRelease(batchId, batch.coverage(), ids, operator, reason, clock.instant()));
@@ -70,14 +70,5 @@ public class CollectingFailedBatchService {
         });
         log.warn("Batch {} RELEASE: COLLECTING_FAILED -> RELEASED; {} event(s) claimable again", batchId,
                 released == null ? 0 : released.size());
-    }
-
-    private MerkleBatch requireCollectingFailed(String batchId) {
-        MerkleBatch batch = batches.findByBatchId(batchId)
-                .orElseThrow(() -> new IllegalStateException("Batch " + batchId + " not found"));
-        if (batch.status() != AnchorStatus.COLLECTING_FAILED) {
-            throw new IllegalStateException("Batch " + batchId + " is " + batch.status() + ", not COLLECTING_FAILED");
-        }
-        return batch;
     }
 }
