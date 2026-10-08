@@ -1,0 +1,21 @@
+{
+  "paso": "donar-con-cuenta",
+  "metodo": "POST",
+  "ruta": "/api/v1/public/campaigns/DHFG3VWTY08X4TCQ6AM58G8TVG/donation-intents",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "18fc2630-f006-4cb0-9c0c-a46901e893ca"
+  },
+  "cuerpo": {
+    "amount": "4000000",
+    "currency": "COP",
+    "paymentMethod": "GATEWAY"
+  },
+  "estado": 201,
+  "respuesta": {
+    "intentId": "492aa1aa-395f-4b84-b438-ccf742d7bfb5",
+    "statusToken": "***",
+    "paymentRedirectUrl": "/demo/checkout/sim_d7213905-78cf-483a-a726-d60f743b8d06"
+  }
+}

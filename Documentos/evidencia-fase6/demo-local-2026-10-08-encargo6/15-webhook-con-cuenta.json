@@ -1,0 +1,18 @@
+{
+  "paso": "webhook-con-cuenta",
+  "metodo": "POST",
+  "ruta": "/api/v1/webhooks/payments",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "X-Simulated-Signature": "***"
+  },
+  "cuerpo": {
+    "type": "payment.confirmed",
+    "paymentSessionId": "sim_d7213905-78cf-483a-a726-d60f743b8d06",
+    "providerEventId": "evt-cd1ae30a-cbd6-4aaa-ae0d-6c0cf4d8eb31",
+    "amount": "4000000",
+    "currency": "COP"
+  },
+  "estado": 200,
+  "respuesta": ""
+}

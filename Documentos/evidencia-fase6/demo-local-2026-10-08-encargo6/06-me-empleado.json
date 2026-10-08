@@ -1,0 +1,17 @@
+{
+  "paso": "me-empleado",
+  "metodo": "GET",
+  "ruta": "/api/v1/me",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "accountId": "01M4D9GP63X0SYZEPTW58BPKMY",
+    "organizationId": "01M4D9GNAPPYT0WK9NTDB6EFYJ",
+    "roles": [
+      "EMPLOYEE"
+    ]
+  }
+}

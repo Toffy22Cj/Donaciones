@@ -1,0 +1,13 @@
+{
+  "paso": "narrativa-individual",
+  "metodo": "GET",
+  "ruta": "/api/v1/donations/tracking/narrative",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 202,
+  "respuesta": {
+    "status": "PENDING"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "paso": "narrativa-individual",
+  "metodo": "GET",
+  "ruta": "/api/v1/donations/tracking/narrative",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "status": "AVAILABLE",
+    "content": "La narrativa detallada de tu donación no está disponible en este momento. Por ahora tiene registrados 4 cambios de estado y 0 alertas financieras.",
+    "source": "FALLBACK_TEMPLATE"
+  }
+}

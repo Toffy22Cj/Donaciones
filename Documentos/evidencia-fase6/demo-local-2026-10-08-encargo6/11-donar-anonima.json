@@ -1,0 +1,20 @@
+{
+  "paso": "donar-anonima",
+  "metodo": "POST",
+  "ruta": "/api/v1/public/campaigns/DHFG3VWTY08X4TCQ6AM58G8TVG/donation-intents",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Command-Id": "8eb87873-d3d2-4923-bda0-09bba55fd197"
+  },
+  "cuerpo": {
+    "amount": "6000000",
+    "currency": "COP",
+    "paymentMethod": "GATEWAY"
+  },
+  "estado": 201,
+  "respuesta": {
+    "intentId": "77a0ee5a-d1cd-4004-b72b-8f380ee4d68e",
+    "statusToken": "***",
+    "paymentRedirectUrl": "/demo/checkout/sim_4eea7f56-c2ca-4f1b-a1b4-b3284d5e131f"
+  }
+}

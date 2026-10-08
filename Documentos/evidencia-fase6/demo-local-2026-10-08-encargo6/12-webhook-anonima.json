@@ -1,0 +1,18 @@
+{
+  "paso": "webhook-anonima",
+  "metodo": "POST",
+  "ruta": "/api/v1/webhooks/payments",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "X-Simulated-Signature": "***"
+  },
+  "cuerpo": {
+    "type": "payment.confirmed",
+    "paymentSessionId": "sim_4eea7f56-c2ca-4f1b-a1b4-b3284d5e131f",
+    "providerEventId": "evt-24a154ee-3532-4b87-86e6-bcea8aac6bfc",
+    "amount": "6000000",
+    "currency": "COP"
+  },
+  "estado": 200,
+  "respuesta": ""
+}

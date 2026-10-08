@@ -178,6 +178,26 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.29 Cierre del encargo 6: "backend cerrado para que mañana el equipo trabaje en el front" (2026-10-08)
+
+| Punto | Resultado | PR |
+|---|---|---|
+| P1 Cierres pequeños | DD-74 ratificada y `Email` sin espacios en los extremos; H-IDX-1 registrado para fases anteriores (§0.28); nulabilidad de `referencia-api-v1.md` revisada contra el código; ADR-043 sustituido por la versión APROBADA del móvil (dudas de duplicados en §0.28) | #97 |
+| P2 Predictor en el repositorio | `paxfide-predictor/` dentro de `Donaciones`, fuera de Maven, solo datos sintéticos; ADR-044 base (aportado por Carlos) con sus enmiendas (1 = P3; 2 = D1, aprobada) | #98 |
+| P3 Estimaciones históricas (S-10) | `GET …/prediction/history`: cortes 0,15/0,25/0,50 con lo recaudado reconstruido desde el Event Store; de punta a punta igual a scikit-learn sobre los datos de cada momento (DD-75) | #99 |
+| P4 Integridad visible | `GET /donations/tracking/integrity` con el `trackingCode`; nada de otras donaciones; caché de 5 min (DD-76). Hallazgo **H-TR-1**: el seguimiento da 401 con un código inválido, no 404 (corregida la referencia) | #100 |
+| P5 Datos de demo | Perfil `demo-seed`: todo el escenario por la API (y servicios donde no hay ruta), solo sobre base vacía; `demo-credenciales-locales.md` de una ejecución real (DD-77) | #101 |
+| P6 B4 (opcional) | Enmienda 1 de ADR-039 **aprobada e implementada**: §2.2 recálculo del `eventHash`, cadena y forma anterior (DD-78); §2.3 `COLLECTING_FAILED`, `RETRY`/`RELEASE` auditado (DD-79). Sin cambios en canonicalización, hash, Merkle ni anclaje | #102, #103 |
+| P7 Cierre | Reactor completo en solitario, golden path 19 de 19, `novedades-api-para-front-2026-10-08.md` | este PR |
+
+- **Recorrido real tras B4** (base vacía, Ganache, `scripts/demo/recorrido.py`): completo, con 2 batches `ANCHORED` (`evidencia-fase6/demo-local-2026-10-08-encargo6/`). Una donación nueva posterior, verificada con el recálculo de B4 por `/donations/tracking/integrity`, da `MATCH`.
+- **Pendiente de Carlos:**
+  - ratificar DD-75 a DD-79;
+  - decidir H-TR-1: dejar el 401 o pasar a 404;
+  - aclarar los duplicados con el móvil (`api-contract-matrix.md`, `front-fase1.md`, `reglas-equipo-y-agentes.md`);
+  - aprobar ADR-044 (sigue PROPUESTO);
+  - la testnet.
+
 ### 0.28 Encargo 6, P1: cierres pequeños (Carlos, 2026-10-08, noche)
 
 - **H-IDX-1, registro para fases anteriores** (como se hizo con las proyecciones en §0.6: "nunca habían funcionado con datos reales"):

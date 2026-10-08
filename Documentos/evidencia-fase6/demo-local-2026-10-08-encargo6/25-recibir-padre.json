@@ -1,0 +1,19 @@
+{
+  "paso": "recibir-padre",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/4922bc1f-9aeb-52b4-bb61-df0a63c415d7/receive",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "2c212c1c-f795-4eaf-ad04-c57d943b3854"
+  },
+  "cuerpo": {
+    "facilityLocation": "centro-1",
+    "receiverRef": "recibe-1"
+  },
+  "estado": 200,
+  "respuesta": {
+    "assetRef": "4922bc1f-9aeb-52b4-bb61-df0a63c415d7",
+    "status": "RECEIVED"
+  }
+}

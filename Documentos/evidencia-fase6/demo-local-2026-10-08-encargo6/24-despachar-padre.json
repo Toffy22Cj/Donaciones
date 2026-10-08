@@ -1,0 +1,18 @@
+{
+  "paso": "despachar-padre",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/4922bc1f-9aeb-52b4-bb61-df0a63c415d7/dispatch",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "040ee0b4-04ac-44e4-8d42-428ac5c33b5b"
+  },
+  "cuerpo": {
+    "carrierRef": "transportista-1"
+  },
+  "estado": 200,
+  "respuesta": {
+    "assetRef": "4922bc1f-9aeb-52b4-bb61-df0a63c415d7",
+    "status": "DISPATCHED"
+  }
+}

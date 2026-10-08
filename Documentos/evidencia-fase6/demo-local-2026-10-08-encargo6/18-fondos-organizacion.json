@@ -1,0 +1,30 @@
+{
+  "paso": "fondos-organizacion",
+  "metodo": "GET",
+  "ruta": "/api/v1/organizations/01M4D9GNAPPYT0WK9NTDB6EFYJ/funds",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "items": [
+      {
+        "fundId": "5cb09695-9276-4259-9914-65234e51e052",
+        "campaignRef": "13251fb3-2da4-4367-829c-c49bb184ff9c",
+        "currency": "COP",
+        "clearedAmount": "6000000",
+        "availableAmount": "6000000",
+        "allocations": []
+      },
+      {
+        "fundId": "62bafedb-0b9b-4254-b62a-6d2e8d096fb0",
+        "campaignRef": "13251fb3-2da4-4367-829c-c49bb184ff9c",
+        "currency": "COP",
+        "clearedAmount": "4000000",
+        "availableAmount": "4000000",
+        "allocations": []
+      }
+    ]
+  }
+}

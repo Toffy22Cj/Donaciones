@@ -1,0 +1,25 @@
+{
+  "paso": "registrar-activo",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/register",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "d8c1b548-04f8-4cd8-a555-0d8dec583ae6"
+  },
+  "cuerpo": {
+    "fundId": "5cb09695-9276-4259-9914-65234e51e052",
+    "assetType": "BLANKET",
+    "quantity": "10",
+    "unitOfMeasure": "UNITS",
+    "custodianRef": "bodega-1",
+    "currentLocation": "bodega-1",
+    "allocationId": "0881715f-2331-5e76-9bc0-754485e3ac49"
+  },
+  "estado": 201,
+  "respuesta": {
+    "assetRef": "4922bc1f-9aeb-52b4-bb61-df0a63c415d7",
+    "status": "REGISTERED",
+    "campaignRef": "13251fb3-2da4-4367-829c-c49bb184ff9c"
+  }
+}

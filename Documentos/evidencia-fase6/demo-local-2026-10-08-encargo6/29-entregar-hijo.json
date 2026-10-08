@@ -1,0 +1,21 @@
+{
+  "paso": "entregar-hijo",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/3cb5469e-c7f3-580d-9465-58782f5a2ee5/deliver",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "70937688-ccba-4ffa-9926-e26327eeaf39"
+  },
+  "cuerpo": {
+    "finalCustodianRef": "custodio-final",
+    "beneficiaryRef": "beneficiario-1",
+    "locationRef": "centro-1",
+    "evidenceRef": "acta-1"
+  },
+  "estado": 200,
+  "respuesta": {
+    "assetRef": "3cb5469e-c7f3-580d-9465-58782f5a2ee5",
+    "status": "DELIVERED"
+  }
+}

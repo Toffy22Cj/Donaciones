@@ -1,0 +1,22 @@
+{
+  "paso": "historial-donante",
+  "metodo": "GET",
+  "ruta": "/api/v1/account/donations",
+  "cabeceras": {
+    "Authorization": "***"
+  },
+  "cuerpo": null,
+  "estado": 200,
+  "respuesta": {
+    "items": [
+      {
+        "intentId": "492aa1aa-395f-4b84-b438-ccf742d7bfb5",
+        "campaignTitle": "Abrigo para el invierno",
+        "amount": "4000000",
+        "currency": "COP",
+        "status": "CONFIRMED",
+        "trackingCode": "***"
+      }
+    ]
+  }
+}

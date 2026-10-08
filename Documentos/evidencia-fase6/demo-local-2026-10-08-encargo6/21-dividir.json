@@ -1,0 +1,19 @@
+{
+  "paso": "dividir",
+  "metodo": "POST",
+  "ruta": "/api/v1/physical-assets/4922bc1f-9aeb-52b4-bb61-df0a63c415d7/split",
+  "cabeceras": {
+    "Content-Type": "application/json",
+    "Authorization": "***",
+    "Command-Id": "802e8e54-46dd-4b8d-af9a-369cf81bb7fd"
+  },
+  "cuerpo": {
+    "quantity": "4"
+  },
+  "estado": 202,
+  "respuesta": {
+    "parentAssetRef": "4922bc1f-9aeb-52b4-bb61-df0a63c415d7",
+    "childAssetRef": "3cb5469e-c7f3-580d-9465-58782f5a2ee5",
+    "status": "PENDING"
+  }
+}
