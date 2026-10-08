@@ -91,15 +91,42 @@ class CampaignPredictionUseCaseTest {
     }
 
     @Test
-    void theRepresentative_canAlsoSeeIt_andOutsideTheTrainedRangeThereIsAWarning() {
+    void theRepresentative_canAlsoSeeIt() {
         when(query.dataOf("CAMP-1")).thenReturn(Optional.of(campaign("CLOSE_ON_TARGET", 8_000_000L, "OPEN",
                 donations(400_000))));
 
-        Prediction p = useCase(START.plus(Duration.ofDays(30)))
-                .predict(principal("ORG-1", AuthorizationRole.REPRESENTATIVE), "ORG-1", "CAMP-1");
+        Prediction p = useCase(NOW).predict(principal("ORG-1", AuthorizationRole.REPRESENTATIVE), "ORG-1", "CAMP-1");
 
         assertThat(p.unavailable()).isNull();
-        assertThat(p.warnings()).hasSize(2).anyMatch(w -> w.startsWith("fuera del rango de entrenamiento"));
+        assertThat(p.probabilityReachTarget()).isNotNull();
+        assertThat(p.warnings()).hasSize(1);
+    }
+
+    /**
+     * Carlos, 2026-10-08: fuera del rango de entrenamiento (t < 0,15 o t > 0,50) no hay cifra, sino un motivo explícito.
+     * La convocatoria dura 40 días: t = 0,15 es el día 6 y t = 0,50 el día 20 (los dos dentro).
+     */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"PT1H, true", "P5DT23H, true", "P6D, false", "P20D, false",
+            "P20DT1H, true", "P30D, true"})
+    void outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason(String elapsed, boolean outside) {
+        when(query.dataOf("CAMP-1")).thenReturn(Optional.of(campaign("FLEXIBLE", 8_000_000L, "OPEN",
+                donations(400_000))));
+
+        Prediction p = useCase(START.plus(Duration.parse(elapsed)))
+                .predict(principal("ORG-1", AuthorizationRole.ADMINISTRATOR), "ORG-1", "CAMP-1");
+
+        if (outside) {
+            assertThat(p.unavailable()).isEqualTo(Unavailable.OUTSIDE_TRAINED_RANGE);
+            assertThat(p.unavailable().text).contains("15 %").contains("50 %");
+            assertThat(p.probabilityReachTarget()).isNull();
+            assertThat(p.estimatedFinalPctOfTarget()).isNull();
+            assertThat(p.pctTimeElapsed()).isNull();
+        } else {
+            assertThat(p.unavailable()).isNull();
+            assertThat(p.probabilityReachTarget()).isNotNull();
+            assertThat(p.estimatedFinalPctOfTarget()).isNotNull();
+        }
     }
 
     @Test

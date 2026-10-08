@@ -1,0 +1,16 @@
+# Predicción fuera del rango de entrenamiento (Carlos, 2026-10-08, punto 3)
+
+## Fase roja (test y constante del motivo sin usar, 92dd473)
+[ERROR] Tests run: 13, Failures: 4, Errors: 0, Skipped: 0, Time elapsed: 2.353 s <<< FAILURE! -- in com.traceability.app.application.prediction.CampaignPredictionUseCaseTest
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionUseCaseTest.outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason(String, boolean)[1]
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionUseCaseTest.outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason(String, boolean)[2]
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionUseCaseTest.outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason(String, boolean)[5]
+[ERROR] com.traceability.app.application.prediction.CampaignPredictionUseCaseTest.outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason(String, boolean)[6]
+
+## Verde
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- borde inferior excluido: MUERTA  outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason[3]
+- borde superior excluido: MUERTA  outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason[4]
+- sin comprobar el rango: MUERTA  outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason[1]; outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason[2]; outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason[5]; outsideTheTrainedRange_thereIsNoFigure_butAnExplicitReason[6]
+Restauración verificada contra HEAD. Mutaciones vivas: 0

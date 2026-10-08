@@ -15,7 +15,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +41,9 @@ public class CampaignPredictionUseCase {
         NOT_STARTED("La convocatoria aún no ha empezado"),
         CAMPAIGN_ENDED("La convocatoria ya terminó"),
         TARGET_ALREADY_REACHED("La meta ya se alcanzó"),
-        TOO_MANY_INTENTS("Demasiadas intenciones para calcular la estimación");
+        TOO_MANY_INTENTS("Demasiadas intenciones para calcular la estimación"),
+        /** Carlos, 2026-10-08: fuera del rango de entrenamiento, ninguna cifra. */
+        OUTSIDE_TRAINED_RANGE("Fuera del rango del modelo: solo estima entre el 15 % y el 50 % del tiempo de la convocatoria");
 
         public final String text;
 
@@ -107,13 +108,13 @@ public class CampaignPredictionUseCase {
         if (features.pctRaised() >= 1.0) {
             return unavailable(now, Unavailable.TARGET_ALREADY_REACHED);
         }
-        Map<String, Object> x = features.byName();
-        List<String> warnings = new ArrayList<>(List.of(SYNTHETIC_WARNING));
+        // Carlos, 2026-10-08: fuera del rango de entrenamiento no se da ninguna cifra, solo el motivo
         if (features.pctTimeElapsed() < TRAINED_T_MIN || features.pctTimeElapsed() > TRAINED_T_MAX) {
-            warnings.add("fuera del rango de entrenamiento: el modelo se entrenó con el 15 %, 25 % y 50 % del tiempo transcurrido");
+            return unavailable(now, Unavailable.OUTSIDE_TRAINED_RANGE);
         }
+        Map<String, Object> x = features.byName();
         return new Prediction(model.modelVersion(), now, null, round(model.probabilityReachTarget(x)),
-                round(model.finalPctOfTarget(x)), round(features.pctTimeElapsed()), List.copyOf(warnings));
+                round(model.finalPctOfTarget(x)), round(features.pctTimeElapsed()), List.of(SYNTHETIC_WARNING));
     }
 
     private Prediction unavailable(Instant now, Unavailable reason) {
