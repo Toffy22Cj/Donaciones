@@ -197,6 +197,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Corrección** (`fix/proyeccion-donacion-alta-atomica`): el alta es un único `upsert` (`$setOnInsert` del estado), y el historial, un `upsert` con `$push`.
 - **Test de regresión determinista:** un *change stream* sobre `donation_projections` comprueba que el primer cambio del fondo es un `insert` con los importes. Con el código anterior falla siempre (0 en vez de 1500).
 - Los demás `save` de `core/application/projection` crean documentos completos en una sola escritura.
+- **Corrección de la corrección** (`fix/proyeccion-alta-forma-completa`): el `upsert` de #84 dejaba **sin escribir** `allocations`, `logistics` y los importes que el evento no toca, que el `save` anterior ponía a `[]` y 0. Para Spring no cambiaba nada, porque los inicializadores de la clase rellenan esos valores, pero sí para un lector en crudo. El ayudante de `ProjectionChangeStreamE2ETest` lo era, y `splitChild_createdByTheSaga…` lanzó un `NullPointerException` en el `ci-local.sh` de §3.3. Ahora el alta escribe con `$setOnInsert` la misma forma que antes en las rutas que el evento no modifica. El test de regresión comprueba también la forma (rojo: `allocations` ausente).
 
 ### 0.24 Decisiones de Carlos (2026-10-07T21:41Z): Ganache como evidencia, CI local y demo local
 
