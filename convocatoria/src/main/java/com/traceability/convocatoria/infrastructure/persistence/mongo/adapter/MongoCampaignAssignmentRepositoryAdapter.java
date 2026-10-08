@@ -75,6 +75,23 @@ public class MongoCampaignAssignmentRepositoryAdapter implements CampaignAssignm
     }
 
     @Override
+    public List<CampaignAssignment> findActiveOrHistoricalByResponsible(String responsibleRef) {
+        Query query = Query.query(Criteria.where("employeeRef").is(responsibleRef)
+                .and("status").in(AssignmentStatus.ACTIVE.name(), AssignmentStatus.HISTORICAL.name()))
+                .with(Sort.by("assignedAt"));
+        return mongoTemplate.find(query, CampaignAssignmentDocument.class).stream()
+                .map(CampaignAssignmentMapper::toDomain).toList();
+    }
+
+    @Override
+    public long markHistoricalByCampaignRef(String campaignRef, Instant closedAt) {
+        Query query = Query.query(Criteria.where("campaignRef").is(campaignRef)
+                .and("status").is(AssignmentStatus.ACTIVE.name()));
+        Update update = new Update().set("status", AssignmentStatus.HISTORICAL.name()).set("removedAt", closedAt);
+        return mongoTemplate.updateMulti(query, update, CampaignAssignmentDocument.class).getModifiedCount();
+    }
+
+    @Override
     public boolean markRemovedIfActive(String assignmentId, Instant removedAt) {
         Query query = Query.query(Criteria.where("_id").is(assignmentId).and("status").is(AssignmentStatus.ACTIVE.name()));
         Update update = new Update().set("status", AssignmentStatus.REMOVED.name()).set("removedAt", removedAt);

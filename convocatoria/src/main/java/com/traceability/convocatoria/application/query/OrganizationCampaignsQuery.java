@@ -58,7 +58,8 @@ public class OrganizationCampaignsQuery {
         ConvocatoriaConfiguration config = c.getConfiguration();
         boolean monetary = config.acceptsMonetary();
         List<CampaignAssignment> active = assignments.findByCampaignRef(c.getCampaignRef()).stream()
-                .filter(a -> a.getStatus() == AssignmentStatus.ACTIVE)
+                // de una convocatoria cerrada, sus responsables al cerrar (HISTORICAL, D-06)
+                .filter(a -> a.getStatus() == AssignmentStatus.ACTIVE || a.getStatus() == AssignmentStatus.HISTORICAL)
                 .sorted(Comparator.comparing(CampaignAssignment::getAssignedAt))
                 .toList();
         return new AdminCampaignView(c.getCampaignRef(), c.getPublicCode(), c.getTitle(), c.getStatus().name(),

@@ -12,6 +12,7 @@ import com.traceability.convocatoria.application.command.EditConfigurationComman
 import com.traceability.convocatoria.application.command.EditConfigurationResult;
 import com.traceability.convocatoria.application.idempotency.CommandType;
 import com.traceability.convocatoria.application.idempotency.IdempotentCommandExecutor;
+import com.traceability.convocatoria.application.port.out.CampaignAssignmentRepositoryPort;
 import com.traceability.convocatoria.application.port.out.CampaignFundingLedgerRepositoryPort;
 import com.traceability.convocatoria.application.port.out.ConvocatoriaAuditLogPort;
 import com.traceability.convocatoria.application.port.out.ConvocatoriaRepositoryPort;
@@ -60,6 +61,7 @@ public class ConvocatoriaLifecycleService {
     private final ConvocatoriaRepositoryPort convocatorias;
     private final CampaignFundingLedgerRepositoryPort ledgers;
     private final DonationIntentRepositoryPort donationIntents;
+    private final CampaignAssignmentRepositoryPort assignments;
     private final ConvocatoriaAuditLogPort auditLog;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
@@ -70,6 +72,7 @@ public class ConvocatoriaLifecycleService {
                                        ConvocatoriaRepositoryPort convocatorias,
                                        CampaignFundingLedgerRepositoryPort ledgers,
                                        DonationIntentRepositoryPort donationIntents,
+                                       CampaignAssignmentRepositoryPort assignments,
                                        ConvocatoriaAuditLogPort auditLog,
                                        ObjectProvider<Clock> clock) {
         this.executor = executor;
@@ -78,6 +81,7 @@ public class ConvocatoriaLifecycleService {
         this.convocatorias = convocatorias;
         this.ledgers = ledgers;
         this.donationIntents = donationIntents;
+        this.assignments = assignments;
         this.auditLog = auditLog;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
@@ -159,8 +163,10 @@ public class ConvocatoriaLifecycleService {
             if (!convocatorias.closeIfOpen(command.campaignRef())) {
                 throw new CampaignAlreadyClosedException("Campaign " + command.campaignRef() + " is already CLOSED");
             }
+            // D-06 (Carlos, 2026-10-08): en la misma transacción, las asignaciones activas pasan a historial
+            long historical = assignments.markHistoricalByCampaignRef(command.campaignRef(), clock.instant());
             audit(ConvocatoriaAuditAction.CONVOCATORIA_CLOSED, command.campaignRef(), actor, null, false,
-                    command.commandId(), Map.of());
+                    command.commandId(), Map.of("historicalAssignments", String.valueOf(historical)));
             return Map.of("campaignRef", command.campaignRef());
         });
         return new CloseConvocatoriaResult(result.get("campaignRef"));

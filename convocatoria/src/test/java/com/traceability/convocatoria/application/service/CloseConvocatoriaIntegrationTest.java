@@ -3,7 +3,15 @@ package com.traceability.convocatoria.application.service;
 import com.traceability.convocatoria.application.audit.ConvocatoriaAuditAction;
 import com.traceability.convocatoria.application.command.CloseConvocatoriaCommand;
 import com.traceability.convocatoria.application.command.CloseConvocatoriaResult;
+import com.traceability.convocatoria.application.command.AssignEmployeeToCampaignCommand;
 import com.traceability.convocatoria.application.command.CreateConvocatoriaCommand;
+import com.traceability.convocatoria.application.command.DesignateAdministratorAsCampaignResponsibleCommand;
+import com.traceability.convocatoria.application.command.RemoveResponsibleCommand;
+import com.traceability.convocatoria.domain.model.AssignmentStatus;
+import com.traceability.convocatoria.domain.model.CampaignAssignment;
+import java.time.Instant;
+import java.util.Map;
+import java.util.stream.Collectors;
 import com.traceability.convocatoria.domain.exception.ActorNotInCampaignOrganizationException;
 import com.traceability.convocatoria.domain.exception.ActorRoleNotAllowedException;
 import com.traceability.convocatoria.domain.exception.CampaignAlreadyClosedException;
@@ -34,6 +42,7 @@ class CloseConvocatoriaIntegrationTest extends AbstractConvocatoriaServiceIntegr
 
     @Autowired private ConvocatoriaLifecycleService service;
     @Autowired private DonationIntentService intents;
+    @Autowired private ResponsibleAssignmentService responsibles;
 
     private String create() {
         return service.createConvocatoria(new CreateConvocatoriaCommand(newCommandId(), ADMIN, ORG, "t", null,
@@ -50,6 +59,56 @@ class CloseConvocatoriaIntegrationTest extends AbstractConvocatoriaServiceIntegr
         assertEquals(ConvocatoriaStatus.CLOSED, convocatorias.findByCampaignRef(campaignRef).orElseThrow().getStatus());
         assertEquals(List.of(ConvocatoriaAuditAction.CONVOCATORIA_CREATED, ConvocatoriaAuditAction.CONVOCATORIA_CLOSED),
                 audit(campaignRef).stream().map(e -> e.action()).toList());
+    }
+
+    private Map<String, AssignmentStatus> statusByResponsible(String campaignRef) {
+        return assignments.findByCampaignRef(campaignRef).stream()
+                .collect(Collectors.toMap(CampaignAssignment::getEmployeeRef, CampaignAssignment::getStatus, (a, b) -> b));
+    }
+
+    /** D-06 (Carlos, 2026-10-08): cerrar pasa las asignaciones activas a historial; las retiradas no cambian. */
+    @Test
+    void closing_movesTheActiveAssignmentsToHistory_andFreesTheEmployeeForAnotherCampaign() {
+        String campaignRef = create();
+        responsibles.assignEmployee(new AssignEmployeeToCampaignCommand(newCommandId(), ADMIN, campaignRef, EMPLOYEE));
+        responsibles.designateAdministrator(new DesignateAdministratorAsCampaignResponsibleCommand(newCommandId(), ADMIN,
+                campaignRef, ADMIN_2));
+        responsibles.assignEmployee(new AssignEmployeeToCampaignCommand(newCommandId(), ADMIN, campaignRef, EMPLOYEE_2));
+        responsibles.removeResponsible(new RemoveResponsibleCommand(newCommandId(), ADMIN, campaignRef, EMPLOYEE_2, null, null));
+        Instant closedAt = clock.instant();
+
+        service.closeConvocatoria(new CloseConvocatoriaCommand(newCommandId(), ADMIN, campaignRef));
+
+        assertEquals(Map.of(EMPLOYEE, AssignmentStatus.HISTORICAL, ADMIN_2, AssignmentStatus.HISTORICAL,
+                EMPLOYEE_2, AssignmentStatus.REMOVED), statusByResponsible(campaignRef));
+        assignments.findByCampaignRef(campaignRef).stream()
+                .filter(a -> a.getStatus() == AssignmentStatus.HISTORICAL)
+                .forEach(a -> assertEquals(closedAt.truncatedTo(java.time.temporal.ChronoUnit.MILLIS),
+                        a.getRemovedAt().truncatedTo(java.time.temporal.ChronoUnit.MILLIS)));
+        assertEquals("2", audit(campaignRef).get(audit(campaignRef).size() - 1).details().get("historicalAssignments"));
+        // el índice único del EMPLOYEE activo ya no lo bloquea
+        String next = create();
+        responsibles.assignEmployee(new AssignEmployeeToCampaignCommand(newCommandId(), ADMIN, next, EMPLOYEE));
+        assertEquals(AssignmentStatus.ACTIVE, statusByResponsible(next).get(EMPLOYEE));
+    }
+
+    /** D-06: en la misma transacción que el cierre; si el cierre falla, ninguna asignación cambia. */
+    @Test
+    void ifTheCloseFails_theAssignmentsStayActive_andTheCampaignStaysOpen() {
+        String campaignRef = create();
+        responsibles.assignEmployee(new AssignEmployeeToCampaignCommand(newCommandId(), ADMIN, campaignRef, EMPLOYEE));
+        doThrow(new IllegalStateException("fallo simulado del registro de auditoría")).when(auditLog)
+                .append(org.mockito.ArgumentMatchers.argThat(e -> e != null
+                        && e.action() == ConvocatoriaAuditAction.CONVOCATORIA_CLOSED));
+        String commandId = newCommandId();
+
+        assertThrows(IllegalStateException.class,
+                () -> service.closeConvocatoria(new CloseConvocatoriaCommand(commandId, ADMIN, campaignRef)));
+
+        verify(assignments).markHistoricalByCampaignRef(org.mockito.ArgumentMatchers.eq(campaignRef), any());
+        assertEquals(Map.of(EMPLOYEE, AssignmentStatus.ACTIVE), statusByResponsible(campaignRef));
+        assertEquals(ConvocatoriaStatus.OPEN, convocatorias.findByCampaignRef(campaignRef).orElseThrow().getStatus());
+        assertFalse(processedCommands.find(commandId).isPresent());
     }
 
     @Test

@@ -131,9 +131,13 @@ class ConvocatoriaBusinessScenarioIntegrationTest extends AbstractConvocatoriaSe
                 entries.stream().map(ConvocatoriaAuditEntry::actorRef).toList());
 
         assertEquals(1, responsibleState.find(campaign).orElseThrow().activeResponsibleCount());
+        // D-06 (encargo 5): el cierre pasa la asignación activa (EMPLOYEE_2) a histórica; no queda ninguna activa
         List<String> active = assignments.findByCampaignRef(campaign).stream()
                 .filter(a -> a.getStatus() == AssignmentStatus.ACTIVE).map(a -> a.getEmployeeRef()).toList();
-        assertEquals(List.of(EMPLOYEE_2), active);
+        List<String> historical = assignments.findByCampaignRef(campaign).stream()
+                .filter(a -> a.getStatus() == AssignmentStatus.HISTORICAL).map(a -> a.getEmployeeRef()).toList();
+        assertEquals(List.of(), active);
+        assertEquals(List.of(EMPLOYEE_2), historical);
         assertEquals(DonationIntentStatus.CONFIRMED, donationIntents.findById(firstIntent).orElseThrow().getStatus());
     }
 

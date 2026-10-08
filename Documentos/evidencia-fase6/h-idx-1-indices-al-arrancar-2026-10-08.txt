@@ -1,0 +1,96 @@
+# H-IDX-1 — índices de MongoDB al arrancar (Carlos, 2026-10-08, punto 1)
+aplicación real, perfil dev, sin tests, base vacía (docker compose down -v), después de arrancar y antes de cualquier petición
+colección | índice | claves | propiedades
+
+## ANTES (develop 7c32a9c): 21 índices
+accounts | _id_ | {"_id":1} | 
+accounts | email | {"email":1} | unique
+configuration_change_requests | _id_ | {"_id":1} | 
+configuration_change_requests | uq_pending_configuration_change | {"campaignRef":1} | unique, partial {"status":"PENDING"}
+convocatorias | _id_ | {"_id":1} | 
+convocatorias | uq_public_code | {"publicCode":1} | unique
+identity_audit_log | _id_ | {"_id":1} | 
+identity_audit_log | target_org_occurred_at_idx | {"targetOrganizationId":1,"occurredAt":-1} | 
+identity_audit_log | target_acc_occurred_at_idx | {"targetAccountId":1,"occurredAt":-1} | 
+merkle_batches | _id_ | {"_id":1} | 
+merkle_batches | status_createdAt | {"status":1,"createdAt":1} | 
+merkle_batches | batchId | {"batchId":1} | unique
+merkle_batches | sequenceRangeStart | {"sequenceRangeStart":1} | 
+merkle_batches | status | {"status":1} | 
+organization_invitations | _id_ | {"_id":1} | 
+organization_invitations | org_email_status_idx | {"organizationId":1,"email":1,"status":1} | 
+organization_invitations | tokenHash | {"tokenHash":1} | unique
+organizations | _id_ | {"_id":1} | 
+platform_authority_state | _id_ | {"_id":1} | 
+revoked_tracking_codes | _id_ | {"_id":1} | 
+revoked_tracking_codes | revokedAt | {"revokedAt":1} | ttl 31536000
+
+## DESPUÉS (con MongoIndexInitializer): 53 índices
+Índices de MongoDB asegurados al arrancar: 30 colecciones, 23 índices declarados
+accounts | _id_ | {"_id":1} | 
+accounts | email | {"email":1} | unique
+asset_history | _id_ | {"_id":1} | 
+asset_index | _id_ | {"_id":1} | 
+campaign_assignments | _id_ | {"_id":1} | 
+campaign_assignments | uq_active_employee_assignment | {"employeeRef":1} | unique, partial {"status":"ACTIVE","actingRole":"EMPLOYEE"}
+campaign_funding_ledgers | _id_ | {"_id":1} | 
+campaign_responsible_state | _id_ | {"_id":1} | 
+configuration_change_requests | _id_ | {"_id":1} | 
+configuration_change_requests | uq_pending_configuration_change | {"campaignRef":1} | unique, partial {"status":"PENDING"}
+convocatoria_audit_log | _id_ | {"_id":1} | 
+convocatoria_processed_commands | _id_ | {"_id":1} | 
+convocatorias | _id_ | {"_id":1} | 
+convocatorias | uq_public_code | {"publicCode":1} | unique
+donation_audit_facts | _id_ | {"_id":1} | 
+donation_intents | _id_ | {"_id":1} | 
+donation_intents | ix_pending_application | {"status":1,"fundsAppliedAt":1,"applicationAttempts":1,"lastApplicationAttemptAt":1,"_id":1} | partial {"status":"CONFIRMED"}
+donation_intents | uq_provider_event | {"paymentProvider":1,"providerEventId":1} | unique, partial {"providerEventId":{"$type":"string"}}
+donation_intents | uq_fund_id | {"fundId":1} | unique
+donation_intents | idx_campaign_ref | {"campaignRef":1} | 
+donation_intents | ix_donor_ref | {"donorRef":1} | 
+donation_intents | uq_payment_session_id | {"paymentSessionId":1} | unique, partial {"paymentSessionId":{"$type":"string"}}
+donation_projections | _id_ | {"_id":1} | 
+donor_pseudonyms | _id_ | {"_id":1} | 
+donor_pseudonyms | pseudonym | {"pseudonym":1} | unique
+donor_reports | _id_ | {"_id":1} | 
+event_store | _id_ | {"_id":1} | 
+event_store | idx_stream_sequence | {"streamId":1,"sequence":1} | unique
+event_store | idx_event_type_campaign | {"eventType":1,"payload.campaignRef":1} | 
+identity_audit_log | _id_ | {"_id":1} | 
+identity_audit_log | target_org_occurred_at_idx | {"targetOrganizationId":1,"occurredAt":-1} | 
+identity_audit_log | target_acc_occurred_at_idx | {"targetAccountId":1,"occurredAt":-1} | 
+location_reference | _id_ | {"_id":1} | 
+merkle_batches | _id_ | {"_id":1} | 
+merkle_batches | status_createdAt | {"status":1,"createdAt":1} | 
+merkle_batches | batchId | {"batchId":1} | unique
+merkle_batches | sequenceRangeStart | {"sequenceRangeStart":1} | 
+merkle_batches | status | {"status":1} | 
+organization_invitations | _id_ | {"_id":1} | 
+organization_invitations | org_email_status_idx | {"organizationId":1,"email":1,"status":1} | 
+organization_invitations | tokenHash | {"tokenHash":1} | unique
+organizations | _id_ | {"_id":1} | 
+outbox | _id_ | {"_id":1} | 
+pending_allocations | _id_ | {"_id":1} | 
+platform_authority_state | _id_ | {"_id":1} | 
+processed_commands | _id_ | {"_id":1} | 
+projection_checkpoints | _id_ | {"_id":1} | 
+quarantined_projections | _id_ | {"_id":1} | 
+revoked_tracking_codes | _id_ | {"_id":1} | 
+revoked_tracking_codes | revokedAt | {"revokedAt":1} | ttl 31536000
+unacceptable_payment_events | _id_ | {"_id":1} | 
+unacceptable_payment_events | uq_provider_event | {"paymentProvider":1,"providerEventId":1} | unique
+web3_nonce_counter | _id_ | {"_id":1} | 
+
+## Recorrido de la demo (scripts/demo/recorrido.py) sobre ese backend
+Recorrido completo; anclaje: 2 batch(es) ANCHORED en Ganache
+
+## Fase roja (rama local rojo/indices-explicitos: inicializador sin efecto)
+[ERROR] Tests run: 2, Failures: 2, Errors: 0, Skipped: 0, Time elapsed: 10.95 s <<< FAILURE! -- in com.traceability.app.config.MongoIndexesAtStartupIntegrationTest
+[donor_reports] 
+[event_store.idx_stream_sequence] 
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- sin crear las colecciones: MUERTA  everyCollectionAndIndexDeclaredByTheCode_existsRightAfterStartup; theCriticalUniqueAndPartialIndexes_existRightAfterStartup
+- sin asegurar los índices: MUERTA  everyCollectionAndIndexDeclaredByTheCode_existsRightAfterStartup; theCriticalUniqueAndPartialIndexes_existRightAfterStartup
+- solo el paquete com.traceability: MUERTA  everyCollectionAndIndexDeclaredByTheCode_existsRightAfterStartup; theCriticalUniqueAndPartialIndexes_existRightAfterStartup
+Restauración verificada contra HEAD. Mutaciones vivas: 0
