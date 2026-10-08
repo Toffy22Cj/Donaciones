@@ -103,3 +103,25 @@ La incorporación reutiliza `AddEmployee` y `AssignAdministrator` (ADR-026). Cor
 - `InvitationMailpitIntegrationTest`: SMTP real con Mailpit por Testcontainers.
 - `SmtpInvitationMailAdapterTest`: *fail-fast* sin SMTP, remitente o URL base.
 - `OrganizationInvitationTest`: dominio.
+
+## 3.4 Empleado: mis convocatorias asignadas
+
+| Endpoint | Auth | Respuesta | Errores |
+|---|---|---|---|
+| `GET /me/campaigns` | JWT, cualquier cuenta | `200 {items: [{campaignRef, publicCode, title, status, actingRole, assignedAt}]}`, una página de 100, `no-store` | 401 |
+
+**Comportamiento:**
+- Solo lectura (`AssignedCampaignsQuery` en `convocatoria`).
+- Devuelve las asignaciones **activas** de quien llama en convocatorias de **su organización actual**, tomada del principal y nunca de la petición. Sin organización, la lista sale vacía. No acepta parámetros: nadie ve las asignaciones de otro.
+
+**Decisión DD-72:**
+- Se incluyen también las convocatorias `CLOSED`, con su estado, para que el empleado vea su historial; la web puede filtrarlas.
+- Una asignación retirada (DD-50) desaparece de la lista.
+
+**Tests** (`MyAssignedCampaignsHttpIntegrationTest`, rojo primero):
+- el empleado ve solo la suya, con su papel y el estado;
+- el administrador responsable ve las dos suyas;
+- un miembro sin asignaciones, el que crea las convocatorias y una cuenta suelta ven la lista vacía; sin JWT → 401;
+- retirado, desaparece; cerrada, sigue con `CLOSED`;
+- quien cambia de organización no ve las asignaciones de la anterior;
+- `?accountId=` de otro no cambia nada.

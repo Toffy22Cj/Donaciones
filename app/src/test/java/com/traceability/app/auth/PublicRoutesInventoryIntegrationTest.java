@@ -91,7 +91,9 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/organizations/{organizationId}/invitations/{invitationId}/revoke",
             "POST /api/v1/invitations/accept",
             "POST /api/v1/organizations/{organizationId}/members/{accountId}/role",
-            "POST /api/v1/organizations/{organizationId}/members/{accountId}/remove");
+            "POST /api/v1/organizations/{organizationId}/members/{accountId}/remove",
+            // §3.4: mis convocatorias asignadas
+            "GET /api/v1/me/campaigns");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

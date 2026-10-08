@@ -26,6 +26,7 @@
 | `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}` | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
 | `GET /me` | JWT | — | `200 {accountId, organizationId?, roles, platformAuthority?}`, `Cache-Control: no-store` (ficha N1) | 401 |
 | `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle, amount, currency, status, trackingCode?}]}`, una página de 100 (DD-21) | 401 |
+| `GET /me/campaigns` (§3.4) | JWT | — | `200 {items: [{campaignRef, publicCode, title, status, actingRole, assignedAt}]}`: asignaciones activas de quien llama en su organización actual (también `CLOSED`, DD-72); una página de 100, `no-store` | 401 |
 | `POST /invitations/accept` (§3.3, ADR-049 D4) | JWT de la cuenta invitada | `{token}` en el cuerpo (la web lo lee del fragmento `#token=` y lo borra de la barra); **nunca** en la URL | `200 {organizationId, roles}`; efectivo en la petición siguiente | 401; **el mismo 403 `InvitationNotAcceptable`** (desconocido, caducado, revocado, usado, otro email o token en la URL); 409 `AccountAlreadyBelongsToOrganization` |
 
 ## 2. Plataforma
