@@ -221,11 +221,15 @@ class TrackingIntegrityHttpIntegrationTest {
         assertThat(v.get("affectsThisDonation").asBoolean()).isFalse();
         assertThat(mismatch.toString()).doesNotContain(other.fundId()).doesNotContain(batchId);
 
-        // un código que no vale: el mismo 404 que el resto del seguimiento
-        HttpResponse<String> bad = tracking("/integrity", "no-es-un-codigo");
-        HttpResponse<String> badTracking = tracking("", "no-es-un-codigo");
-        assertThat(bad.statusCode()).isEqualTo(404);
-        assertThat(bad.body()).isEqualTo(badTracking.body());
+        // un código que no vale: la misma respuesta que el resto del seguimiento (el filtro del trackingCode da 401;
+        // solo cambia "instance", que es la ruta pedida)
+        JsonNode bad = json.readTree(tracking("/integrity", "no-es-un-codigo").body());
+        HttpResponse<String> badTrackingResponse = tracking("", "no-es-un-codigo");
+        JsonNode badTracking = json.readTree(badTrackingResponse.body());
+        assertThat(tracking("/integrity", "no-es-un-codigo").statusCode()).isEqualTo(badTrackingResponse.statusCode())
+                .isEqualTo(401);
+        assertThat(bad.get("detail")).isEqualTo(badTracking.get("detail"));
+        assertThat(bad.get("title")).isEqualTo(badTracking.get("title"));
     }
 
 }
