@@ -178,6 +178,61 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.26 Cierre del encargo 3 y de la tercera autorización (2026-10-08)
+
+**Encargo 3** (DD-29 a DD-56 ratificadas salvo DD-53), punto por punto:
+
+| Punto | Resultado | PR |
+|---|---|---|
+| (1) CORS S-03 | hecho | #74 |
+| (2) H-P12-1: narrativa sin citas → fallback | hecho | #75 |
+| (3) DD-53: cursor opaco (T-35) | hecho (AES-256-GCM) y **corregido por Carlos**: clave solo por entorno, sin valor por defecto, *fail-fast*, distinta de los demás secretos y nunca en logs | #77, #80 |
+| (4) H-P2-1 (contraseña ≥ 12), H-P2-2 (sin `fullName`), H-P2-4 (409 en `CLOSED`), predictor solo COP | hecho; además, el **test de punta a punta del predictor** pedido por Carlos (CV-01 en COP → predicción HTTP = scikit-learn con la meta en pesos) | #81 |
+| (5) `FundNotFoundException` independiente, mismo 403 | hecho | #82 |
+| (6) S-05: QR a `/tracking` sin código; exponente de COP fijado | hecho | #86 |
+| (7) fase roja con `git stash` o rama, nunca `tar` | aplicado en todos los bloques | — |
+| (8) reactor final en solitario | `scripts/ci-local.sh` sobre `develop` tras fusionar este cierre, sin nada más corriendo; salida literal en el informe a Carlos | — |
+
+**Decisiones de Carlos aplicadas:**
+- Ganache como evidencia de cierre (#79).
+- CI local `scripts/ci-local.sh` como excepción permanente a la regla 3.2 (#76).
+- `runbook-demo-local.md`, probado en vivo, también para las invitaciones (§5b).
+
+**Tercera autorización** (organizaciones, usuarios, empleados y administradores):
+
+| Bloque | Resultado | PR |
+|---|---|---|
+| §2 ADR-049 (correo, invitaciones, excepción del fragmento) | aplicado como decisión delegada (DD-60) | #83 |
+| §3.1 Crear organización (R9) y cola de verificación con cursor opaco | hecho | #83 |
+| §3.2 Conceder, revocar y listar administradores de plataforma | hecho (nunca sin administrador; 409 ante el estado ya pedido) | #85 |
+| §3.3 Invitar, listar, revocar y aceptar invitaciones; cambiar el rol; quitar miembros | hecho, con Mailpit, y SMTP real probado por Testcontainers y en vivo | #88 |
+| §3.4 Mis convocatorias asignadas | hecho | #89 |
+| §3.5 Configuración con solicitud y aprobación (Enmienda 4 de ADR-037) | redactada (DD-73) **e implementada** | #90 |
+
+**Hallazgos de estos encargos:**
+- **H-DEMO-1:** corregido en #78.
+- **H-DEMO-2 (abierto, decisión de Carlos):** el texto de respaldo de la narrativa individual está en inglés y expone el `fundId`.
+- **H-CI-1:** alta no atómica de las proyecciones de `core`; corregido en #84 y #87.
+- **H-IDX-1 (sospecha, por verificar):** índices declarados solo por anotación que quizá no existen en los tests de `app` ni, hasta su primer uso, en producción.
+- **Normalización de `Email`:** las invitaciones comparan en minúsculas, pero la unicidad de cuentas distingue mayúsculas (ADR-049, Consequences).
+
+**Decisiones delegadas nuevas, pendientes de ratificar:** DD-57, DD-59 a DD-73. DD-58 está marcada como corregida por Carlos.
+
+**Endpoints nuevos para la web** (detalle en `referencia-api-v1.md`; base `/api/v1`):
+
+| Pantalla | Método y ruta |
+|---|---|
+| Registrar organización | `POST /organizations` |
+| Plataforma: cola de verificación | `GET /platform/organizations?status=&cursor=` |
+| Plataforma: administradores | `GET /platform/administrators`, `POST /platform/administrators`, `POST /platform/administrators/{accountId}/revoke` |
+| Organización: invitaciones | `POST /organizations/{id}/invitations`, `GET /organizations/{id}/invitations`, `POST /organizations/{id}/invitations/{invitationId}/revoke` |
+| Aceptar invitación (ruta web `/invitaciones#token=…`) | `POST /invitations/accept` con `{token}` en el cuerpo; la web borra el fragmento con `history.replaceState` |
+| Organización: miembros | `POST /organizations/{id}/members/{accountId}/role`, `POST /organizations/{id}/members/{accountId}/remove` (la lista ya existía: `GET /organizations/{id}/members`) |
+| Empleado: mis convocatorias | `GET /me/campaigns` |
+| Convocatoria: configuración | `POST /campaigns/{ref}/configuration`, `POST /campaigns/{ref}/configuration-change-requests`, `GET /campaigns/{ref}/configuration-change-requests`, `POST …/{requestId}/approve`, `POST …/{requestId}/reject` |
+
+**Golden path:** `GoldenPathHttpIntegrationTest`, un único recorrido que cubre los 19 criterios, en verde en cada `ci-local.sh` de estos PR y en el reactor final.
+
 ### 0.25 Tercera autorización de Carlos (2026-10-07T22:10Z): organizaciones, usuarios, empleados y administradores
 
 - **Alcance:** la aplicación debe tener completas las funciones de organizaciones, usuarios, empleados, administradores de organización y administrador de plataforma. Cierre: 21 de octubre. Orden: crear organización (R9) y cola de verificación → administradores de plataforma → miembros e invitaciones por correo → "mis convocatorias" del empleado → edición de la configuración con aprobación (enmienda de ADR-037).
