@@ -42,7 +42,9 @@ public class CampaignPredictionUseCase {
         NOT_STARTED("La convocatoria aún no ha empezado"),
         CAMPAIGN_ENDED("La convocatoria ya terminó"),
         TARGET_ALREADY_REACHED("La meta ya se alcanzó"),
-        TOO_MANY_INTENTS("Demasiadas intenciones para calcular la estimación");
+        TOO_MANY_INTENTS("Demasiadas intenciones para calcular la estimación"),
+        /** Carlos, 2026-10-08: fuera del rango de entrenamiento, ninguna cifra. */
+        OUTSIDE_TRAINED_RANGE("Fuera del rango del modelo: solo estima entre el 15 % y el 50 % del tiempo de la convocatoria");
 
         public final String text;
 
