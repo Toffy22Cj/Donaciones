@@ -67,17 +67,26 @@ public class CampaignPredictionUseCase {
     public CampaignPredictionUseCase(CampaignPredictionDataQuery data, ObjectProvider<Clock> clock) {
         this.data = data;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.model = loadModel();
+    }
+
+    static CampaignPredictorModel loadModel() {
         try (InputStream json = CampaignPredictionUseCase.class.getResourceAsStream(MODEL_RESOURCE)) {
             if (json == null) {
                 throw new IllegalStateException("Falta el recurso del predictor " + MODEL_RESOURCE);
             }
-            this.model = CampaignPredictorModel.load(json);
+            return CampaignPredictorModel.load(json);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public Prediction predict(AuthorizationPrincipal principal, String organizationId, String campaignRef) {
+    /**
+     * Solo {@code ADMINISTRATOR} o {@code REPRESENTATIVE} de la organización dueña; el resto, el mismo 403 (DD-01).
+     * También la usan las estimaciones históricas.
+     */
+    static CampaignPredictionData authorizedData(CampaignPredictionDataQuery data, AuthorizationPrincipal principal,
+                                                 String organizationId, String campaignRef) {
         if (principal.organizationId() == null || !principal.organizationId().equals(organizationId)) {
             throw new ActorNotInCampaignOrganizationException("Actor not in organization");
         }
@@ -85,9 +94,13 @@ public class CampaignPredictionUseCase {
                 || principal.roles().contains(AuthorizationRole.REPRESENTATIVE))) {
             throw new ActorRoleNotAllowedException("Prediction requires ADMINISTRATOR or REPRESENTATIVE");
         }
-        CampaignPredictionData d = data.dataOf(campaignRef)
+        return data.dataOf(campaignRef)
                 .filter(c -> c.organizationRef().equals(organizationId))
                 .orElseThrow(() -> new CampaignNotFoundException("Campaign not found"));
+    }
+
+    public Prediction predict(AuthorizationPrincipal principal, String organizationId, String campaignRef) {
+        CampaignPredictionData d = authorizedData(data, principal, organizationId, campaignRef);
 
         Instant now = clock.instant();
         if (d.targetAmount() == null) {
@@ -125,7 +138,7 @@ public class CampaignPredictionUseCase {
         return new Prediction(model.modelVersion(), now, reason, null, null, null, List.of(SYNTHETIC_WARNING));
     }
 
-    private static double round(double value) {
+    static double round(double value) {
         return Math.round(value * 10_000.0) / 10_000.0;
     }
 }

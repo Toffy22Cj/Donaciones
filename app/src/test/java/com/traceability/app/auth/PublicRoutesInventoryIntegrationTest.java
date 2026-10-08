@@ -76,6 +76,8 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/platform/organizations/{organizationId}/reject",
             "POST /api/v1/platform/organizations/{organizationId}/request-information",
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction",
+            // encargo 6, P3 (S-10): estimaciones históricas; mismo acceso que la predicción
+            "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction/history",
             "POST /api/v1/funds/{fundId}/allocations",
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm",
             // Tercera autorización, §3.1: crear organización y cola de verificación
