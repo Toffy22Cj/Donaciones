@@ -69,7 +69,8 @@ class BlockchainAnchorProducerTest {
                 1000,  // maxEventsPerBatch
                 300,   // collectingRecoveryTimeoutSeconds
                 10,    // collectingRecoveryMaxPerCycle
-                5      // collectingRecoveryWarnAfterAttempts
+                5,     // collectingRecoveryWarnAfterAttempts
+                10     // collectingRecoveryMaxAttempts (Enmienda 1 de ADR-039 §2.3)
         );
 
         // Set up log capture

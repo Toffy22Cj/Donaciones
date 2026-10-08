@@ -54,4 +54,13 @@ public interface MerkleBatchRepositoryPort {
      * is higher than the currently persisted nonce.
      */
     void seedNonceCounter(String network, String smartContractAddress, long startingNonce);
+
+    /** COLLECTING → COLLECTING_FAILED, condicional (Enmienda 1 de ADR-039 §2.3). {@code false} si ya no estaba en COLLECTING. */
+    boolean markCollectingFailed(String batchId);
+
+    /** RETRY: COLLECTING_FAILED → COLLECTING con {@code recoveryAttempts = 0}, condicional. */
+    boolean retryCollectingFailed(String batchId);
+
+    /** RELEASE: COLLECTING_FAILED → RELEASED, condicional. La liberación de eventos y la auditoría van aparte, en la misma transacción. */
+    boolean markReleased(String batchId);
 }
