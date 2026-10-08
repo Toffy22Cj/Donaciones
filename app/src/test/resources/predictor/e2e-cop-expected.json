@@ -1,0 +1,23 @@
+{
+  "modelVersion": "baseline-0.2.0",
+  "features": {
+    "logTargetAmount": 15.89495209964411,
+    "durationDays": 40.0,
+    "orgPriorCampaigns": 0.0,
+    "paymentMethodsEnabled": 1.0,
+    "pctTimeElapsed": 0.25,
+    "pctRaised": 0.2625,
+    "nDonations": 2.0,
+    "nDistinctDonors": 2.0,
+    "meanDonationPctOfTarget": 0.13125,
+    "recentVelocity": 0.028125,
+    "overallVelocity": 0.026250000000000002,
+    "requiredVelocity": 0.024583333333333336,
+    "paceRatio": 1.05,
+    "failedRate": 0.3333333333333333,
+    "targetPolicy": "FLEXIBLE",
+    "visibility": "PUBLIC"
+  },
+  "probabilityReachTarget": 0.025251855245908936,
+  "finalPctOfTarget": 0.7096211653826909
+}

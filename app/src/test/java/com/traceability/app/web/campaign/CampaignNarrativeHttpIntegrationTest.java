@@ -118,12 +118,12 @@ class CampaignNarrativeHttpIntegrationTest {
         RecordingLlm.PROMPTS.clear();
         if (org != null) return;
         String email = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(email), "Pass123!");
+        accounts.createAccount(new Email(email), "Pass123!Pass123!");
         String platformAdmin = bootstrap.bootstrap(email).value();
-        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@b5.test"), "Pass123!");
+        Account representative = accounts.createAccount(new Email(UUID.randomUUID() + "@b5.test"), "Pass123!Pass123!");
         Organization o = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION,
                 representative.getAccountId(), "Fundación B5");
-        admin = accounts.createAccount(new Email(UUID.randomUUID() + "@b5.test"), "Pass123!").getAccountId().value();
+        admin = accounts.createAccount(new Email(UUID.randomUUID() + "@b5.test"), "Pass123!Pass123!").getAccountId().value();
         employees.addEmployee(SETUP, o.getOrganizationId(), new AccountId(admin));
         administrators.assignAdministrator(SETUP, o.getOrganizationId(), new AccountId(admin));
         org = o.getOrganizationId().value();

@@ -117,6 +117,8 @@ public class ResponsibleAssignmentService {
             throw new ReplacementActingRoleRequiredException("replacementActingRole is required with a replacement");
         }
         Map<String, String> result = executor.execute(command.commandId(), CommandType.REMOVE_RESPONSIBLE, () -> {
+            // H-P2-4 (Carlos, 2026-10-07): en una convocatoria CLOSED tampoco se retira un responsable (409)
+            requireOpen(command.campaignRef());
             List<CampaignAssignment> active = assignments.findActiveByCampaignRefAndResponsible(
                     convocatoria.getCampaignRef(), command.responsibleRef());
             if (active.isEmpty()) {

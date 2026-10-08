@@ -49,6 +49,9 @@ class ApiExceptionHandlerTest {
     static final Map<String, Supplier<RuntimeException>> THROWERS = Map.ofEntries(
             Map.entry("crossOrg", () -> new CrossOrganizationAccessException(MARKER)),
             Map.entry("role", () -> new InsufficientRoleException(MARKER)),
+            Map.entry("fundNotFound", () -> new com.traceability.core.application.exception.FundNotFoundException(MARKER)),
+            Map.entry("fundWithoutOrganization",
+                    () -> new com.traceability.core.domain.fund.exceptions.FundNotAssociatedToOrganizationException(MARKER)),
             Map.entry("notFound", () -> new AggregateNotFoundException(MARKER)),
             Map.entry("invalidTransition", () -> new InvalidAssetTransitionException(MARKER)),
             Map.entry("terminal", () -> new AssetTerminalStateException(MARKER)),
@@ -86,6 +89,8 @@ class ApiExceptionHandlerTest {
         return Stream.of(
                 org.junit.jupiter.params.provider.Arguments.of("crossOrg", 403, "Forbidden"),
                 org.junit.jupiter.params.provider.Arguments.of("role", 403, "Forbidden"),
+                org.junit.jupiter.params.provider.Arguments.of("fundNotFound", 403, "Forbidden"),
+                org.junit.jupiter.params.provider.Arguments.of("fundWithoutOrganization", 403, "Forbidden"),
                 org.junit.jupiter.params.provider.Arguments.of("notFound", 404, "NotFound"),
                 org.junit.jupiter.params.provider.Arguments.of("invalidTransition", 409, "InvalidAssetTransition"),
                 org.junit.jupiter.params.provider.Arguments.of("terminal", 409, "AssetTerminalState"),
@@ -184,5 +189,17 @@ class ApiExceptionHandlerTest {
         assertThat(r.getStatus()).isEqualTo(405);
         assertThat(r.getContentType()).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         assertThat(JSON.readTree(r.getContentAsString()).get("status").asInt()).isEqualTo(405);
+    }
+
+    /** Encargo 3, punto 5 (Carlos, 2026-10-07): dos excepciones independientes, el mismo 403 que un acceso ajeno. */
+    @Test
+    void fundNotFound_andFundWithoutOrganization_areIndependent_andGiveTheSame403AsAForeignResource() throws Exception {
+        assertThat(com.traceability.core.domain.fund.exceptions.FundNotAssociatedToOrganizationException.class
+                .isAssignableFrom(com.traceability.core.application.exception.FundNotFoundException.class)).isFalse();
+        assertThat(com.traceability.core.application.exception.FundNotFoundException.class
+                .isAssignableFrom(com.traceability.core.domain.fund.exceptions.FundNotAssociatedToOrganizationException.class)).isFalse();
+        String foreign = call("crossOrg").getContentAsString();
+        assertThat(call("fundNotFound").getContentAsString()).isEqualTo(foreign);
+        assertThat(call("fundWithoutOrganization").getContentAsString()).isEqualTo(foreign);
     }
 }
