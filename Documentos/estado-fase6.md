@@ -189,6 +189,16 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
   Mientras tanto, las convocatorias solo cobran por la pasarela (simulada en `dev`).
 
+### 0.24b Hallazgo H-CI-1 (2026-10-07T23:10Z): alta no atómica de las proyecciones de `core`
+
+`scripts/ci-local.sh` sobre una rama que solo cambiaba documentos y un test de `convocatoria` falló en `core`, en `ProjectionChangeStreamE2ETest.clearFundsGenesis_isProjectedWithAmountsCurrencyAndCampaign` (`expected 1500, but was 0`).
+
+- **Causa raíz:** al crear una proyección, `DonationProjectionHandler` hacía dos escrituras: `save` del documento vacío (importes a 0) y después `update` con el evento. Durante un instante, un lector veía la donación con importe 0. El historial de un activo nacía vacío del mismo modo. Bajo carga (varias ejecuciones de Maven a la vez), el test lo vio.
+- **Corrección** (`fix/proyeccion-donacion-alta-atomica`): el alta es un único `upsert` (`$setOnInsert` del estado), y el historial, un `upsert` con `$push`.
+- **Test de regresión determinista:** un *change stream* sobre `donation_projections` comprueba que el primer cambio del fondo es un `insert` con los importes. Con el código anterior falla siempre (0 en vez de 1500).
+- Los demás `save` de `core/application/projection` crean documentos completos en una sola escritura.
+- **Corrección de la corrección** (`fix/proyeccion-alta-forma-completa`): el `upsert` de #84 dejaba **sin escribir** `allocations`, `logistics` y los importes que el evento no toca, que el `save` anterior ponía a `[]` y 0. Para Spring no cambiaba nada, porque los inicializadores de la clase rellenan esos valores, pero sí para un lector en crudo. El ayudante de `ProjectionChangeStreamE2ETest` lo era, y `splitChild_createdByTheSaga…` lanzó un `NullPointerException` en el `ci-local.sh` de §3.3. Ahora el alta escribe con `$setOnInsert` la misma forma que antes en las rutas que el evento no modifica. El test de regresión comprueba también la forma (rojo: `allocations` ausente).
+
 ### 0.24 Decisiones de Carlos (2026-10-07T21:41Z): Ganache como evidencia, CI local y demo local
 
 - **Anclaje (criterios 10, 11, 12 y 18):** se cierran con la evidencia de la **cadena local (Ganache)**. La testnet pública pasa a ser **opcional** (`runbook-anclaje-testnet.md`). Motivo: no depender de *faucets*, cuotas ni disponibilidad de la red el día de la demo. **Limitación aceptada:** un anclaje en Ganache es real en la cadena local, pero no lo pueden verificar terceros. Anotado en `golden-path.md` §8 y `plan-cierre-fase6-codigo.md`.

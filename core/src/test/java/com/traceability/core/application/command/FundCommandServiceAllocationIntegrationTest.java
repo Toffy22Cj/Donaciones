@@ -154,11 +154,12 @@ class FundCommandServiceAllocationIntegrationTest {
     }
 
     @Test
-    void requestAllocation_fundWithNoStream_throwsDomainException() {
+    void requestAllocation_fundWithNoStream_throwsFundNotFound() {
         String nonExistentFundId = UUID.randomUUID().toString();
 
-        // Fund rehydrated from empty stream has no organizationRef → FundNotAssociatedToOrganizationException
-        assertThrows(FundNotAssociatedToOrganizationException.class, () ->
+        // Encargo 3, punto 5: un fondo sin stream es FundNotFoundException, independiente de
+        // FundNotAssociatedToOrganizationException (las dos responden el mismo 403)
+        assertThrows(com.traceability.core.application.exception.FundNotFoundException.class, () ->
                 fundCommandService.requestAllocation(UUID.randomUUID().toString(), nonExistentFundId, "ALLOC-1", 100L, ACTOR)
         );
     }

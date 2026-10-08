@@ -88,12 +88,12 @@ class P2EndpointsHttpIntegrationTest {
     private static String otherOrg, otherAdmin;
 
     private String account() {
-        return accounts.createAccount(new Email(UUID.randomUUID() + "@p2.test"), "Pass123!").getAccountId().value();
+        return accounts.createAccount(new Email(UUID.randomUUID() + "@p2.test"), "Pass123!Pass123!").getAccountId().value();
     }
 
     /** Organización sin verificar: {representative, organizationId}. */
     private String[] organization(String name) {
-        Account rep = accounts.createAccount(new Email(UUID.randomUUID() + "@p2.test"), "Pass123!");
+        Account rep = accounts.createAccount(new Email(UUID.randomUUID() + "@p2.test"), "Pass123!Pass123!");
         Organization o = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION, rep.getAccountId(), name);
         return new String[] {rep.getAccountId().value(), o.getOrganizationId().value()};
     }
@@ -115,7 +115,7 @@ class P2EndpointsHttpIntegrationTest {
     void world() throws Exception {
         if (platformAdmin != null) return;
         String email = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(email), "Pass123!");
+        accounts.createAccount(new Email(email), "Pass123!Pass123!");
         platformAdmin = bootstrap.bootstrap(email).value();
         String[] o = organization("Fundación P2");
         representative = o[0];
@@ -188,7 +188,7 @@ class P2EndpointsHttpIntegrationTest {
     @Test
     void register_createsAnActiveAccountThatCanLogIn_andRejectsDuplicatesAndInvalidInput() throws Exception {
         String email = UUID.randomUUID() + "@p2.test";
-        String body = "{\"email\":\"" + email + "\",\"password\":\"Secret123!\"}";
+        String body = "{\"email\":\"" + email + "\",\"password\":\"Secret123!Secret\"}";
 
         HttpResponse<String> created = send("POST", "/api/v1/auth/register", null, body, null);
 
@@ -203,12 +203,16 @@ class P2EndpointsHttpIntegrationTest {
         assertThat(duplicate.body()).contains("DuplicateEmail").doesNotContain(email);
 
         HttpResponse<String> badEmail = send("POST", "/api/v1/auth/register", null,
-                "{\"email\":\"not-an-email\",\"password\":\"Secret123!\"}", null);
+                "{\"email\":\"not-an-email\",\"password\":\"Secret123!Secret\"}", null);
         assertThat(badEmail.statusCode()).isEqualTo(400);
         assertThat(badEmail.body()).doesNotContain("not-an-email");
         assertThat(send("POST", "/api/v1/auth/register", null, "{\"email\":\"" + UUID.randomUUID() + "@p2.test\"}", null)
                 .statusCode()).isEqualTo(400);
         assertThat(send("POST", "/api/v1/auth/register", null, "{\"password\":\"x\"}", null).statusCode()).isEqualTo(400);
+        HttpResponse<String> shortPassword = send("POST", "/api/v1/auth/register", null,
+                "{\"email\":\"" + UUID.randomUUID() + "@p2.test\",\"password\":\"elevenchars\"}", null);
+        assertThat(shortPassword.statusCode()).as("H-P2-1: al menos 12 caracteres").isEqualTo(400);
+        assertThat(shortPassword.body()).contains("PasswordTooShort").doesNotContain("elevenchars");
     }
 
     // --- P2.3 listado de la organización ---
@@ -248,6 +252,8 @@ class P2EndpointsHttpIntegrationTest {
         JsonNode campaign = createCampaign("PUBLIC", IN_KIND);
         String campaignRef = campaign.get("campaignRef").asText();
         String commandId = UUID.randomUUID().toString();
+        ok(send("POST", "/api/v1/campaigns/" + campaignRef + "/employees", admin, "{\"employeeRef\":\"" + employee + "\"}"), 201);
+        ok(send("POST", "/api/v1/campaigns/" + campaignRef + "/administrators", admin, "{\"administratorRef\":\"" + admin2 + "\"}"), 201);
 
         assertThat(send("POST", "/api/v1/campaigns/" + campaignRef + "/close", employee, null).statusCode()).isEqualTo(403);
         HttpResponse<String> closed = send("POST", "/api/v1/campaigns/" + campaignRef + "/close", admin, null, commandId);
@@ -264,6 +270,11 @@ class P2EndpointsHttpIntegrationTest {
                 .get("status").asText()).isEqualTo("CLOSED");
         assertThat(send("POST", "/api/v1/campaigns/" + campaignRef + "/employees", admin,
                 "{\"employeeRef\":\"" + employee + "\"}").statusCode()).isEqualTo(409);
+        // H-P2-4 (Carlos, 2026-10-07): tampoco se retira un responsable de una convocatoria CLOSED
+        HttpResponse<String> removeOnClosed = send("POST", "/api/v1/campaigns/" + campaignRef + "/responsibles/"
+                + employee + "/remove", admin, null);
+        assertThat(removeOnClosed.statusCode()).isEqualTo(409);
+        assertThat(removeOnClosed.body()).contains("ResponsibleAssignmentOnClosedCampaign");
     }
 
     // --- P2.5 CV-03 y retirar responsable ---
