@@ -1,0 +1,29 @@
+# Encargo 5, punto 4: emails normalizados a minúsculas en registro, login e invitaciones — 2026-10-08
+
+Cambio: identity.domain.model.Email normaliza value.toLowerCase(Locale.ROOT) tras validar el formato (DD-74).
+Datos existentes: base de la demo (paxfide-demo-mongo), db.accounts.countDocuments({email:/[A-Z]/}) -> 0. Sin migración.
+
+## Rojo (cee41c2, antes de la corrección)
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.124 s <<< FAILURE! -- in identity.domain.model.ValueObjectsTest
+[ERROR] identity.domain.model.ValueObjectsTest.testEmail -- Time elapsed: 0.050 s <<< FAILURE!
+[ERROR] Tests run: 6, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 18.77 s <<< FAILURE! -- in com.traceability.app.auth.AuthenticationEndToEndIntegrationTest
+[ERROR] com.traceability.app.auth.AuthenticationEndToEndIntegrationTest.theEmail_isNormalizedToLowercase_inRegistrationAndLogin -- Time elapsed: 1.132 s <<< FAILURE!
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.43 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+(OrganizationMembersAndInvitationsHttpIntegrationTest pasa ya en rojo: las invitaciones normalizaban desde DD-62; su caso nuevo queda como guarda)
+
+## Verde (cf9b423)
+identity completo:
+[INFO] Tests run: 289, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.138 s -- in identity.domain.model.ValueObjectsTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.01 s -- in com.traceability.app.auth.AuthenticationEndToEndIntegrationTest
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 15.54 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.807 s -- in com.traceability.app.web.organization.InvitationMailpitIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.084 s -- in com.traceability.app.bootstrap.DemoSeedRunnerIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.220 s -- in com.traceability.app.bootstrap.PlatformAdminBootstrapRunnerStartupIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+mut-email.out:- sin normalizar: MUERTA  testEmail
+mut-email.out:- normaliza a mayúsculas: MUERTA  testEmail
+mut-email.out:Restauración verificada contra HEAD. Mutaciones vivas: 0
+mut-email-app.out:- sin normalizar (login y registro): MUERTA  theEmail_isNormalizedToLowercase_inRegistrationAndLogin
+mut-email-app.out:Restauración verificada contra HEAD. Mutaciones vivas: 0
