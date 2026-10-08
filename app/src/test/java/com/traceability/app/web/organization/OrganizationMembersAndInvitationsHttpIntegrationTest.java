@@ -348,6 +348,19 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
 
     // --- aceptar ---
 
+    // encargo 5 (4): la cuenta se registró con mayúsculas y la invitación llega en minúsculas
+    @Test
+    void anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail() throws Exception {
+        String email = email();
+        HttpResponse<String> registered = send("POST", "/api/v1/auth/register", null,
+                "{\"email\":\"" + email.toUpperCase(java.util.Locale.ROOT) + "\",\"password\":\"" + PASSWORD + "\"}");
+        String invitee = ok(registered, 201).get("accountId").asText();
+        String token = invitedToken(email, "EMPLOYEE");
+
+        JsonNode accepted = ok(accept(invitee, token), 200);
+        assertThat(accepted.get("organizationId").asText()).isEqualTo(org);
+    }
+
     @Test
     void accepting_withTheInvitedAccount_joinsWithTheInvitedRole_effectiveOnTheNextRequest() throws Exception {
         String email = email();

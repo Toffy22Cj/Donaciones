@@ -22,8 +22,8 @@
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|
-| `POST /auth/login` | pública | `{email, password}` | `200 {token}` | 400 campos vacíos; **el mismo 401** para email inexistente, contraseña errónea o cuenta inactiva |
-| `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}` | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
+| `POST /auth/login` | pública | `{email, password}`; el email no distingue mayúsculas (DD-74) | `200 {token}` | 400 campos vacíos; **el mismo 401** para email inexistente, contraseña errónea o cuenta inactiva |
+| `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}`; el email se guarda en minúsculas, así que `Ana@x.org` y `ana@x.org` son la misma cuenta (409) (DD-74) | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
 | `GET /me` | JWT | — | `200 {accountId, organizationId?, roles, platformAuthority?}`, `Cache-Control: no-store` (ficha N1) | 401 |
 | `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle, amount, currency, status, trackingCode?}]}`, una página de 100 (DD-21) | 401 |
 | `GET /me/campaigns` (§3.4) | JWT | — | `200 {items: [{campaignRef, publicCode, title, status, actingRole, assignedAt}]}`: asignaciones activas de quien llama en su organización actual (también `CLOSED`, DD-72); una página de 100, `no-store` | 401 |

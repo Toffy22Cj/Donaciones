@@ -120,6 +120,30 @@ class AuthenticationEndToEndIntegrationTest {
         assertThat(whoami(token(login)).getResponse().getContentAsString()).isEqualTo(account.getAccountId().value());
     }
 
+    // encargo 5 (4): registro y login sin distinguir mayúsculas
+    @Test
+    void theEmail_isNormalizedToLowercase_inRegistrationAndLogin() throws Exception {
+        String local = "Ana" + UUID.randomUUID().toString().substring(0, 8);
+        String mixed = local + "@Example.ORG";
+        MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + mixed + "\",\"password\":\"pw-correct-123\"}")).andReturn();
+        assertThat(registered.getResponse().getStatus()).isEqualTo(201);
+
+        MvcResult lower = login(mixed.toLowerCase(java.util.Locale.ROOT), "pw-correct-123");
+        MvcResult upper = login(mixed.toUpperCase(java.util.Locale.ROOT), "pw-correct-123");
+        assertThat(lower.getResponse().getStatus()).isEqualTo(200);
+        assertThat(upper.getResponse().getStatus()).isEqualTo(200);
+        assertThat(whoami(token(upper)).getResponse().getContentAsString())
+                .isEqualTo(whoami(token(lower)).getResponse().getContentAsString());
+
+        // la misma dirección con otras mayúsculas no es una cuenta nueva
+        MvcResult again = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + mixed.toLowerCase(java.util.Locale.ROOT)
+                        + "\",\"password\":\"pw-correct-456\"}")).andReturn();
+        assertThat(again.getResponse().getStatus()).isEqualTo(409);
+        assertThat(login(mixed, "pw-correct-456").getResponse().getStatus()).isEqualTo(401);
+    }
+
     // 8
     @Test
     void theThreeLoginFailures_areIdenticalByteForByte() throws Exception {
