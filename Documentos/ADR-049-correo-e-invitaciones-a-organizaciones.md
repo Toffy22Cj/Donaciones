@@ -168,6 +168,7 @@ Nada de esto toca payloads de eventos de `core`, versiones de esquema, canonical
 - **Deuda registrada:**
   - **Confirmación manual de pagos** (transferencia y efectivo): **FUERA** por decisión de Carlos (2026-10-07). Motivos: (1) P1, el diseño de la confirmación independiente no está cerrado (quién confirma y con qué autoridad, R9 de la auditoría F1–F2); (2) no hay referencia de pago que ligue un ingreso real con una intención; (3) riesgo de abuso, porque una confirmación manual sin control dual crea dinero en el sistema. Registrada en `estado-fase6.md`.
   - **Normalización de `Email`:** las invitaciones comparan en minúsculas, pero `Email` (y la unicidad de cuentas) distingue mayúsculas. No se cambia aquí, porque es otra decisión con datos existentes. Se registra como hallazgo.
+    - **Cerrado (encargo 5, punto 4, Carlos, 2026-10-08):** `Email` normaliza a minúsculas al construirse; registro, login e invitaciones usan el mismo valor (DD-74, evidencia `evidencia-fase6/emails-minusculas-2026-10-08.txt`).
 
 ## Definición de hecho (tests, rojos primero)
 
