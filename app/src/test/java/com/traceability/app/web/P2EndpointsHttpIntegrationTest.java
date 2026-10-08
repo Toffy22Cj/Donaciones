@@ -219,6 +219,7 @@ class P2EndpointsHttpIntegrationTest {
 
     @Test
     void organizationCampaigns_onlyTheAdministratorOfThatOrganization_withResponsiblesAndAmounts() throws Exception {
+        String employee = employeeOf(org); // un EMPLOYEE propio: solo puede ser responsable de una convocatoria activa
         String campaignRef = createCampaign("PUBLIC", MONETARY).get("campaignRef").asText();
         ok(send("POST", "/api/v1/campaigns/" + campaignRef + "/employees", admin, "{\"employeeRef\":\"" + employee + "\"}"), 201);
 
@@ -249,6 +250,7 @@ class P2EndpointsHttpIntegrationTest {
 
     @Test
     void close_isTerminal_andIdempotentWithTheSameCommandId() throws Exception {
+        String employee = employeeOf(org); // un EMPLOYEE propio: solo puede ser responsable de una convocatoria activa
         JsonNode campaign = createCampaign("PUBLIC", IN_KIND);
         String campaignRef = campaign.get("campaignRef").asText();
         String commandId = UUID.randomUUID().toString();
@@ -281,6 +283,7 @@ class P2EndpointsHttpIntegrationTest {
 
     @Test
     void designateAdministrator_andRemoveResponsible_followTheDomainRules() throws Exception {
+        String employee = employeeOf(org); // un EMPLOYEE propio: solo puede ser responsable de una convocatoria activa
         String campaignRef = createCampaign("PUBLIC", IN_KIND).get("campaignRef").asText();
         String base = "/api/v1/campaigns/" + campaignRef;
 

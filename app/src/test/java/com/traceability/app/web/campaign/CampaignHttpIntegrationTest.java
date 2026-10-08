@@ -116,6 +116,16 @@ class CampaignHttpIntegrationTest {
         return o.getOrganizationId().value();
     }
 
+    /**
+     * Un EMPLOYEE propio para cada test que lo asigna como responsable: solo puede serlo de una convocatoria activa
+     * (índice único parcial de campaign_assignments, presente en los tests desde H-IDX-1).
+     */
+    private String freshEmployee() {
+        String e = account();
+        employees.addEmployee(SETUP, new identity.domain.model.OrganizationId(org), new AccountId(e));
+        return e;
+    }
+
     @BeforeEach
     void world() throws Exception {
         if (platformAdmin != null) return;
@@ -230,8 +240,9 @@ class CampaignHttpIntegrationTest {
     void cv01_aCommandIdOfAnotherCommand_is409() throws Exception {
         String commandId = newId();
         String campaignRef = created(monetaryBody("PUBLIC")).get("campaignRef").asText();
+        String responsible = freshEmployee();
         assertThat(send("POST", "/api/v1/campaigns/" + campaignRef + "/employees", admin, commandId,
-                "{\"employeeRef\":\"" + employee + "\"}").statusCode()).isEqualTo(201);
+                "{\"employeeRef\":\"" + responsible + "\"}").statusCode()).isEqualTo(201);
 
         HttpResponse<String> reused = createCampaign(org, admin, commandId, monetaryBody("PUBLIC"));
 
@@ -292,8 +303,9 @@ class CampaignHttpIntegrationTest {
         String commandId = newId();
         String path = "/api/v1/campaigns/" + campaignRef + "/employees";
 
-        HttpResponse<String> first = send("POST", path, admin, commandId, "{\"employeeRef\":\"" + employee + "\"}");
-        HttpResponse<String> again = send("POST", path, admin, commandId, "{\"employeeRef\":\"" + employee + "\"}");
+        String responsible = freshEmployee();
+        HttpResponse<String> first = send("POST", path, admin, commandId, "{\"employeeRef\":\"" + responsible + "\"}");
+        HttpResponse<String> again = send("POST", path, admin, commandId, "{\"employeeRef\":\"" + responsible + "\"}");
 
         assertThat(first.statusCode()).isEqualTo(201);
         assertThat(json.readTree(first.body()).fieldNames()).toIterable().containsExactly("assignmentId");
