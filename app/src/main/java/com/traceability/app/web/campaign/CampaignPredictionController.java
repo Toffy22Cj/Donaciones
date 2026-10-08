@@ -2,6 +2,8 @@ package com.traceability.app.web.campaign;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.traceability.api.web.CurrentActor;
+import com.traceability.app.application.prediction.CampaignPredictionHistoryUseCase;
+import com.traceability.app.application.prediction.CampaignPredictionHistoryUseCase.History;
 import com.traceability.app.application.prediction.CampaignPredictionUseCase;
 import com.traceability.app.application.prediction.CampaignPredictionUseCase.Prediction;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
@@ -26,10 +28,23 @@ public class CampaignPredictionController {
                                      Double estimatedFinalPctOfTarget, Double pctTimeElapsed, List<String> warnings,
                                      String asOf) {}
 
-    private final CampaignPredictionUseCase predictions;
+    /** Encargo 6, P3 (S-10): estimaciones en t = 0,15, 0,25 y 0,50 con lo recaudado entonces según el event store. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record HistoryResponse(String kind, String modelVersion, String warning, String basis, boolean available,
+                                  String unavailableReason, String unavailableText, List<CutResponse> cuts,
+                                  List<String> warnings, String asOf) {}
 
-    public CampaignPredictionController(CampaignPredictionUseCase predictions) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record CutResponse(double t, String cutAt, boolean available, String unavailableReason,
+                              String unavailableText, Double probabilityReachTarget, Double estimatedFinalPctOfTarget,
+                              Double pctRaisedAtCut) {}
+
+    private final CampaignPredictionUseCase predictions;
+    private final CampaignPredictionHistoryUseCase history;
+
+    public CampaignPredictionController(CampaignPredictionUseCase predictions, CampaignPredictionHistoryUseCase history) {
         this.predictions = predictions;
+        this.history = history;
     }
 
     @GetMapping("/api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction")
@@ -43,6 +58,21 @@ public class CampaignPredictionController {
                 p.unavailable() == null ? null : p.unavailable().text,
                 p.probabilityReachTarget(), p.estimatedFinalPctOfTarget(), p.pctTimeElapsed(), p.warnings(),
                 p.asOf().toString());
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
+    }
+
+    @GetMapping("/api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction/history")
+    public ResponseEntity<HistoryResponse> history(@CurrentActor AuthorizationPrincipal principal,
+                                                   @PathVariable("organizationId") String organizationId,
+                                                   @PathVariable("campaignRef") String campaignRef) {
+        History h = history.history(principal, organizationId, campaignRef);
+        List<CutResponse> cuts = h.cuts().stream().map(c -> new CutResponse(c.t(), c.cutAt().toString(),
+                c.unavailable() == null, c.unavailable() == null ? null : c.unavailable().name(),
+                c.unavailable() == null ? null : c.unavailable().text, c.probabilityReachTarget(),
+                c.estimatedFinalPctOfTarget(), c.pctRaisedAtCut())).toList();
+        HistoryResponse body = new HistoryResponse("ESTIMATE", h.modelVersion(), CampaignPredictionUseCase.SYNTHETIC_WARNING,
+                "EVENT_STORE", h.unavailable() == null, h.unavailable() == null ? null : h.unavailable().name(),
+                h.unavailable() == null ? null : h.unavailable().text, cuts, h.warnings(), h.asOf().toString());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
     }
 }

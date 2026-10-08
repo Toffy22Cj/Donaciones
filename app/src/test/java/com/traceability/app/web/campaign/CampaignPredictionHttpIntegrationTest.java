@@ -148,6 +148,11 @@ class CampaignPredictionHttpIntegrationTest {
         return send("GET", "/api/v1/organizations/" + organization + "/campaigns/" + campaignRef + "/prediction", account, null);
     }
 
+    private HttpResponse<String> history(String organization, String campaignRef, String account) throws Exception {
+        return send("GET", "/api/v1/organizations/" + organization + "/campaigns/" + campaignRef + "/prediction/history",
+                account, null);
+    }
+
     private Map<String, Long> counts() {
         Map<String, Long> counts = new TreeMap<>();
         for (String c : mongoTemplate.getCollectionNames()) {
@@ -206,6 +211,70 @@ class CampaignPredictionHttpIntegrationTest {
         prediction(org, flexible, admin);
         prediction(org, strict, admin);
         prediction(org, flexible, employee);
+
+        assertThat(counts()).isEqualTo(before);
+    }
+
+    // --- encargo 6, P3: estimaciones históricas (S-10)
+
+    @Test
+    void history_isAnEstimateEnvelope_withThreeCuts_andAFutureCutHasNoFigure() throws Exception {
+        HttpResponse<String> r = history(org, flexible, admin);
+
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
+        assertThat(r.headers().firstValue("Cache-Control")).hasValue("no-store");
+        JsonNode body = json.readTree(r.body());
+        assertThat(body.get("kind").asText()).isEqualTo("ESTIMATE");
+        assertThat(body.get("basis").asText()).isEqualTo("EVENT_STORE");
+        assertThat(body.get("modelVersion").asText()).isEqualTo("baseline-0.2.0");
+        assertThat(body.get("warning").asText()).isEqualTo("modelo entrenado con datos sintéticos");
+        assertThat(body.get("available").asBoolean()).isTrue();
+        assertThat(body.get("cuts")).hasSize(3);
+        for (JsonNode cut : body.get("cuts")) {
+            // la convocatoria aún no ha empezado: los tres cortes son futuros
+            assertThat(cut.get("available").asBoolean()).isFalse();
+            assertThat(cut.get("unavailableReason").asText()).isEqualTo("FUTURE_CUT");
+            assertThat(cut.has("probabilityReachTarget")).isFalse();
+            assertThat(cut.has("estimatedFinalPctOfTarget")).isFalse();
+            assertThat(cut.has("pctRaisedAtCut")).isFalse();
+            assertThat(cut.has("cutAt")).isTrue();
+        }
+        assertThat(body.get("cuts")).extracting(c -> c.get("t").asDouble()).containsExactly(0.15, 0.25, 0.50);
+        assertThat(r.body()).doesNotContain(flexible).doesNotContain(org).doesNotContain("donorRef");
+    }
+
+    @Test
+    void history_strictHasNoCuts() throws Exception {
+        JsonNode s = json.readTree(history(org, strict, representative).body());
+
+        assertThat(s.get("available").asBoolean()).isFalse();
+        assertThat(s.get("unavailableReason").asText()).isEqualTo("STRICT_POLICY_EXCLUDED");
+        assertThat(s.get("cuts")).isEmpty();
+    }
+
+    @Test
+    void history_onlyAdministratorOrRepresentative_andEverythingElseIsTheSame403() throws Exception {
+        assertThat(history(org, flexible, representative).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> asEmployee = history(org, flexible, employee);
+        HttpResponse<String> otherOrganization = history(org, flexible, otherAdmin);
+        HttpResponse<String> foreignCampaign = history(otherOrg, flexible, otherAdmin);
+        HttpResponse<String> unknownCampaign = history(org, "no-such-campaign", admin);
+
+        for (HttpResponse<String> r : java.util.List.of(asEmployee, otherOrganization, foreignCampaign, unknownCampaign)) {
+            assertThat(r.statusCode()).isEqualTo(403);
+            assertThat(r.body()).isEqualTo(asEmployee.body());
+        }
+        assertThat(history(org, flexible, null).statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void readingTheHistory_writesNothing() throws Exception {
+        Map<String, Long> before = counts();
+
+        history(org, flexible, admin);
+        history(org, strict, admin);
+        history(org, flexible, employee);
 
         assertThat(counts()).isEqualTo(before);
     }
