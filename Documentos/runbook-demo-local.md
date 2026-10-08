@@ -124,6 +124,13 @@ curl -s localhost:8080/api/v1/organizations/$ORG/invitations -H "Authorization: 
 - El correo aparece en **http://localhost:8025** con el enlace `http://localhost:5173/invitaciones#token=…`. El token va en el fragmento, que el navegador no envía al servidor.
 - La web toma el token del fragmento, lo borra de la barra y llama a `POST /api/v1/invitations/accept` con `{token}` en el cuerpo y la sesión de la cuenta invitada, que debe tener ese mismo email.
 
+**Probado en vivo el 2026-10-08T00:10Z**, con los pasos tal cual, desde `down -v`:
+- la invitación responde `202`;
+- el correo llega a Mailpit con el asunto "Invitación a Fundación Demo PaxFide en PaxFide" y el enlace `http://localhost:5173/invitaciones#token=…`;
+- la cuenta `nueva@demo.paxfide.local` se registra, acepta con el token en el cuerpo (`200 {organizationId, roles: ["EMPLOYEE"]}`) y su `/me` ya trae la organización;
+- repetir la aceptación da `403`;
+- el token no aparece ni una vez en el log del backend.
+
 ## 6. Recorrido automático (sin backend en marcha)
 
 ```bash
