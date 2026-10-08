@@ -1,0 +1,25 @@
+{
+  "datasetVersion": "synthetic-v1",
+  "synthetic": true,
+  "warning": "Datos inventados. No representan convocatorias reales. No cargar en MongoDB ni en el Event Store (ADR-044 §2).",
+  "seed": 20261006,
+  "nCampaigns": 1500,
+  "snapshotTs": [
+    0.15,
+    0.25,
+    0.5
+  ],
+  "recentWindowFraction": 0.1,
+  "counts": {
+    "campaigns": 1500,
+    "donationIntents": 318218,
+    "snapshots": 4381,
+    "snapshotsSkippedCampaignAlreadyClosed": 119
+  },
+  "reachedTargetRate": 0.5127,
+  "sha256": {
+    "campaigns.csv": "d46af2813444817d5674f292d871519e3aec7d86e40bfe869b4143870d38d6a3",
+    "donation_intents.csv": "87c9cbbd59321a34c1f47e65902a9fba817d4c3409e3135050aa942bf2179b02",
+    "snapshots.csv": "ccbfbf9dbfc06865639a11f673ec0ea25537b49c67cccde420b120feabe9fb8f"
+  }
+}

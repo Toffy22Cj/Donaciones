@@ -1,0 +1,188 @@
+{
+  "modelVersion": "baseline-0.2.0",
+  "datasetVersion": "synthetic-v1",
+  "datasetSha256": "ccbfbf9dbfc06865639a11f673ec0ea25537b49c67cccde420b120feabe9fb8f",
+  "synthetic": true,
+  "sklearnVersion": "1.9.1",
+  "split": {
+    "strategy": "GroupShuffleSplit por campaignRef (20 % test) + GroupKFold(5) en train",
+    "snapshotsTotal": 4381,
+    "snapshotsExcludedAlreadyReached": 571,
+    "excludedPolicies": [
+      "STRICT"
+    ],
+    "excludedPoliciesReason": "STRICT rechaza la donación que excedería la meta: casi nunca llega al 100 % por diseño (ADR-044 P7/D3)",
+    "snapshotsExcludedByPolicy": 1161,
+    "trainSnapshots": 2136,
+    "testSnapshots": 513,
+    "trainCampaigns": 815,
+    "testCampaigns": 204,
+    "campaignOverlapTrainTest": 0
+  },
+  "models": {
+    "pace_baseline": {
+      "cvBrierMean": 0.1145,
+      "cvBrierStd": 0.0057,
+      "test": {
+        "n": 513,
+        "positiveRate": 0.6257,
+        "brier": 0.1283,
+        "logLoss": 0.416,
+        "rocAuc": 0.8936,
+        "ece": 0.0544,
+        "accuracyAt0_5": 0.8207
+      },
+      "testByT": {
+        "0.15": {
+          "n": 204,
+          "positiveRate": 0.6863,
+          "brier": 0.1197,
+          "logLoss": 0.4219,
+          "rocAuc": 0.9177,
+          "ece": 0.1149,
+          "accuracyAt0_5": 0.8431
+        },
+        "0.25": {
+          "n": 174,
+          "positiveRate": 0.6322,
+          "brier": 0.1011,
+          "logLoss": 0.3311,
+          "rocAuc": 0.9311,
+          "ece": 0.1049,
+          "accuracyAt0_5": 0.8851
+        },
+        "0.5": {
+          "n": 135,
+          "positiveRate": 0.5259,
+          "brier": 0.1766,
+          "logLoss": 0.5164,
+          "rocAuc": 0.9461,
+          "ece": 0.2286,
+          "accuracyAt0_5": 0.7037
+        }
+      }
+    },
+    "logistic_regression": {
+      "cvBrierMean": 0.0789,
+      "cvBrierStd": 0.0076,
+      "test": {
+        "n": 513,
+        "positiveRate": 0.6257,
+        "brier": 0.0978,
+        "logLoss": 0.3413,
+        "rocAuc": 0.9332,
+        "ece": 0.043,
+        "accuracyAt0_5": 0.8752
+      },
+      "testByT": {
+        "0.15": {
+          "n": 204,
+          "positiveRate": 0.6863,
+          "brier": 0.1077,
+          "logLoss": 0.3744,
+          "rocAuc": 0.9204,
+          "ece": 0.0718,
+          "accuracyAt0_5": 0.8529
+        },
+        "0.25": {
+          "n": 174,
+          "positiveRate": 0.6322,
+          "brier": 0.092,
+          "logLoss": 0.3293,
+          "rocAuc": 0.9358,
+          "ece": 0.0541,
+          "accuracyAt0_5": 0.8793
+        },
+        "0.5": {
+          "n": 135,
+          "positiveRate": 0.5259,
+          "brier": 0.0904,
+          "logLoss": 0.3067,
+          "rocAuc": 0.9465,
+          "ece": 0.0822,
+          "accuracyAt0_5": 0.9037
+        }
+      }
+    },
+    "hist_gradient_boosting": {
+      "cvBrierMean": 0.0899,
+      "cvBrierStd": 0.0094,
+      "test": {
+        "n": 513,
+        "positiveRate": 0.6257,
+        "brier": 0.1133,
+        "logLoss": 0.3878,
+        "rocAuc": 0.9332,
+        "ece": 0.0878,
+        "accuracyAt0_5": 0.8402
+      },
+      "testByT": {
+        "0.15": {
+          "n": 204,
+          "positiveRate": 0.6863,
+          "brier": 0.1221,
+          "logLoss": 0.4202,
+          "rocAuc": 0.9185,
+          "ece": 0.0955,
+          "accuracyAt0_5": 0.8284
+        },
+        "0.25": {
+          "n": 174,
+          "positiveRate": 0.6322,
+          "brier": 0.1057,
+          "logLoss": 0.3548,
+          "rocAuc": 0.9405,
+          "ece": 0.0902,
+          "accuracyAt0_5": 0.8448
+        },
+        "0.5": {
+          "n": 135,
+          "positiveRate": 0.5259,
+          "brier": 0.1097,
+          "logLoss": 0.3812,
+          "rocAuc": 0.9399,
+          "ece": 0.0921,
+          "accuracyAt0_5": 0.8519
+        }
+      }
+    }
+  },
+  "improvementOverPaceBaseline": {
+    "logistic_regression": {
+      "cvBrierGainMean": 0.0356,
+      "cvBrierGainStd": 0.0079,
+      "cvBrierGainPerFold": [
+        0.0408,
+        0.0413,
+        0.0267,
+        0.0253,
+        0.044
+      ],
+      "testBrierGain": 0.0305
+    },
+    "hist_gradient_boosting": {
+      "cvBrierGainMean": 0.0246,
+      "cvBrierGainStd": 0.0067,
+      "cvBrierGainPerFold": [
+        0.0329,
+        0.0307,
+        0.015,
+        0.0199,
+        0.0243
+      ],
+      "testBrierGain": 0.015
+    }
+  },
+  "leakageControl": {
+    "check": "logistic_regression entrenada 30 veces con etiquetas permutadas; AUC medio en test real",
+    "rocAucMean": 0.5089,
+    "rocAucStd": 0.1182,
+    "passed": true
+  },
+  "regressionFinalPct": {
+    "model": "HistGradientBoostingRegressor",
+    "testMAE_pctPoints": 19.24,
+    "naiveMAE_linearExtrapolation_pctPoints": 97.48
+  },
+  "bestByBrier": "logistic_regression"
+}

@@ -28,9 +28,10 @@ buildNumber.properties
 .vscode/
 *.swp
 
-# Python
+# Python (también paxfide-predictor/, fuera del build de Maven)
 __pycache__/
 *.pyc
+paxfide-predictor/.venv/
 
 # Demo local: variables de la máquina (scripts/demo/demo.env.example es la plantilla)
 scripts/demo/demo.env

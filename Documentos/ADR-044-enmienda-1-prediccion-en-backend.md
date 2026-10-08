@@ -1,6 +1,8 @@
 # ADR-044 — Enmienda 1: el backend sirve la predicción, evaluada en Java
 
 **Estado:** **BORRADOR** — `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-41 a DD-47). Redactado bajo la segunda autorización de trabajo autónomo de Carlos (2026-10-07), P3, que pidió "un borrador de enmienda a ADR-044".
+*Nota (2026-10-08, encargo 6, P2):* el documento base ya está en el repositorio (`ADR-044-componente-predictivo-python.md`, texto aportado por Carlos) y su sección "Enmiendas" remite a esta. DD-41 a DD-47 quedaron ratificadas el 2026-10-07. El punto 1.6 está sustituido (ver allí). La Enmienda 2 mueve el componente a `Donaciones/paxfide-predictor/`.
+
 **Enmienda a:** ADR-044 (componente predictivo en Python, PROPUESTO). **El documento base no está en este repositorio** (`documento-maestro-proyecto.md`: "número reservado"); esta enmienda se redacta contra lo que de él se cita aquí y contra los artefactos del predictor (`paxfide-predictor`, rama `feat/predictive-dataset-baseline`, `baseline-0.2.0`).
 **Sustituye, si se ratifica:** la respuesta Q-v2-9 de `propuesta-apis-fase6.md` §6 (mock server fuera de `com.traceability`). La sustitución la pidió Carlos en la segunda autorización: "endpoint de solo lectura … el Java calcula la predicción con los datos reales de la convocatoria".
 **No cambia:** el entrenamiento, el dataset ni el código del predictor, que siguen en Python y fuera de la aplicación (ADR-044 D1). El predictor no se mueve de repositorio (instrucción de Carlos).
@@ -29,6 +31,7 @@
 | `UNSUPPORTED_CURRENCY` | Moneda distinta de COP (Carlos, 2026-10-07) |
 
 6. **Fuera del rango de entrenamiento** (el modelo vio el 15 %, 25 % y 50 % del tiempo): se sirve la estimación con una segunda advertencia, no se oculta.
+   - **Sustituido (encargo 5, punto 3, Carlos, 2026-10-08, #94):** fuera del rango (t < 0,15 o t > 0,50) no hay cifra; la respuesta da `available: false` con el motivo `OUTSIDE_TRAINED_RANGE`.
 
 ## 2. Variables con datos reales (DD-45, DD-46)
 

@@ -1,0 +1,288 @@
+{
+  "kind": "ESTIMATE",
+  "synthetic": true,
+  "disclaimer": "Estimación estadística sobre datos simulados. No es un hecho verificable del sistema de trazabilidad.",
+  "organizationRef": "org-demo-001",
+  "generatedAt": "2026-10-06T19:30:00-05:00",
+  "model": {
+    "modelVersion": "baseline-0.1.0",
+    "algorithm": "logistic_regression + quantile_hgb",
+    "datasetVersion": "synthetic-v1",
+    "target": "P(recaudado al cierre >= 100% de la meta)"
+  },
+  "riskBands": {
+    "HIGH_RISK": "p < 0.35",
+    "WATCH": "0.35 <= p < 0.65",
+    "ON_TRACK": "p >= 0.65",
+    "status": "PROPUESTA - umbrales no aprobados"
+  },
+  "items": [
+    {
+      "campaignRef": "cmp-00742",
+      "campaignName": "Kits de higiene La Boquilla",
+      "targetAmount": 71139000,
+      "currency": "COP",
+      "targetPolicy": "FLEXIBLE",
+      "durationDays": 81,
+      "latest": {
+        "t": 0.5,
+        "pctRaisedAtT": 0.3406,
+        "probabilityReachTarget": 0.0124,
+        "riskBand": "HIGH_RISK"
+      },
+      "history": [
+        {
+          "t": 0.15,
+          "pctRaisedAtT": 0.1785,
+          "probabilityReachTarget": 0.0241,
+          "riskBand": "HIGH_RISK"
+        },
+        {
+          "t": 0.25,
+          "pctRaisedAtT": 0.2479,
+          "probabilityReachTarget": 0.0291,
+          "riskBand": "HIGH_RISK"
+        },
+        {
+          "t": 0.5,
+          "pctRaisedAtT": 0.3406,
+          "probabilityReachTarget": 0.0124,
+          "riskBand": "HIGH_RISK"
+        }
+      ],
+      "raisedSeries": [
+        {
+          "t": 0.0,
+          "pctRaised": 0.0
+        },
+        {
+          "t": 0.05,
+          "pctRaised": 0.0752
+        },
+        {
+          "t": 0.1,
+          "pctRaised": 0.1385
+        },
+        {
+          "t": 0.15,
+          "pctRaised": 0.1785
+        },
+        {
+          "t": 0.2,
+          "pctRaised": 0.2176
+        },
+        {
+          "t": 0.25,
+          "pctRaised": 0.2479
+        },
+        {
+          "t": 0.3,
+          "pctRaised": 0.2739
+        },
+        {
+          "t": 0.35,
+          "pctRaised": 0.29
+        },
+        {
+          "t": 0.4,
+          "pctRaised": 0.3076
+        },
+        {
+          "t": 0.45,
+          "pctRaised": 0.3233
+        },
+        {
+          "t": 0.5,
+          "pctRaised": 0.3406
+        }
+      ],
+      "projection": {
+        "atT": 0.5,
+        "finalPctOfTarget": {
+          "p10": 0.5953,
+          "p50": 0.6257,
+          "p90": 0.6959
+        },
+        "note": "El modelo estima solo el valor al cierre; la curva entre t y 1.0 es interpolación visual."
+      }
+    },
+    {
+      "campaignRef": "cmp-01176",
+      "campaignName": "Agua potable Nelson Mandela",
+      "targetAmount": 14498000,
+      "currency": "COP",
+      "targetPolicy": "FLEXIBLE",
+      "durationDays": 34,
+      "latest": {
+        "t": 0.5,
+        "pctRaisedAtT": 0.6107,
+        "probabilityReachTarget": 0.5362,
+        "riskBand": "WATCH"
+      },
+      "history": [
+        {
+          "t": 0.15,
+          "pctRaisedAtT": 0.2952,
+          "probabilityReachTarget": 0.3235,
+          "riskBand": "HIGH_RISK"
+        },
+        {
+          "t": 0.25,
+          "pctRaisedAtT": 0.3928,
+          "probabilityReachTarget": 0.3641,
+          "riskBand": "WATCH"
+        },
+        {
+          "t": 0.5,
+          "pctRaisedAtT": 0.6107,
+          "probabilityReachTarget": 0.5362,
+          "riskBand": "WATCH"
+        }
+      ],
+      "raisedSeries": [
+        {
+          "t": 0.0,
+          "pctRaised": 0.0
+        },
+        {
+          "t": 0.05,
+          "pctRaised": 0.1688
+        },
+        {
+          "t": 0.1,
+          "pctRaised": 0.2433
+        },
+        {
+          "t": 0.15,
+          "pctRaised": 0.2952
+        },
+        {
+          "t": 0.2,
+          "pctRaised": 0.3411
+        },
+        {
+          "t": 0.25,
+          "pctRaised": 0.3928
+        },
+        {
+          "t": 0.3,
+          "pctRaised": 0.4748
+        },
+        {
+          "t": 0.35,
+          "pctRaised": 0.4816
+        },
+        {
+          "t": 0.4,
+          "pctRaised": 0.5651
+        },
+        {
+          "t": 0.45,
+          "pctRaised": 0.5677
+        },
+        {
+          "t": 0.5,
+          "pctRaised": 0.6107
+        }
+      ],
+      "projection": {
+        "atT": 0.5,
+        "finalPctOfTarget": {
+          "p10": 0.9432,
+          "p50": 1.0657,
+          "p90": 1.1756
+        },
+        "note": "El modelo estima solo el valor al cierre; la curva entre t y 1.0 es interpolación visual."
+      }
+    },
+    {
+      "campaignRef": "cmp-00363",
+      "campaignName": "Mercados para adultos mayores",
+      "targetAmount": 10001000,
+      "currency": "COP",
+      "targetPolicy": "FLEXIBLE",
+      "durationDays": 16,
+      "latest": {
+        "t": 0.5,
+        "pctRaisedAtT": 0.8801,
+        "probabilityReachTarget": 0.9963,
+        "riskBand": "ON_TRACK"
+      },
+      "history": [
+        {
+          "t": 0.15,
+          "pctRaisedAtT": 0.437,
+          "probabilityReachTarget": 0.8837,
+          "riskBand": "ON_TRACK"
+        },
+        {
+          "t": 0.25,
+          "pctRaisedAtT": 0.5368,
+          "probabilityReachTarget": 0.8996,
+          "riskBand": "ON_TRACK"
+        },
+        {
+          "t": 0.5,
+          "pctRaisedAtT": 0.8801,
+          "probabilityReachTarget": 0.9963,
+          "riskBand": "ON_TRACK"
+        }
+      ],
+      "raisedSeries": [
+        {
+          "t": 0.0,
+          "pctRaised": 0.0
+        },
+        {
+          "t": 0.05,
+          "pctRaised": 0.1742
+        },
+        {
+          "t": 0.1,
+          "pctRaised": 0.3114
+        },
+        {
+          "t": 0.15,
+          "pctRaised": 0.437
+        },
+        {
+          "t": 0.2,
+          "pctRaised": 0.4799
+        },
+        {
+          "t": 0.25,
+          "pctRaised": 0.5368
+        },
+        {
+          "t": 0.3,
+          "pctRaised": 0.6384
+        },
+        {
+          "t": 0.35,
+          "pctRaised": 0.6881
+        },
+        {
+          "t": 0.4,
+          "pctRaised": 0.7338
+        },
+        {
+          "t": 0.45,
+          "pctRaised": 0.7912
+        },
+        {
+          "t": 0.5,
+          "pctRaised": 0.8801
+        }
+      ],
+      "projection": {
+        "atT": 0.5,
+        "finalPctOfTarget": {
+          "p10": 1.3374,
+          "p50": 1.4099,
+          "p90": 1.5249
+        },
+        "note": "El modelo estima solo el valor al cierre; la curva entre t y 1.0 es interpolación visual."
+      }
+    }
+  ]
+}
