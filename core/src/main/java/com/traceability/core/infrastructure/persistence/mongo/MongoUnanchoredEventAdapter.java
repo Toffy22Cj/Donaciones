@@ -112,4 +112,9 @@ public class MongoUnanchoredEventAdapter implements UnanchoredEventRepositoryPor
         List<TraceabilityEventDocument> docs = mongoTemplate.find(query, TraceabilityEventDocument.class);
         return docs.stream().map(TraceabilityEventDocument::getEventHash).toList();
     }
+
+    @Override
+    public List<String> releaseClaim(String batchId, Map<String, SequenceRange> coverage) {
+        throw new UnsupportedOperationException("pendiente");
+    }
 }

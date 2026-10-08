@@ -23,4 +23,11 @@ public interface UnanchoredEventRepositoryPort {
      * @return ordered list of event hashes
      */
     List<String> getEventHashesByCoverage(Map<String, SequenceRange> coverage);
+
+    /**
+     * RELEASE de un batch COLLECTING_FAILED (Enmienda 1 de ADR-039 §2.3): pone {@code merkleBatchId = null} solo en los
+     * eventos con {@code merkleBatchId == batchId} dentro de su cobertura; nunca toca eventos de otro batch.
+     * @return los {@code eventId} liberados, para la auditoría
+     */
+    List<String> releaseClaim(String batchId, Map<String, SequenceRange> coverage);
 }

@@ -335,6 +335,21 @@ public class MerkleBatchMongoAdapter implements BlockchainAnchorRepositoryPort {
         return doc.getRecoveryAttempts();
     }
 
+    @Override
+    public boolean markCollectingFailed(String batchId) {
+        throw new UnsupportedOperationException("pendiente");
+    }
+
+    @Override
+    public boolean retryCollectingFailed(String batchId) {
+        throw new UnsupportedOperationException("pendiente");
+    }
+
+    @Override
+    public boolean markReleased(String batchId) {
+        throw new UnsupportedOperationException("pendiente");
+    }
+
     private MerkleBatch toDomain(MerkleBatchDocument doc) {
         java.util.Map<String, com.traceability.contracts.SequenceRange> coverage = doc.getCoverage();
         if (coverage == null || coverage.isEmpty()) {
