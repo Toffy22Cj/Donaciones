@@ -178,6 +178,31 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.28 Encargo 6, P1: cierres pequeños (Carlos, 2026-10-08, noche)
+
+- **H-IDX-1, registro para fases anteriores** (como se hizo con las proyecciones en §0.6: "nunca habían funcionado con datos reales"):
+  - **Hasta #92, en la aplicación real no existía ninguno de los índices únicos o parciales que sostienen las garantías de concurrencia e idempotencia de fases anteriores.** No es una regresión arreglada: nunca se habían creado. Faltaban:
+    - `event_store.idx_stream_sequence` (único `{streamId, sequence}`): el control de concurrencia optimista del Event Store;
+    - `campaign_assignments.uq_active_employee_assignment` (único parcial): un `EMPLOYEE`, una sola convocatoria activa;
+    - `donation_intents`: `uq_fund_id`, `uq_payment_session_id` y `uq_provider_event` (idempotencia del webhook de pagos), entre otros;
+    - `unacceptable_payment_events.uq_provider_event` y `donor_pseudonyms.pseudonym`.
+  - **Consecuencia, que se registra tal cual:** esas garantías **solo estaban probadas en tests**. En la aplicación real, dos escrituras concurrentes del mismo stream o el mismo evento del proveedor repetido no habrían chocado contra ningún índice.
+  - **Precisión:** sí existían 5 únicos o parciales, los de documentos con repositorio de Spring Data: `accounts.email`, `configuration_change_requests.uq_pending_configuration_change`, `convocatorias.uq_public_code`, `merkle_batches.batchId` y `organization_invitations.tokenHash`. Los reclamos de comandos (`processed_commands`, `convocatoria_processed_commands`) se apoyan en `_id`, que Mongo siempre crea único, así que esos sí estaban protegidos.
+  - Evidencia: `evidencia-fase6/h-idx-1-indices-al-arrancar-2026-10-08.txt` (21 índices antes y 53 después).
+- **DD-74 ratificada** con un añadido: `Email` quita también los espacios de los extremos (test en rojo primero).
+- **`referencia-api-v1.md`, revisión de nulabilidad contra el código.**
+  - Regla común nueva: `campo?` puede faltar o llegar `null`.
+  - Corregidos: `currentLocation?` (falta en `DISPATCHED`, S-05 del móvil); `organizationName?` en las dos rutas públicas de convocatorias; `paymentRedirectUrl?` (solo `GATEWAY`) y `statusToken?`; `locationZone?` en el seguimiento y en el historial; `content` y `source` con `null` en la narrativa pública; `configurationVersion: null` al rechazar; `campaignTitle?` y `status?` de miembros (ramas defensivas).
+  - Documentados los campos del seguimiento que faltaban: `status`, `refundedAmount` y `custodianCategory`.
+- **ADR-043** se sustituye por la versión **APROBADA** del repositorio móvil (`Toffy22Cj/PaxFide_Mv`, `develop` 5fd86be), con una nota de procedencia. La rama `main` del móvil conserva una versión PROPUESTA anterior.
+- **Otros duplicados con el repositorio móvil (`develop` 5fd86be): no se toca nada; dudas para Carlos.**
+  - `contract-wiring-review.md`: idéntico.
+  - `reglas-equipo-y-agentes.md`: difiere en 3 líneas.
+  - `api-contract-matrix.md`: difiere en 21 líneas.
+  - `front-fase1.md`: difiere en unas 577 líneas.
+
+  En los tres casos no se puede saber cuál es la copia canónica: el clon del móvil es superficial y las fechas no son fiables. Queda pendiente de Carlos.
+
 ### 0.27 Ratificación y encargo 5 (Carlos, 2026-10-08)
 
 - **DD-57 y DD-59 a DD-73: RATIFICADAS — Carlos, 2026-10-08.**

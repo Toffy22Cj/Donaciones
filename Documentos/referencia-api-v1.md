@@ -16,16 +16,17 @@
 | 403 | **Uniforme** (DD-01): sin permiso, otra organización y recurso inexistente en rutas protegidas dan el mismo cuerpo |
 | 404 | Rutas públicas por código (`publicCode`, `trackingCode`, intención) inexistente; organización inexistente solo para la plataforma |
 | 409 | Conflicto de estado o de invariante; el cliente no reintenta automáticamente |
+| Campos opcionales | En las respuestas, `campo?` **puede faltar o llegar `null`** según el endpoint; el cliente trata los dos casos igual. Un campo sin `?` siempre llega y no es `null` (revisión de nulabilidad del 2026-10-08 contra el código) |
 | Paginación | `{items, nextCursor?}`; `nextCursor` omitido en la última página; cursor inválido → 400 (T-35). Donde se indica "una página", hay tope fijo y nunca `nextCursor` |
 
 ## 1. Autenticación y cuenta
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|
-| `POST /auth/login` | pública | `{email, password}`; el email no distingue mayúsculas (DD-74) | `200 {token}` | 400 campos vacíos; **el mismo 401** para email inexistente, contraseña errónea o cuenta inactiva |
-| `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}`; el email se guarda en minúsculas, así que `Ana@x.org` y `ana@x.org` son la misma cuenta (409) (DD-74) | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
+| `POST /auth/login` | pública | `{email, password}`; el email no distingue mayúsculas ni cuenta los espacios de los extremos (DD-74) | `200 {token}` | 400 campos vacíos; **el mismo 401** para email inexistente, contraseña errónea o cuenta inactiva |
+| `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}`; el email se guarda sin espacios en los extremos y en minúsculas, así que ` Ana@x.org` y `ana@x.org` son la misma cuenta (409) (DD-74) | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
 | `GET /me` | JWT | — | `200 {accountId, organizationId?, roles, platformAuthority?}`, `Cache-Control: no-store` (ficha N1) | 401 |
-| `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle, amount, currency, status, trackingCode?}]}`, una página de 100 (DD-21) | 401 |
+| `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle?, amount, currency, status, trackingCode?}]}` (`campaignTitle` solo falta si la convocatoria no se encuentra; rama defensiva), una página de 100 (DD-21) | 401 |
 | `GET /me/campaigns` (§3.4) | JWT | — | `200 {items: [{campaignRef, publicCode, title, status, actingRole, assignedAt}]}`: asignaciones activas de quien llama en su organización actual (también `CLOSED`, DD-72); una página de 100, `no-store` | 401 |
 | `POST /invitations/accept` (§3.3, ADR-049 D4) | JWT de la cuenta invitada | `{token}` en el cuerpo (la web lo lee del fragmento `#token=` y lo borra de la barra); **nunca** en la URL | `200 {organizationId, roles}`; efectivo en la petición siguiente | 401; **el mismo 403 `InvitationNotAcceptable`** (desconocido, caducado, revocado, usado, otro email o token en la URL); 409 `AccountAlreadyBelongsToOrganization` |
 
@@ -47,14 +48,14 @@
 |---|---|---|---|
 | `POST /organizations` (crear organización, R9, §3.1) | JWT, cualquier cuenta activa sin organización; cuerpo `{type: FOUNDATION\|COMPANY, name}` (1–200) | `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`; quien la crea queda como `REPRESENTATIVE` (DD-68) | 400 `type` o `name`; 409 `AccountAlreadyBelongsToOrganization` |
 | `GET /organizations/{organizationId}/campaigns` | `ADMINISTRATOR` de la organización | `200 {items: [{campaignRef, publicCode, title, status, visibility, currency?, targetAmount?, targetPolicy?, clearedAmount?, responsibles: [{accountId, actingRole}], assignedEmployeeCount}]}`, una página de 100 (DD-49) | 403 |
-| `GET /organizations/{organizationId}/members` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-55) | `200 {items: [{accountId, roles, status}]}`, sin email | 403 |
+| `GET /organizations/{organizationId}/members` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-55) | `200 {items: [{accountId, roles, status?}]}`, sin email (`status` solo falta si no se encuentra la cuenta; rama defensiva) | 403 |
 | `POST /organizations/{organizationId}/invitations` (§3.3, ADR-049) | `ADMINISTRATOR` o `REPRESENTATIVE`; cuerpo `{email, role: ADMINISTRATOR\|EMPLOYEE}` | `202 {invitationId, role, expiresAt}`, **la misma respuesta exista o no la cuenta**; el correo lleva `{web}/invitaciones#token=…` (token en el fragmento) | 400 `InvalidMemberRole`, `InvalidEmailFormat`; 403 (antes de validar) |
 | `GET /organizations/{organizationId}/invitations` | ídem | `200 {items: [{invitationId, emailMasked, role, createdAt, expiresAt, delivery: SENT\|FAILED\|PENDING}]}`, pendientes sin caducar, una página de 100, `no-store` (DD-65) | 403 |
 | `POST /organizations/{organizationId}/invitations/{invitationId}/revoke` | ídem | `200 {invitationId, status: "REVOKED"}` | 403; 409 `InvitationNotPending` |
 | `POST /organizations/{organizationId}/members/{accountId}/role` | ídem; cuerpo `{role: ADMINISTRATOR\|EMPLOYEE}` | `200 {accountId, roles}`; los roles del `REPRESENTATIVE` solo los cambia él (DD-66) | 400; 403; 409 `MemberAlreadyHasRole`, `ActiveCampaignResponsible` |
 | `POST /organizations/{organizationId}/members/{accountId}/remove` | ídem | `200 {accountId, removed: true}` | 403; 409 `RepresentativeTransferRequired`, `ActiveCampaignResponsible` |
 | `GET /organizations/{organizationId}/funds` | `ADMINISTRATOR` o `EMPLOYEE` (DD-31) | `200 {items: [{fundId, campaignRef?, currency, clearedAmount, availableAmount, allocations: [{allocationId, amount, status}]}]}`, una página de 200; sin `donorRef` | 403 |
-| `GET /organizations/{organizationId}/physical-assets` | `ADMINISTRATOR` o `EMPLOYEE` (DD-54) | `200 {items: [{assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef?}]}`, una página de 200; sin `donorRef` | 403 |
+| `GET /organizations/{organizationId}/physical-assets` | `ADMINISTRATOR` o `EMPLOYEE` (DD-54) | `200 {items: [{assetRef, lifecycleStatus, currentCustodianRef, currentLocation?, quantity, unitOfMeasure, campaignRef?}]}`, una página de 200 (`currentLocation` falta mientras el activo está `DISPATCHED`, en tránsito; solicitud S-05 del móvil); sin `donorRef` | 403 |
 | `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-43) | `200 {kind: "ESTIMATE", modelVersion, warning, available, probabilityReachTarget?, estimatedFinalPctOfTarget?, pctTimeElapsed?, warnings?, unavailableReason?, unavailableText?, asOf}`, `no-store`. Solo lectura. STRICT → `available: false`, `STRICT_POLICY_EXCLUDED`; moneda distinta de COP → `UNSUPPORTED_CURRENCY` (ADR-044 Enmienda 1, BORRADOR); fuera del rango de entrenamiento (t < 0,15 o t > 0,50) → `OUTSIDE_TRAINED_RANGE`, sin cifras (Carlos, 2026-10-08) | 403 |
 
 ## 4. Convocatoria (administración)
@@ -72,16 +73,16 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 | `POST /campaigns/{campaignRef}/configuration-change-requests` (§3.5) | ídem | `201 {requestId, status: "PENDING", baseConfigurationVersion}` | 400; 403; 409 `ConfigurationChangeRequestAlreadyPending`, versión, cerrada, `MonetaryTermsChangeNotSupported`, `MonetaryRemovalNotAllowed` |
 | `GET /campaigns/{campaignRef}/configuration-change-requests` | — (`ADMINISTRATOR` o `REPRESENTATIVE`) | `200 {items: [{requestId, status, baseConfigurationVersion, proposedConfiguration, requestedBy, requestedAt, decidedBy?, decidedAt?, resultingConfigurationVersion?}]}`, 50, `no-store` | 403 |
 | `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/approve` | — (otro `ADMINISTRATOR` o el `REPRESENTATIVE`) | `200 {requestId, status: "APPROVED", configurationVersion}` | 403 (`SelfApprovalNotAllowed`); 409 `ConfigurationChangeRequestNotPending`, `ConfigurationVersionConflict`, cerrada, `MonetaryRemovalNotAllowed` |
-| `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/reject` | — (los mismos o el solicitante) | `200 {requestId, status: "REJECTED"}` | 403; 409 `ConfigurationChangeRequestNotPending` |
+| `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/reject` | — (los mismos o el solicitante) | `200 {requestId, status: "REJECTED", configurationVersion: null}` | 403; 409 `ConfigurationChangeRequestNotPending` |
 
 ## 5. Convocatoria y donación (público)
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|
-| `GET /public/campaigns` | pública | `?cursor=` | `200 {items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; cursor opaco (DD-58); solo `PUBLIC` y `OPEN`, **nunca `PRIVATE_LINK`** (DD-52) | 400 cursor |
-| `GET /public/campaigns/{publicCode}` (CV-07) | pública | — | `200 {organizationName, title, description?, status, startDate, endDate, acceptedDonationTypes, acceptedPaymentMethods?, currency?, targetAmount?, clearedAmount?}` | 404 |
-| `GET /public/campaigns/{publicCode}/narrative` | pública | — | `200 {status: "AVAILABLE", content, source: "LLM_GENERATED", facts}`; `202 {status: "PENDING", facts}`; `200 {status: "UNAVAILABLE", content: "Narrativa no disponible", facts}`. `facts = {status, currency?, targetAmount?, clearedAmount?, unitsDelivered, distinctRecipients}` (B5, DD-39) | 404 |
-| `POST /public/campaigns/{publicCode}/donation-intents` (CV-11) | JWT **opcional**, `Command-Id` | `{amount, currency, paymentMethod}` | `201 {intentId, statusToken, paymentRedirectUrl}`; un reenvío emite un `statusToken` nuevo y anula el anterior (DD-18 sustituida) | 400; 404; 409 reglas de la convocatoria |
+| `GET /public/campaigns` | pública | `?cursor=` | `200 {items: [{publicCode, title, organizationName?, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; cursor opaco (DD-58); solo `PUBLIC` y `OPEN`, **nunca `PRIVATE_LINK`** (DD-52) | 400 cursor |
+| `GET /public/campaigns/{publicCode}` (CV-07) | pública | — | `200 {organizationName?, title, description?, status, startDate, endDate, acceptedDonationTypes, acceptedPaymentMethods?, currency?, targetAmount?, clearedAmount?}` | 404 |
+| `GET /public/campaigns/{publicCode}/narrative` | pública | — | `200 {status: "AVAILABLE", content, source: "LLM_GENERATED", facts}`; `202 {status: "PENDING", content: null, source: null, facts}`; `200 {status: "UNAVAILABLE", content: "Narrativa no disponible", source: null, facts}` (`content` y `source` siempre llegan, con `null` donde no aplica). `facts = {status, currency?, targetAmount?, clearedAmount?, unitsDelivered, distinctRecipients}` (B5, DD-39) | 404 |
+| `POST /public/campaigns/{publicCode}/donation-intents` (CV-11) | JWT **opcional**, `Command-Id` | `{amount, currency, paymentMethod}` | `201 {intentId, statusToken?, paymentRedirectUrl?}` (`paymentRedirectUrl` solo con `GATEWAY`; `statusToken` solo falta en un reenvío de una intención anterior a la Enmienda 3, sin hash de token); un reenvío emite un `statusToken` nuevo y anula el anterior (DD-18 sustituida) | 400; 404; 409 reglas de la convocatoria |
 | `GET /public/donation-intents/{intentId}` | header `Intent-Token` | — | `200 {status, trackingCode?}` (el código, solo con fondos aplicados) | 404 (token inválido o caducado, igual que inexistente) |
 | `POST /webhooks/payments` | firma `X-Simulated-Signature`; **solo** con `traceability.demo.simulated-payments=true` (perfil `dev`) | `{type: "payment.confirmed"\|"payment.failed", paymentSessionId, providerEventId, amount, currency}` | `200` sin cuerpo | 401 firma; 400 campos; 404 sesión; 409 evento incoherente |
 
@@ -98,7 +99,7 @@ Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras 
 | `POST /physical-assets/{assetRef}/dispatch` | `{carrierRef}` | `200 {assetRef, status: "DISPATCHED"}` | 400; 403; 409 |
 | `POST /physical-assets/{assetRef}/receive` | `{facilityLocation, receiverRef}` | `200 {assetRef, status: "RECEIVED"}` | ídem |
 | `POST /physical-assets/{assetRef}/deliver` | `{finalCustodianRef, beneficiaryRef, locationRef, evidenceRef}` | `200 {assetRef, status: "DELIVERED"}` | ídem |
-| `GET /physical-assets/{assetRef}` | — | `200 {assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef?}` | 403 (también inexistente) |
+| `GET /physical-assets/{assetRef}` | — | `200 {assetRef, lifecycleStatus, currentCustodianRef, currentLocation?, quantity, unitOfMeasure, campaignRef?}`; `currentLocation` falta en `DISPATCHED` (S-05) | 403 (también inexistente) |
 
 ## 7. Fondos (Camino A)
 
@@ -113,9 +114,9 @@ Header `Authorization: Bearer <trackingCode>`; cualquier fallo de código → el
 
 | Método y ruta | Respuestas |
 |---|---|
-| `GET /donations/tracking` | `200 {financialSnapshot: {currency, originalAmount, clearedAmount, pendingAllocationAmount, confirmedAllocationAmount}, campaignRef?, logistics: [{assetRef, lifecycleStatus, assetType, unitOfMeasure, quantity, locationZone}]}` (EF3) |
+| `GET /donations/tracking` | `200 {status: "ACTIVA"\|"EN_PROCESO", financialSnapshot: {currency, originalAmount, clearedAmount, pendingAllocationAmount, confirmedAllocationAmount, refundedAmount}, campaignRef?, logistics: [{assetRef, lifecycleStatus, assetType, unitOfMeasure, quantity, locationZone?, custodianCategory}]}` (EF3); `locationZone` llega `null` si la ubicación no tiene zona pública o el activo no tiene ubicación |
 | `GET /donations/tracking/narrative` | `200 {status: "PENDING"\|"AVAILABLE", content?, source?}` |
-| `GET /donations/tracking/assets/{assetRef}/history` | `200 {history: [{eventType, timestamp, locationZone, custodianCategory, status}]}` |
+| `GET /donations/tracking/assets/{assetRef}/history` | `200 {history: [{eventType, timestamp, locationZone?, custodianCategory, status}]}`; `locationZone` llega `null` en las transiciones sin ubicación (`DISPATCHED`, `SPLIT`, `CUSTODY_TRANSFERRED`, `SPLIT_COMPENSATED`, `DEPLETED`) o sin zona pública |
 
 ## 9. Sin HTTP
 

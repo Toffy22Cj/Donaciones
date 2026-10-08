@@ -144,6 +144,19 @@ class AuthenticationEndToEndIntegrationTest {
         assertThat(login(mixed, "pw-correct-456").getResponse().getStatus()).isEqualTo(401);
     }
 
+    // DD-74 ratificada con añadido: los espacios de los extremos no forman parte del email
+    @Test
+    void theEmail_ignoresSurroundingSpaces_inRegistrationAndLogin() throws Exception {
+        String email = uniqueEmail();
+        MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"  " + email + " \",\"password\":\"pw-correct-123\"}")).andReturn();
+        assertThat(registered.getResponse().getStatus()).isEqualTo(201);
+
+        assertThat(login(email, "pw-correct-123").getResponse().getStatus()).isEqualTo(200);
+        assertThat(login(" " + email.toUpperCase(java.util.Locale.ROOT) + "  ", "pw-correct-123").getResponse().getStatus())
+                .isEqualTo(200);
+    }
+
     // 8
     @Test
     void theThreeLoginFailures_areIdenticalByteForByte() throws Exception {
