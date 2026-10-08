@@ -7,6 +7,7 @@ import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.crypto.application.port.in.IntegrityVerificationPort;
 import com.traceability.crypto.application.port.out.MerkleBatchRepositoryPort;
 import com.traceability.crypto.domain.AnchorStatus;
+import com.traceability.crypto.domain.InconclusiveReason;
 import com.traceability.crypto.domain.MerkleBatch;
 import com.traceability.crypto.domain.StreamIdentity;
 import com.traceability.crypto.domain.VerificationResult;
@@ -54,6 +55,7 @@ public class TrackingIntegrityService {
         LEGACY_BATCH("Lote antiguo sin las hojas guardadas: no se puede recalcular"),
         ROOT_MISMATCH("La raíz recalculada desde los eventos no coincide con la anclada"),
         LEAF_COUNT_CHANGED("Cambió el número de eventos del lote"),
+        CANONICAL_FORM_UNKNOWN("Hay eventos antiguos con una forma canónica que no se puede determinar"),
         VERIFICATION_INCONCLUSIVE("La verificación no fue concluyente");
 
         public final String text;
@@ -146,7 +148,9 @@ public class TrackingIntegrityService {
         VerificationResult r = cached.result();
         return switch (r.status()) {
             case MATCH -> new Verification(Result.MATCH, null, null);
-            case INCONCLUSIVE -> new Verification(Result.INCONCLUSIVE, Reason.VERIFICATION_INCONCLUSIVE, null);
+            case INCONCLUSIVE -> new Verification(Result.INCONCLUSIVE,
+                    r.inconclusiveReason() == InconclusiveReason.CANONICAL_FORM_UNKNOWN
+                            ? Reason.CANONICAL_FORM_UNKNOWN : Reason.VERIFICATION_INCONCLUSIVE, null);
             case MISMATCH -> r.recomputedRoot() == null || !r.diagnosisComplete()
                     ? new Verification(Result.MISMATCH, Reason.LEAF_COUNT_CHANGED, null)
                     : new Verification(Result.MISMATCH, Reason.ROOT_MISMATCH, r.affectedSequences().stream()

@@ -35,7 +35,8 @@ class IntegrityVerificationUseCaseTest {
     void setUp() {
         merkleBatchRepositoryPort = mock(MerkleBatchRepositoryPort.class);
         unanchoredEventRepositoryPort = mock(UnanchoredEventRepositoryPort.class);
-        useCase = new IntegrityVerificationUseCase(merkleBatchRepositoryPort, unanchoredEventRepositoryPort);
+        // el recálculo de cada evento lo cubre IntegrityRecomputationIntegrationTest; aquí, sin hallazgos de eventos
+        useCase = new IntegrityVerificationUseCase(merkleBatchRepositoryPort, unanchoredEventRepositoryPort, coverage -> List.of());
     }
 
     @Test
