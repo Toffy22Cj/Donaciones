@@ -115,7 +115,18 @@ public class ConvocatoriaApiErrorMappings implements ApiErrorMappings {
                 conflict(AssignmentAlreadyRemovedException.class),
                 conflict(LastResponsibleRemovalWithoutReplacementException.class),
                 conflict(ResponsibleAssignmentNotFoundException.class),
-                badRequest(ReplacementActingRoleRequiredException.class));
+                badRequest(ReplacementActingRoleRequiredException.class),
+                // §3.5 (Enmienda 4 de ADR-037): edición directa, solicitud y aprobación de la configuración
+                forbidden(com.traceability.convocatoria.domain.exception.ConfigurationChangeRequestNotFoundException.class),
+                // título propio: quien la recibe ya es miembro autorizado, no revela nada y la web puede explicarlo
+                new ApiErrorMapping(com.traceability.convocatoria.domain.exception.SelfApprovalNotAllowedException.class, HttpStatus.FORBIDDEN, null),
+                conflict(com.traceability.convocatoria.domain.exception.CampaignAlreadyHasDonationsException.class),
+                conflict(com.traceability.convocatoria.domain.exception.ConfigurationVersionConflictException.class),
+                conflict(com.traceability.convocatoria.domain.exception.ConfigurationChangeOnClosedCampaignException.class),
+                conflict(com.traceability.convocatoria.domain.exception.MonetaryTermsChangeNotSupportedException.class),
+                conflict(com.traceability.convocatoria.domain.exception.MonetaryRemovalNotAllowedException.class),
+                conflict(com.traceability.convocatoria.domain.exception.ConfigurationChangeRequestAlreadyPendingException.class),
+                conflict(com.traceability.convocatoria.domain.exception.ConfigurationChangeRequestNotPendingException.class));
     }
 
     private static ApiErrorMapping forbidden(Class<? extends Throwable> type) {

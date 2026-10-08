@@ -93,7 +93,13 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/organizations/{organizationId}/members/{accountId}/role",
             "POST /api/v1/organizations/{organizationId}/members/{accountId}/remove",
             // §3.4: mis convocatorias asignadas
-            "GET /api/v1/me/campaigns");
+            "GET /api/v1/me/campaigns",
+            // §3.5 (Enmienda 4 de ADR-037): configuración con solicitud y aprobación
+            "POST /api/v1/campaigns/{campaignRef}/configuration",
+            "POST /api/v1/campaigns/{campaignRef}/configuration-change-requests",
+            "GET /api/v1/campaigns/{campaignRef}/configuration-change-requests",
+            "POST /api/v1/campaigns/{campaignRef}/configuration-change-requests/{requestId}/approve",
+            "POST /api/v1/campaigns/{campaignRef}/configuration-change-requests/{requestId}/reject");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

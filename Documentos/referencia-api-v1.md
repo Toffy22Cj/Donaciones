@@ -68,6 +68,11 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 | `POST /campaigns/{campaignRef}/administrators` (CV-03) | `{administratorRef}` | `201 {assignmentId}` | ídem |
 | `POST /campaigns/{campaignRef}/responsibles/{responsibleRef}/remove` (DD-50) | opcional `{replacementRef, replacementActingRole}` | `200 {removedAssignmentId, replacementAssignmentId?}` | 400 reemplazo sin `replacementActingRole`; 403; 409 último responsable, no responsable (DD-51), convocatoria `CLOSED` |
 | `POST /campaigns/{campaignRef}/close` | — | `200 {campaignRef, status: "CLOSED"}` | 403; 409 `CampaignAlreadyClosed` (`CLOSED` es terminal) |
+| `POST /campaigns/{campaignRef}/configuration` (§3.5, edición directa) | `{expectedConfigurationVersion, configuration}` | `200 {campaignRef, configurationVersion}`; solo sin donaciones | 400; 403; 409 `CampaignAlreadyHasDonations`, `ConfigurationVersionConflict`, `ConfigurationChangeOnClosedCampaign`, `MonetaryTermsChangeNotSupported` |
+| `POST /campaigns/{campaignRef}/configuration-change-requests` (§3.5) | ídem | `201 {requestId, status: "PENDING", baseConfigurationVersion}` | 400; 403; 409 `ConfigurationChangeRequestAlreadyPending`, versión, cerrada, `MonetaryTermsChangeNotSupported`, `MonetaryRemovalNotAllowed` |
+| `GET /campaigns/{campaignRef}/configuration-change-requests` | — (`ADMINISTRATOR` o `REPRESENTATIVE`) | `200 {items: [{requestId, status, baseConfigurationVersion, proposedConfiguration, requestedBy, requestedAt, decidedBy?, decidedAt?, resultingConfigurationVersion?}]}`, 50, `no-store` | 403 |
+| `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/approve` | — (otro `ADMINISTRATOR` o el `REPRESENTATIVE`) | `200 {requestId, status: "APPROVED", configurationVersion}` | 403 (`SelfApprovalNotAllowed`); 409 `ConfigurationChangeRequestNotPending`, `ConfigurationVersionConflict`, cerrada, `MonetaryRemovalNotAllowed` |
+| `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/reject` | — (los mismos o el solicitante) | `200 {requestId, status: "REJECTED"}` | 403; 409 `ConfigurationChangeRequestNotPending` |
 
 ## 5. Convocatoria y donación (público)
 
