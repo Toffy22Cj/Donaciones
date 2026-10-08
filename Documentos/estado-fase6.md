@@ -178,6 +178,12 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.27 Ratificación y encargo 5 (Carlos, 2026-10-08)
+
+- **DD-57 y DD-59 a DD-73: RATIFICADAS — Carlos, 2026-10-08.**
+- **Deuda registrada (DD-66): transferir el papel de `REPRESENTATIVE` por HTTP.** El dominio lo tiene (`TransferRepresentativeAndRemove`, ADR-026), pero no hay ruta. Hoy los roles del representante solo los cambia él mismo y no puede quitarse.
+- **H-IDX-1: confirmado y corregido.** Con la aplicación real arrancada en perfil `dev` sobre una base vacía, antes de cualquier petición solo existían 21 índices. Faltaban el único `(streamId, sequence)` del event store, el único parcial de `campaign_assignments`, todos los de `donation_intents`, el único de `unacceptable_payment_events`, el de seudónimos y varias colecciones enteras (`processed_commands` y `convocatoria_processed_commands`, entre otras). Solo se creaban los índices de documentos con repositorio de Spring Data. Ahora `MongoIndexInitializer` crea, antes de servir tráfico, las 30 colecciones `@Document` y sus 23 índices declarados (53 índices en total, contando `_id`). `MongoIndexesAtStartupIntegrationTest` falla si falta alguno. Evidencia: `evidencia-fase6/h-idx-1-indices-al-arrancar-2026-10-08.txt`.
+
 ### 0.26 Cierre del encargo 3 y de la tercera autorización (2026-10-08)
 
 **Encargo 3** (DD-29 a DD-56 ratificadas salvo DD-53), punto por punto:
