@@ -1,0 +1,39 @@
+# Encargo 6, P6 (B4) — Enmienda 1 de ADR-039 §2.2: verificación recalculada — 2026-10-08
+
+## Rojo (commit del test)
+[ERROR] Tests run: 8, Failures: 5, Errors: 0, Skipped: 0, Time elapsed: 10.48 s <<< FAILURE! -- in com.traceability.app.application.service.IntegrityRecomputationIntegrationTest
+[ERROR] com.traceability.app.application.service.IntegrityRecomputationIntegrationTest.theChainIsCheckedFromTheEventBeforeTheCoverage -- Time elapsed: 1.251 s <<< FAILURE!
+[ERROR] com.traceability.app.application.service.IntegrityRecomputationIntegrationTest.anEventBeforeTheCutoffWhoseFormCannotBeDetermined_isInconclusive_neverAMismatch -- Time elapsed: 0.042 s <<< FAILURE!
+[ERROR] com.traceability.app.application.service.IntegrityRecomputationIntegrationTest.anEventAfterTheCutoffHashedWithTheLegacyForm_isAMismatch -- Time elapsed: 0.039 s <<< FAILURE!
+[ERROR] com.traceability.app.application.service.IntegrityRecomputationIntegrationTest.aBatchNotYetAnchored_isInconclusiveWithItsReason -- Time elapsed: 0.043 s <<< FAILURE!
+[ERROR] com.traceability.app.application.service.IntegrityRecomputationIntegrationTest.aPayloadAlteredWithoutTouchingTheEventHash_isAMismatch_attributedToThatEvent -- Time elapsed: 0.040 s <<< FAILURE!
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.324 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.632 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseIntegrationTest
+[ERROR] Tests run: 8, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.246 s <<< FAILURE! -- in com.traceability.app.application.integrity.TrackingIntegrityServiceTest
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.anUnknownCanonicalForm_isInconclusiveWithItsOwnReason -- Time elapsed: 0.014 s <<< FAILURE!
+
+## Verde
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.97 s -- in com.traceability.app.web.tracking.TrackingIntegrityHttpIntegrationTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.617 s -- in com.traceability.app.application.integrity.TrackingIntegrityServiceTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.529 s -- in com.traceability.app.application.service.IntegrityRecomputationIntegrationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.083 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.197 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseIntegrationTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.269 s -- in com.traceability.app.application.integrity.TrackingIntegrityServiceTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- sin recalcular el hash: MUERTA  aPayloadAlteredWithoutTouchingTheEventHash_isAMismatch_attributedToThatEvent; anEventAfterTheCutoffHashedWithTheLegacyForm_isAMismatch; anEventBeforeTheCutoffWhoseFormCannotBeDetermined_isInconclusive_neverAMismatch
+- sin comprobar la cadena: MUERTA  theChainIsCheckedFromTheEventBeforeTheCoverage
+- cadena sin el evento anterior a la cobertura: MUERTA  theChainIsCheckedFromTheEventBeforeTheCoverage
+- forma anterior también después del corte: MUERTA  aPayloadAlteredWithoutTouchingTheEventHash_isAMismatch_attributedToThatEvent; anEventAfterTheCutoffHashedWithTheLegacyForm_isAMismatch
+- sin la forma anterior: MUERTA  eventsBeforeTheCutoff_hashedWithTheLegacyForm_match
+- forma desconocida como MISMATCH: MUERTA  anEventBeforeTheCutoffWhoseFormCannotBeDetermined_isInconclusive_neverAMismatch
+- sin motivo NOT_ANCHORED: MUERTA  aBatchNotYetAnchored_isInconclusiveWithItsReason
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+## Definición de hecho (§5) cubierta
+1 payload alterado → MISMATCH atribuido: aPayloadAlteredWithoutTouchingTheEventHash_isAMismatch_attributedToThatEvent
+2 reemplazo en cascada → MISMATCH: anEventReplacedWithItsHashesRecomputedInCascade_isAMismatch; cadena desde el anterior a la cobertura: theChainIsCheckedFromTheEventBeforeTheCoverage
+3 forma anterior antes del corte → MATCH: eventsBeforeTheCutoff_hashedWithTheLegacyForm_match
+4 forma indeterminable antes del corte → INCONCLUSIVE/CANONICAL_FORM_UNKNOWN: anEventBeforeTheCutoffWhoseFormCannotBeDetermined_isInconclusive_neverAMismatch
+5 forma anterior después del corte → MISMATCH (Carlos: la forma anterior solo antes del corte): anEventAfterTheCutoffHashedWithTheLegacyForm_isAMismatch
+Además: eventos reales del event store (fondo y activo con BigDecimal) → MATCH; lote no anclado → NOT_ANCHORED; TrackingIntegrityHttpIntegrationTest (P4) con eventos reales sigue MATCH/MISMATCH.

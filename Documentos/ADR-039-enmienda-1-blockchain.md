@@ -1,6 +1,21 @@
 # ADR-039 — Enmienda 1 — Verificación de integridad recalculada y estado de salida de `COLLECTING`
 
-**Estado:** BORRADOR (2026-10-07). Redactado por el agente; requiere aprobación humana explícita. **No autoriza escribir código** (regla 3.5 de `reglas-equipo-y-agentes.md`).
+**Estado:** **APROBADA — Carlos, 2026-10-08** (encargo 6, P6), "con lo ya revisado". Antes: BORRADOR (2026-10-07).
+
+**Decisiones de la aprobación** (resuelven las preguntas de §6):
+- Se recalcula el `eventHash` desde el payload.
+- La forma canónica anterior **solo** se aplica a eventos con `recordedAt` anterior al corte de `0579f41`. Si un evento así no coincide, el resultado es `INCONCLUSIVE` con motivo propio (`CANONICAL_FORM_UNKNOWN`), nunca `MISMATCH`. Esto resuelve **P1–P2**: un evento posterior al corte solo admite la forma actual, así que la DoD 5 da `MISMATCH`.
+- La cadena `previousHash` se comprueba desde el evento anterior a la cobertura; la génesis es la secuencia 1.
+- `inconclusiveReason` se añade a `VerificationResult`.
+- Se pone un tope a la recuperación, con `COLLECTING_FAILED`, `RETRY` y `RELEASE` → `RELEASED` (auditado y filtrado por batch).
+
+**P3:** la forma anterior vive en un componente aparte, `LegacyCanonicalForm`, sin ampliar la firma del mapper. Se añade una lectura en crudo nueva, `StoredEventReadPort`.
+
+**P4:** no hay entornos reales que comprobar; los tests 3 a 5 quedan como protección.
+
+**El corte**, en UTC, es la fecha del commit `0579f41`: 2026-09-17T02:49:04Z (DD-78).
+
+**Implementación:** §2.2 en el PR de B4 "verificación recalculada"; §2.3, en el PR siguiente.
 **Dirección aprobada por Carlos (2026-10-07):** poner tope y estado de salida a los batches `COLLECTING` que no se pueden recuperar. **Todo el diseño concreto de este documento es una propuesta**: `COLLECTING_FAILED`, `RETRY`/`RELEASE`, `RELEASED`, el recálculo de `eventHash` e `inconclusiveReason`.
 **Origen:** `auditoria-fase6-codigo-vs-documentacion.md` §10 (hallazgos B-5, B-6, B-9 y B-10).
 **Complementa:** ADR-039, `blockchain-resumen.md`. No reabre ADR-019/022 (anclaje EVM).
