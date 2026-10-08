@@ -23,17 +23,14 @@ class ConvocatoriaApiErrorMappingsExhaustivenessTest {
 
     /** Excepciones que ninguna ruta de B6-a puede lanzar, con el bloque que deberá traducirlas. */
     static final Map<String, String> OUT_OF_B6A = Map.ofEntries(
-            Map.entry("CampaignAlreadyHasDonationsException", "editar configuración: sin ruta en la demo"),
             Map.entry("CampaignFundingLimitExceededException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
-            Map.entry("ConfigurationChangeOnClosedCampaignException", "editar configuración: sin ruta en la demo"),
-            Map.entry("ConfigurationVersionConflictException", "editar configuración: sin ruta en la demo"),
             Map.entry("DonationIntentExpiredException", "confirmación manual: fuera de la demo"),
             Map.entry("DonationIntentNotConfirmedException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
             Map.entry("DonationIntentNotFoundException", "ninguna ruta de B6 la lanza (solo una carrera interna)"),
             Map.entry("GatewayIntentManualConfirmationNotAllowedException", "confirmación manual: fuera de la demo"),
             Map.entry("IncompleteConfirmationException", "confirmación manual: fuera de la demo"),
-            Map.entry("InvalidFundingAmountException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"),
-            Map.entry("MonetaryTermsChangeNotSupportedException", "editar configuración: sin ruta en la demo"));
+            Map.entry("InvalidFundingAmountException", "aplicación de fondos: la captura el orquestador de ADR-045, no sale por HTTP"));
+    // §3.5 (Enmienda 4 de ADR-037): las de editar la configuración ya tienen ruta y traducción
 
     @Test
     void everyConcreteConvocatoriaException_isTranslatedOrExplicitlyOutOfB6a() {
