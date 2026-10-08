@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * "Mis convocatorias asignadas" (autorización (3) de Carlos, §3.4): las asignaciones {@code ACTIVE} del responsable
+ * "Mis convocatorias asignadas" (autorización (3) de Carlos, §3.4): las asignaciones {@code ACTIVE} (y, de las cerradas, {@code HISTORICAL}, D-06) del responsable
  * en convocatorias de <b>su organización actual</b>, con el estado de la convocatoria (también {@code CLOSED}, para
  * que vea su historial; `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-72). Solo lectura; la
  * organización la pone quien llama desde el principal, nunca el cliente. Una página con tope de {@value #MAX_ITEMS}.
@@ -35,7 +35,7 @@ public class AssignedCampaignsQuery {
         if (organizationId == null) {
             return List.of();
         }
-        return assignments.findActiveByResponsible(accountId).stream()
+        return assignments.findActiveOrHistoricalByResponsible(accountId).stream()
                 .flatMap(a -> convocatorias.findByCampaignRef(a.getCampaignRef())
                         .filter(c -> organizationId.equals(c.getOrganizationRef()))
                         .map(c -> new AssignedCampaign(c.getCampaignRef(), c.getPublicCode(), c.getTitle(),
