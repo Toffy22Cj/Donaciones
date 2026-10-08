@@ -1,0 +1,96 @@
+# Encargo 6, P5 — semilla del escenario de la demo — 2026-10-08
+
+## Rojo (3149301)
+[ERROR] Tests run: 2, Failures: 1, Errors: 1, Skipped: 0, Time elapsed: 11.26 s <<< FAILURE! -- in com.traceability.app.bootstrap.DemoScenarioSeederIntegrationTest
+[ERROR] com.traceability.app.bootstrap.DemoScenarioSeederIntegrationTest.onADatabaseThatIsNotEmpty_itFailsWithAClearMessage_andCreatesNothing -- Time elapsed: 0.815 s <<< FAILURE!
+[ERROR] com.traceability.app.bootstrap.DemoScenarioSeederIntegrationTest.anEmptyDatabase_endsWithTheWholeDemoScenario_createdThroughServicesAndTheApi -- Time elapsed: 0.007 s <<< ERROR!
+
+## Verde
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.60 s -- in com.traceability.app.bootstrap.DemoScenarioSeederIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- sin comprobar que la base está vacía: MUERTA  onADatabaseThatIsNotEmpty_itFailsWithAClearMessage_andCreatesNothing
+- la activa fuera del rango el día de la demo: MUERTA  anEmptyDatabase_endsWithTheWholeDemoScenario_createdThroughServicesAndTheApi
+- sin cerrar la convocatoria: MUERTA  anEmptyDatabase_endsWithTheWholeDemoScenario_createdThroughServicesAndTheApi; onADatabaseThatIsNotEmpty_itFailsWithAClearMessage_andCreatesNothing
+- sin verificar la organización: MUERTA  anEmptyDatabase_endsWithTheWholeDemoScenario_createdThroughServicesAndTheApi; onADatabaseThatIsNotEmpty_itFailsWithAClearMessage_andCreatesNothing
+- sin entregas: MUERTA  anEmptyDatabase_endsWithTheWholeDemoScenario_createdThroughServicesAndTheApi
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+## Ejecución real (infraestructura de la demo desde cero: down -v, up -d, contrato desplegado; SPRING_PROFILES_ACTIVE=dev,demo-seed)
+Semilla de la demo completa; credenciales locales en /home/user/w29/app/demo-evidencia/credenciales-locales.md
+
+(los trackingCode se omiten aquí; están en Documentos/demo-credenciales-locales.md)
+### GET /donations/tracking/integrity (donación anónima)
+{
+    "batches": [
+        {
+            "anchorStatus": "ANCHORED",
+            "merkleRoot": "8811da5eeba5a150e45881957c7ee878e404fcb00a9ae2af5f26c6a41fcb5ded",
+            "transactionHash": "0x1d9649e2124d610677f6721c36b4cf85a2c502d05926087b0fed32e365317e6b",
+            "network": "ganache-local",
+            "anchoredAt": "2026-10-08T07:09:48.333Z",
+            "confirmedBlockNumber": 2,
+            "eventsOfThisDonation": 12,
+            "verification": {
+                "result": "MATCH"
+            }
+        }
+    ],
+    "unanchoredEvents": 0,
+    "checkedAt": "2026-10-08T07:10:02.118355808Z"
+}
+
+### GET /donations/tracking (donación anónima)
+{
+    "financialSnapshot": {
+        "currency": "COP",
+        "originalAmount": 60000000,
+        "clearedAmount": 60000000,
+        "pendingAllocationAmount": 0,
+        "confirmedAllocationAmount": 50000000,
+        "refundedAmount": 0
+    },
+    "campaignRef": "49b5f279-bb7b-4192-a085-5e7e9c382fa8",
+    "logistics": [
+        {
+            "assetRef": "9ImsNj_EM9wRhQP7JAl-CkwJ8aCgk2QdIg_YrFgcRJc",
+            "lifecycleStatus": "DELIVERED",
+            "assetType": "BLANKET",
+            "unitOfMeasure": "UNITS",
+            "quantity": "6.0000",
+            "locationZone": null,
+            "custodianCategory": "LAST_MILE_CARRIER"
+        },
+        {
+            "assetRef": "Dj5vbY2Ra5fsXcjxq3P1CKPkFRaKebihDPyfR5vjCxo",
+            "lifecycleStatus": "DELIVERED",
+            "assetType": "BLANKET",
+            "unitOfMeasure": "UNITS",
+            "quantity": "4.0000",
+            "locationZone": null,
+### GET prediction (hoy, 8 oct: t≈0, fuera del rango)
+[
+ 200,
+ {
+  "kind": "ESTIMATE",
+  "modelVersion": "baseline-0.2.0",
+  "warning": "modelo entrenado con datos sintéticos",
+  "available": false,
+  "unavailableReason": "OUTSIDE_TRAINED_RANGE",
+  "unavailableText": "Fuera del rango del modelo: solo estima entre el 15 % y el 50 % del tiempo de la convocatoria",
+  "warnings": [
+   "modelo entrenado con datos sintéticos"
+  ],
+  "asOf": "2026-10-08T07:10:14.953215703Z"
+ }
+]
+### GET prediction/history (hoy: los tres cortes son futuros)
+200 True EVENT_STORE [(0.15, '2026-10-14T23:04:19.500Z', 'FUTURE_CUT'), (0.25, '2026-10-19T09:41:26.500Z', 'FUTURE_CUT'), (0.5, '2026-10-30T12:14:14Z', 'FUTURE_CUT')]
+### GET /platform/organizations (cola)
+[200, {"items": [{"organizationId": "01M4D5H98YTC85RTWFN14RVK7D", "name": "Empresa Aliada Demo", "type": "COMPANY", "verificationStatus": "PENDING_VERIFICATION"}]}]
+### GET /me/campaigns (empleado 2)
+[200, {"items": [{"campaignRef": "9fa1dd93-6146-4d10-81c6-d96ad7a8458f", "publicCode": "RKWGQFRESZQQ1BJBPKCDMEDGM6", "title": "Útiles escolares 2026", "status": "CLOSED", "actingRole": "EMPLOYEE", "assignedAt": "2026-10-08T07:09:39.807Z"}, {"campaignRef": "eadde6cd-755a-430a-8082-2a17e10e37e0", "publicCode": "Q968QBQQ91FZ5DTJM3B9GVWR30", "title": "Kits de higiene (enlace privado)", "status": "OPEN", "actingRole": "EMPLOYEE", "assignedAt": "2026-10-08T07:09:40.266Z"}]}]
+
+## Segundo arranque sobre la misma base: se detiene con el mensaje y no crea nada
+IllegalStateException: La base de datos no está vacía {accounts=7, organizations=2, convocatorias=3, event_store=17, donation_intents=5, merkle_batches=1}. La semilla de la demo (perfil demo-seed) solo se ejecuta sobre una base vacía y sin la semilla antigua (TRACEABILITY_DEMO_SEED_ENABLED=false). Para empezar de cero: docker compose -f scripts/demo/docker-compose.yml down -v y repetir los pasos del runbook.
+accounts y convocatorias después: 7 3 (sin cambios)
