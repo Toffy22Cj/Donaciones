@@ -202,4 +202,17 @@ class TrackingIntegrityServiceTest {
         assertThat(d.unanchoredEvents()).isZero();
         verify(batches, never()).findByBatchId(anyString());
     }
+
+    @Test
+    void anUnknownCanonicalForm_isInconclusiveWithItsOwnReason() {
+        twoBatches();
+        when(verification.verifyBatch("B-OLD")).thenReturn(new VerificationResult(VerificationStatus.INCONCLUSIVE,
+                "root-B-OLD", "root-B-OLD", List.of(new StreamIdentity("FUND-1", 1)), true,
+                com.traceability.crypto.domain.InconclusiveReason.CANONICAL_FORM_UNKNOWN));
+
+        BatchIntegrity old = service.integrityOf("FUND-1").batches().get(0);
+
+        assertThat(old.verification().result()).isEqualTo(Result.INCONCLUSIVE);
+        assertThat(old.verification().reason()).isEqualTo(Reason.CANONICAL_FORM_UNKNOWN);
+    }
 }

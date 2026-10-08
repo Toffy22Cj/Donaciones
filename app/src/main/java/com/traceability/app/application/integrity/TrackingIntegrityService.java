@@ -54,6 +54,7 @@ public class TrackingIntegrityService {
         LEGACY_BATCH("Lote antiguo sin las hojas guardadas: no se puede recalcular"),
         ROOT_MISMATCH("La raíz recalculada desde los eventos no coincide con la anclada"),
         LEAF_COUNT_CHANGED("Cambió el número de eventos del lote"),
+        CANONICAL_FORM_UNKNOWN("Hay eventos antiguos con una forma canónica que no se puede determinar"),
         VERIFICATION_INCONCLUSIVE("La verificación no fue concluyente");
 
         public final String text;
