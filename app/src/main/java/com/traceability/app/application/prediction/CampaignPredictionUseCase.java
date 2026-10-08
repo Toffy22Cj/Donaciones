@@ -43,7 +43,11 @@ public class CampaignPredictionUseCase {
         TARGET_ALREADY_REACHED("La meta ya se alcanzó"),
         TOO_MANY_INTENTS("Demasiadas intenciones para calcular la estimación"),
         /** Carlos, 2026-10-08: fuera del rango de entrenamiento, ninguna cifra. */
-        OUTSIDE_TRAINED_RANGE("Fuera del rango del modelo: solo estima entre el 15 % y el 50 % del tiempo de la convocatoria");
+        OUTSIDE_TRAINED_RANGE("Fuera del rango del modelo: solo estima entre el 15 % y el 50 % del tiempo de la convocatoria"),
+        /** Estimaciones históricas (encargo 6, P3): el corte aún no ha llegado. */
+        FUTURE_CUT("Este corte aún no ha llegado"),
+        /** Estimaciones históricas: la configuración cambió después del corte y no se conocen sus valores de entonces. */
+        CONFIGURATION_CHANGED_AFTER_CUT("La configuración cambió después de este corte: no se reconstruye con valores posteriores");
 
         public final String text;
 

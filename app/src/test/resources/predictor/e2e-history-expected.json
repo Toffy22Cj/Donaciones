@@ -1,0 +1,51 @@
+{
+  "modelVersion": "baseline-0.2.0",
+  "cuts": {
+    "0.15": {
+      "features": {
+        "logTargetAmount": 15.89495209964411,
+        "durationDays": 40,
+        "orgPriorCampaigns": 0,
+        "paymentMethodsEnabled": 1,
+        "pctTimeElapsed": 0.15,
+        "pctRaised": 0.0,
+        "nDonations": 0,
+        "nDistinctDonors": 0,
+        "meanDonationPctOfTarget": 0.0,
+        "recentVelocity": 0.0,
+        "overallVelocity": 0.0,
+        "requiredVelocity": 0.029411764705882353,
+        "paceRatio": 0.0,
+        "failedRate": 0.0,
+        "targetPolicy": "FLEXIBLE",
+        "visibility": "PUBLIC"
+      },
+      "pctRaised": 0.0,
+      "probabilityReachTarget": 0.0012828707889455566,
+      "finalPctOfTarget": 0.41801346292482955
+    },
+    "0.25": {
+      "features": {
+        "logTargetAmount": 15.89495209964411,
+        "durationDays": 40,
+        "orgPriorCampaigns": 0,
+        "paymentMethodsEnabled": 1,
+        "pctTimeElapsed": 0.25,
+        "pctRaised": 0.2625,
+        "nDonations": 2,
+        "nDistinctDonors": 2,
+        "meanDonationPctOfTarget": 0.13125,
+        "recentVelocity": 0.065625,
+        "overallVelocity": 0.026250000000000002,
+        "requiredVelocity": 0.024583333333333336,
+        "paceRatio": 1.05,
+        "failedRate": 0.0,
+        "targetPolicy": "FLEXIBLE",
+        "visibility": "PUBLIC"
+      },
+      "pctRaised": 0.2625,
+      "probabilityReachTarget": 0.030467931919022476,
+      "finalPctOfTarget": 0.7310299169211777
+    }
+  }
+}
