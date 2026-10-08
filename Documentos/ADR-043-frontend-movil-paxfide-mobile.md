@@ -1,10 +1,12 @@
 # ADR-043 — Frontend móvil `paxfide-mobile`: sesión, Outbox con fallo ambiguo, restauración, navegación y deep links
 
+> **Procedencia (2026-10-08, encargo de Carlos):** copia literal, sin cambios, de `ADR-043-frontend-movil-paxfide-mobile.md` del repositorio móvil `Toffy22Cj/PaxFide_Mv`, rama `develop`, commit `5fd86beff4abece18047f461ae3a6578a08b3a90` (SHA-256 del fichero: `24eae592fca5df88ec97e2522be2ccbe32cb2703fcacd7b644bf878b9e8c7e05`). La copia canónica es la del repositorio móvil; esta es de consulta para el backend. Sustituye a la copia anterior, que seguía en PROPUESTO.
+
 *Nota de numeración (2026-10-07, decisión de Carlos):* el ADR del frontend web `paxfide-web` se renumera de ADR-042 a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`, repositorio `Toffy22Cj/PaxFide`) por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md`, que conserva su número. Las referencias de este documento se actualizaron.
 
-**Status:** PROPUESTO (2026-09-30). Pasa a APROBADO cuando se cumplan las condiciones de §7. Aprobar este ADR **no** autoriza escribir código: antes se requiere el plan de implementación aprobado (regla 3.4).
+**Status:** **APROBADO — Carlos, 2026-10-07T22:35Z (UTC)**, con los cambios de la §0 "Enmienda de aprobación" (encargo "alinear y completar `paxfide-mobile`", 2026-10-07). Antes: PROPUESTO (2026-09-30). Lo que en este documento contradiga la §0 queda sustituido por ella.
 **Fecha:** 2026-09-30 (revisión 1)
-**Número:** **043, propuesto** — era el siguiente libre tras ADR-042 (frontend web, hoy ADR-046) en la numeración vigente. No está asignado hasta aprobación humana explícita (condición 2 de §7).
+**Número:** **043, asignado al aprobarse (2026-10-07)**; texto original: — era el siguiente libre tras ADR-042 (frontend web, hoy ADR-046) en la numeración vigente. No está asignado hasta aprobación humana explícita (condición 2 de §7).
 
 **Documento de diseño fuente:** `front-fase1.md` (raíz), versión con estado "Flutter v1 cerrado a nivel de diseño". Este ADR **no reescribe el diseño**: formaliza las decisiones arquitectónicamente significativas y remite a sus secciones (§N = sección de `front-fase1.md`). Ante cualquier discrepancia entre este ADR y `front-fase1.md`, se detiene y se reporta; no se resuelve por interpretación.
 
@@ -13,6 +15,26 @@
 **Relacionados:** `front-fase1.md`, `ADR-046-frontend-web-paxfide-web.md`, `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `api-contract-matrix.md`, `identity-resumen.md`, `golden-path.md`, `reglas-equipo-y-agentes.md`.
 
 **Origen de la obligación:** ADR-046 §5 dejó explícitamente fuera "las decisiones pendientes de ADR de `front-fase1.md` (T-1 en móvil, máquina del Outbox con T-2, `PendingIntent`)", para "un ADR propio o una enmienda, a decidir por el equipo". El equipo eligió ADR propio.
+
+---
+
+## 0. Enmienda de aprobación — Carlos, 2026-10-07T22:35Z
+
+Decisiones de Carlos (encargo del 2026-10-07, sección 1), aplicadas literalmente. Prevalecen sobre cualquier punto de §1–§7 que las contradiga.
+
+| # | Cambio | Sustituye o actualiza |
+|---|---|---|
+| A1 | **H2 decidido (sustituye a D11).** Cada entrada del Outbox guarda el `accountId` que la creó. Una cuenta distinta nunca envía ni ve entradas ajenas. Tras un logout las entradas siguen guardadas y solo reaparecen si entra la misma cuenta. Descartarlas pide confirmación. | D11 (queda sin efecto: el `SyncEngine` se habilita); H2 en §5 (cerrado) |
+| A2 | **D12.** Se autorizan `mobile_scanner` (escanear) y `qr_flutter` (generar). El `OutboxStore` va en `flutter_secure_storage` (ya aprobado): JSON cifrado con un campo de versión. Enrutado y estado con el SDK de Flutter, sin librerías nuevas. Ninguna otra dependencia sin preguntar a Carlos. | D12 (tabla de dependencias); D5 (tecnología del `OutboxStore`) |
+| A3 | **Alcance.** Donante y operador de campo (D1). Única excepción: la pantalla de **predicción**, visible también para `ADMINISTRATOR`/`REPRESENTATIVE` (requisito académico). | D1 |
+| A4 | **D10 actualizado.** Ya existen en el backend `dispatch`/`receive`/`deliver`, `GET /me`, `POST /auth/register`, CV-11 (donar), la consulta de la intención y `GET /account/donations`; dejan de estar bloqueados. | D10; N1 en §5 (cerrado por `GET /me`); fila "Contratos de dispatch/receive/deliver" de §5 |
+| A5 | **Secciones §8 y §9 como registro histórico.** Este ADR no tiene secciones §8 ni §9 numeradas; la nota se aplicó a **D8 y D9** (árbol de rutas y deep links), que son las que el encargo contradice (seguimiento sin código en la URL). Ver `Documentos/decisiones-delegadas-mobile-2026-10.md`, DDM-01. | D8, D9 |
+
+Decisiones que el encargo da por tomadas y que este ADR recoge para la trazabilidad:
+
+- **Seguimiento sin código en la URL** (decisión ya tomada en la web): el QR de seguimiento abre la pantalla de seguimiento **sin** el código; el código se escribe a mano y viaja solo en la cabecera `Authorization`. Cierra H1 en móvil: no hay credencial en ninguna ruta ni en `NavigationRestoreState`.
+- **El rol sale de `GET /api/v1/me`** y vive en memoria junto a la sesión; nunca se persiste ni se lee del JWT (refuerza D3).
+- Las acciones del operador se **muestran** solo a `EMPLOYEE` según `/me`; el backend sigue autorizando cada petición (P7).
 
 ---
 
@@ -121,6 +143,8 @@ Reglas:
 
 ### D8 — Árbol de rutas v1 y guards
 
+> **Registro histórico (2026-10-07).** Esta decisión se conserva como registro. Lo que contradiga el encargo de Carlos del 2026-10-07 (§0) queda sustituido; en particular, la ruta `/tracking/:trackingCode` se sustituye por `/tracking` sin parámetro (el código nunca va en una URL).
+
 (§9, §10)
 
 - Árbol aprobado de §9: públicas `/c/:publicCode`, `/tracking/:trackingCode`; auth `/login`; autenticadas `/home`, `/donations`, `/operator`, `/operator/pending`, `/assets/:assetRef`.
@@ -134,6 +158,8 @@ Reglas:
 
 ### D9 — Deep links y `PendingIntent`
 
+> **Registro histórico (2026-10-07).** Esta decisión se conserva como registro. Lo que contradiga el encargo de Carlos del 2026-10-07 (§0) queda sustituido; en particular, la ruta `/tracking/:trackingCode` se sustituye por `/tracking` sin parámetro (el código nunca va en una URL).
+
 (§11)
 
 - **R1:** único `DeepLinkParser` para enlaces del sistema operativo y del escáner interno.
@@ -144,6 +170,8 @@ Reglas:
 - Formulario con cambios no enviados + deep link entrante → confirmar salida (abandonar consume el enlace; cancelar lo descarta y conserva el formulario).
 
 ### D10 — Alcance funcional v1
+
+> **Actualizada (2026-10-07, §0 A4):** donar, consulta de la intención, registro de cuenta, `/me` y los comandos `dispatch`/`receive`/`deliver` ya existen en el backend y dejan de estar fuera de v1 o bloqueados.
 
 (§12, §13)
 
@@ -157,6 +185,8 @@ Reglas:
 
 ### D11 — Bloqueo de habilitación del `SyncEngine` por H2
 
+> **Sustituida (2026-10-07):** H2 quedó decidido por Carlos (§0, A1). Este bloqueo ya no aplica.
+
 **PROPUESTA NUEVA de este ADR. No está en `front-fase1.md`; requiere aprobación explícita (condición 3 de §7).**
 
 - Motivo: H2 (ownership del Outbox ante cambio de cuenta) puede producir un evento inmutable atribuido al actor equivocado. `hallazgos-front-fase2.md` clasifica esa clase de efecto como severidad **Crítica**. T-1 agrava el escenario: un `401` puede provocar logout con entradas `AMBIGUOUS` pendientes.
@@ -165,6 +195,8 @@ Reglas:
 - Alternativa a esta propuesta: tratar H2 como riesgo aceptado y documentado. No recomendada: el efecto es irreversible en el Event Store.
 
 ### D12 — Dependencias base
+
+> **Actualizada (2026-10-07, §0 A2):** `mobile_scanner`, `qr_flutter` y `OutboxStore` sobre `flutter_secure_storage` (JSON cifrado con versión) quedan decididos. Enrutado y estado: SDK de Flutter. Cliente HTTP: `dart:io` del SDK (DDM-04).
 
 Mínimas. Cualquier dependencia no listada como "Decidido" requiere enmienda a este ADR antes de usarse (regla 3.5).
 
@@ -270,5 +302,7 @@ Ninguna opción de esta sección está elegida. Cada una se resuelve por enmiend
 | 3 | **D11** como decisión nueva: bloqueo de habilitación del `SyncEngine` hasta decidir H2 (aprobar, rechazar o sustituir por riesgo aceptado) | PENDIENTE |
 | 4 | Aceptar que D12 deja dependencias sin decidir y que cada una exige enmienda antes de usarse | PENDIENTE |
 | 5 | Fuente documental única: existen dos copias de `front-fase1.md` en la raíz (2026-09-27 01:17 y 01:19 UTC); por la convención del proyecto rige la más reciente. Confirmar que es la versión "cerrada a nivel de diseño" y retirar o marcar la otra como histórica | PENDIENTE |
+
+**Resolución (2026-10-07):** Carlos aprueba el ADR con la §0. La condición 3 se resuelve sustituyendo D11 por la decisión de H2 (A1); la 4, autorizando las dependencias de A2; la 5, por la convención "rige la copia más reciente" (ver DDM-02).
 
 Cuando las cinco estén cumplidas, el estado pasa a **APROBADO** sin nueva revisión técnica. Hasta entonces, `front-fase1.md` §17 conserva sus pendientes y este ADR no los da por resueltos.
