@@ -111,13 +111,16 @@ Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras 
 
 ## 8. Seguimiento del donante
 
-Header `Authorization: Bearer <trackingCode>`; cualquier fallo de código → el mismo 404 con `ProblemDetail` fijo (TR-D1).
+Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o caducó, **todas** las rutas de esta sección dan **401** con el mismo `ProblemDetail` (`title: "Unauthorized"`, `detail: "Invalid or missing tracking code"`; solo cambia `instance`, que es la ruta pedida).
+
+*Corrección (2026-10-08, hallazgo H-TR-1):* esta sección decía "el mismo 404 (TR-D1)", pero el filtro del `trackingCode` responde 401 desde la Fase 3. El test de P4 lo comprobó. Se documenta el comportamiento real; cambiarlo a 404 sería decisión de Carlos.
 
 | Método y ruta | Respuestas |
 |---|---|
 | `GET /donations/tracking` | `200 {status: "ACTIVA"\|"EN_PROCESO", financialSnapshot: {currency, originalAmount, clearedAmount, pendingAllocationAmount, confirmedAllocationAmount, refundedAmount}, campaignRef?, logistics: [{assetRef, lifecycleStatus, assetType, unitOfMeasure, quantity, locationZone?, custodianCategory}]}` (EF3); `locationZone` llega `null` si la ubicación no tiene zona pública o el activo no tiene ubicación |
 | `GET /donations/tracking/narrative` | `200 {status: "PENDING"\|"AVAILABLE", content?, source?}` |
 | `GET /donations/tracking/assets/{assetRef}/history` | `200 {history: [{eventType, timestamp, locationZone?, custodianCategory, status}]}`; `locationZone` llega `null` en las transiciones sin ubicación (`DISPATCHED`, `SPLIT`, `CUSTODY_TRANSFERRED`, `SPLIT_COMPENSATED`, `DEPLETED`) o sin zona pública |
+| `GET /donations/tracking/integrity` (encargo 6, P4; ficha `ficha-p4-integridad-en-seguimiento.md`) | `200 {batches: [{anchorStatus, merkleRoot?, transactionHash?, network?, anchoredAt?, confirmedBlockNumber?, eventsOfThisDonation, verification: {result: "MATCH"\|"MISMATCH"\|"INCONCLUSIVE", reason?, reasonText?, affectsThisDonation?}}], unanchoredEvents, checkedAt}`, `no-store`. Un lote entra si tiene eventos del fondo o de sus activos. `reason`: `NOT_ANCHORED`, `LEGACY_BATCH`, `ROOT_MISMATCH` (con `affectsThisDonation`), `LEAF_COUNT_CHANGED` o `VERIFICATION_INCONCLUSIVE`. Nunca el `batchId`, la cobertura ni nada de otra donación. Resultado en caché 5 min por lote (DD-76) |
 
 ## 9. Sin HTTP
 

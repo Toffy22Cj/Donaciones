@@ -1,0 +1,38 @@
+# Encargo 6, P4 — integridad visible en el seguimiento — 2026-10-08
+
+## Rojo (2d38520)
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 13.13 s <<< FAILURE! -- in com.traceability.app.web.tracking.TrackingIntegrityHttpIntegrationTest
+[ERROR] com.traceability.app.web.tracking.TrackingIntegrityHttpIntegrationTest.theDonorSeesTheAnchorAndTheVerification_andNothingOfTheOtherDonation -- Time elapsed: 2.584 s <<< FAILURE!
+[ERROR] Tests run: 7, Failures: 0, Errors: 7, Skipped: 0, Time elapsed: 0.605 s <<< FAILURE! -- in com.traceability.app.application.integrity.TrackingIntegrityServiceTest
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.withoutAProjection_onlyTheFundStreamIsChecked_andNoEventsMeansNoBatches -- Time elapsed: 0.150 s <<< ERROR!
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.aChangedNumberOfEvents_isAMismatchThatCannotBeAttributed -- Time elapsed: 0.008 s <<< ERROR!
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.aLegacyBatchWithoutLeaves_isInconclusive -- Time elapsed: 0.006 s <<< ERROR!
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.theVerificationIsCachedFiveMinutes_perBatch -- Time elapsed: 0.006 s <<< ERROR!
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.aMismatch_saysWhetherItTouchesThisDonation_withoutNamingOtherStreams -- Time elapsed: 0.004 s <<< ERROR!
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.onlyTheBatchesWithEventsOfThisDonation_withTheirAnchorData_andAMatch -- Time elapsed: 0.004 s <<< ERROR!
+[ERROR] com.traceability.app.application.integrity.TrackingIntegrityServiceTest.aMismatchOnItsOwnEvent_affectsThisDonation -- Time elapsed: 0.004 s <<< ERROR!
+org.opentest4j.AssertionFailedError: 
+[{"type":"about:blank","title":"NotFound","status":404,"detail":"The resource was not found."}] 
+expected: 200
+
+## Verde
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 11.31 s -- in com.traceability.app.auth.PublicRoutesInventoryIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.705 s -- in com.traceability.app.web.tracking.TrackingIntegrityHttpIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.362 s -- in com.traceability.app.web.AppWebArchitectureTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.685 s -- in com.traceability.app.application.integrity.TrackingIntegrityServiceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.103 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.381 s -- in com.traceability.app.application.service.IntegrityVerificationUseCaseIntegrationTest
+
+## Mutaciones (scripts/mutaciones.py, salida literal)
+- sin los activos de la donación: MUERTA  onlyTheBatchesWithEventsOfThisDonation_withTheirAnchorData_andAMatch
+- verifica lotes no anclados: MUERTA  aChangedNumberOfEvents_isAMismatchThatCannotBeAttributed; aLegacyBatchWithoutLeaves_isInconclusive; aMismatchOnItsOwnEvent_affectsThisDonation; aMismatch_saysWhetherItTouchesThisDonation_withoutNamingOtherStreams; onlyTheBatchesWithEventsOfThisDonation_withTheirAnchorData_andAMatch; theVerificationIsCachedFiveMinutes_perBatch
+- affectsThisDonation con cualquier stream: MUERTA  aMismatch_saysWhetherItTouchesThisDonation_withoutNamingOtherStreams
+- sin caché: MUERTA  theVerificationIsCachedFiveMinutes_perBatch
+- caché eterna: MUERTA  theVerificationIsCachedFiveMinutes_perBatch
+- legado como MATCH: MUERTA  aLegacyBatchWithoutLeaves_isInconclusive
+- número de hojas como raíz: MUERTA  aChangedNumberOfEvents_isAMismatchThatCannotBeAttributed
+- cuenta los eventos anclados como pendientes: MUERTA  onlyTheBatchesWithEventsOfThisDonation_withTheirAnchorData_andAMatch
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+## Hallazgo H-TR-1
+referencia-api-v1.md §8 decía que un trackingCode inválido daba 404; el filtro (TrackingCodeAuthFilter) responde 401 en todas las rutas del seguimiento. El test HTTP de P4 lo comprobó; se corrige el documento, no el comportamiento.
