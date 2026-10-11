@@ -16,18 +16,17 @@ import java.util.List;
 
 /**
  * Estadística pública de donaciones de una convocatoria, para el gráfico del detalle de la causa. Ruta pública en
- * {@code PublicRoutes}, con el mismo acceso y el mismo 404 que CV-07. Solo totales por periodo (al menos
- * {@link PublicDonationStats#MIN_DONATIONS_PER_PERIOD} donaciones cada uno), sin donaciones sueltas ni datos del
- * donante. Los días se cuentan en {@code traceability.public-stats.time-zone}. El código no se registra ni se devuelve.
+ * {@code PublicRoutes}, con el mismo acceso y el mismo 404 que CV-07. Totales por día (monto y número de donaciones),
+ * sin datos del donante. Los días se cuentan en {@code traceability.public-stats.time-zone}. El código no se registra
+ * ni se devuelve.
  */
 @RestController
 public class PublicCampaignDonationStatsController {
 
-    public record PeriodResponse(String from, String to, String amount, int donations) {}
+    public record DayResponse(String date, String amount, int donations) {}
 
     public record DonationStatsResponse(String currency, String targetAmount, String totalAmount, int donations,
-                                        int minDonationsPerPeriod, String timeZone, List<PeriodResponse> periods,
-                                        String asOf) {}
+                                        String timeZone, List<DayResponse> days, String asOf) {}
 
     private final PublicDonationStatsQuery stats;
     private final ZoneId zone;
@@ -44,14 +43,12 @@ public class PublicCampaignDonationStatsController {
     @GetMapping("/api/v1/public/campaigns/{publicCode}/donation-stats")
     public ResponseEntity<DonationStatsResponse> donationStats(@PathVariable("publicCode") String publicCode) {
         PublicDonationStats s = stats.statsOf(publicCode, zone).orElseThrow(PublicCampaignNotFoundException::new);
-        List<PeriodResponse> periods = s.periods().stream()
-                .map(p -> new PeriodResponse(p.from().toString(), p.to().toString(), Long.toString(p.amount()),
-                        p.donations()))
+        List<DayResponse> days = s.days().stream()
+                .map(d -> new DayResponse(d.date().toString(), Long.toString(d.amount()), d.donations()))
                 .toList();
         DonationStatsResponse body = new DonationStatsResponse(s.currency(),
                 s.targetAmount() == null ? null : s.targetAmount().toString(), Long.toString(s.totalAmount()),
-                s.donations(), PublicDonationStats.MIN_DONATIONS_PER_PERIOD, zone.getId(), periods,
-                clock.instant().toString());
+                s.donations(), zone.getId(), days, clock.instant().toString());
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);
     }
 }

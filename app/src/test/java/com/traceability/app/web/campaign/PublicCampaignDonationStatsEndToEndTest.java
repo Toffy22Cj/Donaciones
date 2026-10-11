@@ -49,9 +49,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Estadística pública de donaciones, de punta a punta: donaciones por el webhook simulado en tres días distintos (el
- * reloj controlado fija la hora de aplicación de los fondos) y un pago fallido. La ruta es pública, agrupa los días
- * hasta reunir al menos 3 donaciones, su total coincide con "lo recaudado" del detalle y no lleva datos de ninguna
- * donación suelta.
+ * reloj controlado fija la hora de aplicación de los fondos) y un pago fallido. La ruta es pública, suma por día, su
+ * total coincide con "lo recaudado" del detalle y no lleva datos del donante.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
@@ -149,7 +148,7 @@ class PublicCampaignDonationStatsEndToEndTest {
     }
 
     @Test
-    void agrupaPorDiasConAlMenosTresDonaciones_sinDatosDeDonacionesSueltas() throws Exception {
+    void sumaPorDia_yElTotalEsLoRecaudado_sinDatosDelDonante() throws Exception {
         String platformEmail = UUID.randomUUID() + "@platform.test";
         accounts.createAccount(new Email(platformEmail), "Pass123!Pass123!");
         String platform = bootstrap.bootstrap(platformEmail).value();
@@ -174,7 +173,7 @@ class PublicCampaignDonationStatsEndToEndTest {
 
         JsonNode empty = ok(send("GET", "/api/v1/public/campaigns/" + code + "/donation-stats", null, null), 200);
         assertThat(empty.get("totalAmount").asText()).isEqualTo("0");
-        assertThat(empty.get("periods")).isEmpty();
+        assertThat(empty.get("days")).isEmpty();
 
         Instant dayA = start.plus(Duration.ofDays(1));
         Instant dayB = start.plus(Duration.ofDays(3));
@@ -198,11 +197,11 @@ class PublicCampaignDonationStatsEndToEndTest {
         assertThat(s.get("targetAmount").asText()).isEqualTo("800000000");
         assertThat(s.get("totalAmount").asText()).isEqualTo("21000000");
         assertThat(s.get("donations").asInt()).isEqualTo(6);
-        assertThat(s.get("minDonationsPerPeriod").asInt()).isEqualTo(3);
         assertThat(s.get("timeZone").asText()).isEqualTo("America/Bogota");
-        assertThat(s.get("periods")).isEqualTo(json.readTree("""
-                [{"from":"%s","to":"%s","amount":"6000000","donations":3},
-                 {"from":"%s","to":"%s","amount":"15000000","donations":3}]""".formatted(a, a, b, c)));
+        assertThat(s.get("days")).isEqualTo(json.readTree("""
+                [{"date":"%s","amount":"6000000","donations":3},
+                 {"date":"%s","amount":"4000000","donations":1},
+                 {"date":"%s","amount":"11000000","donations":2}]""".formatted(a, b, c)));
 
         JsonNode detail = ok(send("GET", "/api/v1/public/campaigns/" + code, null, null), 200);
         assertThat(detail.get("clearedAmount").asText()).as("el total es lo recaudado").isEqualTo("21000000");
