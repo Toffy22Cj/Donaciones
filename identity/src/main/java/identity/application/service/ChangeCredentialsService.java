@@ -23,15 +23,18 @@ public class ChangeCredentialsService {
     private final PasswordHasherPort passwordHasher;
     private final AuditLogPort auditLogPort;
     private final MongoTransactionRetryHelper retryHelper;
+    private final DeviceCredentialService deviceCredentials;
 
     public ChangeCredentialsService(AccountRepositoryPort accountRepository, 
                                   PasswordHasherPort passwordHasher, 
                                   AuditLogPort auditLogPort,
-                                  MongoTransactionRetryHelper retryHelper) {
+                                  MongoTransactionRetryHelper retryHelper,
+                                  DeviceCredentialService deviceCredentials) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.auditLogPort = auditLogPort;
         this.retryHelper = retryHelper;
+        this.deviceCredentials = deviceCredentials;
     }
 
     public void changeCredentials(AuditActor actor, AccountId accountId, String newPlainPassword) {
@@ -58,5 +61,7 @@ public class ChangeCredentialsService {
             );
             auditLogPort.record(auditLog);
         });
+        // Con la contraseña nueva, ningún teléfono sigue entrando con la huella: hay que volver a activarla
+        deviceCredentials.revokeAll(accountId);
     }
 }

@@ -53,6 +53,8 @@ import static org.mockito.Mockito.times;
         MongoTransactionRetryHelper.class,
         CreateAccountService.class,
         ChangeCredentialsService.class,
+        DeviceCredentialService.class,
+        identity.infrastructure.persistence.mongo.repositories.MongoDeviceCredentialRepositoryAdapter.class,
         DeactivateAccountService.class,
         ReactivateAccountService.class,
         AddEmployeeService.class

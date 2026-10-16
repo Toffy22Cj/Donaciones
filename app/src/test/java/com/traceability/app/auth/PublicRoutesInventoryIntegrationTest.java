@@ -80,6 +80,9 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction/history",
             // gráfico de donaciones de la convocatoria: solo su organización, mismo acceso que la predicción
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/donation-stats",
+            // entrar con biometría: alta y revocación de la credencial del dispositivo, con sesión
+            "POST /api/v1/auth/device-credentials",
+            "POST /api/v1/auth/device-credentials/{credentialId}/revoke",
             "POST /api/v1/funds/{fundId}/allocations",
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm",
             // Tercera autorización, §3.1: crear organización y cola de verificación
