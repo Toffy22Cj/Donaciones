@@ -9,14 +9,14 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Estadística pública de las donaciones de una convocatoria: totales por día (monto y número de donaciones), sin
- * datos del donante.
+ * Estadística de las donaciones de una convocatoria, solo para su organización: totales por día (monto y número de
+ * donaciones), sin datos del donante.
  * <p>
  * Cuenta las donaciones con fondos aplicados ({@code fundsAppliedAt}), las mismas que suma el {@code clearedAmount}
- * del detalle público, así que {@code totalAmount} coincide con "lo recaudado". Solo aparecen los días con donaciones,
- * en orden.
+ * del detalle de la causa, así que {@code totalAmount} coincide con "lo recaudado". Solo aparecen los días con
+ * donaciones, en orden.
  */
-public record PublicDonationStats(String currency, Long targetAmount, long totalAmount, int donations, List<Day> days) {
+public record CampaignDonationStats(String currency, Long targetAmount, long totalAmount, int donations, List<Day> days) {
 
     /** Un día (en la zona pedida) con su monto y número de donaciones. */
     public record Day(LocalDate date, long amount, int donations) {}
@@ -24,7 +24,7 @@ public record PublicDonationStats(String currency, Long targetAmount, long total
     /** Una donación con fondos aplicados: solo el instante y el monto. */
     public record AppliedDonation(Instant appliedAt, long amount) {}
 
-    public static PublicDonationStats of(String currency, Long targetAmount, List<AppliedDonation> applied, ZoneId zone) {
+    public static CampaignDonationStats of(String currency, Long targetAmount, List<AppliedDonation> applied, ZoneId zone) {
         Map<LocalDate, long[]> byDay = new TreeMap<>();
         long total = 0;
         for (AppliedDonation d : applied) {
@@ -35,6 +35,6 @@ public record PublicDonationStats(String currency, Long targetAmount, long total
         }
         List<Day> days = new ArrayList<>();
         byDay.forEach((date, v) -> days.add(new Day(date, v[0], (int) v[1])));
-        return new PublicDonationStats(currency, targetAmount, total, applied.size(), List.copyOf(days));
+        return new CampaignDonationStats(currency, targetAmount, total, applied.size(), List.copyOf(days));
     }
 }

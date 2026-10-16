@@ -1,7 +1,9 @@
 package com.traceability.app.web.campaign;
 
-import com.traceability.convocatoria.application.query.PublicDonationStats;
-import com.traceability.convocatoria.application.query.PublicDonationStatsQuery;
+import com.traceability.api.web.CurrentActor;
+import com.traceability.app.application.campaign.CampaignDonationStatsUseCase;
+import com.traceability.contracts.authorization.AuthorizationPrincipal;
+import com.traceability.convocatoria.application.query.CampaignDonationStats;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
@@ -15,34 +17,35 @@ import java.time.ZoneId;
 import java.util.List;
 
 /**
- * Estadística pública de donaciones de una convocatoria, para el gráfico del detalle de la causa. Ruta pública en
- * {@code PublicRoutes}, con el mismo acceso y el mismo 404 que CV-07. Totales por día (monto y número de donaciones),
- * sin datos del donante. Los días se cuentan en {@code traceability.public-stats.time-zone}. El código no se registra
- * ni se devuelve.
+ * Estadística de donaciones de una convocatoria, para el gráfico de su organización. Mismo acceso que la predicción
+ * ({@link CampaignDonationStatsUseCase}): nunca pública. Totales por día (monto y número de donaciones), sin datos del
+ * donante. Los días se cuentan en {@code traceability.public-stats.time-zone}.
  */
 @RestController
-public class PublicCampaignDonationStatsController {
+public class CampaignDonationStatsController {
 
     public record DayResponse(String date, String amount, int donations) {}
 
     public record DonationStatsResponse(String currency, String targetAmount, String totalAmount, int donations,
                                         String timeZone, List<DayResponse> days, String asOf) {}
 
-    private final PublicDonationStatsQuery stats;
+    private final CampaignDonationStatsUseCase stats;
     private final ZoneId zone;
     private final Clock clock;
 
-    public PublicCampaignDonationStatsController(PublicDonationStatsQuery stats,
-                                                 @Value("${traceability.public-stats.time-zone:America/Bogota}") String zone,
-                                                 ObjectProvider<Clock> clock) {
+    public CampaignDonationStatsController(CampaignDonationStatsUseCase stats,
+                                           @Value("${traceability.public-stats.time-zone:America/Bogota}") String zone,
+                                           ObjectProvider<Clock> clock) {
         this.stats = stats;
         this.zone = ZoneId.of(zone);
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
-    @GetMapping("/api/v1/public/campaigns/{publicCode}/donation-stats")
-    public ResponseEntity<DonationStatsResponse> donationStats(@PathVariable("publicCode") String publicCode) {
-        PublicDonationStats s = stats.statsOf(publicCode, zone).orElseThrow(PublicCampaignNotFoundException::new);
+    @GetMapping("/api/v1/organizations/{organizationId}/campaigns/{campaignRef}/donation-stats")
+    public ResponseEntity<DonationStatsResponse> donationStats(@CurrentActor AuthorizationPrincipal principal,
+                                                               @PathVariable("organizationId") String organizationId,
+                                                               @PathVariable("campaignRef") String campaignRef) {
+        CampaignDonationStats s = stats.stats(principal, organizationId, campaignRef, zone);
         List<DayResponse> days = s.days().stream()
                 .map(d -> new DayResponse(d.date().toString(), Long.toString(d.amount()), d.donations()))
                 .toList();

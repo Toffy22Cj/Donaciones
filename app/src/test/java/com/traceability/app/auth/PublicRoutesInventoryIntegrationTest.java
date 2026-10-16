@@ -78,6 +78,8 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction",
             // encargo 6, P3 (S-10): estimaciones históricas; mismo acceso que la predicción
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction/history",
+            // gráfico de donaciones de la convocatoria: solo su organización, mismo acceso que la predicción
+            "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/donation-stats",
             "POST /api/v1/funds/{fundId}/allocations",
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm",
             // Tercera autorización, §3.1: crear organización y cola de verificación

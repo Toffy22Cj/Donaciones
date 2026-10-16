@@ -48,13 +48,14 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Estadística pública de donaciones, de punta a punta: donaciones por el webhook simulado en tres días distintos (el
- * reloj controlado fija la hora de aplicación de los fondos) y un pago fallido. La ruta es pública, suma por día, su
- * total coincide con "lo recaudado" del detalle y no lleva datos del donante.
+ * Estadística de donaciones de una convocatoria, de punta a punta: donaciones por el webhook simulado en tres días
+ * distintos (el reloj controlado fija la hora de aplicación de los fondos) y un pago fallido. Suma por día, su total
+ * coincide con "lo recaudado" del detalle y no lleva datos del donante. Solo la ven el administrador y el representante
+ * de la organización dueña: un donante, un empleado u otra organización reciben el mismo 403, y ya no hay ruta pública.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
-@Import(PublicCampaignDonationStatsEndToEndTest.ControlledClock.class)
+@Import(CampaignDonationStatsEndToEndTest.ControlledClock.class)
 @TestPropertySource(properties = {
     "crypto.anchor.poll.delay=9999999",
     "crypto.anchor.submit.delay=9999999",
@@ -66,7 +67,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     // Solo para tests
     "traceability.demo.webhook-secret=test-only-simulated-webhook-secret-0123456789"
 })
-class PublicCampaignDonationStatsEndToEndTest {
+class CampaignDonationStatsEndToEndTest {
 
     static final ZoneId BOGOTA = ZoneId.of("America/Bogota");
 
@@ -136,11 +137,29 @@ class PublicCampaignDonationStatsEndToEndTest {
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
     }
 
+    /** La autoridad de plataforma solo se crea una vez por base: la comparten los dos tests. */
+    private static String platform;
+
+    private String platform() {
+        if (platform == null) {
+            String email = UUID.randomUUID() + "@platform.test";
+            accounts.createAccount(new Email(email), "Pass123!Pass123!");
+            platform = bootstrap.bootstrap(email).value();
+        }
+        return platform;
+    }
+
+    private HttpResponse<String> stats(String organizationId, String campaignRef, String account) throws Exception {
+        return send("GET", "/api/v1/organizations/" + organizationId + "/campaigns/" + campaignRef + "/donation-stats",
+                account, null);
+    }
+
     /** Espera a que los fondos de las donaciones confirmadas estén aplicados (el total llega a {@code total}). */
-    private JsonNode statsWithTotal(String publicCode, String total) throws Exception {
+    private JsonNode statsWithTotal(String organizationId, String campaignRef, String account, String total)
+            throws Exception {
         JsonNode s = null;
         for (int i = 0; i < 100; i++) {
-            s = ok(send("GET", "/api/v1/public/campaigns/" + publicCode + "/donation-stats", null, null), 200);
+            s = ok(stats(organizationId, campaignRef, account), 200);
             if (s.get("totalAmount").asText().equals(total)) return s;
             Thread.sleep(100);
         }
@@ -149,9 +168,7 @@ class PublicCampaignDonationStatsEndToEndTest {
 
     @Test
     void sumaPorDia_yElTotalEsLoRecaudado_sinDatosDelDonante() throws Exception {
-        String platformEmail = UUID.randomUUID() + "@platform.test";
-        accounts.createAccount(new Email(platformEmail), "Pass123!Pass123!");
-        String platform = bootstrap.bootstrap(platformEmail).value();
+        String platform = platform();
         Account rep = accounts.createAccount(new Email(UUID.randomUUID() + "@stats.test"), "Pass123!Pass123!");
         AuditActor setup = new AuditActor.SystemAuditActor("e2e-donation-stats");
         Organization org = organizations.createOrganization(setup, OrganizationType.FOUNDATION, rep.getAccountId(), "Org stats");
@@ -170,8 +187,9 @@ class PublicCampaignDonationStatsEndToEndTest {
                  "currency":"COP","targetAmount":"800000000","targetPolicy":"FLEXIBLE"}}"""
                 .formatted(start, start.plus(Duration.ofDays(40)))), 201);
         String code = campaign.get("publicCode").asText();
+        String ref = campaign.get("campaignRef").asText();
 
-        JsonNode empty = ok(send("GET", "/api/v1/public/campaigns/" + code + "/donation-stats", null, null), 200);
+        JsonNode empty = ok(stats(orgId, ref, admin), 200);
         assertThat(empty.get("totalAmount").asText()).isEqualTo("0");
         assertThat(empty.get("days")).isEmpty();
 
@@ -189,7 +207,7 @@ class PublicCampaignDonationStatsEndToEndTest {
         donate(code, "5000000", "payment.confirmed");
         donate(code, "6000000", "payment.confirmed");
 
-        JsonNode s = statsWithTotal(code, "21000000");
+        JsonNode s = statsWithTotal(orgId, ref, admin, "21000000");
         String a = LocalDate.ofInstant(dayA, BOGOTA).toString();
         String b = LocalDate.ofInstant(dayB, BOGOTA).toString();
         String c = LocalDate.ofInstant(dayC, BOGOTA).toString();
@@ -206,14 +224,52 @@ class PublicCampaignDonationStatsEndToEndTest {
         JsonNode detail = ok(send("GET", "/api/v1/public/campaigns/" + code, null, null), 200);
         assertThat(detail.get("clearedAmount").asText()).as("el total es lo recaudado").isEqualTo("21000000");
         assertThat(s.toString()).doesNotContain("intentId").doesNotContain("donorRef")
-                .doesNotContain(campaign.get("campaignRef").asText()).doesNotContain(orgId);
+                .doesNotContain(ref).doesNotContain(orgId);
+        assertThat(ok(stats(orgId, ref, rep.getAccountId().value()), 200).get("totalAmount").asText())
+                .as("el representante también la ve").isEqualTo("21000000");
     }
 
     @Test
-    void unCodigoInexistente_daElMismo404QueElDetalle() throws Exception {
-        HttpResponse<String> stats = send("GET", "/api/v1/public/campaigns/CV-ZZZZZZZZZZ/donation-stats", null, null);
-        HttpResponse<String> detail = send("GET", "/api/v1/public/campaigns/CV-ZZZZZZZZZZ", null, null);
-        assertThat(stats.statusCode()).isEqualTo(404);
-        assertThat(detail.statusCode()).isEqualTo(404);
+    void soloAdministradorORepresentanteDeLaOrganizacion_yNingunaRutaPublica() throws Exception {
+        String platform = platform();
+        AuditActor setup = new AuditActor.SystemAuditActor("e2e-donation-stats-access");
+        Account rep = accounts.createAccount(new Email(UUID.randomUUID() + "@stats.test"), "Pass123!Pass123!");
+        Organization org = organizations.createOrganization(setup, OrganizationType.FOUNDATION, rep.getAccountId(), "Org acceso");
+        String orgId = org.getOrganizationId().value();
+        String admin = accounts.createAccount(new Email(UUID.randomUUID() + "@stats.test"), "Pass123!Pass123!").getAccountId().value();
+        employees.addEmployee(setup, org.getOrganizationId(), new AccountId(admin));
+        administrators.assignAdministrator(setup, org.getOrganizationId(), new AccountId(admin));
+        String employee = accounts.createAccount(new Email(UUID.randomUUID() + "@stats.test"), "Pass123!Pass123!").getAccountId().value();
+        employees.addEmployee(setup, org.getOrganizationId(), new AccountId(employee));
+        ok(send("POST", "/api/v1/platform/organizations/" + orgId + "/verify", platform, null), 200);
+        Account otherRep = accounts.createAccount(new Email(UUID.randomUUID() + "@stats.test"), "Pass123!Pass123!");
+        String otherOrg = organizations.createOrganization(setup, OrganizationType.FOUNDATION, otherRep.getAccountId(),
+                "Otra org").getOrganizationId().value();
+        String donor = accounts.createAccount(new Email(UUID.randomUUID() + "@donor.test"), "Pass123!Pass123!").getAccountId().value();
+
+        Instant start = ControlledClock.CLOCK.now.plus(Duration.ofDays(1));
+        JsonNode campaign = ok(send("POST", "/api/v1/organizations/" + orgId + "/campaigns", admin, """
+                {"title":"Acceso","visibility":"PUBLIC","startDate":"%s","endDate":"%s",
+                 "configuration":{"acceptedDonationTypes":["MONETARY"],"acceptedPaymentMethods":["GATEWAY"],
+                 "currency":"COP","targetAmount":"800000000","targetPolicy":"FLEXIBLE"}}"""
+                .formatted(start, start.plus(Duration.ofDays(40)))), 201);
+        String ref = campaign.get("campaignRef").asText();
+        String code = campaign.get("publicCode").asText();
+
+        assertThat(stats(orgId, ref, admin).statusCode()).isEqualTo(200);
+        assertThat(stats(orgId, ref, rep.getAccountId().value()).statusCode()).isEqualTo(200);
+
+        HttpResponse<String> asDonor = stats(orgId, ref, donor);
+        HttpResponse<String> asEmployee = stats(orgId, ref, employee);
+        HttpResponse<String> otherOrganization = stats(orgId, ref, otherRep.getAccountId().value());
+        HttpResponse<String> foreignCampaign = stats(otherOrg, ref, otherRep.getAccountId().value());
+        HttpResponse<String> unknownCampaign = stats(orgId, "no-such-campaign", admin);
+        for (HttpResponse<String> r : java.util.List.of(asDonor, asEmployee, otherOrganization, foreignCampaign, unknownCampaign)) {
+            assertThat(r.statusCode()).isEqualTo(403);
+            assertThat(r.body()).isEqualTo(asDonor.body());
+        }
+        assertThat(stats(orgId, ref, null).statusCode()).isEqualTo(401);
+        assertThat(send("GET", "/api/v1/public/campaigns/" + code + "/donation-stats", null, null).statusCode())
+                .as("la ruta pública ya no existe").isNotEqualTo(200);
     }
 }
