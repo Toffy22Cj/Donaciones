@@ -2,7 +2,6 @@ package com.traceability.app.web.organization;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.traceability.app.TraceabilityApplication;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 import identity.application.service.AddEmployeeService;
@@ -33,7 +32,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -199,20 +197,16 @@ class OrganizationVerificationStatusHttpIntegrationTest {
         createdBy(otherRepresentative, "Otra organización");
         String loner = account();
 
-        // la misma ruta: el cuerpo es idéntico byte a byte
-        List<HttpResponse<String>> samePath = List.of(
+        // ApiExceptionHandler arma el cuerpo sin `instance`: todos los casos dan el mismo cuerpo, byte a byte
+        List<HttpResponse<String>> all = List.of(
                 read(org, employee),
                 read(org, otherRepresentative),
                 read(org, loner),
-                read(org, platformAdmin));
-        // otra ruta (inexistente o mal formada): solo cambia `instance`, que es la ruta pedida
-        List<HttpResponse<String>> otherPaths = List.of(
+                read(org, platformAdmin),
                 read(UNKNOWN_ORGANIZATION, representative),
                 read("no-es-un-ulid", representative));
 
-        String reference = samePath.get(0).body();
-        List<HttpResponse<String>> all = new ArrayList<>(samePath);
-        all.addAll(otherPaths);
+        String reference = all.get(0).body();
         for (HttpResponse<String> r : all) {
             assertThat(r.statusCode()).as(r.body()).isEqualTo(403);
             JsonNode body = json.readTree(r.body());
@@ -221,16 +215,7 @@ class OrganizationVerificationStatusHttpIntegrationTest {
             }
             // `type` es el campo estándar del ProblemDetail (RFC 7807), nunca el tipo de la organización
             assertThat(body.get("type").asText()).isNotIn("FOUNDATION", "COMPANY");
-        }
-        for (HttpResponse<String> r : samePath) {
             assertThat(r.body()).isEqualTo(reference);
-        }
-        ObjectNode expected = (ObjectNode) json.readTree(reference);
-        expected.remove("instance");
-        for (HttpResponse<String> r : otherPaths) {
-            ObjectNode body = (ObjectNode) json.readTree(r.body());
-            body.remove("instance");
-            assertThat(body).isEqualTo(expected);
         }
     }
 
