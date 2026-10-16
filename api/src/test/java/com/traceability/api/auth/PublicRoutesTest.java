@@ -16,6 +16,7 @@ class PublicRoutesTest {
                         "POST /api/v1/auth/register PUBLIC",
                         "POST /api/v1/auth/password-reset PUBLIC",
                         "POST /api/v1/auth/password-reset/confirm PUBLIC",
+                        "POST /api/v1/auth/device-login PUBLIC",
                         "GET /api/v1/public/campaigns/{publicCode} PUBLIC",
                         "GET /api/v1/public/campaigns PUBLIC",
                         "POST /api/v1/public/campaigns/{publicCode}/donation-intents OPTIONAL_JWT",

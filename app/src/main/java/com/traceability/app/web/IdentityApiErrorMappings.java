@@ -19,7 +19,9 @@ import identity.domain.exception.LastPlatformAdministratorException;
 import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
 import identity.domain.exception.PlatformAuthorityNotHeldException;
 import identity.domain.exception.AccountNotFoundException;
+import identity.domain.exception.DeviceCredentialNotFoundException;
 import identity.domain.exception.DuplicateEmailException;
+import identity.domain.exception.TooManyDeviceCredentialsException;
 import identity.domain.exception.InvalidEmailFormatException;
 import identity.domain.exception.InvalidInformationRequestMessageException;
 import identity.domain.exception.InactiveAccountException;
@@ -66,6 +68,10 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 // P2.2 (registro): el email mal formado es una validación con nombre (400); el duplicado, 409
                 new ApiErrorMapping(InvalidEmailFormatException.class, HttpStatus.BAD_REQUEST, null),
                 new ApiErrorMapping(DuplicateEmailException.class, HttpStatus.CONFLICT, null),
+                // entrar con biometría: revocar una credencial ajena, inexistente o ya revocada, el mismo 404;
+                // el máximo de dispositivos activos, 409
+                new ApiErrorMapping(DeviceCredentialNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                new ApiErrorMapping(TooManyDeviceCredentialsException.class, HttpStatus.CONFLICT, null),
                 // H-P2-1: contraseña de menos de 12 caracteres
                 new ApiErrorMapping(PasswordTooShortException.class, HttpStatus.BAD_REQUEST, null),
                 // ADR-050 D8: token de recuperación desconocido, caducado, usado, reemplazado o de una cuenta inactiva, el

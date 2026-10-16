@@ -59,6 +59,8 @@ import static org.mockito.Mockito.times;
         CreateAccountService.class,
         ChangeCredentialsService.class,
         identity.infrastructure.persistence.mongo.repositories.MongoPasswordResetTokenRepositoryAdapter.class,
+        DeviceCredentialService.class,
+        identity.infrastructure.persistence.mongo.repositories.MongoDeviceCredentialRepositoryAdapter.class,
         DeactivateAccountService.class,
         ReactivateAccountService.class,
         AddEmployeeService.class,
