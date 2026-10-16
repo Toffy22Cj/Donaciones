@@ -216,9 +216,11 @@ class OrganizationVerificationStatusHttpIntegrationTest {
         for (HttpResponse<String> r : all) {
             assertThat(r.statusCode()).as(r.body()).isEqualTo(403);
             JsonNode body = json.readTree(r.body());
-            for (String leaked : List.of("organizationId", "name", "type", "verificationStatus", "informationRequest")) {
+            for (String leaked : List.of("organizationId", "name", "verificationStatus", "informationRequest")) {
                 assertThat(body.has(leaked)).as(leaked).isFalse();
             }
+            // `type` es el campo estándar del ProblemDetail (RFC 7807), nunca el tipo de la organización
+            assertThat(body.get("type").asText()).isNotIn("FOUNDATION", "COMPANY");
         }
         for (HttpResponse<String> r : samePath) {
             assertThat(r.body()).isEqualTo(reference);
