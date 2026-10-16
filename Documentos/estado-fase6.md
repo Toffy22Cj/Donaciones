@@ -178,6 +178,21 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.30 S-18: estado de verificación de la propia organización (2026-10-16, `feat/identity-s18-estado-organizacion`)
+
+- **Contrato:** `ficha-S18-estado-verificacion-organizacion.md` (CONGELADA; Q-S18-1 a Q-S18-4 decididas por Manuel el 2026-10-16T03:23Z). Origen: solicitud S-18 de `paxfide-web`.
+- **Novedad de la API** (para la web y el móvil; también en `referencia-api-v1.md` §3): `GET /api/v1/organizations/{organizationId}` → `200 {organizationId, name?, type, verificationStatus, informationRequest?}`, `no-store`. Solo `ADMINISTRATOR` o `REPRESENTATIVE` de esa organización; `EMPLOYEE`, otra organización, una inexistente y un administrador de plataforma sin membresía reciben el mismo 403 (DD-01). `informationRequest` solo con `NEEDS_MORE_INFORMATION`. Campos nulos omitidos.
+- **Qué hace:** `OrganizationVerificationStatusQuery` (`identity`; misma autorización que `OrganizationMembersQuery`, sin reglas ni puertos nuevos) y `OrganizationVerificationStatusController` (`app/web/organization`). `IdentityApiErrorMappings` ya traducía `OrganizationAccessDeniedException` a 403. `GET /me` (ficha N1) no cambia.
+- **DD-68:** nota añadida (sin reescribir) en `decisiones-delegadas-2026-10.md` y `fichas-encargo4-organizaciones.md` §3.1: la ruta pasa a existir; `POST /organizations` sigue sin `Location`.
+- **Tests** (`OrganizationVerificationStatusHttpIntegrationTest`, ficha §7.1–§7.8, más `PublicRoutesInventoryIntegrationTest` §7.9): primero en rojo (7 con 404; §7.6, el 401, ya pasaba por el deny-by-default del filtro JWT y queda como test de regresión); el inventario se puso en rojo al crear la ruta y en verde al añadirla a `PROTECTED`.
+- **Pendientes que se trasladan al equipo** (ficha §6 y §8; no se resuelven aquí):
+  - **H-S18-1:** `NEEDS_MORE_INFORMATION` sin canal de respuesta de la organización.
+  - **H-S18-2:** la cuenta del representante queda sin salida tras `REJECTED` (regla 2.6).
+  - **H-S18-3:** las invitaciones y la gestión de miembros no comprueban el estado de verificación.
+  - **Tarea derivada de Q-S18-3 (no de código):** avisar a los administradores de plataforma de que la organización lee `informationRequest` tal cual.
+- **Pendiente fuera del backend:** la fila S-18 de `solicitudes-backend.md` de `paxfide-web` pasa a RESUELTA en un PR aparte.
+- **Evidencia:** `scripts/ci-local.sh` sobre el último commit de la rama, en `Documentos/evidencia-ci/`.
+
 ### 0.29 Cierre del encargo 6: "backend cerrado para que mañana el equipo trabaje en el front" (2026-10-08)
 
 | Punto | Resultado | PR |

@@ -21,6 +21,7 @@
   - `name` es **obligatorio por HTTP**, aunque el dominio lo admite opcional (DD-04): la cola y CV-07 lo muestran. Se guarda sin espacios a los lados.
   - `type` se valida contra el enum en mayúsculas exactas.
   - La respuesta no incluye `Location`: no hay `GET /organizations/{id}` (ni lo pide la autorización).
+  - *Nota (2026-10-16T03:44Z, ficha S-18):* `GET /organizations/{organizationId}` existe desde `ficha-S18-estado-verificacion-organizacion.md` (Q-S18-1 (a)). La respuesta de `POST /organizations` no cambia: sigue sin `Location`.
 - **DD-69:**
   - La cola incluye `PENDING_VERIFICATION` y `NEEDS_MORE_INFORMATION` (las dos esperan a la plataforma). Pedir `VERIFIED` o `REJECTED` → 400.
   - Orden por `organizationId` (ULID, orden de creación).
