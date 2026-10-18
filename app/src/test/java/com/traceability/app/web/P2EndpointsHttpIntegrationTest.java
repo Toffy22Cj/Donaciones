@@ -354,8 +354,11 @@ class P2EndpointsHttpIntegrationTest {
         assertThat(listed).hasSize(all.size()).containsAll(publicCodes)
                 .doesNotContain(privateLink.get("publicCode").asText(), closed.get("publicCode").asText());
         assertThat(all.get(0).fieldNames()).toIterable().containsExactlyInAnyOrder("publicCode", "title",
-                "organizationName", "status", "startDate", "endDate", "acceptedDonationTypes", "currency",
-                "targetAmount", "clearedAmount");
+                "organizationName", "organizationVerified", "status", "startDate", "endDate", "acceptedDonationTypes",
+                "currency", "targetAmount", "clearedAmount");
+        all.stream().filter(i -> publicCodes.contains(i.get("publicCode").asText()))
+                .forEach(i -> assertThat(i.path("organizationVerified").isBoolean() && i.get("organizationVerified").asBoolean())
+                        .as("organizationVerified de " + i.get("publicCode").asText()).isTrue());
         assertThat(all.toString()).doesNotContain(org).doesNotContain(privateLink.get("campaignRef").asText());
 
         assertThat(send("GET", "/api/v1/public/campaigns?cursor=%21%21", null, null).statusCode()).isEqualTo(400);

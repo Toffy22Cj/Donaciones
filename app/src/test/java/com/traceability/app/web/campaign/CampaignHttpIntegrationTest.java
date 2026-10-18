@@ -27,6 +27,9 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -367,10 +370,11 @@ class CampaignHttpIntegrationTest {
 
         assertThat(r.statusCode()).isEqualTo(200);
         JsonNode v = json.readTree(r.body());
-        assertThat(v.fieldNames()).toIterable().containsExactlyInAnyOrder("organizationName", "title", "description",
-                "status", "startDate", "endDate", "acceptedDonationTypes", "acceptedPaymentMethods", "currency",
-                "targetAmount", "clearedAmount");
+        assertThat(v.fieldNames()).toIterable().containsExactlyInAnyOrder("organizationName", "organizationVerified",
+                "title", "description", "status", "startDate", "endDate", "acceptedDonationTypes",
+                "acceptedPaymentMethods", "currency", "targetAmount", "clearedAmount");
         assertThat(v.get("organizationName").asText()).isEqualTo("Fundación Demo");
+        assertThat(organizationVerified(v)).isTrue();
         assertThat(v.get("targetAmount").asText()).isEqualTo("5000000");
         assertThat(v.get("clearedAmount").asText()).isEqualTo("0");
         assertThat(v.get("status").asText()).isEqualTo("OPEN");
@@ -385,8 +389,9 @@ class CampaignHttpIntegrationTest {
 
         JsonNode v = json.readTree(send("GET", "/api/v1/public/campaigns/" + publicCode, null, null, null).body());
 
-        assertThat(v.fieldNames()).toIterable().containsExactlyInAnyOrder("title", "status", "startDate", "endDate",
-                "acceptedDonationTypes");
+        assertThat(v.fieldNames()).toIterable().containsExactlyInAnyOrder("organizationVerified", "title", "status",
+                "startDate", "endDate", "acceptedDonationTypes");
+        assertThat(organizationVerified(v)).isTrue();
     }
 
     @Test
@@ -415,5 +420,78 @@ class CampaignHttpIntegrationTest {
         send("GET", "/api/v1/public/campaigns/" + unknownCode, null, null, null);
 
         assertThat(output.getAll()).doesNotContain(publicCode).doesNotContain(unknownCode);
+    }
+
+    // --- L-FRONTS A1 (M-07): organizationVerified se calcula con el estado actual de la organización ---
+
+    @Test
+    void organizationVerified_isComputed_falseWhenTheOrganizationIsNoLongerVerified() throws Exception {
+        String[] created = verifiedOrganizationWithAPublicCampaign("A1 deja de estar verificada");
+        String organization = created[0];
+        String publicCode = created[1];
+        assertThat(organizationVerified(detail(publicCode))).isTrue();
+        assertThat(organizationVerified(discoveryItem(publicCode))).isTrue();
+
+        // Rompe a propósito el invariante (VERIFIED es terminal en el dominio; hallazgo H-L1 de la ficha L-FRONTS)
+        // para demostrar que el campo se calcula con el estado de la organización y no es una constante.
+        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(organization)),
+                Update.update("verificationStatus", "PENDING_VERIFICATION"), "organizations");
+
+        assertThat(organizationVerified(detail(publicCode))).isFalse();
+        assertThat(organizationVerified(discoveryItem(publicCode))).isFalse();
+    }
+
+    @Test
+    void organizationVerified_isFalseWhenTheOrganizationDoesNotExist() throws Exception {
+        String[] created = verifiedOrganizationWithAPublicCampaign("A1 inexistente");
+        String publicCode = created[1];
+
+        // Igual que arriba: dato de test que el dominio no produce. Una organización inexistente nunca cuenta como
+        // verificada (OrganizationVerificationAdapter).
+        mongoTemplate.remove(Query.query(Criteria.where("_id").is(created[0])), "organizations");
+
+        assertThat(organizationVerified(detail(publicCode))).isFalse();
+        assertThat(organizationVerified(discoveryItem(publicCode))).isFalse();
+    }
+
+    private String[] verifiedOrganizationWithAPublicCampaign(String name) throws Exception {
+        String[] out = new String[1];
+        String organization = organization(name, out);
+        assertThat(send("POST", "/api/v1/platform/organizations/" + organization + "/verify", platformAdmin, null, null)
+                .statusCode()).isEqualTo(200);
+        HttpResponse<String> r = createCampaign(organization, out[0], newId(), monetaryBody("PUBLIC"));
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
+        return new String[] {organization, json.readTree(r.body()).get("publicCode").asText()};
+    }
+
+    private JsonNode detail(String publicCode) throws Exception {
+        HttpResponse<String> r = send("GET", "/api/v1/public/campaigns/" + publicCode, null, null, null);
+        assertThat(r.statusCode()).isEqualTo(200);
+        return json.readTree(r.body());
+    }
+
+    private JsonNode discoveryItem(String publicCode) throws Exception {
+        String cursor = null;
+        for (int pages = 0; pages < 50; pages++) {
+            JsonNode page = json.readTree(send("GET", "/api/v1/public/campaigns" + (cursor == null ? "" : "?cursor=" + cursor),
+                    null, null, null).body());
+            for (JsonNode item : page.get("items")) {
+                if (publicCode.equals(item.get("publicCode").asText())) {
+                    return item;
+                }
+            }
+            if (!page.has("nextCursor")) {
+                break;
+            }
+            cursor = page.get("nextCursor").asText();
+        }
+        throw new AssertionError("la convocatoria no aparece en el descubrimiento");
+    }
+
+    private static boolean organizationVerified(JsonNode campaign) {
+        JsonNode flag = campaign.get("organizationVerified");
+        assertThat(flag).as("organizationVerified").isNotNull();
+        assertThat(flag.isBoolean()).as("organizationVerified es booleano").isTrue();
+        return flag.asBoolean();
     }
 }
