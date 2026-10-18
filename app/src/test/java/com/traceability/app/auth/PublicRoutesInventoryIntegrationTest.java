@@ -103,7 +103,9 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/campaigns/{campaignRef}/configuration-change-requests/{requestId}/approve",
             "POST /api/v1/campaigns/{campaignRef}/configuration-change-requests/{requestId}/reject",
             // S-18: estado de verificación de la propia organización (ficha S-18)
-            "GET /api/v1/organizations/{organizationId}");
+            "GET /api/v1/organizations/{organizationId}",
+            // L-FRONTS A3 (M-26): correo de la propia cuenta (ficha L-FRONTS)
+            "GET /api/v1/account");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
