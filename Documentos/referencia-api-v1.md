@@ -27,6 +27,7 @@
 | `POST /auth/register` | pública, sin `Command-Id` (DD-56) | `{email, password}`; el email se guarda sin espacios en los extremos y en minúsculas, así que ` Ana@x.org` y `ana@x.org` son la misma cuenta (409) (DD-74) | `201 {accountId, status}` | 400 vacíos, email mal formado o contraseña de menos de 12 caracteres (`PasswordTooShort`); 409 `DuplicateEmail` |
 | `GET /me` | JWT | — | `200 {accountId, organizationId?, roles, platformAuthority?}`, `Cache-Control: no-store` (ficha N1) | 401 |
 | `GET /account/donations` | JWT | — | `200 {items: [{intentId, campaignTitle?, amount, currency, status, trackingCode?}]}` (`campaignTitle` solo falta si la convocatoria no se encuentra; rama defensiva), una página de 100 (DD-21) | 401 |
+| `GET /account` (ficha L-FRONTS, A3; M-26) | JWT | — | `200 {email}`, `Cache-Control: no-store`: el correo de la propia cuenta (la del JWT; sin parámetro de ruta), ya normalizado (DD-74). Con o sin organización. Nunca en un log. `GET /me` sigue sin email (ficha N1) | 401 |
 | `GET /me/campaigns` (§3.4) | JWT | — | `200 {items: [{campaignRef, publicCode, title, status, actingRole, assignedAt}]}`: asignaciones activas de quien llama en su organización actual y, de las convocatorias `CLOSED`, sus asignaciones históricas (DD-72, D-06); una página de 100, `no-store` | 401 |
 | `POST /invitations/accept` (§3.3, ADR-049 D4) | JWT de la cuenta invitada | `{token}` en el cuerpo (la web lo lee del fragmento `#token=` y lo borra de la barra); **nunca** en la URL | `200 {organizationId, roles}`; efectivo en la petición siguiente | 401; **el mismo 403 `InvitationNotAcceptable`** (desconocido, caducado, revocado, usado, otro email o token en la URL); 409 `AccountAlreadyBelongsToOrganization` |
 
@@ -87,6 +88,8 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 | `POST /public/campaigns/{publicCode}/donation-intents` (CV-11) | JWT **opcional**, `Command-Id` | `{amount, currency, paymentMethod}` | `201 {intentId, statusToken?, paymentRedirectUrl?}` (`paymentRedirectUrl` solo con `GATEWAY`; `statusToken` solo falta en un reenvío de una intención anterior a la Enmienda 3, sin hash de token); un reenvío emite un `statusToken` nuevo y anula el anterior (DD-18 sustituida) | 400; 404; 409 reglas de la convocatoria |
 | `GET /public/donation-intents/{intentId}` | header `Intent-Token` | — | `200 {status, trackingCode?}` (el código, solo con fondos aplicados) | 404 (token inválido o caducado, igual que inexistente) |
 | `POST /webhooks/payments` | firma `X-Simulated-Signature`; **solo** con `traceability.demo.simulated-payments=true` (perfil `dev`) | `{type: "payment.confirmed"\|"payment.failed", paymentSessionId, providerEventId, amount, currency}` | `200` sin cuerpo | 401 firma; 400 campos; 404 sesión; 409 evento incoherente |
+
+*Nota (2026-10-18, ficha L-FRONTS, A1; M-07; Q-A1-3):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`organizationVerified`** (booleano, **siempre presente**), calculado al leer con el estado actual de la organización (`OrganizationVerificationPort.isVerified`): `true` solo si está `VERIFIED`; una organización inexistente da `false`. Las filas de arriba no se reescriben.
 
 ## 6. Activos físicos
 

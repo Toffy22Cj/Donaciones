@@ -178,6 +178,26 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Criterios del golden path cubiertos por HTTP** (test de punta a punta contra Tomcat real): 7, 8 y 15–17 con un activo del Camino B. El Camino A por HTTP necesita una asignación previa sin endpoint (**H-B6C-1**, DD-16).
 - **Evidencia:** `evidencia-fase6/b6-c-activos-http-1e273be-2026-10-07.txt`. Reactor **1089 tests** en verde (línea base 1070); 11 mutaciones, 11 muertas.
 
+### 0.31 L-FRONTS: lecturas que piden los fronts, A1 (M-07) y A3 (M-26) (2026-10-18, `feat/lecturas-fronts-a1-a3`)
+
+- **Contrato:** `ficha-lecturas-fronts-M07-M15-M26.md` (A1 y A3 CONGELADAS; decisiones de Manuel del 2026-10-18T06:35Z). Origen: documento "Funciones de la app móvil y pantallas del empleado" (Carlos, 2026-10-16) y bocetos web.
+- **Novedades de la API** (para la web y el móvil; también en `referencia-api-v1.md` §1 y §5):
+  - **A1:** `GET /api/v1/public/campaigns` (cada ítem) y `GET /api/v1/public/campaigns/{publicCode}` llevan `organizationVerified` (booleano, siempre presente), calculado al leer con `OrganizationVerificationPort.isVerified`. Notas fechadas, solo añadidas, en `plan-b6-a-convocatoria-http.md` §2.3 y `fichas-p2-endpoints.md` (P2.6).
+  - **A3:** `GET /api/v1/account` → `200 {email}`, `no-store`, solo la cuenta del JWT, con o sin organización; 401 sin JWT válido o con la cuenta `INACTIVE`. `GET /me` (ficha N1) no cambia.
+- **Qué hace:** A1 inyecta el puerto existente en `PublicCampaignController` y `PublicCampaignDiscoveryController` (no se amplía `OrganizationPublicNamePort`, que está en `contracts`). A3 añade `AccountEmailQuery` (`identity`) y `AccountController` (`app/web/account`).
+- **Tests:** primero en rojo.
+  - A1: 25 tests, 5 fallos (los tres de campos exactos de CV-07 y del descubrimiento, más dos nuevos que rompen a propósito el invariante, con la organización en `PENDING_VERIFICATION` o borrada, para probar que el campo se calcula y no es constante).
+  - A3 (`AccountHttpIntegrationTest`): 6 tests, 5 fallos con 404; el de 401 ya pasaba y queda como regresión. Cubre una cuenta sin organización y cuentas con organización (representante y empleado), el correo normalizado, que cada cuenta solo reciba el suyo y que el correo no aparezca en ningún log.
+  - El inventario de rutas se puso en rojo con `["GET /api/v1/account"]` y en verde al añadirla a `PROTECTED`.
+- **Bloqueado:** **A2** (M-15/M-16, `GET /account/donations` con fechas, organización, medio de donación y enlace) está decidido pero espera a **Q-A2-C** de Carlos: si añadir `createdAt` a `DonationIntent` y ampliar `DonationView` exige enmienda de ADR-037 (regla 3.5).
+- **Pendientes que se trasladan al equipo** (ficha §6; no se resuelven aquí):
+  - **H-L1:** la garantía de M-07 es un invariante de código (`VERIFIED` terminal), no de datos.
+  - **H-L2:** el historial de donaciones no sale en orden cronológico (DD-21 ordena por `intentId`, un UUID aleatorio).
+  - **H-L3:** la ficha CV-07 sigue sin estar en el repositorio (Q-B6A-5).
+  - **H-L4:** una consulta más por convocatoria en el descubrimiento (aceptada).
+- **Pendiente fuera del backend:** el parser y el doble `scripts/fake-backend.js` de `paxfide-web` (campo `organizationVerified` y `GET /account`), en un PR aparte.
+- **Evidencia:** `scripts/ci-local.sh` sobre el último commit de la rama, en `Documentos/evidencia-ci/`.
+
 ### 0.30 S-18: estado de verificación de la propia organización (2026-10-16, `feat/identity-s18-estado-organizacion`)
 
 - **Contrato:** `ficha-S18-estado-verificacion-organizacion.md` (CONGELADA; Q-S18-1 a Q-S18-4 decididas por Manuel el 2026-10-16T03:23Z). Origen: solicitud S-18 de `paxfide-web`.

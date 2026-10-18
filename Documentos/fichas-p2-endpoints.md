@@ -35,6 +35,7 @@
 - **200:** `{items: [{publicCode, title, organizationName, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}], nextCursor?}`; 20 por página; sin `nextCursor` en la última; cursor inválido → 400 (T-35).
 - **Nunca `PRIVATE_LINK`** (filtro en la consulta). Solo `OPEN` (DD-52: una cerrada se sigue viendo por su código, CV-07, pero no se descubre). Orden por `publicCode`; el cursor es **opaco**: el último `publicCode` cifrado y autenticado (AES-256-GCM), así que no se puede leer ni fabricar (DD-58; sustituye a DD-53, no ratificada).
 - Sin `campaignRef` ni `organizationRef`; sin descripción (está en CV-07).
+- *Nota (2026-10-18, ficha L-FRONTS, A1; M-07):* cada ítem lleva además **`organizationVerified`** (booleano, siempre presente), calculado con `OrganizationVerificationPort.isVerified`: una consulta más por convocatoria (páginas de 20), aceptada en Q-A1-1.
 
 ## P2.7 — activos y miembros de la organización
 - `GET /api/v1/organizations/{organizationId}/physical-assets`: `ADMINISTRATOR` o `EMPLOYEE` (DD-54, como los fondos, DD-31). **200** `{items: [{assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef?}]}`, los campos de la matriz §4b; sin `donorRef`, finanzas ni genealogía. Del event store (incluye el Camino B); tope 200. Los activos v1 no llevan organización y no aparecen (no se infiere).
