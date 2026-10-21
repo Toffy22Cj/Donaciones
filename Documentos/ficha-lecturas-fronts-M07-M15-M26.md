@@ -232,6 +232,8 @@ La ficha CV-07 no está en el repositorio (`plan-b6-a-convocatoria-http.md:70`, 
 
 ### Q-A2-C — Para Carlos: ¿el cambio de A2 necesita enmienda de ADR-037? (abierta; bloquea A2)
 
+Opción (a) elegida el 2026-10-21 (Manuel); enmienda redactada en `ADR-037-enmienda-5-fecha-de-creacion-y-vista-del-historial.md`, pendiente de aprobación de Carlos.
+
 Lo decidido en Q-A2-1 a Q-A2-5 obliga a:
 - añadir `createdAt` al dominio de `DonationIntent` (`DonationIntent.java:18-36`), a su documento y a su mapper;
 - ampliar `DonationView` de `DonationIntentReadPort` (`convocatoria/src/main/java/com/traceability/convocatoria/application/query/DonationIntentReadPort.java:22-23`), puerto de `convocatoria` que consume `app` (`AccountDonationsController.java:41-43`), con `createdAt`, `confirmedAt`, `organizationRef` (para el nombre), `paymentMethod` y la visibilidad y el `publicCode` de la convocatoria.
