@@ -218,6 +218,7 @@ class P2EndpointsHttpIntegrationTest {
     // --- P2.3 listado de la organización ---
 
     @Test
+    // El nombre se conserva (el orden de ejecución de JUnit depende de él); también cubre al REPRESENTATIVE.
     void organizationCampaigns_onlyTheAdministratorOfThatOrganization_withResponsiblesAndAmounts() throws Exception {
         String employee = employeeOf(org); // un EMPLOYEE propio: solo puede ser responsable de una convocatoria activa
         String campaignRef = createCampaign("PUBLIC", MONETARY).get("campaignRef").asText();
@@ -234,6 +235,9 @@ class P2EndpointsHttpIntegrationTest {
         assertThat(item.get("clearedAmount").asText()).isEqualTo("0");
         assertThat(item.get("assignedEmployeeCount").asLong()).isEqualTo(1);
         assertThat(item.get("responsibles").toString()).contains(employee).contains("EMPLOYEE");
+
+        assertThat(ok(send("GET", "/api/v1/organizations/" + org + "/campaigns", representative, null), 200).toString())
+                .as("el REPRESENTATIVE también ve las convocatorias de su organización").contains(campaignRef);
 
         HttpResponse<String> asEmployee = send("GET", "/api/v1/organizations/" + org + "/campaigns", employee, null);
         HttpResponse<String> foreign = send("GET", "/api/v1/organizations/" + org + "/campaigns", otherAdmin, null);

@@ -17,7 +17,8 @@ import java.util.List;
 
 /**
  * Listado administrativo de las convocatorias de una organización (matriz §2b, {@code ConvocatoriaAdminReadModel};
- * P2.3). Solo {@code ADMINISTRATOR} de la organización ({@link ConvocatoriaAuthorizationPolicy}). Una página con tope
+ * P2.3). {@code ADMINISTRATOR} o {@code REPRESENTATIVE} de la organización ({@link ConvocatoriaAuthorizationPolicy};
+ * el representante también ve sus convocatorias, p. ej. para elegir una en la predicción). Una página con tope
  * de {@value #MAX_ITEMS}, como DD-21.
  */
 @Component
@@ -50,7 +51,7 @@ public class OrganizationCampaignsQuery {
     }
 
     public List<AdminCampaignView> list(String actorAccountId, String organizationRef) {
-        authorization.requireAdministratorOf(actorAccountId, organizationRef);
+        authorization.requireApproverOf(actorAccountId, organizationRef);
         return convocatorias.findByOrganizationRef(organizationRef, MAX_ITEMS).stream().map(this::view).toList();
     }
 

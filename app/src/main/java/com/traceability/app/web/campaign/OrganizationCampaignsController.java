@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * {@code GET /api/v1/organizations/{organizationId}/campaigns} (matriz §2b; P2.3): listado del panel, solo
- * {@code ADMINISTRATOR} de la organización; otra organización o inexistente → el mismo 403. Una página con tope de
+ * {@code GET /api/v1/organizations/{organizationId}/campaigns} (matriz §2b; P2.3): listado del panel,
+ * {@code ADMINISTRATOR} o {@code REPRESENTATIVE} de la organización; otra organización o inexistente → el mismo 403. Una página con tope de
  * 100 y sin {@code nextCursor} (como DD-21). Importes como texto (T-34).
  */
 @RestController
