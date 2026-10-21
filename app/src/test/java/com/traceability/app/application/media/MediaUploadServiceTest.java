@@ -1,8 +1,6 @@
 package com.traceability.app.application.media;
 
 import com.traceability.app.infrastructure.media.InMemoryMediaStorageAdapter;
-import com.traceability.app.infrastructure.media.MediaObjectDocument;
-import com.traceability.app.infrastructure.media.MediaObjectRepository;
 import com.traceability.contracts.media.MediaStorageUnavailableException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +12,6 @@ import org.mockito.InOrder;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.dao.DuplicateKeyException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -30,6 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -38,8 +37,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Subida de una imagen (ADR-051 F2, F4, F9) a nivel de servicio, con el adaptador en memoria y el repositorio
- * simulado: definición de hecho 1, 2, 3, 5 y 15 (el 413/415/503 por HTTP es de la Tarea 2), orden de escritura y
+ * Subida de una imagen (ADR-051 F2, F4, F9) a nivel de servicio, con el adaptador en memoria y el puerto
+ * {@link MediaObjectStore} simulado: definición de hecho 1, 2, 3, 5 y 15 (el 413/415/503 por HTTP es de la Tarea 2), orden de escritura y
  * deduplicación de la evidencia.
  */
 @ExtendWith(OutputCaptureExtension.class)
@@ -51,24 +50,20 @@ class MediaUploadServiceTest {
     static final String ULID = "[0-9A-HJKMNP-TV-Z]{26}";
 
     private InMemoryMediaStorageAdapter storage;
-    private MediaObjectRepository repository;
-    private final List<MediaObjectDocument> inserted = new ArrayList<>();
+    private MediaObjectStore metadata;
+    private final List<MediaObject> inserted = new ArrayList<>();
     private MediaUploadService service;
 
     @BeforeEach
     void setUp() {
         storage = spy(new InMemoryMediaStorageAdapter());
-        repository = mock(MediaObjectRepository.class);
-        when(repository.insert(any(MediaObjectDocument.class))).thenAnswer(invocation -> {
-            MediaObjectDocument document = invocation.getArgument(0);
-            inserted.add(document);
-            return document;
-        });
-        when(repository.findByOrganizationIdAndPurposeAndSha256(any(), any(), any())).thenAnswer(invocation ->
+        metadata = mock(MediaObjectStore.class);
+        doAnswer(invocation -> inserted.add(invocation.getArgument(0))).when(metadata).insert(any(MediaObject.class));
+        when(metadata.findByOrganizationIdAndPurposeAndSha256(any(), any(), any())).thenAnswer(invocation ->
                 inserted.stream().filter(d -> d.organizationId().equals(invocation.getArgument(0))
                         && d.purpose() == invocation.getArgument(1)
                         && d.sha256().equals(invocation.getArgument(2))).findFirst());
-        service = new MediaUploadService(new ImageSanitizer(), storage, repository,
+        service = new MediaUploadService(new ImageSanitizer(), storage, metadata,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
@@ -126,7 +121,7 @@ class MediaUploadServiceTest {
                 .isInstanceOf(UnsupportedImageFormatException.class);
 
         verify(storage, never()).put(any(), any(), any());
-        verify(repository, never()).insert(any(MediaObjectDocument.class));
+        verify(metadata, never()).insert(any(MediaObject.class));
     }
 
     // ── Definición de hecho 5: más de 5 MB de evidencia o 2 MB de logo o portada ──
@@ -142,7 +137,7 @@ class MediaUploadServiceTest {
                 .isInstanceOf(ImageTooLargeException.class);
 
         verify(storage, never()).put(any(), any(), any());
-        verify(repository, never()).insert(any(MediaObjectDocument.class));
+        verify(metadata, never()).insert(any(MediaObject.class));
     }
 
     @Test
@@ -170,7 +165,7 @@ class MediaUploadServiceTest {
         assertThatThrownBy(() -> service.store(DELIVERY_EVIDENCE, ORG, null, UPLOADER, TestImages.jpeg(32, 32)))
                 .isInstanceOf(MediaStorageUnavailableException.class);
 
-        verify(repository, never()).insert(any(MediaObjectDocument.class));
+        verify(metadata, never()).insert(any(MediaObject.class));
         assertThat(inserted).isEmpty();
     }
 
@@ -180,12 +175,12 @@ class MediaUploadServiceTest {
     void writeOrder_isCleanThenPutThenInsert_withTheExactMetadata() {
         StoredMedia media = service.store(CAMPAIGN_COVER, ORG, "cmp-42", UPLOADER, TestImages.png(30, 20));
 
-        InOrder order = inOrder(storage, repository);
+        InOrder order = inOrder(storage, metadata);
         order.verify(storage).put(eq(media.objectKey()), any(), eq("image/png"));
-        ArgumentCaptor<MediaObjectDocument> captor = ArgumentCaptor.forClass(MediaObjectDocument.class);
-        order.verify(repository).insert(captor.capture());
+        ArgumentCaptor<MediaObject> captor = ArgumentCaptor.forClass(MediaObject.class);
+        order.verify(metadata).insert(captor.capture());
 
-        MediaObjectDocument document = captor.getValue();
+        MediaObject document = captor.getValue();
         assertThat(document.objectKey()).isEqualTo(media.objectKey()).matches(ULID);
         assertThat(document.sha256()).isEqualTo(media.sha256()).isEqualTo(TestImages.sha256Hex(stored(media)));
         assertThat(document.purpose()).isEqualTo(CAMPAIGN_COVER);
@@ -196,10 +191,6 @@ class MediaUploadServiceTest {
         assertThat(new int[]{document.width(), document.height()}).containsExactly(30, 20);
         assertThat(document.uploadedBy()).isEqualTo(UPLOADER);
         assertThat(document.uploadedAt()).isEqualTo(NOW);
-        assertThat(document.boundAssetId()).isNull();
-        assertThat(document.deletedAt()).isNull();
-        assertThat(document.deletedBy()).isNull();
-        assertThat(document.reason()).isNull();
         assertThat(storage.contentTypeOf(media.objectKey())).isEqualTo("image/png");
     }
 
@@ -216,8 +207,7 @@ class MediaUploadServiceTest {
     // ADR-051 F2: si falla el insert queda un huérfano, que se registra con su clave (y nada más)
     @Test
     void insertFailure_logsTheOrphanKey_withoutMessageNorOrganizationNorUploader(CapturedOutput output) {
-        when(repository.insert(any(MediaObjectDocument.class)))
-                .thenThrow(new DataAccessResourceFailureException("mongo down " + ORG));
+        doThrow(new DataAccessResourceFailureException("mongo down " + ORG)).when(metadata).insert(any(MediaObject.class));
 
         assertThatThrownBy(() -> service.store(ORGANIZATION_LOGO, ORG, null, UPLOADER, TestImages.png(10, 10)))
                 .isInstanceOf(DataAccessResourceFailureException.class);
@@ -252,7 +242,7 @@ class MediaUploadServiceTest {
 
         assertThat(second.objectKey()).isNotEqualTo(first.objectKey());
         assertThat(inserted).hasSize(2);
-        verify(repository, never()).findByOrganizationIdAndPurposeAndSha256(any(), eq(ORGANIZATION_LOGO), any());
+        verify(metadata, never()).findByOrganizationIdAndPurposeAndSha256(any(), eq(ORGANIZATION_LOGO), any());
     }
 
     // dos subidas simultáneas de la misma evidencia: gana el índice único; el perdedor devuelve la del ganador y su
@@ -261,12 +251,11 @@ class MediaUploadServiceTest {
     void concurrentDuplicateEvidence_returnsTheWinner_andLogsTheOrphan(CapturedOutput output) {
         byte[] photo = TestImages.jpeg(32, 32);
         String sha = new ImageSanitizer().sanitize(DELIVERY_EVIDENCE, photo).sha256();
-        MediaObjectDocument winner = new MediaObjectDocument("id-1", "01JB00000000000000000000ZZ", sha,
-                DELIVERY_EVIDENCE, ORG, null, "image/jpeg", 100, 32, 32, "acct-other", NOW, null, null, null, null);
-        when(repository.findByOrganizationIdAndPurposeAndSha256(ORG, DELIVERY_EVIDENCE, sha))
+        MediaObject winner = new MediaObject("01JB00000000000000000000ZZ", sha, DELIVERY_EVIDENCE, ORG, null,
+                "image/jpeg", 100, 32, 32, "acct-other", NOW);
+        when(metadata.findByOrganizationIdAndPurposeAndSha256(ORG, DELIVERY_EVIDENCE, sha))
                 .thenReturn(Optional.empty(), Optional.of(winner));
-        when(repository.insert(any(MediaObjectDocument.class)))
-                .thenThrow(new DuplicateKeyException("E11000 uq_evidence_sha256"));
+        doThrow(new DuplicateEvidenceException("uq_evidence_sha256")).when(metadata).insert(any(MediaObject.class));
 
         StoredMedia media = service.store(DELIVERY_EVIDENCE, ORG, null, UPLOADER, photo);
 

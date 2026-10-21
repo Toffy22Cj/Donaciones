@@ -1,5 +1,7 @@
 package com.traceability.app.infrastructure.media;
 
+import com.traceability.app.application.archfixture.ApplicationUsingInfrastructure;
+import com.traceability.app.application.archfixture.ApplicationUsingSpringData;
 import com.traceability.app.archfixture.AwsSdkOutsideTheMediaAdapter;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -18,7 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * ADR-051 F1 y F9: el SDK de AWS solo en {@code app} (y dentro de {@code app}, solo en
  * {@code infrastructure.media}); {@code contracts} sin dependencias más allá de Java; y el único cliente HTTP del SDK
- * es el de la JDK (sin Netty ni Apache, P-3).
+ * es el de la JDK (sin Netty ni Apache, P-3); y la capa de aplicación de {@code app} no conoce su infraestructura ni
+ * Spring Data (iteración DT-2 del plan: los metadatos se usan a través del puerto {@code MediaObjectStore}).
  */
 class MediaArchitectureTest {
 
@@ -35,6 +38,28 @@ class MediaArchitectureTest {
             .that().resideInAPackage("com.traceability.contracts..")
             .should().onlyDependOnClassesThat().resideInAnyPackage("java..", "com.traceability.contracts..")
             .because("contracts no tiene dependencias de infraestructura; MediaStoragePort solo usa tipos de Java (ADR-051 F9)");
+
+    static final ArchRule APPLICATION_WITHOUT_INFRASTRUCTURE = noClasses()
+            .that().resideInAPackage("com.traceability.app.application..")
+            .should().dependOnClassesThat().resideInAnyPackage("com.traceability.app.infrastructure..",
+                    "org.springframework.data..")
+            .because("la capa de aplicación de app usa puertos de salida, como application.port.out en los demás módulos"
+                    + " (ADR-051 F9; plan de la Tarea 1, DT-2)");
+
+    @Test
+    void appApplication_doesNotDependOnAppInfrastructureNorSpringData() {
+        APPLICATION_WITHOUT_INFRASTRUCTURE.check(PRODUCTION);
+    }
+
+    @Test
+    void theApplicationLayerRule_detectsBothViolations() {
+        assertThatThrownBy(() -> APPLICATION_WITHOUT_INFRASTRUCTURE.check(
+                new ClassFileImporter().importClasses(ApplicationUsingInfrastructure.class)))
+                .isInstanceOf(AssertionError.class).hasMessageContaining("MediaObjectRepository");
+        assertThatThrownBy(() -> APPLICATION_WITHOUT_INFRASTRUCTURE.check(
+                new ClassFileImporter().importClasses(ApplicationUsingSpringData.class)))
+                .isInstanceOf(AssertionError.class).hasMessageContaining("org.springframework.data");
+    }
 
     @Test
     void awsSdk_onlyInAppInfrastructureMedia() {

@@ -1,15 +1,11 @@
 package com.traceability.app.application.media;
 
 import com.github.f4b6a3.ulid.UlidCreator;
-import com.traceability.app.infrastructure.media.MediaObjectDocument;
-import com.traceability.app.infrastructure.media.MediaObjectRepository;
 import com.traceability.contracts.media.MediaStoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -21,7 +17,7 @@ import java.util.Optional;
  * <ol>
  *   <li>validar y limpiar en memoria ({@link ImageSanitizer}, F4);</li>
  *   <li>guardar los bytes con una clave aleatoria (ULID), sin datos de la organización;</li>
- *   <li>insertar el metadato en {@code media_objects} (F9).</li>
+ *   <li>insertar el metadato en {@code media_objects} (F9), a través del puerto {@link MediaObjectStore}.</li>
  * </ol>
  * Si falla el guardado ({@code MediaStorageUnavailableException}, tras el reintento del adaptador), no se inserta nada.
  * Si falla el insert, el archivo queda huérfano: no causa daño y se registra con su clave (F2).
@@ -36,20 +32,20 @@ public class MediaUploadService {
 
     private final ImageSanitizer sanitizer;
     private final MediaStoragePort storage;
-    private final MediaObjectRepository repository;
+    private final MediaObjectStore metadata;
     private final Clock clock;
 
     @Autowired
-    public MediaUploadService(ImageSanitizer sanitizer, MediaStoragePort storage, MediaObjectRepository repository,
+    public MediaUploadService(ImageSanitizer sanitizer, MediaStoragePort storage, MediaObjectStore metadata,
                               ObjectProvider<Clock> clock) {
-        this(sanitizer, storage, repository, clock.getIfAvailable(Clock::systemUTC));
+        this(sanitizer, storage, metadata, clock.getIfAvailable(Clock::systemUTC));
     }
 
-    public MediaUploadService(ImageSanitizer sanitizer, MediaStoragePort storage, MediaObjectRepository repository,
+    public MediaUploadService(ImageSanitizer sanitizer, MediaStoragePort storage, MediaObjectStore metadata,
                               Clock clock) {
         this.sanitizer = sanitizer;
         this.storage = storage;
-        this.repository = repository;
+        this.metadata = metadata;
         this.clock = clock;
     }
 
@@ -67,8 +63,8 @@ public class MediaUploadService {
         SanitizedImage image = sanitizer.sanitize(purpose, content);
 
         if (purpose == MediaPurpose.DELIVERY_EVIDENCE) {
-            Optional<MediaObjectDocument> existing =
-                    repository.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256());
+            Optional<MediaObject> existing =
+                    metadata.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256());
             if (existing.isPresent()) {
                 return toStoredMedia(existing.get());
             }
@@ -77,23 +73,19 @@ public class MediaUploadService {
         String objectKey = UlidCreator.getUlid().toString();
         storage.put(objectKey, image.content(), image.contentType());
 
-        MediaObjectDocument document = new MediaObjectDocument(null, objectKey, image.sha256(), purpose,
-                organizationId, ownerRef, image.contentType(), image.content().length, image.width(), image.height(),
-                uploadedBy, clock.instant(), null, null, null, null);
+        MediaObject mediaObject = new MediaObject(objectKey, image.sha256(), purpose, organizationId, ownerRef,
+                image.contentType(), image.content().length, image.width(), image.height(), uploadedBy,
+                clock.instant());
         try {
-            return toStoredMedia(repository.insert(document));
-        } catch (DuplicateKeyException e) {
-            if (purpose == MediaPurpose.DELIVERY_EVIDENCE) {
-                Optional<MediaObjectDocument> winner =
-                        repository.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256());
-                if (winner.isPresent()) {
-                    logOrphan(objectKey, purpose, e);
-                    return toStoredMedia(winner.get());
-                }
-            }
+            metadata.insert(mediaObject);
+            return toStoredMedia(mediaObject);
+        } catch (DuplicateEvidenceException e) {
+            // carrera de dos evidencias idénticas: gana el índice único; esta copia queda huérfana (P-8)
             logOrphan(objectKey, purpose, e);
-            throw e;
-        } catch (DataAccessException e) {
+            return metadata.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256())
+                    .map(MediaUploadService::toStoredMedia)
+                    .orElseThrow(() -> e);
+        } catch (RuntimeException e) {
             logOrphan(objectKey, purpose, e);
             throw e;
         }
@@ -104,8 +96,8 @@ public class MediaUploadService {
         log.warn("media.orphan objectKey={} purpose={} cause={}", objectKey, purpose, cause.getClass().getSimpleName());
     }
 
-    private static StoredMedia toStoredMedia(MediaObjectDocument document) {
-        return new StoredMedia(document.objectKey(), document.sha256(), document.contentType(), document.sizeBytes(),
-                document.width(), document.height());
+    private static StoredMedia toStoredMedia(MediaObject object) {
+        return new StoredMedia(object.objectKey(), object.sha256(), object.contentType(), object.sizeBytes(),
+                object.width(), object.height());
     }
 }

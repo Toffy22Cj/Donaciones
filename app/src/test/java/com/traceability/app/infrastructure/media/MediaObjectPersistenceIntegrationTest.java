@@ -1,7 +1,10 @@
 package com.traceability.app.infrastructure.media;
 
 import com.traceability.app.TraceabilityApplication;
+import com.traceability.app.application.media.DuplicateEvidenceException;
 import com.traceability.app.application.media.ImageSanitizer;
+import com.traceability.app.application.media.MediaObject;
+import com.traceability.app.application.media.MediaObjectStore;
 import com.traceability.app.application.media.MediaPurpose;
 import com.traceability.app.application.media.MediaUploadService;
 import com.traceability.app.application.media.StoredMedia;
@@ -33,7 +36,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * {@code media_objects} en MongoDB real (ADR-051 F9): único en {@code objectKey}, único parcial
  * {@code (organizationId, purpose, sha256)} solo para la evidencia, y ningún metadato cuando el proveedor falla
- * (definición de hecho 15). Los índices los crea {@code MongoIndexInitializer} al arrancar (H-IDX-1).
+ * (definición de hecho 15). Los índices los crea {@code MongoIndexInitializer} al arrancar (H-IDX-1). El servicio usa
+ * el adaptador real {@link MongoMediaObjectStore}, que traduce el choque del índice de la evidencia a
+ * {@link DuplicateEvidenceException}.
  */
 @SpringBootTest(classes = TraceabilityApplication.class)
 @Testcontainers
@@ -60,13 +65,16 @@ class MediaObjectPersistenceIntegrationTest {
     @Autowired private MediaObjectRepository repository;
 
     private InMemoryMediaStorageAdapter storage;
+    private MediaObjectStore store;
     private MediaUploadService service;
+    @Autowired private org.springframework.context.ApplicationContext context;
 
     @BeforeEach
     void setUp() {
         repository.deleteAll();
         storage = new InMemoryMediaStorageAdapter();
-        service = new MediaUploadService(new ImageSanitizer(), storage, repository, Clock.systemUTC());
+        store = new MongoMediaObjectStore(repository);
+        service = new MediaUploadService(new ImageSanitizer(), storage, store, Clock.systemUTC());
     }
 
     static MediaObjectDocument document(String objectKey, MediaPurpose purpose, String organizationId, String sha256) {
@@ -133,5 +141,52 @@ class MediaObjectPersistenceIntegrationTest {
         assertThat(stored.objectKey()).isEqualTo(first.objectKey());
         assertThat(stored.id()).isNotNull();
         assertThat(new int[]{stored.width(), stored.height()}).containsExactly(24, 16);
+    }
+
+    static MediaObject mediaObject(String objectKey, MediaPurpose purpose, String organizationId, String sha256) {
+        return new MediaObject(objectKey, sha256, purpose, organizationId, purpose == CAMPAIGN_COVER ? "cmp-1" : null,
+                "image/png", 10, 1, 1, "acct-1", NOW);
+    }
+
+    // el puerto de salida (ADR-051 F9, iteración DT-2): lo que se inserta es lo que se lee, sin el documento de Mongo
+    @Test
+    void theStore_insertsAndFindsTheMetadata() {
+        MediaObject inserted = mediaObject("01JB00000000000000000000D1", DELIVERY_EVIDENCE, "org-1", SHA);
+
+        store.insert(inserted);
+
+        assertThat(store.findByOrganizationIdAndPurposeAndSha256("org-1", DELIVERY_EVIDENCE, SHA)).contains(inserted);
+        assertThat(store.findByOrganizationIdAndPurposeAndSha256("org-2", DELIVERY_EVIDENCE, SHA)).isEmpty();
+        assertThat(repository.findAll()).singleElement().satisfies(document -> {
+            assertThat(document.boundAssetId()).isNull();
+            assertThat(document.deletedAt()).isNull();
+            assertThat(document.deletedBy()).isNull();
+            assertThat(document.reason()).isNull();
+        });
+    }
+
+    // el adaptador traduce el choque de uq_evidence_sha256 a la excepción nombrada de la capa de aplicación
+    @Test
+    void theStore_translatesADuplicateEvidence_toDuplicateEvidenceException() {
+        store.insert(mediaObject("01JB00000000000000000000E1", DELIVERY_EVIDENCE, "org-1", SHA));
+
+        assertThatThrownBy(() -> store.insert(mediaObject("01JB00000000000000000000E2", DELIVERY_EVIDENCE, "org-1", SHA)))
+                .isInstanceOf(DuplicateEvidenceException.class);
+    }
+
+    // otro choque (la clave del objeto) no es una evidencia duplicada: no se traduce
+    @Test
+    void theStore_doesNotTranslateADuplicateObjectKey() {
+        store.insert(mediaObject("01JB00000000000000000000F1", ORGANIZATION_LOGO, "org-1", SHA));
+
+        assertThatThrownBy(() -> store.insert(mediaObject("01JB00000000000000000000F1", CAMPAIGN_COVER, "org-1", "c".repeat(64))))
+                .isInstanceOf(DuplicateKeyException.class)
+                .isNotInstanceOf(DuplicateEvidenceException.class);
+    }
+
+    @Test
+    void theApplicationWiresTheMongoStore() {
+        assertThat(context.getBeansOfType(MediaObjectStore.class).values())
+                .singleElement().isInstanceOf(MongoMediaObjectStore.class);
     }
 }
