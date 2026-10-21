@@ -149,3 +149,7 @@ Fuera de esta ficha y sin decidir aquí: H-S18-1, H-S18-2 y el hallazgo posterio
 3. Tests de §7 rojos, luego verdes, con `ci-local.sh` completo.
 4. `referencia-api-v1.md` y `solicitudes-backend.md` (web) actualizados: S-18 → RESUELTA con el commit.
 5. H-S18-1 y H-S18-2 trasladados a la lista de pendientes del equipo.
+
+---
+
+*Nota (2026-10-21, Manuel; enmienda de contrato bajo ADR-041, por ADR-051 F6 y su Enmienda 1):* la respuesta de `GET /api/v1/organizations/{organizationId}` gana **`logoUrl?`**, que apunta a `/api/v1/organizations/{organizationId}/logo`, la ruta **autenticada** del logo. Falta si la organización no tiene logo. Quién lee esta respuesta no cambia: `ADMINISTRATOR` o `REPRESENTATIVE`, Q-S18-2. La ruta del logo tiene su propia regla de acceso (miembro de la organización o administrador de plataforma, Enmienda 1 de ADR-051). Se implementa en la Tarea 2 de ADR-051 (`plan-adr051-tarea2-logo.md`). Lo anterior de esta ficha no se reescribe.
