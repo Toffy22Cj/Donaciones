@@ -210,7 +210,11 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 
 - **ADR-049 — Envío de correo e invitaciones para incorporar miembros a una organización** (`ADR-049-correo-e-invitaciones-a-organizaciones.md`). **Reservado el 2026-10-07T22:30Z** y **APROBADO como decisión delegada** (autorización (3) de Carlos, §2; DD-60, pendiente de ratificar). `spring-boot-starter-mail` solo en `app`, Mailpit en `dev`, token de un solo uso de 7 días guardado como hash, token en el fragmento (excepción consciente decidida por Carlos), aceptación con email coincidente, cambio de rol y retirada de miembros con la regla del responsable activo.
 
-**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-050.
+- **ADR-050 — Cuenta y sesiones** (`ADR-050-cuenta-y-sesiones.md`). **APROBADO — Carlos, 2026-10-18.** Registro en dos pasos, aceptaciones legales, revocación con `credentialsNotBefore`, cambio y recuperación de contraseña, desactivación y reactivación, Google. Enmienda ADR-047 D5. *Nota 2026-10-21:* faltaba en este catálogo; se añade sin cambiar su contenido.
+
+- **ADR-051 — Fotos y almacenamiento** (`ADR-051-fotos-y-almacenamiento.md`). **APROBADO — Carlos, 2026-10-18, con la Enmienda 1 (18:45Z).** Almacenamiento compatible con S3, limpieza de metadatos con la JDK, `media_objects`, `evidenceRef = sha256:`. Tarea 1 implementada en el PR #107. *Nota 2026-10-21:* faltaba en este catálogo; se añade sin cambiar su contenido.
+
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-052.
 
 ---
 
