@@ -74,6 +74,8 @@
   - ningún log de B6-a incluye la ruta ni el código: `ApiExceptionHandler` no registra la ruta y el log de acceso de Tomcat está desactivado;
   - un test de captura de logs lo comprueba en el 200, en el 404 y en un 500 forzado.
 
+*Nota (2026-10-18, ficha L-FRONTS, A1; M-07; enmienda de CV-07):* la respuesta añade **`organizationVerified`** (booleano, siempre presente), calculado con `OrganizationVerificationPort.isVerified` sobre el estado actual de la organización. No cambia la lista de excluidos: sigue sin `organizationRef` ni ids internos.
+
 ### 2.4 Verificar organización — `POST /api/v1/platform/organizations/{organizationId}/verify`
 
 - **Controlador** `app.web.platform.OrganizationVerificationController`, con `@CurrentActor AuthorizationPrincipal`. Responde `200` con `{organizationId, verificationStatus}`.

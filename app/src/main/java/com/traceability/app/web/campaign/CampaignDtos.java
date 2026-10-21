@@ -42,9 +42,13 @@ public final class CampaignDtos {
     /** P2.4: cerrar convocatoria. {@code CLOSED} es terminal. */
     public record CloseCampaignResponse(String campaignRef, String status) {}
 
-    /** CV-07 (plan B6-a §2.3; DD-03). Importes como texto (T-34); nulos omitidos (Q-B60-2). */
+    /**
+     * CV-07 (plan B6-a §2.3; DD-03). Importes como texto (T-34); nulos omitidos (Q-B60-2). {@code organizationVerified}
+     * siempre está (ficha L-FRONTS, A1; M-07).
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record PublicCampaignResponse(String organizationName, String title, String description, String status,
+    public record PublicCampaignResponse(String organizationName, boolean organizationVerified, String title,
+                                         String description, String status,
                                          String startDate, String endDate, Set<String> acceptedDonationTypes,
                                          Set<String> acceptedPaymentMethods, String currency, String targetAmount,
                                          String clearedAmount) {}
