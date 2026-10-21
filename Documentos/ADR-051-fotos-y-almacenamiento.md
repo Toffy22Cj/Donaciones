@@ -253,7 +253,7 @@ Sin permiso, otra organización o recurso inexistente → el mismo 403 (DD-01).
 |---|---|---|
 | Enmienda de ADR-043 (móvil) | `DELIVER` con conexión; subir la foto antes de entregar; dependencia de cámara; aviso de no fotografiar personas; enderezar la orientación antes de subir (Q1 (a)) | Adonis |
 | Enmienda de ADR-021-D | Huella en el seguimiento público (C2 (a), aprobada; se redacta antes del código de la tarea 5) | Carlos |
-| Fichas CV-07, descubrimiento y S-18 (ADR-041) | `coverImageUrl?` y `logoUrl?` | Carlos y Manuel |
+| Fichas CV-07, descubrimiento y S-18 (ADR-041) | `organizationLogoUrl?` y `coverImageUrl?` en descubrimiento y CV-07; `logoUrl?` en la lectura autenticada de la organización (S-18) | Carlos y Manuel |
 | `referencia-api-v1.md` | Rutas de subida, lectura y retirada | Quien implemente cada una |
 | `DemoScenarioSeeder`, `GoldenPathHttpIntegrationTest` | `evidenceRef` con formato `sha256:` de una foto real | Quien implemente F3 |
 
@@ -276,7 +276,7 @@ Sin permiso, otra organización o recurso inexistente → el mismo 403 (DD-01).
 11. Los activos con eventos antiguos de `evidenceRef` en texto libre se siguen reconstruyendo y la verificación de su cadena no cambia.
 
 **Visibilidad (F6, F7)**
-12. Logo y portada se leen sin JWT; la evidencia exige JWT de la organización del activo o administrador de plataforma, y cualquier otro recibe el 403 uniforme.
+12. El logo público (GET /api/v1/public/campaigns/{publicCode}/organization-logo) y la portada se leen sin JWT; la evidencia exige JWT de la organización del activo o administrador de plataforma, y cualquier otro recibe el 403 uniforme. La lectura autenticada del logo se prueba en 12c.
 13. El seguimiento público nunca contiene la imagen ni una URL de la evidencia; muestra `evidenceRegistered: true` y `evidenceRef` solo si tiene formato `sha256:`; un `evidenceRef` antiguo de texto libre nunca aparece.
 14. Tras la retirada por el administrador de plataforma, la evidencia da 410, los bytes ya no están en el proveedor y el metadato conserva motivo, autor y fecha.
 
@@ -317,3 +317,5 @@ Sin permiso, otra organización o recurso inexistente → el mismo 403 (DD-01).
 **Tests añadidos a la definición de hecho.**
 - 12b. `GET /api/v1/public/campaigns/{publicCode}/organization-logo` devuelve el logo sin JWT; ninguna respuesta pública (descubrimiento, CV-07, logo) contiene el `organizationId`.
 - 12c. `GET /api/v1/organizations/{organizationId}/logo` sin JWT → 401; con JWT de otra organización → el 403 uniforme.
+
+**Nota editorial (2026-10-21, Manuel):** el criterio 12 y la tabla "Documentos que cambian por este ADR" se alinean con esta enmienda. No cambia ninguna decisión. Visto bueno de Carlos en la revisión del PR que la incorpora.
