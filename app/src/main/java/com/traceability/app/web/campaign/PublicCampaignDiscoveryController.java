@@ -3,6 +3,7 @@ package com.traceability.app.web.campaign;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.traceability.api.web.InvalidRequestFieldException;
 import com.traceability.contracts.organization.OrganizationPublicNamePort;
+import com.traceability.convocatoria.application.port.out.OrganizationVerificationPort;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery.Page;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery.PublicCampaignSummary;
@@ -19,28 +20,32 @@ import java.util.Set;
  * T-35: {@code {items, nextCursor}}, sin {@code nextCursor} en la última página, cursor inválido → 400). Nunca lista
  * {@code PRIVATE_LINK}. Sin {@code campaignRef} ni {@code organizationRef}: solo el nombre público de la organización.
  * El cursor es opaco ({@link DiscoveryCursorCodec}, T-35; DD-53 rehecha).
+ * {@code organizationVerified} se calcula con el estado actual de la organización (ficha L-FRONTS, A1; M-07).
  */
 @RestController
 public class PublicCampaignDiscoveryController {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Item(String publicCode, String title, String organizationName, String status, String startDate,
-                       String endDate, Set<String> acceptedDonationTypes, String currency, String targetAmount,
-                       String clearedAmount) {}
+    public record Item(String publicCode, String title, String organizationName, boolean organizationVerified,
+                       String status, String startDate, String endDate, Set<String> acceptedDonationTypes,
+                       String currency, String targetAmount, String clearedAmount) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Response(List<Item> items, String nextCursor) {}
 
     private final PublicCampaignDiscoveryQuery discovery;
     private final OrganizationPublicNamePort organizationNames;
+    private final OrganizationVerificationPort organizationVerification;
 
     private final DiscoveryCursorCodec cursors;
 
     public PublicCampaignDiscoveryController(PublicCampaignDiscoveryQuery discovery,
                                              OrganizationPublicNamePort organizationNames,
+                                             OrganizationVerificationPort organizationVerification,
                                              DiscoveryCursorCodec cursors) {
         this.discovery = discovery;
         this.organizationNames = organizationNames;
+        this.organizationVerification = organizationVerification;
         this.cursors = cursors;
     }
 
@@ -53,7 +58,7 @@ public class PublicCampaignDiscoveryController {
 
     private Item item(PublicCampaignSummary s) {
         return new Item(s.publicCode(), s.title(), organizationNames.findPublicName(s.organizationRef()).orElse(null),
-                s.status(), s.startDate().toString(), s.endDate().toString(), s.acceptedDonationTypes(), s.currency(),
+                organizationVerification.isVerified(s.organizationRef()), s.status(), s.startDate().toString(), s.endDate().toString(), s.acceptedDonationTypes(), s.currency(),
                 s.targetAmount() == null ? null : s.targetAmount().toString(),
                 s.clearedAmount() == null ? null : s.clearedAmount().toString());
     }
