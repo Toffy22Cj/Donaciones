@@ -1,6 +1,7 @@
 package com.traceability.app.config;
 
 import com.traceability.app.TraceabilityApplication;
+import com.traceability.app.infrastructure.media.MediaObjectDocument;
 import com.traceability.convocatoria.infrastructure.persistence.mongo.document.CampaignAssignmentDocument;
 import com.traceability.convocatoria.infrastructure.persistence.mongo.document.ConfigurationChangeRequestDocument;
 import com.traceability.convocatoria.infrastructure.persistence.mongo.document.DonationIntentDocument;
@@ -107,6 +108,11 @@ class MongoIndexesAtStartupIntegrationTest {
         unique("organization_invitations", "tokenHash", new Document("tokenHash", 1));
         // anclaje
         unique("merkle_batches", "batchId", new Document("batchId", 1));
+        // imágenes (ADR-051 F9): una clave por objeto, y una evidencia por (organización, huella)
+        unique(MediaObjectDocument.COLLECTION, MediaObjectDocument.OBJECT_KEY_INDEX, new Document("objectKey", 1));
+        uniquePartial(MediaObjectDocument.COLLECTION, MediaObjectDocument.EVIDENCE_SHA256_INDEX,
+                new Document("organizationId", 1).append("purpose", 1).append("sha256", 1),
+                new Document("purpose", "DELIVERY_EVIDENCE"));
         // reclamos de comandos: la unicidad es la de _id, que existe con la colección
         for (String claims : List.of("processed_commands", "convocatoria_processed_commands", "outbox")) {
             assertThat(mongoTemplate.collectionExists(claims)).as(claims).isTrue();

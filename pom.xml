@@ -16,6 +16,9 @@
         <spring-boot.version>3.4.4</spring-boot.version>
         <!-- ADR-047 D1: no la gestiona ningún BOM; se fija a mano y se actualiza como dependencia de seguridad -->
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
+        <!-- ADR-051 F1: no la gestiona el BOM de Spring Boot 3.4.4 ni el de Spring AI; se fija a mano.
+             2.55.10 (Maven Central, 2026-10-01): con al menos dos semanas de antigüedad al fijarla (2026-10-20) -->
+        <awssdk.version>2.55.10</awssdk.version>
     </properties>
 
     <modules>
@@ -51,6 +54,17 @@
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>${nimbus-jose-jwt.version}</version>
+            </dependency>
+            <!-- ADR-051 F1: cliente S3, solo en app, con el cliente HTTP de la JDK -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${awssdk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>url-connection-client</artifactId>
+                <version>${awssdk.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
