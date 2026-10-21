@@ -213,6 +213,22 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Pendiente fuera del backend:** la fila S-18 de `solicitudes-backend.md` de `paxfide-web` pasa a RESUELTA en un PR aparte.
 - **Evidencia:** `scripts/ci-local.sh` sobre el último commit de la rama, en `Documentos/evidencia-ci/`.
 
+### 0.32 ADR-051, Tarea 1: almacenamiento de fotos (2026-10-21, `feat/app-adr051-media-storage`)
+
+- **Norma:** `ADR-051-fotos-y-almacenamiento.md`, APROBADO — Carlos, 2026-10-18, con la Enmienda 1 (18:45Z); copia canónica confirmada por Manuel el 2026-10-21 (sha256 `d01e1385973ec987f2aae3fb350b1b14348e9753e6a190085307db1b026633a0`). Plan: `plan-adr051-tarea1-almacenamiento.md`, APROBADO con cambios (Manuel, 2026-10-20) y con la iteración DT-2 (2026-10-21).
+- **Qué hace** (sin rutas HTTP; las usan las tareas 2 a 4):
+  - `contracts`: `MediaStoragePort` (`put`/`get`/`delete`) y `MediaStorageUnavailableException` (F9), solo tipos de Java.
+  - `app`: SDK de S3 **2.55.10** solo en `app`, con `url-connection-client`; excluidos `netty-nio-client`, `apache-client` y `apache5-client` (F1). `S3MediaStorageAdapter` (bucket privado, credenciales estáticas, sin reintentos del SDK; un reintento de `put` con la misma clave y bytes solo ante fallo ambiguo, F2), `LocalMediaStorageAdapter` (solo `dev`) y `MediaStorageConfig`, con *fail-fast*: `local` fuera de `dev` o cualquier `MEDIA_S3_*` ausente impide arrancar, nombrando la variable y nunca su valor.
+  - Limpieza con la JDK (`ImageSanitizer`, F4): bytes mágicos, dimensiones desde la cabecera antes de decodificar (8000 px, 40 MP), rechazo por espacio de color distinto de RGB o gris (la JDK 21.0.12 decodifica CMYK/YCCK; aclaración N-1), re-codificación sin metadatos (JPEG 0,9) y SHA-256 de los bytes guardados.
+  - `media_objects` (F9) a través del puerto `MediaObjectStore` (iteración DT-2): limpiar → `put` con ULID → insertar; huérfano registrado con su clave; único en `objectKey` y único parcial `(organizationId, purpose, sha256)` para `DELIVERY_EVIDENCE`. ArchUnit: el SDK solo en `app.infrastructure.media`, `contracts` solo con Java, y `app.application` sin `app.infrastructure` ni Spring Data.
+  - `.env.example` y `runbook-demo-local.md` con las cinco `MEDIA_S3_*`.
+- **Los criterios 3, 4, 5 y 15 de ADR-051 quedan cubiertos a nivel de excepción (`UnsupportedImageFormatException`, `ImageTooLargeException`, `MediaStorageUnavailableException`). Las respuestas 413, 415 y 503 por HTTP quedan para la Tarea 2.**
+- **Criterios cubiertos:** 1, 2, 3, 4, 5, 15, 17 (MinIO real, `bitnamilegacy/minio` fijada por digest), 18 y 19. El 4 se prueba "sin decodificar" con PNG; el caso JPEG solo prueba que el límite se lee de la cabecera, porque la JDK decodifica con tolerancia un JPEG con la cabecera cambiada.
+- **Evidencia:** rojo primero (`mvn test -pl app`: 399 tests, 96 fallos y 30 errores, solo en las clases nuevas o modificadas); 10 de 10 mutaciones muertas (la 3 por los casos PNG; 6 y 7 repetidas tras DT-2); `ci-local.sh` en clon limpio sobre `035d30a` (app 405) y `05cdfc1` (app 411), todo en verde: `evidencia-ci/ci-local-035d30a-2026-10-21T04-41-04Z.txt` y `evidencia-ci/ci-local-05cdfc1-2026-10-21T05-14-42Z.txt`.
+- **Queda para la Tarea 2** (logo): la primera ruta que use el servicio; la traducción a HTTP (`ImageTooLargeException` → 413, `UnsupportedImageFormatException` → 415, `MediaStorageUnavailableException` → 503) con su test por HTTP (P-2); el límite de *multipart* de F8 y si el controlador repite el de 2 MB (P-1); el borrado del logo anterior tras confirmar el cambio (F10, criterio 16).
+- **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
+- **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
+
 ### 0.29 Cierre del encargo 6: "backend cerrado para que mañana el equipo trabaje en el front" (2026-10-08)
 
 | Punto | Resultado | PR |

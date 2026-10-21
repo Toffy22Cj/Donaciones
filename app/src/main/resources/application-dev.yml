@@ -16,6 +16,12 @@ traceability:
     from: ${TRACEABILITY_MAIL_FROM:no-reply@demo.paxfide.local}
   web:
     base-url: ${TRACEABILITY_WEB_BASE_URL:http://localhost:5173}
+  # ADR-051 F1: en dev, adaptador local en un directorio estable bajo el temporal del sistema (las imágenes sobreviven a
+  # un reinicio, como los metadatos de la base). Ningún valor de S3 aquí: para probar S3 en dev, darlos por entorno.
+  media:
+    storage: ${TRACEABILITY_MEDIA_STORAGE:local}
+    local:
+      directory: ${TRACEABILITY_MEDIA_LOCAL_DIRECTORY:${java.io.tmpdir}/paxfide-media}
   security:
     jwt:
       # SOLO DESARROLLO — nunca un valor productivo (ADR-047 D3). Producción exige JWT_SIGNING_SECRET.

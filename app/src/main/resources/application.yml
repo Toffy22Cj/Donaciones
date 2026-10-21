@@ -58,6 +58,20 @@ traceability:
     cors:
       # S-03: orígenes exactos (desarrollo y demo) separados por comas; nunca '*'. Sin valor, ningún origen cruzado.
       allowed-origins: ${TRACEABILITY_CORS_ALLOWED_ORIGINS:}
+  # ADR-051 F1: almacenamiento de imágenes compatible con S3 (bucket privado). Fuera de dev, local no se admite y sin
+  # cualquiera de las cinco MEDIA_S3_* la aplicación no arranca. Sin valores por defecto: solo por entorno, nunca aquí.
+  media:
+    storage: s3
+    s3:
+      endpoint: ${MEDIA_S3_ENDPOINT}
+      region: ${MEDIA_S3_REGION}
+      bucket: ${MEDIA_S3_BUCKET}
+      access-key-id: ${MEDIA_S3_ACCESS_KEY_ID}
+      secret-access-key: ${MEDIA_S3_SECRET_ACCESS_KEY}
+      # Valores de implementación (plan de la Tarea 1 de ADR-051, P-4); el único reintento es el de F2
+      connection-timeout: PT3S
+      socket-timeout: PT10S
+      attempt-timeout: PT10S
   discovery:
     # DD-53: clave AES-256 del cursor opaco del descubrimiento (32 bytes en Base64). Obligatoria y sin valor por
     # defecto: sin TRACEABILITY_DISCOVERY_CURSOR_KEY, o igual a otro secreto, la aplicación no arranca.

@@ -17,6 +17,16 @@ traceability:
       # Solo para tests; nunca un valor productivo (ADR-047 D3)
       signing-secret: test-only-jwt-signing-secret-not-for-production
       kid: test-k1
+  # ADR-051 F1: S3 ficticio solo para tests (no es dev, así que local no se admite). Nadie escucha en localhost:1: los
+  # tests que guardan imágenes usan el adaptador en memoria o MinIO por Testcontainers. Nunca valores productivos.
+  media:
+    storage: s3
+    s3:
+      endpoint: http://localhost:1
+      region: us-east-1
+      bucket: tests-media
+      access-key-id: test-only-media-access-key-id
+      secret-access-key: test-only-media-secret-not-for-production
   discovery:
     # Solo para tests (32 bytes en Base64): "test-only-discovery-cursor-key!!"
     cursor-key: dGVzdC1vbmx5LWRpc2NvdmVyeS1jdXJzb3Ita2V5ISE=
