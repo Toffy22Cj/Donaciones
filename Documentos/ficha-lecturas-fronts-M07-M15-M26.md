@@ -5,6 +5,8 @@
 - **A1 (M-07) y A3 (M-26): CONGELADO** — Q-A1-1 a Q-A1-3 y Q-A3-1 a Q-A3-3 respondidas; registro en §8.
 - **A2 (M-15/M-16): DECIDIDO, BLOQUEADO** — Q-A2-1 a Q-A2-5 respondidas, pero no se planifica hasta que Carlos responda **Q-A2-C** (§5): cambia `DonationView` de `DonationIntentReadPort` (puerto de `convocatoria` que consume `app`) y añade `createdAt` al dominio de `DonationIntent`, lo que por la regla 3.5 exige una enmienda de ADR-037 o una decisión expresa de Carlos de que no la requiere.
 
+*Nota (2026-10-22, Manuel, con asistencia de Claude):* **A2 (M-15/M-16) pasa a CONGELADO** según §9. Q-A2-C se respondió con la opción (a), y la enmienda `ADR-037-enmienda-5-fecha-de-creacion-y-vista-del-historial.md` está **APROBADA por Carlos**, según comunicó Manuel el 2026-10-21. El plan de implementación es `plan-a2-historial-donaciones.md`, BORRADOR. Las líneas de estado anteriores se conservan como historial.
+
 Congelado **no** autoriza código: falta el plan de implementación aprobado (§9).
 **Fecha:** 2026-10-18 (UTC).
 **Autor del borrador:** Manuel (backend/BD, identidad), con asistencia de Claude.
@@ -286,9 +288,12 @@ Respondidas por Manuel (responsable de backend/BD e identidad) el **2026-10-18T0
 | Q-A3-3 | **(a)** Solo `email` | — |
 | Q-A2-C | **Abierta**, para Carlos | A2 bloqueado hasta su respuesta |
 
+*Nota (2026-10-22):* Q-A2-C quedó **respondida con la opción (a)**: Manuel la eligió el 2026-10-21, y Carlos aprobó la Enmienda 5 de ADR-037 (comunicado por Manuel el 2026-10-21). La fila de arriba no se reescribe.
+
 ---
 
 ## 9. Criterio de cierre
 
 - **A1 y A3:** CONGELADO (2026-10-18T06:35Z). Congelado **no** autoriza código: falta el plan de implementación aprobado.
 - **A2:** pasa a CONGELADO cuando Carlos responda Q-A2-C y su respuesta se registre en §8 (y, si es la opción (a), cuando se apruebe la enmienda de ADR-037).
+- *Nota (2026-10-22):* **A2: CONGELADO.** Se cumplen las dos condiciones: Q-A2-C respondida (a) y registrada en §8, y Enmienda 5 aprobada. Congelado no autoriza código: falta el plan aprobado.

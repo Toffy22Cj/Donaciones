@@ -2,14 +2,16 @@
 
 ## Status
 
-**PROPUESTO — espera la aprobación de Carlos** (ADR-037 es de su módulo). Redactada el 2026-10-21 por Manuel, con asistencia de Claude. **No autoriza código:** la tarea A2 necesita además su plan aprobado (regla 3.4).
+**APROBADA — Carlos.** Manuel lo comunicó en la sesión de trabajo el 2026-10-21 ("Carlos aprobó la Enmienda 5 de ADR-037"). **[Falta: hora exacta y lugar de la aprobación (revisión del PR #109, mensaje o reunión); Manuel lo completa.]** Las marcas *[Propuesta]* de E5-1 y E5-2 quedan aprobadas y se retiran. **No autoriza código por sí sola:** la tarea A2 necesita además su plan aprobado (regla 3.4; `plan-a2-historial-donaciones.md`).
+
+*Historial del estado:* PROPUESTO — espera la aprobación de Carlos (ADR-037 es de su módulo). Redactada el 2026-10-21 por Manuel, con asistencia de Claude. No autoriza código: la tarea A2 necesita además su plan aprobado (regla 3.4).
 
 **Por qué es una enmienda.** La regla 3.5 la exige literalmente cuando se "cambie el contrato de un puerto ya usado por otro módulo". `DonationIntentReadPort` es de `convocatoria` y lo usa `app` (`AccountDonationsController.java:27`, `DonationIntentController.java:46`). Manuel eligió la opción (a) de Q-A2-C el 2026-10-21 (`ficha-lecturas-fronts-M07-M15-M26.md` §5).
 
 **Enmienda a:** ADR-037 (Convocatoria, ledger, asignación y `DonationIntent`), con sus enmiendas 1 a 4.
 **Origen:** `ficha-lecturas-fronts-M07-M15-M26.md`, A2 (M-15/M-16): decisiones Q-A2-1 a Q-A2-5 (§8, Manuel, 2026-10-18T06:35Z).
 
-Solo recoge lo decidido en Q-A2-1 a Q-A2-5. Las marcas **[Propuesta]** señalan detalles que esas decisiones no fijan y que esta enmienda propone a Carlos.
+Solo recoge lo decidido en Q-A2-1 a Q-A2-5. Los detalles que esas decisiones no fijaban se marcaron como propuestas para Carlos; con la aprobación forman parte de la enmienda.
 
 ## Context
 
@@ -47,7 +49,7 @@ Solo recoge lo decidido en Q-A2-1 a Q-A2-5. Las marcas **[Propuesta]** señalan 
 - `DonationIntent` gana `createdAt` (`Instant`): se fija **una vez, al crear**, con el reloj del servidor, el mismo `now` de `DonationIntentService.java:131`. Ninguna transición lo cambia.
 - Se guarda en `DonationIntentDocument` y pasa por el mapper en los dos sentidos.
 - **Las intenciones existentes quedan sin él.** No se rellena de forma retroactiva: ningún valor sería verdadero (ni `confirmedAt` ni el ULID valen como fecha de creación). En la lectura, `createdAt` es nulo para ellas.
-- **[Propuesta]** Ni la creación ni la rehidratación validan `createdAt`, salvo que no sea nulo en las intenciones nuevas. Ninguna regla de negocio lo usa.
+- Ni la creación ni la rehidratación validan `createdAt`, salvo que no sea nulo en las intenciones nuevas. Ninguna regla de negocio lo usa.
 
 ### E5-2. Lo que gana `DonationView` en `DonationIntentReadPort`
 
@@ -61,7 +63,7 @@ Solo lo que necesita A2:
 | `paymentMethod` | `String` (`GATEWAY` \| `BANK_TRANSFER` \| `CASH`) | `DonationIntent.paymentMethod` | Q-A2-3 |
 | `publicCode` | `String`, nulo salvo si la convocatoria es `PUBLIC` | la convocatoria, leída en la misma consulta que el título (`DonationIntentQueryService.java:47`) | Q-A2-4 |
 
-- **[Propuesta] El filtro del `publicCode` se aplica dentro de `convocatoria`.** La vista lleva el `publicCode` solo cuando la visibilidad **actual** de la convocatoria es `PUBLIC`, y nulo en otro caso. Así el código de una `PRIVATE_LINK`, que es un secreto *bearer* (ADR-041 §2.7), nunca cruza el puerto, y la vista no necesita llevar la visibilidad.
+- **El filtro del `publicCode` se aplica dentro de `convocatoria`.** La vista lleva el `publicCode` solo cuando la visibilidad **actual** de la convocatoria es `PUBLIC`, y nulo en otro caso. Así el código de una `PRIVATE_LINK`, que es un secreto *bearer* (ADR-041 §2.7), nunca cruza el puerto, y la vista no necesita llevar la visibilidad.
 - **Orden de `findByDonorRef`:** `createdAt` descendente. Las intenciones sin `createdAt` van al final, en el orden de hoy (`_id`). Esto enmienda DD-21 en el orden; el tope de 100 sigue igual. Como el tope se aplica después de ordenar, la página pasa a traer **las 100 más recientes**.
 - `IntentStatusView` y `findForStatusToken` **no cambian**.
 
