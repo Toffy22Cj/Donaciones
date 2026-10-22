@@ -55,6 +55,8 @@ public class DonationIntentDocument {
     /** Enmienda 3 de ADR-037, D4: fecha del paso a {@code FAILED}. */
     public Instant failedAt;
     public Instant expiresAt;
+    /** Enmienda 5 de ADR-037, E5-1: instante de creación; falta en las intenciones anteriores a la enmienda. */
+    public Instant createdAt;
     public String status;
     public String confirmedBy;
     public Instant confirmedAt;

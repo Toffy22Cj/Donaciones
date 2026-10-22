@@ -20,9 +20,16 @@ public final class DonationDtos {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record IntentStatusResponse(String status, String trackingCode) {}
 
+    /**
+     * Ficha L-FRONTS A2 y Enmienda 5 de ADR-037: {@code createdAt?} y {@code confirmedAt?} en ISO-8601 UTC,
+     * {@code organizationName?} (falta si la organización no tiene nombre, DD-04), {@code paymentMethod} y
+     * {@code publicCode?} (solo de las convocatorias {@code PUBLIC} al leer). Nunca {@code organizationRef} ni
+     * {@code donorRef}.
+     */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record AccountDonation(String intentId, String campaignTitle, String amount, String currency, String status,
-                                  String trackingCode) {}
+                                  String trackingCode, String createdAt, String confirmedAt, String organizationName,
+                                  String paymentMethod, String publicCode) {}
 
     /** T-35: {@code nextCursor} se omite en la última página; el historial de la demo cabe en una. */
     public record AccountDonationsResponse(List<AccountDonation> items) {}

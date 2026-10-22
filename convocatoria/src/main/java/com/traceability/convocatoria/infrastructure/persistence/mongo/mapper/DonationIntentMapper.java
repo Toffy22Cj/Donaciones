@@ -33,6 +33,7 @@ public final class DonationIntentMapper {
         d.statusTokenHash = a.statusTokenHash();
         d.statusTokenExpiresAt = a.statusTokenExpiresAt();
         d.expiresAt = i.getExpiresAt();
+        d.createdAt = i.getCreatedAt();
         d.status = i.getStatus().name();
         DonationIntent.Confirmation c = i.getConfirmation();
         if (c != null) {
@@ -71,6 +72,7 @@ public final class DonationIntentMapper {
                         Boolean.TRUE.equals(d.applicationQuarantined)),
                 d.fundingRejectedAt == null ? null
                         : new DonationIntent.FundingRejection(d.fundingRejectedAt, d.fundingRejectionReason),
-                new DonationIntent.Access(d.paymentProvider, d.statusTokenHash, d.statusTokenExpiresAt));
+                new DonationIntent.Access(d.paymentProvider, d.statusTokenHash, d.statusTokenExpiresAt),
+                d.createdAt);
     }
 }

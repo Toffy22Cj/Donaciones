@@ -128,6 +128,7 @@ public class DonationIntentService {
             Convocatoria convocatoria = loadByPublicCode(command.publicCode());
             OrganizationVerification.requireVerified(convocatoria.getOrganizationRef(),
                     organizationVerificationPort.isVerified(convocatoria.getOrganizationRef()));
+            // el mismo instante es la creación (Enmienda 5 de ADR-037, E5-1) y la base de las caducidades
             Instant now = clock.instant();
             Instant expiresAt = command.paymentMethod() == PaymentMethod.BANK_TRANSFER
                     ? now.plus(bankTransferExpiration) : null;
@@ -136,7 +137,8 @@ public class DonationIntentService {
             DonationIntent intent;
             if (statusTokenHash == null) {
                 intent = DonationIntent.create(intentId, UUID.randomUUID().toString(), convocatoria,
-                        command.donorRef(), command.amount(), command.currency(), command.paymentMethod(), expiresAt);
+                        command.donorRef(), command.amount(), command.currency(), command.paymentMethod(), expiresAt,
+                        now);
             } else {
                 PaymentProviderPort.PaymentSession session = null;
                 if (command.paymentMethod() == PaymentMethod.GATEWAY) {
@@ -154,7 +156,7 @@ public class DonationIntentService {
                         command.donorRef(), command.amount(), command.currency(), command.paymentMethod(), expiresAt,
                         session == null ? null : session.paymentProvider(),
                         session == null ? null : session.paymentSessionId(),
-                        statusTokenHash, now.plus(StatusTokens.TTL));
+                        statusTokenHash, now.plus(StatusTokens.TTL), now);
             }
             donationIntents.insert(intent);
             auditLog.append(new ConvocatoriaAuditEntry(UUID.randomUUID().toString(),

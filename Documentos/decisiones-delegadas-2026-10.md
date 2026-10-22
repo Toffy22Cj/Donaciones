@@ -54,6 +54,8 @@ Columnas: id · fecha UTC · bloque · pregunta · opciones · elegida · motivo
 | DD-27 | 2026-10-07T17:30Z | B6-d | TR-D1: ¿quién compone el 404 del seguimiento? (Q-B60-1 la mandó a B6-d) | cada controlador / el manejador único de B6-0 | **El manejador único**, con el `ProblemDetail` fijo `NotFound`; los 401 de los filtros de seguimiento no cambian | Q-B60-4 (un solo manejador); alinea el código con la ficha congelada TR-01. La enmienda documental de ADR-024 que pedía Q-TR-1 sigue pendiente | Sí | **RATIFICADA — Carlos, 2026-10-07** |
 | DD-28 | 2026-10-07T17:30Z | B6-d | Alcance y plan de B6-d (`plan-b6-d-seguimiento-http.md`) | — | TR-D1, H-B6D-2 y el recorrido de la demo por HTTP; **sin narrativa de convocatoria** (B5 no está listo) | Instrucción de Carlos: "la narrativa de convocatoria solo si B5 está listo" | Sí | **RATIFICADA — Carlos, 2026-10-07** |
 
+*Nota (2026-10-22) a DD-21, por la Enmienda 5 de ADR-037 (E5-2), APROBADA por Carlos:* el orden de `/account/donations` pasa de "ordenada por `intentId`" a **`createdAt` descendente**. Las intenciones sin `createdAt`, anteriores a la enmienda, van al final, en el orden de hoy (`_id`). El tope de 100 y la ausencia de `nextCursor` no cambian. Como el tope se aplica después de ordenar, la página trae las 100 más recientes. Corrige además el hallazgo H-L2 de la ficha L-FRONTS: `intentId` es un UUID aleatorio y ese orden no era cronológico. La fila de DD-21 no se reescribe.
+
 ## 3. Segunda autorización (Carlos, 2026-10-07)
 
 **Decisiones de Carlos aplicadas (no delegadas):**

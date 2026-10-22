@@ -99,12 +99,12 @@ class ConvocatoriaPersistenceIndexesIntegrationTest extends AbstractConvocatoria
                 sessionIndex.get("partialFilterExpression"));
 
         Convocatoria c = convocatoria("camp-1", "PUB-1");
-        intents.insert(DonationIntent.create("i-1", "f-1", c, "d", 10, "COP", PaymentMethod.GATEWAY, null));
+        intents.insert(DonationIntent.create("i-1", "f-1", c, "d", 10, "COP", PaymentMethod.GATEWAY, null, java.time.Instant.parse("2026-10-05T09:00:00Z")));
         // Dos intenciones sin paymentSessionId (P3) no colisionan en el índice parcial.
         assertDoesNotThrow(() -> intents.insert(DonationIntent.create("i-2", "f-2", c, "d", 10, "COP",
-                PaymentMethod.GATEWAY, null)));
+                PaymentMethod.GATEWAY, null, java.time.Instant.parse("2026-10-05T09:00:00Z"))));
         assertThrows(DuplicateKeyException.class, () -> intents.insert(DonationIntent.create("i-3", "f-1", c, "d", 10,
-                "COP", PaymentMethod.GATEWAY, null)));
+                "COP", PaymentMethod.GATEWAY, null, java.time.Instant.parse("2026-10-05T09:00:00Z"))));
     }
 
     private Document findIndex(String collection, String name) {

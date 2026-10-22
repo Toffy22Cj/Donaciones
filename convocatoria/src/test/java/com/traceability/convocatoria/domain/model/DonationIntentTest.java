@@ -20,11 +20,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DonationIntentTest {
 
     private static final Instant EXPIRES = Instant.parse("2026-10-10T00:00:00Z");
+    private static final Instant CREATED = Instant.parse("2026-10-05T09:00:00Z");
 
     @Test
     void gatewayIntentIsConfirmedByPaymentProviderAndHasNoExpiration() {
         Convocatoria c = convocatoria(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i-1", "f-1", c, "donor", 100, "COP", PaymentMethod.GATEWAY, EXPIRES);
+        DonationIntent intent = DonationIntent.create("i-1", "f-1", c, "donor", 100, "COP", PaymentMethod.GATEWAY, EXPIRES, CREATED);
         assertEquals(DonationIntentStatus.PENDING, intent.getStatus());
         assertEquals(ConfirmationSource.PAYMENT_PROVIDER, intent.getConfirmationSource());
         assertEquals(PaymentMethod.GATEWAY, intent.getPaymentMethod());
@@ -40,7 +41,7 @@ class DonationIntentTest {
     void bankTransferIntentIsConfirmedByOrganizationAndExpires() {
         Convocatoria c = convocatoria(flexibleMonetary());
         DonationIntent intent = DonationIntent.create("i-1", "f-1", c, "donor", 100, "COP",
-                PaymentMethod.BANK_TRANSFER, EXPIRES);
+                PaymentMethod.BANK_TRANSFER, EXPIRES, CREATED);
         assertEquals(ConfirmationSource.ORGANIZATION, intent.getConfirmationSource());
         assertEquals(EXPIRES, intent.getExpiresAt());
     }
@@ -49,7 +50,7 @@ class DonationIntentTest {
     void recordsConfigurationVersionReadAtCreation() {
         Convocatoria c = convocatoria(flexibleMonetary());
         c.reconfigure(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i-1", "f-1", c, "donor", 100, "COP", PaymentMethod.GATEWAY, null);
+        DonationIntent intent = DonationIntent.create("i-1", "f-1", c, "donor", 100, "COP", PaymentMethod.GATEWAY, null, CREATED);
         assertEquals(2L, intent.getConfigurationVersion());
     }
 
@@ -57,7 +58,7 @@ class DonationIntentTest {
     void amountMustBePositive() {
         Convocatoria c = convocatoria(flexibleMonetary());
         assertThrows(InvalidDonationAmountException.class, () -> DonationIntent.create("i", "f", c, "d", 0, "COP",
-                PaymentMethod.GATEWAY, null));
+                PaymentMethod.GATEWAY, null, CREATED));
     }
 
     @Test
@@ -65,13 +66,13 @@ class DonationIntentTest {
         Convocatoria c = convocatoria(flexibleMonetary());
         c.close();
         assertThrows(CampaignClosedException.class, () -> DonationIntent.create("i", "f", c, "d", 10, "COP",
-                PaymentMethod.GATEWAY, null));
+                PaymentMethod.GATEWAY, null, CREATED));
     }
 
     @Test
     void confirmAppliesOnceAndRecordsConfirmation() {
         Convocatoria c = convocatoria(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.BANK_TRANSFER, EXPIRES);
+        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.BANK_TRANSFER, EXPIRES, CREATED);
         Instant at = EXPIRES.minusSeconds(60);
 
         assertTrue(intent.confirm("admin-1", at, "BANK-REF-1"));
@@ -86,7 +87,7 @@ class DonationIntentTest {
     @Test
     void expiredBankTransferCannotBeConfirmed() {
         Convocatoria c = convocatoria(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.BANK_TRANSFER, EXPIRES);
+        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.BANK_TRANSFER, EXPIRES, CREATED);
         assertThrows(DonationIntentExpiredException.class, () -> intent.confirm("admin", EXPIRES, "REF"));
         assertEquals(DonationIntentStatus.PENDING, intent.getStatus());
         assertNull(intent.getConfirmation());
@@ -95,14 +96,14 @@ class DonationIntentTest {
     @Test
     void gatewayIntentNeverExpires() {
         Convocatoria c = convocatoria(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.GATEWAY, null);
+        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.GATEWAY, null, CREATED);
         assertFalse(intent.isExpiredAt(Instant.MAX));
     }
 
     @Test
     void confirmationRequiresWhoWhenAndReference() {
         Convocatoria c = convocatoria(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.GATEWAY, null);
+        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.GATEWAY, null, CREATED);
         Instant now = Instant.now();
         assertThrows(IncompleteConfirmationException.class, () -> intent.confirm(null, now, "REF"));
         assertThrows(IncompleteConfirmationException.class, () -> intent.confirm("p", null, "REF"));
@@ -113,8 +114,39 @@ class DonationIntentTest {
     @Test
     void closingConvocatoriaDoesNotInvalidateExistingIntent() {
         Convocatoria c = convocatoria(flexibleMonetary());
-        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.GATEWAY, null);
+        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.GATEWAY, null, CREATED);
         c.close();
         assertTrue(intent.confirm("provider", Instant.now(), "evt-1"));
+    }
+
+    // ── Enmienda 5 de ADR-037, E5-1 (criterio 1) ──
+
+    @Test
+    void createFixesCreatedAt_andConfirmingDoesNotChangeIt() {
+        Convocatoria c = convocatoria(flexibleMonetary());
+        DonationIntent intent = DonationIntent.create("i", "f", c, "d", 10, "COP", PaymentMethod.BANK_TRANSFER, EXPIRES,
+                CREATED);
+        assertEquals(CREATED, intent.getCreatedAt());
+
+        intent.confirm("admin-1", EXPIRES.minusSeconds(60), "REF");
+
+        assertEquals(CREATED, intent.getCreatedAt());
+    }
+
+    /** P-A2-1: una intención nueva nunca nace sin {@code createdAt}. */
+    @Test
+    void createWithoutCreatedAt_isRejected() {
+        Convocatoria c = convocatoria(flexibleMonetary());
+        assertThrows(NullPointerException.class, () -> DonationIntent.create("i", "f", c, "d", 10, "COP",
+                PaymentMethod.GATEWAY, null, null));
+    }
+
+    /** Criterio 2: una intención anterior a la enmienda se rehidrata sin {@code createdAt}. */
+    @Test
+    void reconstituteWithoutCreatedAt_readsNull() {
+        DonationIntent legacy = DonationIntent.reconstitute("i", "f", "org-1", "camp-1", "d", 10, "COP",
+                PaymentMethod.GATEWAY, ConfirmationSource.PAYMENT_PROVIDER, 1, null, null, null,
+                DonationIntentStatus.PENDING, null);
+        assertNull(legacy.getCreatedAt());
     }
 }

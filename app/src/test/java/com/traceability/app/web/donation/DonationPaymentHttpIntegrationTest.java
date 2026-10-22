@@ -112,6 +112,9 @@ class DonationPaymentHttpIntegrationTest {
     private static final AuditActor SETUP = new AuditActor.SystemAuditActor("b6b-tests");
 
     private static String publicCode;
+    private static String organizationId;
+    private static String organizationAdmin;
+    private static ConvocatoriaConfiguration config;
     private static String donor;
     private static String otherDonor;
 
@@ -132,7 +135,9 @@ class DonationPaymentHttpIntegrationTest {
         employees.addEmployee(SETUP, org.getOrganizationId(), new AccountId(admin));
         administrators.assignAdministrator(SETUP, org.getOrganizationId(), new AccountId(admin));
         verifications.verifyOrganization(principals.resolvePrincipal(platformAdmin), org.getOrganizationId());
-        ConvocatoriaConfiguration config = new ConvocatoriaConfiguration(EnumSet.of(DonationType.MONETARY),
+        organizationId = org.getOrganizationId().value();
+        organizationAdmin = admin;
+        config = new ConvocatoriaConfiguration(EnumSet.of(DonationType.MONETARY),
                 Set.of(PaymentMethod.GATEWAY, PaymentMethod.BANK_TRANSFER), "COP", 10_000_000L, TargetPolicy.FLEXIBLE, null);
         publicCode = lifecycle.createConvocatoria(new CreateConvocatoriaCommand(UUID.randomUUID().toString(), admin,
                 org.getOrganizationId().value(), "Invierno", null, Visibility.PUBLIC,
@@ -431,6 +436,129 @@ class DonationPaymentHttpIntegrationTest {
         assertThat(send("GET", "/api/v1/account/donations", null, null, null).statusCode()).isEqualTo(401);
         assertThat(json.readTree(send("GET", "/api/v1/account/donations", account(), null, null).body())
                 .get("items")).isEmpty();
+    }
+
+    // --- A2: historial con la Enmienda 5 de ADR-037 (plan-a2-historial-donaciones.md §4) ---
+
+    private String campaign(String admin, String org, String title, Visibility visibility) {
+        return lifecycle.createConvocatoria(new CreateConvocatoriaCommand(UUID.randomUUID().toString(), admin, org, title,
+                null, visibility, Instant.now().plus(Duration.ofDays(1)), Instant.now().plus(Duration.ofDays(90)),
+                config)).publicCode();
+    }
+
+    private JsonNode donateTo(String code, String account, String body) throws Exception {
+        HttpResponse<String> r = send("POST", "/api/v1/public/campaigns/" + code + "/donation-intents", account, newId(), body);
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
+        return json.readTree(r.body());
+    }
+
+    private static String bankTransfer(long amount) {
+        return "{\"amount\":\"" + amount + "\",\"currency\":\"COP\",\"paymentMethod\":\"BANK_TRANSFER\"}";
+    }
+
+    private JsonNode historyOf(String account) throws Exception {
+        HttpResponse<String> r = send("GET", "/api/v1/account/donations", account, null, null);
+        assertThat(r.statusCode()).isEqualTo(200);
+        return json.readTree(r.body());
+    }
+
+    private static JsonNode item(JsonNode history, String intentId) {
+        for (JsonNode i : history.get("items")) {
+            if (i.get("intentId").asText().equals(intentId)) return i;
+        }
+        throw new AssertionError("intención no encontrada en el historial");
+    }
+
+    /** F-1, F-3 y F-4; criterio 4 por HTTP. */
+    @Test
+    void history_carriesDatesOrganizationMethodAndPublicCode_newestFirst() throws Exception {
+        String me = account();
+        String privateCode = campaign(organizationAdmin, organizationId, "Privada", Visibility.PRIVATE_LINK);
+        JsonNode confirmed = createIntent(me, 500);
+        webhook("payment.confirmed", sessionOf(confirmed), "evt-" + newId(), 500);
+        Thread.sleep(5); // createdAt distinto
+        JsonNode pending = donateTo(privateCode, me, bankTransfer(700));
+
+        JsonNode history = historyOf(me);
+
+        JsonNode first = history.get("items").get(0);
+        JsonNode second = history.get("items").get(1);
+        assertThat(first.get("intentId").asText()).isEqualTo(pending.get("intentId").asText());
+        assertThat(second.get("intentId").asText()).isEqualTo(confirmed.get("intentId").asText());
+
+        JsonNode c = item(history, confirmed.get("intentId").asText());
+        assertThat(c.get("createdAt").asText()).endsWith("Z");
+        assertThat(Instant.parse(c.get("confirmedAt").asText())).isAfterOrEqualTo(Instant.parse(c.get("createdAt").asText()));
+        assertThat(c.get("organizationName").asText()).isEqualTo("Fundación B6-b");
+        assertThat(c.get("paymentMethod").asText()).isEqualTo("GATEWAY");
+        assertThat(c.get("publicCode").asText()).isEqualTo(publicCode);
+
+        JsonNode p = item(history, pending.get("intentId").asText());
+        assertThat(p.has("confirmedAt")).isFalse();
+        assertThat(p.get("paymentMethod").asText()).isEqualTo("BANK_TRANSFER");
+        assertThat(p.get("campaignTitle").asText()).isEqualTo("Privada");
+        assertThat(p.get("organizationName").asText()).isEqualTo("Fundación B6-b");
+    }
+
+    /** F-2 (aserción explícita): una donación a una PRIVATE_LINK nunca trae su publicCode. */
+    @Test
+    void aDonationToAPrivateLinkCampaign_neverCarriesItsPublicCode() throws Exception {
+        String me = account();
+        String privateCode = campaign(organizationAdmin, organizationId, "Solo con enlace", Visibility.PRIVATE_LINK);
+        JsonNode intent = donateTo(privateCode, me, bankTransfer(300));
+
+        HttpResponse<String> r = send("GET", "/api/v1/account/donations", me, null, null);
+
+        JsonNode i = item(json.readTree(r.body()), intent.get("intentId").asText());
+        assertThat(i.has("publicCode")).isFalse();
+        assertThat(r.body()).doesNotContain(privateCode);
+    }
+
+    /** Criterio 6 (aserción negativa): ni organizationRef ni donorRef salen por HTTP. */
+    @Test
+    void history_neverCarriesTheOrganizationRefNorTheDonorRef() throws Exception {
+        String me = account();
+        createIntent(me, 123);
+
+        HttpResponse<String> r = send("GET", "/api/v1/account/donations", me, null, null);
+
+        assertThat(r.body()).doesNotContain("organizationRef").doesNotContain("donorRef")
+                .doesNotContain(organizationId).doesNotContain("acct:")
+                .doesNotContain(pseudonyms.existingPseudonymFor(me).orElseThrow());
+    }
+
+    /** Criterio 7 (aserción negativa): crear (sin confirmar) y leer el historial no escribe eventos. */
+    @Test
+    void creatingAndReadingTheHistory_writesNoEvent() throws Exception {
+        String me = account();
+        long before = mongoTemplate.getCollection("event_store").countDocuments();
+
+        donateTo(publicCode, me, bankTransfer(450));
+        historyOf(me);
+
+        assertThat(mongoTemplate.getCollection("event_store").countDocuments()).isEqualTo(before);
+    }
+
+    /** F-5 (P-A2-5): una organización sin nombre, sembrada en Mongo (por HTTP el nombre es obligatorio, DD-68). */
+    @Test
+    void anOrganizationWithoutName_givesTheItemWithoutOrganizationName() throws Exception {
+        String rep = account();
+        String unnamed = identity.domain.model.OrganizationId.generate().value();
+        mongoTemplate.getCollection("organizations").insertOne(new Document("_id", unnamed).append("type", "FOUNDATION")
+                .append("verificationStatus", "VERIFIED")
+                .append("members", List.of(new Document("accountId", rep)
+                        .append("roles", List.of("REPRESENTATIVE", "ADMINISTRATOR", "EMPLOYEE")))));
+        mongoTemplate.getCollection("accounts").updateOne(new Document("_id", rep),
+                new Document("$set", new Document("organizationId", unnamed)));
+        String code = campaign(rep, unnamed, "Sin nombre", Visibility.PUBLIC);
+        String me = account();
+        JsonNode intent = donateTo(code, me, bankTransfer(200));
+
+        JsonNode i = item(historyOf(me), intent.get("intentId").asText());
+
+        assertThat(i.has("organizationName")).isFalse();
+        assertThat(i.get("campaignTitle").asText()).isEqualTo("Sin nombre");
+        assertThat(i.get("publicCode").asText()).isEqualTo(code);
     }
 
     @Test

@@ -122,7 +122,7 @@ class EditConfigurationIntegrationTest extends AbstractConvocatoriaServiceIntegr
     void editIsRejectedOnceADonationIntentExists() {
         String campaignRef = create(flexible());
         Convocatoria c = convocatorias.findByCampaignRef(campaignRef).orElseThrow();
-        donationIntents.insert(DonationIntent.create("i-1", "f-1", c, "donor", 10, "COP", PaymentMethod.GATEWAY, null));
+        donationIntents.insert(DonationIntent.create("i-1", "f-1", c, "donor", 10, "COP", PaymentMethod.GATEWAY, null, java.time.Instant.parse("2026-10-05T09:00:00Z")));
         clearInvocations(convocatorias, auditLog);
 
         assertThrows(CampaignAlreadyHasDonationsException.class,
