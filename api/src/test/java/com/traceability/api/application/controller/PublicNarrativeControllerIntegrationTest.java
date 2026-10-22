@@ -96,6 +96,10 @@ class PublicNarrativeControllerIntegrationTest {
     @MockitoBean
     private com.traceability.core.application.port.out.AssetHistoryReadPort assetHistoryReadPort;
 
+    // PublicDonationMapper lo necesita (ficha R-6, G-1); lo implementa app, que este test no levanta
+    @MockitoBean
+    private com.traceability.contracts.campaign.CampaignPublicSummaryPort campaignSummaries;
+
 
     @Test
     void shouldReturn404WhenFundHasNoDonationProjection() throws Exception {

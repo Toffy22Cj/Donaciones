@@ -5,6 +5,8 @@ import com.traceability.api.application.dto.PublicDonationStatus;
 import com.traceability.api.application.dto.PublicDonationTrackingDTO;
 import com.traceability.api.application.dto.PublicFinancialSnapshotDTO;
 import com.traceability.api.application.dto.PublicLogisticsItemDTO;
+import com.traceability.contracts.campaign.CampaignPublicSummaryPort;
+import com.traceability.contracts.campaign.CampaignPublicSummaryPort.CampaignPublicSummary;
 import com.traceability.core.application.port.out.DonationReadModel;
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
@@ -12,16 +14,20 @@ import com.traceability.core.application.service.LocationReferenceService;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class PublicDonationMapper {
 
     private final AssetRefService assetRefService;
     private final LocationReferenceService locationReferenceService;
+    private final CampaignPublicSummaryPort campaignSummaries;
 
-    public PublicDonationMapper(AssetRefService assetRefService, LocationReferenceService locationReferenceService) {
+    public PublicDonationMapper(AssetRefService assetRefService, LocationReferenceService locationReferenceService,
+                                CampaignPublicSummaryPort campaignSummaries) {
         this.assetRefService = assetRefService;
         this.locationReferenceService = locationReferenceService;
+        this.campaignSummaries = campaignSummaries;
     }
 
     public PublicDonationTrackingDTO toPublicDTO(DonationReadModel model) {
@@ -47,11 +53,18 @@ public class PublicDonationMapper {
                 ? model.logistics().stream().map(this::mapLogisticsItem).toList()
                 : List.of();
 
+        // Ficha R-6, G-1: sin convocatoria, o si no se encuentra, no hay título ni organización (rama defensiva)
+        Optional<CampaignPublicSummary> summary = model.campaignRef() == null
+                ? Optional.empty()
+                : campaignSummaries.findByCampaignRef(model.campaignRef());
+
         return new PublicDonationTrackingDTO(
                 financialSnapshot,
                 model.campaignRef(),
                 logistics,
-                publicStatus
+                publicStatus,
+                summary.map(CampaignPublicSummary::title).orElse(null),
+                summary.map(CampaignPublicSummary::organizationName).orElse(null)
         );
     }
 

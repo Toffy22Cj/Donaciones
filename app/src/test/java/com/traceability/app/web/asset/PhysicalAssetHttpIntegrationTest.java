@@ -296,8 +296,10 @@ class PhysicalAssetHttpIntegrationTest {
     void theOperationalView_hasNoDonorNorGenealogy() throws Exception {
         JsonNode view = read(registerInKind());
 
+        // ficha R-6, G-4b: assetType es el registrado; sin parentAssetRef, rootAssetRef ni donorRef
         assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("assetRef", "lifecycleStatus",
-                "currentCustodianRef", "currentLocation", "quantity", "unitOfMeasure");
+                "currentCustodianRef", "currentLocation", "quantity", "unitOfMeasure", "assetType");
         assertThat(view.get("quantity").asText()).isEqualTo("10.0000");
+        assertThat(view.get("assetType").asText()).isEqualTo("FOOD");
     }
 }

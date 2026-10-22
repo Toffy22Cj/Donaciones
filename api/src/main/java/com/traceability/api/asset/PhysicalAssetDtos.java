@@ -33,7 +33,9 @@ public final class PhysicalAssetDtos {
 
     public record TransitionResponse(String assetRef, String status) {}
 
+    /** {@code assetType}: ficha R-6, G-4b. Sin genealogía ({@code parentAssetRef}, {@code rootAssetRef}) ni donante. */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record OperationalResponse(String assetRef, String lifecycleStatus, String currentCustodianRef,
-                               String currentLocation, String quantity, String unitOfMeasure, String campaignRef) {}
+                               String currentLocation, String quantity, String unitOfMeasure, String campaignRef,
+                               String assetType) {}
 }

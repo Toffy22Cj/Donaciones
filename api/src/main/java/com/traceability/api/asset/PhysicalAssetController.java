@@ -157,7 +157,7 @@ public class PhysicalAssetController {
     public OperationalResponse operational(@CurrentActor HumanActor actor, @PathVariable("assetRef") String assetRef) {
         PhysicalAssetOperationalView v = reads.findOperationalView(assetRef, actor);
         return new OperationalResponse(v.assetRef(), v.lifecycleStatus(), v.currentCustodianRef(), v.currentLocation(),
-                v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef());
+                v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef(), v.assetType());
     }
 
     private static RegisteredResponse registered(RegisteredAsset r) {

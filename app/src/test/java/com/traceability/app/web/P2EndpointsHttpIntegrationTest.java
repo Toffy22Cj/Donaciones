@@ -229,7 +229,13 @@ class P2EndpointsHttpIntegrationTest {
                 .filter(i -> i.get("campaignRef").asText().equals(campaignRef)).findFirst().orElseThrow();
         assertThat(item.fieldNames()).toIterable().containsExactlyInAnyOrder("campaignRef", "publicCode", "title",
                 "status", "visibility", "currency", "targetAmount", "targetPolicy", "clearedAmount", "responsibles",
-                "assignedEmployeeCount");
+                "assignedEmployeeCount", "startDate", "endDate");
+        // ficha R-6, G-5: las fechas del dominio, en ISO-8601 UTC (Instant.toString(), como CV-07). Mongo guarda
+        // milisegundos, así que se comparan con la fecha enviada truncada a milisegundos
+        assertThat(item.get("startDate").asText()).endsWith("Z")
+                .isEqualTo(Instant.parse(START).truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString());
+        assertThat(item.get("endDate").asText()).endsWith("Z")
+                .isEqualTo(Instant.parse(END).truncatedTo(java.time.temporal.ChronoUnit.MILLIS).toString());
         assertThat(item.get("targetAmount").asText()).isEqualTo("5000000");
         assertThat(item.get("clearedAmount").asText()).isEqualTo("0");
         assertThat(item.get("assignedEmployeeCount").asLong()).isEqualTo(1);
@@ -378,6 +384,9 @@ class P2EndpointsHttpIntegrationTest {
                 .filter(i -> i.get("assetRef").asText().equals(asset)).findFirst().orElseThrow();
         assertThat(item.get("lifecycleStatus").asText()).isEqualTo("REGISTERED");
         assertThat(item.get("quantity").asText()).isEqualTo("10.0000");
+        // ficha R-6, G-4b: assetType es el registrado; sin genealogía
+        assertThat(item.get("assetType").asText()).isEqualTo("FOOD");
+        assertThat(items.toString()).doesNotContain("parentAssetRef").doesNotContain("rootAssetRef");
         assertThat(items.toString()).doesNotContain("donorRef").doesNotContain("anon:").doesNotContain("acct:");
         ok(send("GET", "/api/v1/organizations/" + org + "/physical-assets", employee, null), 200);
 
