@@ -256,8 +256,12 @@ public class MongoDonationIntentRepositoryAdapter implements DonationIntentRepos
 
     @Override
     public List<DonationIntent> findByDonorRef(String donorRef, int limit) {
+        // Enmienda 5 de ADR-037, E5-2 (enmienda DD-21): las más recientes primero; en orden descendente Mongo deja al
+        // final las que no tienen createdAt (anteriores a la enmienda), y entre ellas manda _id, el orden de antes. El
+        // tope se aplica después de ordenar. Sin índice compuesto: plan de A2, P-A2-2 (umbral de unas 1000 por cuenta)
         Query query = Query.query(Criteria.where("donorRef").is(donorRef))
-                .with(org.springframework.data.domain.Sort.by("_id")).limit(limit);
+                .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Order.desc("createdAt"),
+                        org.springframework.data.domain.Sort.Order.asc("_id"))).limit(limit);
         return mongoTemplate.find(query, DonationIntentDocument.class).stream().map(DonationIntentMapper::toDomain)
                 .toList();
     }

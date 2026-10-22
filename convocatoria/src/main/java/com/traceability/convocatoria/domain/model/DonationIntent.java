@@ -34,6 +34,11 @@ public final class DonationIntent {
     private final FundingRejection fundingRejection;
     /** Enmienda 3 de ADR-037, D2 y D6: proveedor de la sesión de pago y credencial de consulta (solo su hash). */
     private final Access access;
+    /**
+     * Enmienda 5 de ADR-037, E5-1: instante de creación, fijado una vez con el reloj del servidor; ninguna transición lo
+     * cambia. Nulo solo en las intenciones anteriores a la enmienda (no se rellena).
+     */
+    private final Instant createdAt;
 
     private DonationIntent(String intentId, String fundId, String organizationRef, String campaignRef,
                            String donorRef, long amount, String currency, PaymentMethod paymentMethod,
@@ -41,7 +46,7 @@ public final class DonationIntent {
                            String paymentSessionId, String providerEventId, Instant expiresAt,
                            DonationIntentStatus status, Confirmation confirmation,
                            ApplicationTracking applicationTracking, FundingRejection fundingRejection,
-                           Access access) {
+                           Access access, Instant createdAt) {
         this.intentId = Objects.requireNonNull(intentId, "intentId");
         this.fundId = Objects.requireNonNull(fundId, "fundId");
         this.organizationRef = Objects.requireNonNull(organizationRef, "organizationRef");
@@ -60,6 +65,7 @@ public final class DonationIntent {
         this.applicationTracking = applicationTracking == null ? ApplicationTracking.NONE : applicationTracking;
         this.fundingRejection = fundingRejection;
         this.access = access == null ? Access.NONE : access;
+        this.createdAt = createdAt;
     }
 
     /**
@@ -70,7 +76,8 @@ public final class DonationIntent {
      */
     public static DonationIntent create(String intentId, String fundId, Convocatoria convocatoria, String donorRef,
                                         long amount, String currency, PaymentMethod paymentMethod,
-                                        Instant bankTransferExpiresAt) {
+                                        Instant bankTransferExpiresAt, Instant createdAt) {
+        Objects.requireNonNull(createdAt, "createdAt");
         convocatoria.assertAcceptsDonationIntent(paymentMethod, currency);
         if (amount <= 0) {
             throw new InvalidDonationAmountException("amount must be strictly positive");
@@ -84,7 +91,8 @@ public final class DonationIntent {
                 : ConfirmationSource.ORGANIZATION;
         return new DonationIntent(intentId, fundId, convocatoria.getOrganizationRef(), convocatoria.getCampaignRef(),
                 donorRef, amount, currency, paymentMethod, source, convocatoria.getConfigurationVersion(),
-                null, null, expiresAt, DonationIntentStatus.PENDING, null, ApplicationTracking.NONE, null, null);
+                null, null, expiresAt, DonationIntentStatus.PENDING, null, ApplicationTracking.NONE, null, null,
+                createdAt);
     }
 
     /**
@@ -95,9 +103,9 @@ public final class DonationIntent {
     public static DonationIntent create(String intentId, String fundId, Convocatoria convocatoria, String donorRef,
                                         long amount, String currency, PaymentMethod paymentMethod,
                                         Instant bankTransferExpiresAt, String paymentProvider, String paymentSessionId,
-                                        String statusTokenHash, Instant statusTokenExpiresAt) {
+                                        String statusTokenHash, Instant statusTokenExpiresAt, Instant createdAt) {
         DonationIntent base = create(intentId, fundId, convocatoria, donorRef, amount, currency, paymentMethod,
-                bankTransferExpiresAt);
+                bankTransferExpiresAt, createdAt);
         boolean gateway = paymentMethod == PaymentMethod.GATEWAY;
         if (gateway != (paymentProvider != null) || gateway != (paymentSessionId != null)) {
             throw new IllegalArgumentException("paymentProvider and paymentSessionId are required for GATEWAY only");
@@ -107,7 +115,7 @@ public final class DonationIntent {
         return new DonationIntent(base.intentId, base.fundId, base.organizationRef, base.campaignRef, base.donorRef,
                 base.amount, base.currency, base.paymentMethod, base.confirmationSource, base.configurationVersion,
                 paymentSessionId, null, base.expiresAt, DonationIntentStatus.PENDING, null, ApplicationTracking.NONE,
-                null, new Access(paymentProvider, statusTokenHash, statusTokenExpiresAt));
+                null, new Access(paymentProvider, statusTokenHash, statusTokenExpiresAt), base.createdAt);
     }
 
     /** Uso exclusivo de adaptadores de persistencia: no aplica reglas de creación. */
@@ -145,9 +153,26 @@ public final class DonationIntent {
                                               DonationIntentStatus status, Confirmation confirmation,
                                               ApplicationTracking applicationTracking,
                                               FundingRejection fundingRejection, Access access) {
+        return reconstitute(intentId, fundId, organizationRef, campaignRef, donorRef, amount, currency, paymentMethod,
+                confirmationSource, configurationVersion, paymentSessionId, providerEventId, expiresAt, status,
+                confirmation, applicationTracking, fundingRejection, access, null);
+    }
+
+    /**
+     * Uso exclusivo de adaptadores de persistencia, con {@code createdAt} (Enmienda 5 de ADR-037, E5-1): nulo en las
+     * intenciones anteriores a la enmienda.
+     */
+    public static DonationIntent reconstitute(String intentId, String fundId, String organizationRef,
+                                              String campaignRef, String donorRef, long amount, String currency,
+                                              PaymentMethod paymentMethod, ConfirmationSource confirmationSource,
+                                              long configurationVersion, String paymentSessionId,
+                                              String providerEventId, Instant expiresAt,
+                                              DonationIntentStatus status, Confirmation confirmation,
+                                              ApplicationTracking applicationTracking,
+                                              FundingRejection fundingRejection, Access access, Instant createdAt) {
         return new DonationIntent(intentId, fundId, organizationRef, campaignRef, donorRef, amount, currency,
                 paymentMethod, confirmationSource, configurationVersion, paymentSessionId, providerEventId,
-                expiresAt, status, confirmation, applicationTracking, fundingRejection, access);
+                expiresAt, status, confirmation, applicationTracking, fundingRejection, access, createdAt);
     }
 
     /**
@@ -192,6 +217,7 @@ public final class DonationIntent {
     public FundingRejection getFundingRejection() { return fundingRejection; }
     public Access getAccess() { return access; }
     public String getPaymentProvider() { return access.paymentProvider(); }
+    public Instant getCreatedAt() { return createdAt; }
 
     /**
      * Enmienda 3 de ADR-037: {@code paymentProvider} (D2, inmutable, fijado al crear una {@code GATEWAY}) y la
