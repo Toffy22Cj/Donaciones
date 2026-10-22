@@ -7,6 +7,7 @@ import com.traceability.app.application.media.MediaPurpose;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -45,9 +46,22 @@ public class MongoMediaObjectStore implements MediaObjectStore {
                 .map(MongoMediaObjectStore::toMediaObject);
     }
 
+    @Override
+    public Optional<MediaObject> findByObjectKey(String objectKey) {
+        return repository.findByObjectKey(objectKey).map(MongoMediaObjectStore::toMediaObject);
+    }
+
+    @Override
+    public void markDeleted(String objectKey, String deletedBy, Instant deletedAt, String reason) {
+        // sin metadato no hay nada que marcar (un archivo huérfano de F2 nunca tuvo metadato)
+        repository.findByObjectKey(objectKey).ifPresent(d -> repository.save(new MediaObjectDocument(d.id(),
+                d.objectKey(), d.sha256(), d.purpose(), d.organizationId(), d.ownerRef(), d.contentType(), d.sizeBytes(),
+                d.width(), d.height(), d.uploadedBy(), d.uploadedAt(), d.boundAssetId(), deletedAt, deletedBy, reason)));
+    }
+
     private static MediaObject toMediaObject(MediaObjectDocument document) {
         return new MediaObject(document.objectKey(), document.sha256(), document.purpose(), document.organizationId(),
                 document.ownerRef(), document.contentType(), document.sizeBytes(), document.width(), document.height(),
-                document.uploadedBy(), document.uploadedAt());
+                document.uploadedBy(), document.uploadedAt(), document.deletedAt());
     }
 }

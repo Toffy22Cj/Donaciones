@@ -54,6 +54,10 @@ public class ApiExceptionHandler {
             403, "You are not allowed to perform this operation.",
             404, "The resource was not found.",
             409, "The operation conflicts with the current state of the resource.",
+            // ADR-051 (Tarea 2, P-T2-6): imágenes
+            413, "The image is too large.",
+            415, "The image format is not supported.",
+            503, "The service is temporarily unavailable. Try again later.",
             500, "An unexpected error occurred. Quote the correlationId when contacting support.");
     private static final String DEFAULT_DETAIL = "The request could not be processed.";
 

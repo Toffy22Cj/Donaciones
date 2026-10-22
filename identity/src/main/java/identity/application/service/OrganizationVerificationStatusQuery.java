@@ -19,8 +19,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class OrganizationVerificationStatusQuery {
 
+    /** {@code hasLogo}: si la organización tiene logo (ADR-051 F6; ficha S-18, nota del 2026-10-21). */
     public record StatusView(String organizationId, String name, String type, String verificationStatus,
-                             String informationRequest) {}
+                             String informationRequest, boolean hasLogo) {}
 
     private final OrganizationRepositoryPort organizations;
 
@@ -42,6 +43,7 @@ public class OrganizationVerificationStatusQuery {
         }
         return new StatusView(o.getOrganizationId().value(), o.getName(), o.getType().name(),
                 o.getVerificationStatus().name(),
-                o.getVerificationInformationRequest() == null ? null : o.getVerificationInformationRequest().value());
+                o.getVerificationInformationRequest() == null ? null : o.getVerificationInformationRequest().value(),
+                o.getLogoObjectKey() != null);
     }
 }

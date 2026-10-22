@@ -10,4 +10,6 @@ public interface MediaObjectRepository extends MongoRepository<MediaObjectDocume
 
     Optional<MediaObjectDocument> findByOrganizationIdAndPurposeAndSha256(String organizationId, MediaPurpose purpose,
                                                                           String sha256);
+
+    Optional<MediaObjectDocument> findByObjectKey(String objectKey);
 }
