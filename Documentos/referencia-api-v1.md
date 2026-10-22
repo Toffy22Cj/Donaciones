@@ -61,6 +61,8 @@
 | `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction` | `ADMINISTRATOR` o `REPRESENTATIVE` (DD-43) | `200 {kind: "ESTIMATE", modelVersion, warning, available, probabilityReachTarget?, estimatedFinalPctOfTarget?, pctTimeElapsed?, warnings?, unavailableReason?, unavailableText?, asOf}`, `no-store`. Solo lectura. STRICT → `available: false`, `STRICT_POLICY_EXCLUDED`; moneda distinta de COP → `UNSUPPORTED_CURRENCY` (ADR-044 Enmienda 1, BORRADOR); fuera del rango de entrenamiento (t < 0,15 o t > 0,50) → `OUTSIDE_TRAINED_RANGE`, sin cifras (Carlos, 2026-10-08) | 403 |
 | `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction/history` (encargo 6, P3, S-10) | `ADMINISTRATOR` o `REPRESENTATIVE` (como la predicción) | `200 {kind: "ESTIMATE", modelVersion, warning, basis: "EVENT_STORE", available, unavailableReason?, unavailableText?, cuts: [{t: 0.15\|0.25\|0.50, cutAt, available, unavailableReason?, unavailableText?, probabilityReachTarget?, estimatedFinalPctOfTarget?, pctRaisedAtCut?}], warnings, asOf}`, `no-store`. Solo lectura. Lo recaudado en cada corte se reconstruye con los `FUNDS_CLEARED` del Event Store anteriores al corte, **nunca con valores actuales**. Sin cifra: `FUTURE_CUT`, `CAMPAIGN_ENDED` (cerrada antes del corte), `CONFIGURATION_CHANGED_AFTER_CUT` y `TARGET_ALREADY_REACHED` (este da `pctRaisedAtCut`). STRICT, otra moneda o sin meta → `available: false` y `cuts: []`. En los cortes pasados la tasa de fallos es 0 y `warnings` lo dice (DD-75) | 403 |
 
+*Nota (2026-10-21, ficha R-6, Bloque A; G-4b y G-5):* `GET /organizations/{organizationId}/physical-assets` lleva además **`assetType`** en cada ítem (el registrado; sigue sin `parentAssetRef`, `rootAssetRef` ni `donorRef`). `GET /organizations/{organizationId}/campaigns` lleva además **`startDate`** y **`endDate`** en cada ítem (ISO-8601 UTC, siempre presentes; las del dominio, como en CV-07). Las filas de arriba no se reescriben.
+
 ## 4. Convocatoria (administración)
 
 Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Command-Id`.
@@ -106,6 +108,8 @@ Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras 
 | `POST /physical-assets/{assetRef}/deliver` | `{finalCustodianRef, beneficiaryRef, locationRef, evidenceRef}` | `200 {assetRef, status: "DELIVERED"}` | ídem |
 | `GET /physical-assets/{assetRef}` | — | `200 {assetRef, lifecycleStatus, currentCustodianRef, currentLocation?, quantity, unitOfMeasure, campaignRef?}`; `currentLocation` falta en `DISPATCHED` (S-05) | 403 (también inexistente) |
 
+*Nota (2026-10-21, ficha R-6, Bloque A; G-4b):* `GET /physical-assets/{assetRef}` lleva además **`assetType`** (el registrado). Las filas de arriba no se reescriben.
+
 ## 7. Fondos (Camino A)
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
@@ -125,6 +129,8 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 | `GET /donations/tracking/narrative` | `200 {status: "PENDING"\|"AVAILABLE", content?, source?}` |
 | `GET /donations/tracking/assets/{assetRef}/history` | `200 {history: [{eventType, timestamp, locationZone?, custodianCategory, status}]}`; `locationZone` llega `null` en las transiciones sin ubicación (`DISPATCHED`, `SPLIT`, `CUSTODY_TRANSFERRED`, `SPLIT_COMPENSATED`, `DEPLETED`) o sin zona pública |
 | `GET /donations/tracking/integrity` (encargo 6, P4; ficha `ficha-p4-integridad-en-seguimiento.md`) | `200 {batches: [{anchorStatus, merkleRoot?, transactionHash?, network?, anchoredAt?, confirmedBlockNumber?, eventsOfThisDonation, verification: {result: "MATCH"\|"MISMATCH"\|"INCONCLUSIVE", reason?, reasonText?, affectsThisDonation?}}], unanchoredEvents, checkedAt}`, `no-store`. Un lote entra si tiene eventos del fondo o de sus activos. `reason`: `NOT_ANCHORED`, `LEGACY_BATCH`, `ROOT_MISMATCH` (con `affectsThisDonation`), `LEAF_COUNT_CHANGED`, `CANONICAL_FORM_UNKNOWN` o `VERIFICATION_INCONCLUSIVE`. Desde B4 (Enmienda 1 de ADR-039), `MISMATCH` también detecta un payload alterado o una cadena `previousHash` rota. Nunca el `batchId`, la cobertura ni nada de otra donación. Resultado en caché 5 min por lote (DD-76) |
+
+*Nota (2026-10-21, ficha R-6, Bloque A; G-1; D-R6-1):* `GET /donations/tracking` lleva además **`campaignTitle?`** (el título de la convocatoria) y **`organizationName?`** (el nombre público de su organización). Faltan los dos si la donación no tiene `campaignRef` o la convocatoria no se encuentra; `organizationName` falta también si la organización no tiene nombre (DD-04). Sigue sin `fundId` ni `donorRef` (DD-76). Para una convocatoria `PRIVATE_LINK`, el título se muestra a quien tiene el `trackingCode` (P-R6A-4, aceptado). Las filas de arriba no se reescriben.
 
 ## 9. Sin HTTP
 

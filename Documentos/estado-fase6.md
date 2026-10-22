@@ -229,6 +229,17 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.33 Ficha R-6, Bloque A: `assetType`, fechas de las convocatorias y título y organización en el seguimiento (2026-10-21, `feat/r6-bloque-a`)
+
+- **Norma:** `ficha-R6-datos-estilo-v2.md`, CONGELADA (sha256 `ccc3801288de557c57a759c598018f6355d059e24496990b0daa23900e884248`), §3 Bloque A y §7 tests 1 a 4. Plan: `plan-r6-bloque-a.md`, APROBADO (Manuel, 2026-10-21) con P-R6A-1 (b), P-R6A-2 sin enmienda, P-R6A-3 `CampaignPublicSummaryProducer` y P-R6A-4 aceptado. Plan y aprobación en el PR #109.
+- **Qué hace:**
+  - **G-4b:** `PhysicalAssetOperationalView` (`core`) y `OperationalResponse` (`api`) ganan `assetType`, en la lista de la organización y en `GET /physical-assets/{assetRef}`. Siguen sin genealogía ni donante.
+  - **G-5:** `AdminCampaignView` (`convocatoria`) y `OrganizationCampaignsController.Item` (`app`) ganan `startDate` y `endDate` (ISO-8601 UTC, como CV-07).
+  - **G-1:** `CampaignPublicSummaryPort` en `contracts` (D-R6-1), implementado en `app` por `CampaignPublicSummaryProducer` con `CampaignTitleQuery` (consulta nueva de `convocatoria`, P-R6A-1 (b)) y `OrganizationPublicNamePort`. `PublicDonationTrackingDTO` gana `campaignTitle?` y `organizationName?`; sin `campaignRef` no se consulta el puerto.
+  - **Test 4:** ArchUnit en `app` (`ApiModuleDependenciesArchitectureTest`): `api` no depende de `convocatoria` ni de `identity`, con una violación deliberada que demuestra que la regla está activa.
+- **Evidencia:** rojo primero (los cuatro módulos fallan al compilar los tests; en `app`, apartando un momento los tests que no compilaban, las cuatro pruebas HTTP fallaron: 2 fallos y 2 errores); 8 de 8 mutaciones muertas; `referencia-api-v1.md` con notas fechadas (§3, §6 y §8).
+- **Pendiente fuera de este repositorio:** avisar a la web y al móvil de que G-4b, G-5 y G-1 están disponibles desde el commit de `develop` en que se fusione.
+
 ### 0.29 Cierre del encargo 6: "backend cerrado para que mañana el equipo trabaje en el front" (2026-10-08)
 
 | Punto | Resultado | PR |
