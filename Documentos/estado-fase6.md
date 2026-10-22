@@ -229,6 +229,30 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.35 A2: historial de donaciones con la Enmienda 5 de ADR-037 (2026-10-22, `feat/convocatoria-a2-historial`)
+
+- **Norma:**
+  - `ADR-037-enmienda-5-fecha-de-creacion-y-vista-del-historial.md`, APROBADA por Carlos (comunicado por Manuel el 2026-10-21; falta registrar la hora y el lugar).
+  - Ficha L-FRONTS, A2 CONGELADO.
+  - Plan: `plan-a2-historial-donaciones.md`, APROBADO (Manuel, 2026-10-22), con P-A2-1 a P-A2-5.
+  - Numerada 0.35 porque el #111 ya usa la 0.34.
+- **Qué hace:**
+  - `convocatoria`:
+    - `DonationIntent.createdAt`, obligatorio en las dos `create` y nulo en las antiguas;
+    - `DonationView` con `createdAt`, `confirmedAt`, `organizationRef`, `paymentMethod` y `publicCode`, este solo de las `PUBLIC` al leer y filtrado dentro de `convocatoria`;
+    - historial por `createdAt` descendente, con las antiguas al final (DD-21).
+  - `app`: `AccountDonation` gana `createdAt?`, `confirmedAt?`, `organizationName?`, `paymentMethod` y `publicCode?`. Nunca `organizationRef` ni `donorRef`.
+  - Sin índice compuesto (P-A2-2, medido con `explain()`). Umbral: añadirlo si una cuenta pasa de unas 1000 intenciones.
+- **Evidencia:**
+  - **Rojo primero:** `convocatoria` no compilaba; en `app`, dos pruebas HTTP fallaron por aserción. Las otras tres aserciones negativas ya pasaban desde el principio.
+  - **Verde por capas,** con el módulo completo en cada una.
+  - **9 de 9 mutaciones muertas.**
+  - `ci-local.sh` en un clon limpio, con la evidencia en `Documentos/evidencia-ci/`.
+- **Pendiente:**
+  - avisar a la web y al móvil cuando se fusione;
+  - nota "A2 implementado en <commit>" en la ficha L-FRONTS;
+  - completar la hora y el lugar de la aprobación de la Enmienda 5.
+
 ### 0.33 Ficha R-6, Bloque A: `assetType`, fechas de las convocatorias y título y organización en el seguimiento (2026-10-21, `feat/r6-bloque-a`)
 
 - **Norma:** `ficha-R6-datos-estilo-v2.md`, CONGELADA (sha256 `ccc3801288de557c57a759c598018f6355d059e24496990b0daa23900e884248`), §3 Bloque A y §7 tests 1 a 4. Plan: `plan-r6-bloque-a.md`, APROBADO (Manuel, 2026-10-21) con P-R6A-1 (b), P-R6A-2 sin enmienda, P-R6A-3 `CampaignPublicSummaryProducer` y P-R6A-4 aceptado. Plan y aprobación en el PR #109.

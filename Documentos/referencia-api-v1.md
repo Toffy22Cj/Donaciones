@@ -31,6 +31,15 @@
 | `GET /me/campaigns` (§3.4) | JWT | — | `200 {items: [{campaignRef, publicCode, title, status, actingRole, assignedAt}]}`: asignaciones activas de quien llama en su organización actual y, de las convocatorias `CLOSED`, sus asignaciones históricas (DD-72, D-06); una página de 100, `no-store` | 401 |
 | `POST /invitations/accept` (§3.3, ADR-049 D4) | JWT de la cuenta invitada | `{token}` en el cuerpo (la web lo lee del fragmento `#token=` y lo borra de la barra); **nunca** en la URL | `200 {organizationId, roles}`; efectivo en la petición siguiente | 401; **el mismo 403 `InvitationNotAcceptable`** (desconocido, caducado, revocado, usado, otro email o token en la URL); 409 `AccountAlreadyBelongsToOrganization` |
 
+*Nota (2026-10-22, ficha L-FRONTS A2; Enmienda 5 de ADR-037; M-15/M-16):* cada ítem de `GET /account/donations` lleva además:
+- **`createdAt?`**: ISO-8601 UTC; falta en las intenciones anteriores a la enmienda;
+- **`confirmedAt?`**: solo en `CONFIRMED` y `FUNDING_REJECTED`;
+- **`organizationName?`**: falta si la organización no tiene nombre, DD-04;
+- **`paymentMethod`**: `GATEWAY`, `BANK_TRANSFER` o `CASH`; siempre;
+- **`publicCode?`**: **solo** si la convocatoria es `PUBLIC` al leer; una `PRIVATE_LINK` nunca lo trae (ADR-041 §2.7).
+
+Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final (enmienda de DD-21). La página sigue siendo de 100, sin `nextCursor`, y trae las 100 más recientes. Ninguna respuesta lleva `organizationRef` ni `donorRef`. Las filas de arriba no se reescriben.
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
