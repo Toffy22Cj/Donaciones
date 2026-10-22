@@ -230,6 +230,31 @@ class DonationPaymentHttpIntegrationTest {
         assertThat(trackingStatus).isEqualTo(200);
     }
 
+    /**
+     * Ficha R-6, G-1 (test 3), con la implementación real del puerto: el seguimiento lleva el título de la convocatoria
+     * y el nombre de su organización; sigue sin fondo ni donante (DD-76).
+     */
+    @Test
+    void theTracking_carriesTheCampaignTitleAndTheOrganizationName_withoutFundNorDonor() throws Exception {
+        JsonNode created = createIntent(null, 777);
+        assertThat(webhook("payment.confirmed", sessionOf(created), "evt-" + newId(), 777).statusCode()).isEqualTo(200);
+        String trackingCode = status(created).get("trackingCode").asText();
+
+        HttpResponse<String> tracking = null;
+        Instant deadline = Instant.now().plusSeconds(30);
+        while ((tracking == null || tracking.statusCode() != 200) && Instant.now().isBefore(deadline)) {
+            tracking = send("GET", "/api/v1/donations/tracking", null, null, null, "Authorization", "Bearer " + trackingCode);
+            if (tracking.statusCode() != 200) Thread.sleep(250);
+        }
+        assertThat(tracking.statusCode()).as(tracking.body()).isEqualTo(200);
+        JsonNode body = json.readTree(tracking.body());
+        assertThat(body.get("campaignTitle").asText()).isEqualTo("Invierno");
+        assertThat(body.get("organizationName").asText()).isEqualTo("Fundación B6-b");
+        assertThat(body.has("fundId")).isFalse();
+        assertThat(body.has("donorRef")).isFalse();
+        assertThat(tracking.body()).doesNotContain("anon:").doesNotContain("acct:");
+    }
+
     @Test
     void duplicateWebhook_hasNoEffect_andAFailureAfterConfirmationIsIgnored() throws Exception {
         JsonNode created = createIntent(null, 500);

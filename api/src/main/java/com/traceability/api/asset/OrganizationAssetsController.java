@@ -31,7 +31,8 @@ public class OrganizationAssetsController {
     public Page list(@CurrentActor HumanActor actor, @PathVariable("organizationId") String organizationId) {
         return new Page(reads.listForOrganization(organizationId, actor).stream()
                 .map(v -> new OperationalResponse(v.assetRef(), v.lifecycleStatus(), v.currentCustodianRef(),
-                        v.currentLocation(), v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef()))
+                        v.currentLocation(), v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef(),
+                        v.assetType()))
                 .toList());
     }
 }

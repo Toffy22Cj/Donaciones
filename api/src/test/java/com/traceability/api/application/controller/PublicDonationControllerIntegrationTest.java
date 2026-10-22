@@ -90,6 +90,9 @@ class PublicDonationControllerIntegrationTest {
     private com.traceability.core.application.port.out.AssetHistoryReadPort assetHistoryReadPort;
     @MockitoBean
     private com.traceability.contracts.NarrativeReadPort narrativeReadPort;
+    // Doble del puerto de la ficha R-6 (G-1): api se prueba sin app, que es quien lo implementa
+    @MockitoBean
+    private com.traceability.contracts.campaign.CampaignPublicSummaryPort campaignSummaries;
 
     @Test
     void shouldReturn200EndToEndWithValidToken() throws Exception {
@@ -98,13 +101,38 @@ class PublicDonationControllerIntegrationTest {
 
         DonationReadModel mockModel = new DonationReadModel(fundId, "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of());
         when(donationReadPort.findByFundId(fundId)).thenReturn(Optional.of(mockModel));
+        when(campaignSummaries.findByCampaignRef("camp-1")).thenReturn(Optional.of(
+                new com.traceability.contracts.campaign.CampaignPublicSummaryPort.CampaignPublicSummary("Invierno",
+                        "Fundación Uno")));
 
         mockMvc.perform(get("/api/v1/donations/tracking")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.campaignRef").value("camp-1"))
                 .andExpect(jsonPath("$.status").value("ACTIVA"))
-                .andExpect(jsonPath("$.financialSnapshot.currency").value("USD"));
+                .andExpect(jsonPath("$.financialSnapshot.currency").value("USD"))
+                // ficha R-6, G-1; DD-76: ni el fondo ni el donante
+                .andExpect(jsonPath("$.campaignTitle").value("Invierno"))
+                .andExpect(jsonPath("$.organizationName").value("Fundación Uno"))
+                .andExpect(jsonPath("$.fundId").doesNotExist())
+                .andExpect(jsonPath("$.donorRef").doesNotExist())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(fundId))));
+    }
+
+    @Test
+    void withoutCampaign_theTrackingHasNeitherTitleNorOrganization() throws Exception {
+        String fundId = "fund-without-campaign";
+        String validToken = trackingCodeService.generate(fundId, Instant.now().plus(1, ChronoUnit.HOURS));
+        when(donationReadPort.findByFundId(fundId)).thenReturn(Optional.of(
+                new DonationReadModel(fundId, "USD", null, 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of())));
+
+        mockMvc.perform(get("/api/v1/donations/tracking")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.campaignRef").doesNotExist())
+                .andExpect(jsonPath("$.campaignTitle").doesNotExist())
+                .andExpect(jsonPath("$.organizationName").doesNotExist());
     }
 
     @Test

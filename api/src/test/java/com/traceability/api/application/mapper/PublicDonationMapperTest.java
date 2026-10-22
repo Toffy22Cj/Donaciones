@@ -4,6 +4,8 @@ import com.traceability.api.application.dto.PublicCustodianCategory;
 import com.traceability.api.application.dto.PublicDonationStatus;
 import com.traceability.api.application.dto.PublicDonationTrackingDTO;
 import com.traceability.api.application.dto.PublicLogisticsItemDTO;
+import com.traceability.contracts.campaign.CampaignPublicSummaryPort;
+import com.traceability.contracts.campaign.CampaignPublicSummaryPort.CampaignPublicSummary;
 import com.traceability.core.application.port.out.DonationReadModel;
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
@@ -19,20 +21,27 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PublicDonationMapperTest {
 
     private AssetRefService assetRefService;
     private LocationReferenceService locationReferenceService;
+    private CampaignPublicSummaryPort campaignSummaries;
     private PublicDonationMapper mapper;
 
     @BeforeEach
     void setUp() {
         assetRefService = Mockito.mock(AssetRefService.class);
         locationReferenceService = Mockito.mock(LocationReferenceService.class);
-        mapper = new PublicDonationMapper(assetRefService, locationReferenceService);
+        campaignSummaries = Mockito.mock(CampaignPublicSummaryPort.class);
+        when(campaignSummaries.findByCampaignRef(anyString())).thenReturn(Optional.empty());
+        mapper = new PublicDonationMapper(assetRefService, locationReferenceService, campaignSummaries);
     }
 
     @Test
@@ -137,5 +146,61 @@ class PublicDonationMapperTest {
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> mapper.toPublicDTO(model));
         assertEquals("Unexpected lifecycleStatus: UNKNOWN", ex.getMessage());
+    }
+
+    // --- Ficha R-6, G-1: título de la convocatoria y nombre de la organización ---
+
+    @Test
+    void withAKnownCampaign_carriesItsTitleAndTheOrganizationName() {
+        when(campaignSummaries.findByCampaignRef("camp-1"))
+                .thenReturn(Optional.of(new CampaignPublicSummary("Invierno", "Fundación Uno")));
+
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(activeIn("camp-1"));
+
+        assertEquals("Invierno", dto.campaignTitle());
+        assertEquals("Fundación Uno", dto.organizationName());
+    }
+
+    @Test
+    void anOrganizationWithoutName_givesTheTitleWithoutOrganizationName() {
+        when(campaignSummaries.findByCampaignRef("camp-1"))
+                .thenReturn(Optional.of(new CampaignPublicSummary("Invierno", null)));
+
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(activeIn("camp-1"));
+
+        assertEquals("Invierno", dto.campaignTitle());
+        assertNull(dto.organizationName());
+    }
+
+    @Test
+    void anUnknownCampaign_givesNeither() {
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(activeIn("camp-missing"));
+
+        assertNull(dto.campaignTitle());
+        assertNull(dto.organizationName());
+    }
+
+    /** Rama defensiva de la ficha: sin {@code campaignRef} no se consulta nada y no hay título ni organización. */
+    @Test
+    void withoutCampaign_givesNeither_andDoesNotAskThePort() {
+        when(campaignSummaries.findByCampaignRef(any()))
+                .thenReturn(Optional.of(new CampaignPublicSummary("Invierno", "Fundación Uno")));
+
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(activeIn(null));
+
+        assertNull(dto.campaignTitle());
+        assertNull(dto.organizationName());
+        verify(campaignSummaries, never()).findByCampaignRef(any());
+    }
+
+    /** DD-76: el seguimiento no lleva ni el fondo ni el donante. */
+    @Test
+    void theTrackingResponse_hasNoFundIdNorDonorRef() {
+        assertThat(PublicDonationTrackingDTO.class.getRecordComponents()).extracting(c -> c.getName())
+                .doesNotContain("fundId", "donorRef");
+    }
+
+    private static DonationReadModel activeIn(String campaignRef) {
+        return new DonationReadModel("f1", "USD", campaignRef, 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of());
     }
 }

@@ -15,7 +15,8 @@ import java.util.List;
 /**
  * {@code GET /api/v1/organizations/{organizationId}/campaigns} (matriz §2b; P2.3): listado del panel, solo
  * {@code ADMINISTRATOR} de la organización; otra organización o inexistente → el mismo 403. Una página con tope de
- * 100 y sin {@code nextCursor} (como DD-21). Importes como texto (T-34).
+ * 100 y sin {@code nextCursor} (como DD-21). Importes como texto (T-34). {@code startDate} y {@code endDate} en
+ * ISO-8601 UTC, como CV-07 (ficha R-6, G-5).
  */
 @RestController
 public class OrganizationCampaignsController {
@@ -23,7 +24,8 @@ public class OrganizationCampaignsController {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Item(String campaignRef, String publicCode, String title, String status, String visibility,
                        String currency, String targetAmount, String targetPolicy, String clearedAmount,
-                       List<Responsible> responsibles, long assignedEmployeeCount) {}
+                       List<Responsible> responsibles, long assignedEmployeeCount, String startDate,
+                       String endDate) {}
 
     public record Page(List<Item> items) {}
 
@@ -42,7 +44,7 @@ public class OrganizationCampaignsController {
     private static Item item(AdminCampaignView v) {
         return new Item(v.campaignRef(), v.publicCode(), v.title(), v.status(), v.visibility(), v.currency(),
                 text(v.targetAmount()), v.targetPolicy(), text(v.clearedAmount()), v.responsibles(),
-                v.assignedEmployeeCount());
+                v.assignedEmployeeCount(), v.startDate().toString(), v.endDate().toString());
     }
 
     private static String text(Long amount) {

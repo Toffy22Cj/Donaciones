@@ -49,7 +49,8 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
     public PhysicalAssetOperationalView findOperationalView(String assetId, HumanActor actor) {
         PhysicalAsset asset = loadAuthorized(assetId, actor);
         return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
-                asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef());
+                asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
+                asset.getAssetType());
     }
 
     /** Una página, como los fondos de la organización (DD-31). */
@@ -68,7 +69,8 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
             PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, events.stream().map(DomainEvent::payload).toList(),
                     events.size());
             return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
-                    asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef());
+                    asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
+                    asset.getAssetType());
         }).toList();
     }
 

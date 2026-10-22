@@ -111,6 +111,10 @@ class PublicAssetHistoryControllerIntegrationTest {
     @MockBean
     private com.traceability.contracts.NarrativeReadPort narrativeReadPort;
 
+    // PublicDonationMapper lo necesita (ficha R-6, G-1); lo implementa app, que este test no levanta
+    @MockBean
+    private com.traceability.contracts.campaign.CampaignPublicSummaryPort campaignSummaries;
+
     @BeforeEach
     void setUp() {
         donationReadRepository.deleteAll();

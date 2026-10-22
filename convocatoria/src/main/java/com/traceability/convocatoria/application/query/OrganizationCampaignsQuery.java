@@ -12,6 +12,7 @@ import com.traceability.convocatoria.domain.model.Convocatoria;
 import com.traceability.convocatoria.domain.model.ConvocatoriaConfiguration;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 
@@ -30,10 +31,12 @@ public class OrganizationCampaignsQuery {
     /**
      * Sin {@code fullName} de los responsables: identity no guarda nombres de cuenta (hallazgo H-P2-2).
      * {@code currency}, {@code targetAmount}, {@code targetPolicy} y {@code clearedAmount} solo con {@code MONETARY}.
+     * {@code startDate} y {@code endDate}: las del dominio, inmutables (ficha R-6, G-5).
      */
     public record AdminCampaignView(String campaignRef, String publicCode, String title, String status,
                                     String visibility, String currency, Long targetAmount, String targetPolicy,
-                                    Long clearedAmount, List<Responsible> responsibles, long assignedEmployeeCount) {}
+                                    Long clearedAmount, List<Responsible> responsibles, long assignedEmployeeCount,
+                                    Instant startDate, Instant endDate) {}
 
     private final ConvocatoriaAuthorizationPolicy authorization;
     private final ConvocatoriaRepositoryPort convocatorias;
@@ -69,6 +72,7 @@ public class OrganizationCampaignsQuery {
                 monetary ? config.targetPolicy().name() : null,
                 monetary ? ledgers.findByCampaignRef(c.getCampaignRef()).map(CampaignFundingLedger::clearedAmount).orElse(0L) : null,
                 active.stream().map(a -> new Responsible(a.getEmployeeRef(), a.getActingRole().name())).toList(),
-                active.stream().filter(a -> a.getActingRole() == ActingRole.EMPLOYEE).count());
+                active.stream().filter(a -> a.getActingRole() == ActingRole.EMPLOYEE).count(),
+                c.getStartDate(), c.getEndDate());
     }
 }
