@@ -363,6 +363,13 @@ Las imágenes de prueba se generan en el código con la JDK (`TestImages`, en `a
 
 **Siguen abiertas para Carlos y no bloquean la Tarea 1:** P-1, P-2, P-6 y P-9.
 
+**Decididas después (Manuel, 2026-10-21):**
+- **P-1:** el controlador de las tareas 2 a 4 comprueba el límite según el propósito, como dice F8 literalmente, con la constante `MediaPurpose.maxBytes()`; el servicio mantiene su comprobación.
+- **P-2:** cerrada por F2 y F4; entra en la Tarea 2.
+- **P-6:** hecha en este PR.
+- **P-9:** se decide en la Tarea 5.
+- **R-1:** riesgo aceptado para la demo; antes de un despliegue real, medir y, si hace falta, un ADR para limitar subidas simultáneas.
+
 Texto original de las preguntas, conservado:
 
 | # | Pregunta | Recomendación |
