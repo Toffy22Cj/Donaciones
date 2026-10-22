@@ -105,7 +105,11 @@ class PublicRoutesInventoryIntegrationTest {
             // S-18: estado de verificación de la propia organización (ficha S-18)
             "GET /api/v1/organizations/{organizationId}",
             // L-FRONTS A3 (M-26): correo de la propia cuenta (ficha L-FRONTS)
-            "GET /api/v1/account");
+            "GET /api/v1/account",
+            // ADR-051, Tarea 2: subir, quitar y leer (autenticado) el logo (F6, F8, Enmienda 1)
+            "PUT /api/v1/organizations/{organizationId}/logo",
+            "DELETE /api/v1/organizations/{organizationId}/logo",
+            "GET /api/v1/organizations/{organizationId}/logo");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
@@ -145,6 +149,8 @@ class PublicRoutesInventoryIntegrationTest {
     void everyApiRoute_isEitherExplicitlyPublicOrExplicitlyProtected() {
         List<Endpoint> endpoints = apiEndpoints();
         assertThat(endpoints).extracting(Endpoint::pattern)
+                .contains("/api/v1/public/campaigns/{publicCode}/organization-logo",
+                        "/api/v1/organizations/{organizationId}/logo")
                 .contains("/api/v1/auth/login", "/api/v1/donations/tracking",
                         "/api/v1/donations/tracking/narrative", "/api/v1/donations/tracking/assets/{assetRef}/history");
 

@@ -4,6 +4,11 @@ spring:
   mail:
     host: localhost
     port: 1
+  # ADR-051 F8: los mismos límites multipart que application.yml (este fichero lo sustituye en los tests)
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 traceability:
   mail:

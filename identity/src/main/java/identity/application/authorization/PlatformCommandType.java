@@ -12,5 +12,7 @@ public enum PlatformCommandType {
     /** Cola de verificación: organizaciones pendientes (autorización (3) de Carlos, §3.1). */
     READ_VERIFICATION_QUEUE,
     /** Lista de administradores de plataforma (autorización (3) de Carlos, §3.2). */
-    READ_PLATFORM_ADMINISTRATORS
+    READ_PLATFORM_ADMINISTRATORS,
+    /** Logo de una organización por la ruta autenticada (ADR-051 F6, Enmienda 1; plan de la Tarea 2, P-T2-2). */
+    READ_ORGANIZATION_LOGO
 }

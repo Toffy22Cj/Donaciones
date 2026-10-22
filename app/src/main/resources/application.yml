@@ -6,6 +6,12 @@ spring:
     host: ${SPRING_MAIL_HOST}
   application:
     name: traceability-engine
+  # ADR-051 F8: límites de Spring para las subidas multipart (el logo y la portada, 2 MB, los comprueba el controlador
+  # según el propósito). Hoy la única ruta multipart es la del logo; la evidencia (Tarea 4) usa el de 5 MB.
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
   ai:
     openai:
