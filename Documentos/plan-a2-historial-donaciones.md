@@ -1,6 +1,6 @@
 # Plan — A2: historial de donaciones de la cuenta (`GET /api/v1/account/donations`)
 
-**Estado: BORRADOR — espera "plan aprobado" (regla 3.4).** No autoriza código.
+**Estado: APROBADO — Manuel, 2026-10-22** (ver "Aprobación — Manuel, 2026-10-22", al final). El texto de §0 a §8 se conserva tal como se redactó; P-A2-5 se corrige en la aprobación.
 **Fecha:** 2026-10-22. **Autor:** Manuel, con asistencia de Claude. **Base verificada:** `develop` `aae7492`.
 **Norma:**
 - `Documentos/ADR-037-enmienda-5-fecha-de-creacion-y-vista-del-historial.md`, **APROBADA — Carlos** (comunicado por Manuel el 2026-10-21; falta registrar la hora y el lugar exactos). E5-1, E5-2 y E5-3, y su definición de hecho (criterios 1 a 7).
@@ -230,3 +230,16 @@ Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("_id"))
   - la web arma el enlace a la convocatoria solo si llega `publicCode`.
 
   El documento de prompts de la web (`paxfide-web`) está en otro repositorio y no se toca desde aquí.
+
+## Aprobación — Manuel, 2026-10-22
+
+**Plan aprobado**, con estas respuestas a §7.2:
+
+| # | Decisión |
+|---|---|
+| **P-A2-1** | `createdAt` como **parámetro obligatorio** de las dos `create` |
+| **P-A2-2** | **Sin índice compuesto.** Se registra el umbral: añadir `(donorRef: 1, createdAt: -1, _id: 1)` si una cuenta pasa de unas **1000 intenciones**. También se registra la medición con `explain()` de §3: Mongo 6.0.28, 100 000 intenciones, donantes de 10, 1000 y 10 000. Sin el índice, `SORT ← FETCH ← IXSCAN(ix_donor_ref)` con 10, 1000 y 10 000 claves examinadas (2, 2 y 20 ms); con el índice, `LIMIT ← FETCH ← IXSCAN` con 100 claves como mucho (0 a 2 ms) |
+| **P-A2-3** | El criterio 4 se prueba **editando `visibility` en el documento** de Mongo |
+| **P-A2-4** | `paymentMethod` **de la intención** |
+| **P-A2-5** | **Corrección de la recomendación:** por HTTP no se puede crear una organización sin nombre (DD-68 lo hace obligatorio). F-5 **siembra la organización sin nombre directamente en Mongo** y consulta el historial por HTTP |
+
