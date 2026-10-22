@@ -1,6 +1,6 @@
 # Plan — ADR-051, Tarea 2: logo de la organización
 
-**Estado: BORRADOR — espera "plan aprobado" (regla 3.4).** No autoriza código.
+**Estado: APROBADO — Manuel, 2026-10-21** (ver "Aprobación — Manuel, 2026-10-21", al final). El texto de §0 a §9 se conserva tal como se aprobó, salvo los nombres de §4.7 (P-T2-8), la fila T2-5 y el riesgo R-T2-5, que se añaden por la aprobación.
 **Fecha:** 2026-10-21. **Autor:** Manuel, con asistencia de Claude. **Base verificada:** `develop` `fdccd99` (tras #107).
 **Norma:**
 - `Documentos/ADR-051-fotos-y-almacenamiento.md` (APROBADO — Carlos, 2026-10-18), con la Enmienda 1 (18:45Z). Aplican F2, F4, F6, F8, F9 y F10, y los criterios 3, 4, 5, 12, 12b, 12c, 14 (en lo que toca al logo), 15 y 16.
@@ -132,12 +132,13 @@ Orden en `app` para `PUT /api/v1/organizations/{organizationId}/logo` (multipart
 | Clase o cambio | Módulo | Fuente |
 |---|---|---|
 | Campo y métodos del logo en `Organization`, `OrganizationDocument` y `OrganizationMapper` | `identity` | F9: "`identity`: la referencia del logo en `Organization`" |
-| Servicio de escritura de la referencia (nombre en **P-T2-8**) | `identity` | F9 y F10: el cambio se confirma en `identity`; la regla de ArchUnit pide `MongoTransactionRetryHelper` |
-| Lectura de la referencia (y de si hay logo), sin transacción, como `OrganizationPublicNameQuery` | `identity` | F6: ambas lecturas necesitan la referencia |
-| Orquestador de subida, reemplazo, borrado y lectura del logo (pasos de §4.2 y §4.3) | `app` | F2, F8 y F10; la Tarea 2 es de `identity` y `app` (tabla "Implementación" de ADR-051) |
-| Controlador de las rutas `/organizations/{organizationId}/logo` y controlador de la ruta pública | `app` | F6 y F8 |
+| `identity.application.service.OrganizationLogoReferenceService`: servicio de escritura de la referencia (`replace`, `remove`) | `identity` | F9 y F10: el cambio se confirma en `identity`; la regla de ArchUnit pide `MongoTransactionRetryHelper` |
+| `identity.application.service.OrganizationLogoReferenceQuery`: lectura de la referencia, sin transacción, como `OrganizationPublicNameQuery`; también da, en una sola lectura, nombre, verificación y si hay logo (P-T2-7) | `identity` | F6: ambas lecturas necesitan la referencia |
+| `com.traceability.app.application.media.OrganizationLogoService`: orquestador de subida, reemplazo, borrado y lectura del logo (pasos de §4.2 y §4.3) | `app` | F2, F8 y F10; la Tarea 2 es de `identity` y `app` (tabla "Implementación" de ADR-051) |
+| `com.traceability.app.web.organization.OrganizationLogoController` (rutas `/organizations/{organizationId}/logo`) y `com.traceability.app.web.campaign.PublicOrganizationLogoController` (ruta pública) | `app` | F6 y F8 |
+| Valor `READ_ORGANIZATION_LOGO` en `identity.application.authorization.PlatformCommandType` | `identity` | P-T2-2 (aprobado) |
 | `MediaObjectStore` gana `findByObjectKey` y `markDeleted(objectKey, deletedBy, deletedAt, reason)`, con su adaptador Mongo | `app` | F9 (campos `deletedAt`, `deletedBy` y `reason` "F7 y F10") y F6 (`ETag` con la huella y `Content-Type`) |
-| `MediaApiErrorMappings` | `app` | P-2; F2 y F4 nombran los errores |
+| `com.traceability.app.web.MediaApiErrorMappings` | `app` | P-2; F2 y F4 nombran los errores |
 
 No se crean excepciones nuevas: se usan las de la Tarea 1 y el 403 uniforme de cada política.
 
@@ -149,7 +150,7 @@ No se crean excepciones nuevas: se usan las de la Tarea 1 y el 403 uniforme de c
 | T2-2 | `PUT` con una imagen pequeña en bytes pero con dimensiones excesivas → 413, sin decodificarla | 4 |
 | T2-3 | `PUT` de más de 2 MB → 413 desde el controlador, **sin llamar** a `MediaUploadService` (`never()`); más de 5 MB → 413 desde el límite de Spring | 5; P-1 |
 | T2-4 | Sin permiso (`EMPLOYEE`, otra organización, inexistente) → el mismo 403; ningún `put` en el proveedor (aserción negativa) | F8; DD-01 |
-| T2-5 | `GET /public/campaigns/{publicCode}/organization-logo` sin JWT → 200 con los bytes guardados, `Cache-Control: public, max-age=3600` y `ETag` igual a la huella | 12, 12b |
+| T2-5 | `GET /public/campaigns/{publicCode}/organization-logo` sin JWT → 200 con los bytes guardados, `Cache-Control: public, max-age=3600` y `ETag` igual a la huella, entre comillas (`"<sha256>"`; Aprobación) | 12, 12b |
 | T2-6 | Ninguna respuesta pública (descubrimiento, CV-07, logo) contiene el `organizationId` (aserción negativa sobre el cuerpo y las cabeceras) | 12b |
 | T2-7 | `GET /organizations/{id}/logo`: sin JWT → 401; con JWT de otra organización → el 403 uniforme; un `EMPLOYEE` de la organización → 200 con `private, no-store`; administrador de plataforma → 200 (según P-T2-2) | 12c |
 | T2-8 | Código de una convocatoria inexistente, organización sin logo, metadato con `deletedAt` o bytes ausentes → 404, nunca 410 | 14 (logo); Enmienda 1 |
@@ -190,6 +191,7 @@ No se crean excepciones nuevas: se usan las de la Tarea 1 y el 403 uniforme de c
 - **R-T2-2:** una lectura más de `identity` por ítem del descubrimiento (§4.6), dentro de lo aceptado en H-L4 si se usa una sola lectura (P-T2-7).
 - **R-T2-3:** el límite de *multipart* es global (F8). Hoy no hay otra ruta multipart, pero la evidencia (Tarea 4) lo comparte, y por eso es el de 5 MB.
 - **R-T2-4:** el criterio 12 de `develop` todavía tiene el texto antiguo hasta que se fusione #108 (§0).
+- **R-T2-5 (aceptado, Manuel, 2026-10-21):** tras un reemplazo, el logo público anterior puede seguir servido desde cachés hasta 1 h (`max-age=3600`).
 
 ### 8.2 Preguntas para la aprobación
 
@@ -218,3 +220,25 @@ No se crean excepciones nuevas: se usan las de la Tarea 1 y el 403 uniforme de c
 
 **`api`:** `auth/PublicRoutes.java`, `PublicRoutesTest`, `web/ApiExceptionHandler.java` (según P-T2-6).
 **Documentos:** `referencia-api-v1.md`, `estado-fase6.md`, `Documentos/evidencia-ci/`.
+
+## Aprobación — Manuel, 2026-10-21
+
+**Plan aprobado** (revisión del PR #109), con estas respuestas a §8.2:
+
+| # | Decisión |
+|---|---|
+| **P-T2-1** | `logoObjectKey` (la `objectKey` del proveedor) |
+| **P-T2-2** | `PlatformCommandType` nuevo `READ_ORGANIZATION_LOGO`, por `PlatformAuthorizationPolicy` |
+| **P-T2-3** | `reason` = `REPLACED` o `REMOVED`, con `deletedBy` = la cuenta que hizo el cambio |
+| **P-T2-4** | `DELETE` sin logo previo → `204` idempotente, sin tocar el proveedor |
+| **P-T2-5** | Sin auditoría nueva (ninguna `AuditAction` nueva) |
+| **P-T2-6** | Sí: textos fijos de 413, 415 y 503 en `ApiExceptionHandler.DETAILS`, en este PR |
+| **P-T2-7** | Una sola lectura de `identity` por organización (nombre, verificación y si hay logo), **sin cambiar puertos existentes** |
+| **P-T2-8** | Nombres fijados en §4.7 antes de la fase roja: `OrganizationLogoReferenceService`, `OrganizationLogoReferenceQuery`, `OrganizationLogoService`, `OrganizationLogoController`, `PublicOrganizationLogoController`, `MediaApiErrorMappings` |
+| **P-T2-9** | Sin `If-None-Match` → 304 en este corte |
+
+**Además:**
+- **T2-5** comprueba también que el `ETag` vaya entre comillas (`"<sha256>"`).
+- **Riesgo nuevo R-T2-5 (aceptado):** tras un reemplazo, el logo público anterior puede seguir en cachés hasta 1 h (`Cache-Control: public, max-age=3600`).
+
+**Orden:** la Tarea 2 se implementa después del Bloque A de R-6, en su propia rama, para no chocar con los mismos archivos.

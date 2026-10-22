@@ -1,6 +1,6 @@
 # Plan — Ficha R-6, Bloque A: `assetType` (G-4b), fechas de las convocatorias (G-5) y convocatoria y organización en el seguimiento (G-1)
 
-**Estado: BORRADOR — espera "plan aprobado" (regla 3.4).** No autoriza código.
+**Estado: APROBADO — Manuel, 2026-10-21** (ver "Aprobación — Manuel, 2026-10-21", al final). El texto de §0 a §8 se conserva tal como se aprobó.
 **Fecha:** 2026-10-21. **Autor:** Manuel, con asistencia de Claude. **Base verificada:** `develop` `fdccd99`.
 **Norma:** `Documentos/ficha-R6-datos-estilo-v2.md`, CONGELADA (sha256 `ccc3801288de557c57a759c598018f6355d059e24496990b0daa23900e884248`): §3 (Bloque A), §7 (tests 1 a 4), §8, §9 (D-R6-1, D-R6-10) y §10 (C-1).
 **Rama de implementación prevista:** `feat/r6-bloque-a`, desde el `develop` del momento. Es un PR solo para este bloque (D-R6-10).
@@ -158,3 +158,14 @@ No hay excepciones nuevas: la rama defensiva omite los campos.
 - **`convocatoria`:** `application/query/OrganizationCampaignsQuery.java` y lo que resulte de P-R6A-1, con tests.
 - **`app`:** `web/campaign/OrganizationCampaignsController.java`, la implementación del puerto en `application/campaign/`, el test de arquitectura y los tests de integración.
 - **Documentos:** `referencia-api-v1.md`, `estado-fase6.md` y `Documentos/evidencia-ci/`.
+
+## Aprobación — Manuel, 2026-10-21
+
+**Plan aprobado** (revisión del PR #109), con estas respuestas a §7.2:
+
+| # | Decisión |
+|---|---|
+| **P-R6A-1** | **(b)**: una consulta nueva de solo lectura en `convocatoria.application.query` (un `@Component`, como `CampaignFundingFactsQuery`), sin tocar puertos existentes |
+| **P-R6A-2** | **Sin enmienda.** Criterio registrado: *mostrar en una vista de lectura un dato que el dominio ya tiene y que no cambia no requiere enmienda; agregar un dato nuevo al dominio sí (Q-A2-C)*. `startDate` y `endDate` ya están en `Convocatoria` y son inmutables, así que G-5 no la requiere |
+| **P-R6A-3** | `CampaignPublicSummaryProducer` |
+| **P-R6A-4** | Aceptado: el título de una convocatoria `PRIVATE_LINK` puede aparecer en el seguimiento por `trackingCode` (R-R6A-1) |
