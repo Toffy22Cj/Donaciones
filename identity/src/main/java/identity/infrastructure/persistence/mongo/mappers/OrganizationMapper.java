@@ -30,6 +30,7 @@ public class OrganizationMapper {
 
         doc.setVerificationStatus(org.getVerificationStatus().name());
         doc.setName(org.getName());
+        doc.setLogoObjectKey(org.getLogoObjectKey());
         doc.setVerificationInformationRequest(
             org.getVerificationInformationRequest() != null
                 ? org.getVerificationInformationRequest().value()
@@ -93,7 +94,8 @@ public class OrganizationMapper {
                 .collect(Collectors.toList()),
             status,
             infoMessage,
-            doc.getName()
+            doc.getName(),
+            doc.getLogoObjectKey()
         );
     }
 

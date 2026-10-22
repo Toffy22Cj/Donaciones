@@ -253,6 +253,20 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - nota "A2 implementado en <commit>" en la ficha L-FRONTS;
   - completar la hora y el lugar de la aprobación de la Enmienda 5.
 
+### 0.34 ADR-051, Tarea 2: logo de la organización (2026-10-21, `feat/app-adr051-t2-logo`)
+
+- **Norma:** `ADR-051-fotos-y-almacenamiento.md` (APROBADO, con la Enmienda 1). Plan: `plan-adr051-tarea2-logo.md`, APROBADO (Manuel, 2026-10-21; #109), con las decisiones de implementación D-T2-1 a D-T2-4.
+- **Qué hace:**
+  - `identity`: `logoObjectKey` en `Organization` (F9), que se escribe en transacción con reintento y devuelve la referencia anterior leída dentro (`OrganizationLogoReferenceService`); lecturas en `OrganizationLogoReferenceQuery`, con `READ_ORGANIZATION_LOGO` (P-T2-2).
+  - `app`: `PUT`, `DELETE` y `GET /api/v1/organizations/{organizationId}/logo` y `GET /api/v1/public/campaigns/{publicCode}/organization-logo`. Orden: permiso, 2 MB, subida, `identity`, borrado del anterior (F10, `REPLACED`/`REMOVED`). 413, 415, 503 y 404 (`OrganizationLogoNotFoundException`) por `MediaApiErrorMappings`. *Multipart* de 5 MB y 6 MB. `organizationLogoUrl?` en CV-07 y en el descubrimiento, y `logoUrl?` en S-18.
+  - `api`: la ruta pública en `PublicRoutes` y los textos fijos de 413, 415 y 503.
+- **Evidencia:**
+  - **Rojo primero:** `identity` y `app` no compilaban; `api` dio 3 fallos por aserción; y las 17 pruebas HTTP de `app` fallaron por aserción, después de corregir la configuración del propio test.
+  - **Verde por capas,** con el módulo completo en cada capa.
+  - **9 de 9 mutaciones muertas.**
+  - `ci-local.sh` en un clon limpio, con la evidencia en `Documentos/evidencia-ci/`.
+- **Abierto:** CORS no admite `PUT` ni `DELETE` (DD-57); lo decide Carlos. Avisar a la web y al móvil cuando se fusione.
+
 ### 0.33 Ficha R-6, Bloque A: `assetType`, fechas de las convocatorias y título y organización en el seguimiento (2026-10-21, `feat/r6-bloque-a`)
 
 - **Norma:** `ficha-R6-datos-estilo-v2.md`, CONGELADA (sha256 `ccc3801288de557c57a759c598018f6355d059e24496990b0daa23900e884248`), §3 Bloque A y §7 tests 1 a 4. Plan: `plan-r6-bloque-a.md`, APROBADO (Manuel, 2026-10-21) con P-R6A-1 (b), P-R6A-2 sin enmienda, P-R6A-3 `CampaignPublicSummaryProducer` y P-R6A-4 aceptado. Plan y aprobación en el PR #109.

@@ -2,12 +2,13 @@ package com.traceability.app.web.campaign;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.traceability.api.web.InvalidRequestFieldException;
-import com.traceability.contracts.organization.OrganizationPublicNamePort;
-import com.traceability.convocatoria.application.port.out.OrganizationVerificationPort;
+import com.traceability.app.application.media.OrganizationLogoService;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery.Page;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery.PublicCampaignSummary;
 import com.traceability.convocatoria.application.service.ConvocatoriaLifecycleService;
+import identity.application.service.OrganizationLogoReferenceQuery;
+import identity.application.service.OrganizationLogoReferenceQuery.PublicOrganization;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +22,8 @@ import java.util.Set;
  * {@code PRIVATE_LINK}. Sin {@code campaignRef} ni {@code organizationRef}: solo el nombre público de la organización.
  * El cursor es opaco ({@link DiscoveryCursorCodec}, T-35; DD-53 rehecha).
  * {@code organizationVerified} se calcula con el estado actual de la organización (ficha L-FRONTS, A1; M-07).
+ * {@code organizationLogoUrl} solo si la organización tiene logo (ADR-051 F6, Enmienda 1). Nombre, verificación y logo
+ * salen de una sola lectura de {@code identity} por ítem (plan de la Tarea 2, P-T2-7).
  */
 @RestController
 public class PublicCampaignDiscoveryController {
@@ -28,24 +31,21 @@ public class PublicCampaignDiscoveryController {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Item(String publicCode, String title, String organizationName, boolean organizationVerified,
                        String status, String startDate, String endDate, Set<String> acceptedDonationTypes,
-                       String currency, String targetAmount, String clearedAmount) {}
+                       String currency, String targetAmount, String clearedAmount, String organizationLogoUrl) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Response(List<Item> items, String nextCursor) {}
 
     private final PublicCampaignDiscoveryQuery discovery;
-    private final OrganizationPublicNamePort organizationNames;
-    private final OrganizationVerificationPort organizationVerification;
+    private final OrganizationLogoReferenceQuery organizations;
 
     private final DiscoveryCursorCodec cursors;
 
     public PublicCampaignDiscoveryController(PublicCampaignDiscoveryQuery discovery,
-                                             OrganizationPublicNamePort organizationNames,
-                                             OrganizationVerificationPort organizationVerification,
+                                             OrganizationLogoReferenceQuery organizations,
                                              DiscoveryCursorCodec cursors) {
         this.discovery = discovery;
-        this.organizationNames = organizationNames;
-        this.organizationVerification = organizationVerification;
+        this.organizations = organizations;
         this.cursors = cursors;
     }
 
@@ -57,10 +57,12 @@ public class PublicCampaignDiscoveryController {
     }
 
     private Item item(PublicCampaignSummary s) {
-        return new Item(s.publicCode(), s.title(), organizationNames.findPublicName(s.organizationRef()).orElse(null),
-                organizationVerification.isVerified(s.organizationRef()), s.status(), s.startDate().toString(), s.endDate().toString(), s.acceptedDonationTypes(), s.currency(),
+        PublicOrganization o = organizations.publicOrganization(s.organizationRef());
+        return new Item(s.publicCode(), s.title(), o.name(), o.verified(), s.status(), s.startDate().toString(),
+                s.endDate().toString(), s.acceptedDonationTypes(), s.currency(),
                 s.targetAmount() == null ? null : s.targetAmount().toString(),
-                s.clearedAmount() == null ? null : s.clearedAmount().toString());
+                s.clearedAmount() == null ? null : s.clearedAmount().toString(),
+                o.hasLogo() ? OrganizationLogoService.publicLogoUrl(s.publicCode()) : null);
     }
 
     private String encode(String publicCode) {

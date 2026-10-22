@@ -18,4 +18,6 @@ public class OrganizationDocument {
     private String verificationInformationRequest;
     /** Nombre público, opcional (plan B6-a, Q-B6A-1). */
     private String name;
+    /** Referencia del logo, opcional (ADR-051 F9). Los documentos sin el campo se leen sin logo. */
+    private String logoObjectKey;
 }

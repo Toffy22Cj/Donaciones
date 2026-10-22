@@ -25,6 +25,8 @@ public class Organization {
     private InformationRequestMessage verificationInformationRequest;
     /** Nombre público, opcional (plan B6-a, Q-B6A-1; `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` DD-04). */
     private String name;
+    /** Referencia del logo: la {@code objectKey} del proveedor (ADR-051 F9; P-T2-1). Opcional: si falta, no hay logo. */
+    private String logoObjectKey;
 
     /** Longitud máxima del nombre público (DD-04). */
     public static final int NAME_MAX_LENGTH = 200;
@@ -73,6 +75,20 @@ public class Organization {
         return organization;
     }
 
+    /** Igual que el anterior, con la referencia del logo (ADR-051 F9). */
+    public static Organization reconstitute(OrganizationId organizationId,
+                                            OrganizationType type,
+                                            List<Membership> members,
+                                            VerificationStatus verificationStatus,
+                                            InformationRequestMessage verificationInformationRequest,
+                                            String name,
+                                            String logoObjectKey) {
+        Organization organization = reconstitute(organizationId, type, members, verificationStatus,
+                verificationInformationRequest, name);
+        organization.logoObjectKey = logoObjectKey;
+        return organization;
+    }
+
     public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
         if (type == null) {
             throw new IllegalArgumentException("OrganizationType cannot be null");
@@ -100,6 +116,30 @@ public class Organization {
 
     public String getName() {
         return name;
+    }
+
+    public String getLogoObjectKey() {
+        return logoObjectKey;
+    }
+
+    /**
+     * Pone un logo nuevo (ADR-051 F10). No toca miembros ni verificación.
+     * @return la referencia anterior, si la había: su archivo se borra después de confirmar el cambio
+     */
+    public Optional<String> replaceLogo(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            throw new IllegalArgumentException("Logo objectKey cannot be blank");
+        }
+        Optional<String> previous = Optional.ofNullable(logoObjectKey);
+        logoObjectKey = objectKey;
+        return previous;
+    }
+
+    /** Quita el logo (ADR-051 F10). @return la referencia anterior, si la había */
+    public Optional<String> removeLogo() {
+        Optional<String> previous = Optional.ofNullable(logoObjectKey);
+        logoObjectKey = null;
+        return previous;
     }
 
     public OrganizationId getOrganizationId() {

@@ -142,6 +142,8 @@ Orden en `app` para `PUT /api/v1/organizations/{organizationId}/logo` (multipart
 
 No se crean excepciones nuevas: se usan las de la Tarea 1 y el 403 uniforme de cada política.
 
+*Nota (2026-10-21, decisión de Manuel; ver "Aprobación — Manuel, 2026-10-21", decisiones de implementación):* se añade **una** excepción, `com.traceability.app.application.media.OrganizationLogoNotFoundException`, que `MediaApiErrorMappings` traduce a 404 `NotFound`. Es la única causa de 404 en las dos rutas del logo, incluida "convocatoria no visible", para que todas las respuestas 404 sean idénticas. Sin ella, el 404 de §4.3 y T2-8 no tenía excepción nombrada. Además, `MediaObject` gana `deletedAt`, con un constructor que conserva los 11 campos actuales.
+
 ## 5. Tests — rojos primero, mapeados a los criterios
 
 | # | Test | Criterio |
@@ -242,3 +244,25 @@ No se crean excepciones nuevas: se usan las de la Tarea 1 y el 403 uniforme de c
 - **Riesgo nuevo R-T2-5 (aceptado):** tras un reemplazo, el logo público anterior puede seguir en cachés hasta 1 h (`Cache-Control: public, max-age=3600`).
 
 **Orden:** la Tarea 2 se implementa después del Bloque A de R-6, en su propia rama, para no chocar con los mismos archivos.
+
+### Decisiones de implementación — Manuel, 2026-10-21 (tras revisar el plan contra `develop`)
+
+| # | Decisión |
+|---|---|
+| D-T2-1 | `OrganizationLogoNotFoundException` en `app.application.media`, traducida a 404 por `MediaApiErrorMappings`. Es la única causa de 404 en las dos rutas del logo, incluida "convocatoria no visible", para que todas las respuestas 404 sean idénticas (§4.7) |
+| D-T2-2 | `MediaObject` gana `deletedAt`, con un constructor que conserva los 11 campos actuales |
+| D-T2-3 | T2-11 se prueba con **un solo** fallo del proveedor: el reintento de F2 vive en `S3MediaStorageAdapter` y ya lo prueba la Tarea 1 |
+| D-T2-4 | `server.tomcat.max-swallow-size: 6MB` en `application.yml` **solo si** el test rojo de T2-3 confirma que Tomcat corta la conexión con más de 5 MB; si no hace falta, no se añade |
+
+### Resultado de la implementación (2026-10-21, `feat/app-adr051-t2-logo`)
+
+- **D-T2-4: no hizo falta.** Con el límite de 5 MB configurado, una petición de más de 5 MB recibe 413 `ImageTooLarge` sin que Tomcat corte la conexión (T2-3 en verde). No se añadió `server.tomcat.max-swallow-size`.
+- **Hallazgo al implementar:** `app/src/test/resources/application.yml` sustituye en los tests al `application.yml` principal. Sin copiar allí `spring.servlet.multipart.max-file-size` y `max-request-size`, regía el límite por defecto de Spring (1 MB) y T2-3 pasaba por ese límite, no por el del controlador. Se añadieron los mismos dos valores de F8 al `application.yml` de los tests.
+- **Decisiones menores fuera del texto del plan:**
+  - `OrganizationLogoService.Logo(content, contentType, sha256)`, un registro anidado para devolver los bytes con su tipo y su huella, como `StatusView` en `identity`;
+  - `MongoMediaObjectStore.markDeleted` no hace nada si no hay metadato con esa clave;
+  - `Cache-Control` de la ruta pública con el texto literal de F6 (`public, max-age=3600`), porque `CacheControl` de Spring lo escribe en otro orden;
+  - los textos fijos de P-T2-6 son "The image is too large.", "The image format is not supported." y "The service is temporarily unavailable. Try again later.";
+  - el descubrimiento y CV-07 dejan de usar `OrganizationPublicNamePort` y `OrganizationVerificationPort` para el nombre y la verificación, y usan la lectura única de `OrganizationLogoReferenceQuery` (P-T2-7). Los puertos no cambian.
+- **Observación para Carlos, sin resolver aquí:** CORS (`CorsConfig.ALLOWED_METHODS`, DD-57) solo admite `GET`, `POST` y `OPTIONS`. Un navegador de otro origen no podrá llamar al `PUT` ni al `DELETE` del logo hasta que se amplíe esa lista.
+

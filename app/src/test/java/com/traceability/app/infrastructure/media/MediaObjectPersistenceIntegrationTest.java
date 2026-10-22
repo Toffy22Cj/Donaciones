@@ -94,6 +94,29 @@ class MediaObjectPersistenceIntegrationTest {
                 .isInstanceOf(DuplicateKeyException.class);
     }
 
+    // Tarea 2 (§4.7): lectura por clave y borrado lógico de F10, con deletedAt, deletedBy y reason (F9)
+    @Test
+    void findByObjectKey_andMarkDeleted_keepTheMetadataWithTheDeletion() {
+        repository.insert(document("01JB00000000000000000000D1", ORGANIZATION_LOGO, "org-1", SHA));
+
+        MediaObject alive = store.findByObjectKey("01JB00000000000000000000D1").orElseThrow();
+        assertThat(alive.deletedAt()).isNull();
+        assertThat(alive.sha256()).isEqualTo(SHA);
+        assertThat(alive.contentType()).isEqualTo("image/png");
+
+        Instant deletedAt = Instant.parse("2026-10-21T10:00:00Z");
+        store.markDeleted("01JB00000000000000000000D1", "acct-9", deletedAt, "REPLACED");
+
+        MediaObjectDocument doc = repository.findAll().get(0);
+        assertThat(doc.deletedAt()).isEqualTo(deletedAt);
+        assertThat(doc.deletedBy()).isEqualTo("acct-9");
+        assertThat(doc.reason()).isEqualTo("REPLACED");
+        assertThat(doc.sha256()).isEqualTo(SHA);
+        assertThat(repository.count()).isEqualTo(1);
+        assertThat(store.findByObjectKey("01JB00000000000000000000D1").orElseThrow().deletedAt()).isEqualTo(deletedAt);
+        assertThat(store.findByObjectKey("01JB0000000000000000000NONE")).isEmpty();
+    }
+
     // ADR-051 F9: subir dos veces la misma evidencia no duplica
     @Test
     void sameEvidenceBytes_inTheSameOrganization_collide() {
