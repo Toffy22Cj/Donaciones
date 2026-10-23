@@ -7,6 +7,8 @@ import com.traceability.api.application.dto.PublicLogisticsItemDTO;
 import com.traceability.contracts.campaign.CampaignPublicSummaryPort;
 import com.traceability.contracts.campaign.CampaignPublicSummaryPort.CampaignPublicSummary;
 import com.traceability.core.application.port.out.DonationReadModel;
+import com.traceability.core.application.port.out.FundClearingDatesReadPort;
+import com.traceability.core.application.port.out.FundClearingDatesReadPort.ClearingDates;
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
 import com.traceability.core.application.service.LocationReferenceService;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +36,7 @@ class PublicDonationMapperTest {
     private AssetRefService assetRefService;
     private LocationReferenceService locationReferenceService;
     private CampaignPublicSummaryPort campaignSummaries;
+    private FundClearingDatesReadPort clearingDates;
     private PublicDonationMapper mapper;
 
     @BeforeEach
@@ -41,7 +45,9 @@ class PublicDonationMapperTest {
         locationReferenceService = Mockito.mock(LocationReferenceService.class);
         campaignSummaries = Mockito.mock(CampaignPublicSummaryPort.class);
         when(campaignSummaries.findByCampaignRef(anyString())).thenReturn(Optional.empty());
-        mapper = new PublicDonationMapper(assetRefService, locationReferenceService, campaignSummaries);
+        clearingDates = Mockito.mock(FundClearingDatesReadPort.class);
+        when(clearingDates.findClearingDates(anyString())).thenReturn(Optional.empty());
+        mapper = new PublicDonationMapper(assetRefService, locationReferenceService, campaignSummaries, clearingDates);
     }
 
     @Test
@@ -202,5 +208,27 @@ class PublicDonationMapperTest {
 
     private static DonationReadModel activeIn(String campaignRef) {
         return new DonationReadModel("f1", "USD", campaignRef, 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of());
+    }
+
+    // --- Ficha R-6, G-2: fecha del pago (primera y última liquidación) ---
+
+    @Test
+    void withClearings_theSnapshotCarriesFirstAndLastClearedAt_inIso8601Utc() {
+        Instant first = Instant.parse("2026-10-03T14:00:00Z");
+        Instant last = Instant.parse("2026-10-20T09:30:15.250Z");
+        when(clearingDates.findClearingDates("f1")).thenReturn(Optional.of(new ClearingDates(first, last)));
+
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(activeIn("camp-1"));
+
+        assertEquals("2026-10-03T14:00:00Z", dto.financialSnapshot().firstClearedAt());
+        assertEquals("2026-10-20T09:30:15.250Z", dto.financialSnapshot().lastClearedAt());
+    }
+
+    @Test
+    void withoutClearings_theSnapshotHasNeitherDate() {
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(activeIn("camp-1"));
+
+        assertNull(dto.financialSnapshot().firstClearedAt());
+        assertNull(dto.financialSnapshot().lastClearedAt());
     }
 }

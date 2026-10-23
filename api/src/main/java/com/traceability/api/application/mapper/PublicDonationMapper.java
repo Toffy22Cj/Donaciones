@@ -8,6 +8,8 @@ import com.traceability.api.application.dto.PublicLogisticsItemDTO;
 import com.traceability.contracts.campaign.CampaignPublicSummaryPort;
 import com.traceability.contracts.campaign.CampaignPublicSummaryPort.CampaignPublicSummary;
 import com.traceability.core.application.port.out.DonationReadModel;
+import com.traceability.core.application.port.out.FundClearingDatesReadPort;
+import com.traceability.core.application.port.out.FundClearingDatesReadPort.ClearingDates;
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
 import com.traceability.core.application.service.LocationReferenceService;
@@ -22,12 +24,14 @@ public class PublicDonationMapper {
     private final AssetRefService assetRefService;
     private final LocationReferenceService locationReferenceService;
     private final CampaignPublicSummaryPort campaignSummaries;
+    private final FundClearingDatesReadPort clearingDates;
 
     public PublicDonationMapper(AssetRefService assetRefService, LocationReferenceService locationReferenceService,
-                                CampaignPublicSummaryPort campaignSummaries) {
+                                CampaignPublicSummaryPort campaignSummaries, FundClearingDatesReadPort clearingDates) {
         this.assetRefService = assetRefService;
         this.locationReferenceService = locationReferenceService;
         this.campaignSummaries = campaignSummaries;
+        this.clearingDates = clearingDates;
     }
 
     public PublicDonationTrackingDTO toPublicDTO(DonationReadModel model) {
@@ -40,13 +44,17 @@ public class PublicDonationMapper {
             throw new IllegalArgumentException("Unexpected status in DonationReadModel: " + model.status());
         }
 
+        // Ficha R-6, G-2: del event store al consultar, sin tocar la proyección (C-2)
+        Optional<ClearingDates> dates = clearingDates.findClearingDates(model.fundId());
         PublicFinancialSnapshotDTO financialSnapshot = new PublicFinancialSnapshotDTO(
                 model.currency(),
                 model.originalAmount(),
                 model.clearedAmount(),
                 model.pendingAllocationAmount(),
                 model.confirmedAllocationAmount(),
-                model.refundedAmount()
+                model.refundedAmount(),
+                dates.map(d -> d.firstClearedAt().toString()).orElse(null),
+                dates.map(d -> d.lastClearedAt().toString()).orElse(null)
         );
 
         List<PublicLogisticsItemDTO> logistics = model.logistics() != null
