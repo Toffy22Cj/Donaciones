@@ -1,6 +1,6 @@
 # Plan — Ficha R-6, Bloque B: fecha del pago en el seguimiento (G-2) y recaudado por mes (G-6)
 
-**Estado: BORRADOR — espera "plan aprobado" (regla 3.4).** No autoriza código.
+**Estado: APROBADO — Manuel, 2026-10-23** (ver "Aprobación — Manuel, 2026-10-23", al final). El texto de §0 a §8 se conserva tal como se redactó.
 **Fecha:** 2026-10-23. **Autor:** Manuel, con asistencia de Claude. **Base verificada:** `develop` `0b3dc3e`, que incluye el #112.
 **Norma:** `Documentos/ficha-R6-datos-estilo-v2.md`, CONGELADA: §4 (Bloque B), §7 (tests 5 y 6), §8, §9 (D-R6-2, D-R6-3, D-R6-4, D-R6-10) y §10 (C-2, C-3 y C-7).
 **Rama de implementación prevista:** `feat/r6-bloque-b`, la misma de este plan. Es un PR solo para este bloque (D-R6-10).
@@ -242,3 +242,18 @@ Medido el 2026-10-23 en Mongo **6.0.28** (`mongo:6.0`), con los índices reales 
   - los dobles del puerto de G-2 en los tests de `api` que levantan el mapeador, como en el Bloque A.
 - **`app`:** `PublicRoutesInventoryIntegrationTest` (`PROTECTED`) y las pruebas HTTP.
 - **Documentos:** `referencia-api-v1.md`, `api-contract-matrix.md`, `estado-fase6.md` y `Documentos/evidencia-ci/`.
+
+## Aprobación — Manuel, 2026-10-23
+
+**Plan aprobado**, con estas respuestas a §7.2:
+
+| # | Decisión |
+|---|---|
+| **P-R6B-1** | Los fondos 1.0 sin organización (anteriores a `0579f41`) **quedan fuera** de G-6, como de `GET /funds`, y se registra |
+| **P-R6B-2** | **Sí**: el test 6c escribe a mano un `FUNDS_CLEARED` 1.0 en un stream con génesis 2.0 |
+| **P-R6B-3** | **(a)**: los meses en 0 salen de las monedas de los fondos de la organización (génesis). Sin fondos, `items: []` |
+| **P-R6B-4** | **Puerto nuevo**, implementado por `FundOperationalQueryService` |
+| **P-R6B-5** | Los nombres propuestos: `FundClearingDatesReadPort`, `FundClearingDatesQuery`, `FundMonthlyClearingReadPort`, `FundClearingEventsPort` y `MongoFundClearingEventsAdapter` |
+| **P-R6B-6** | **Tope de 10 000 fondos** para G-6 y `truncated: true` si se alcanza, con nota fechada en `ficha-R6-datos-estilo-v2.md` (§4, G-6) y en `referencia-api-v1.md` |
+| **P-R6B-7** | **Índice parcial** para el directorio de fondos, **en un commit propio**, con `explain()` antes y después |
+
