@@ -1,4 +1,4 @@
-# ADR-050 — Enmienda 1: el login emite con `iat = max(segundo actual truncado, credentialsNotBefore)` (P-R3-3)
+# ADR-050 — Enmienda 1: el login emite con `iat = max(segundo actual truncado, credentialsNotBefore)` (P-R3-3), y actor de la confirmación de la recuperación (P-R4-1, enmienda de ADR-038 E1)
 
 ## Status
 
@@ -8,7 +8,8 @@
 
 **Por qué es una enmienda.** La regla 3.5 la exige cuando se cambia el contrato de un puerto que ya usa otro módulo. `AuthenticateAccountPort` está en `contracts`: lo implementa `identity` y lo llama `api`.
 
-**Enmienda a:** ADR-050 (APROBADO — Carlos, 2026-10-18), D4.
+**Enmienda a:** ADR-050 (APROBADO — Carlos, 2026-10-18), D4 (parte 1) y D8 (parte 2). La parte 2 enmienda además **ADR-038 E1** (§9.2).
+**Dos partes, una sola revisión:** la parte 2 se añadió el 2026-10-24, por indicación de Manuel, para que Carlos revise todo junto (plan R-4, P-R4-1 (a), PR #121). Carlos puede aprobar una parte y no la otra.
 **Origen:** plan R-3 + R-2 (`plan-r3-r2-revocacion-y-cambio-de-contrasena.md` §10.2) y la implementación de R-3 + R-2 (`feat/identity-r3-r2-revocacion-contrasena`), donde apareció el defecto.
 
 ## Context
@@ -80,3 +81,44 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 6. Los fallos del login siguen siendo el mismo 401, indistinguibles (tests existentes de `LoginControllerTest` y `AuthenticateAccountPortImplTest`).
 7. **Mutación:** el login emite con el reloj e ignora `credentialsNotBefore` → mueren los tests 1, 2 y 4.
 8. `GoldenPathHttpIntegrationTest` en verde y `scripts/ci-local.sh` completo en un clon limpio.
+
+---
+
+# Parte 2 — Actor de `CREDENTIALS_CHANGED` en la confirmación de la recuperación (P-R4-1; enmienda de ADR-038 E1)
+
+**Estado: PROPUESTA — espera la aprobación de Carlos.** La decisión de fondo (P-R4-1, opción (a)) es de Manuel, del 2026-10-24, por la delegación de Carlos, al aprobar el plan R-4 (`plan-r4-recuperacion-de-contrasena.md` §11, PR #121). Sin esta aprobación, la confirmación de R-4 no se implementa.
+
+## Context
+
+- **ADR-050 D8** manda que la confirmación (`POST /api/v1/auth/password-reset/confirm`, pública y sin JWT) "audita `CREDENTIALS_CHANGED` con un dato `{via: "PASSWORD_RESET"}`". No dice quién es el actor.
+- **ADR-038 §2.2:** todo servicio de `identity` que escribe en el Audit Log recibe el actor como parámetro; ninguno lo deduce del objetivo.
+- **ADR-038 E1** (`ADR-038-identidad-platform-administrator-verificacion-organization.md:269-274`): la única excepción es el autorregistro (`CreateAccountService`, con `selfRegistration = true`). `AccountAuditActor` solo lo construyen `CreateAccountService`, `AuditLogEntryMapper` y `AuthorizationAuditActorMapper`; `SystemAuditActor`, solo `BootstrapPlatformAuthorityService` y `AuditLogEntryMapper`. Lo comprueban las reglas de `identity/src/test/java/identity/architecture/ArchitectureTest.java:66-85`.
+- En la confirmación no hay principal autenticado, así que ninguna de las clases autorizadas puede dar el actor.
+
+## Decision
+
+**La confirmación de la recuperación audita con `AccountAuditActor` de la cuenta del token, como el autorregistro; se añade a la lista de E1 y a la regla de `ArchitectureTest`.**
+
+- Quien confirma demostró controlar el correo de la cuenta, porque recibió el token en él. Es el titular quien actúa, igual que en el autorregistro.
+- `changeSummary = {via: "PASSWORD_RESET"}` (D8), sin contraseñas ni token.
+- La clase que se añade a la lista es la que implementa la confirmación según el plan R-4 §4.2: `ChangeCredentialsService`, en `resetCredentials`. Si el plan cambiara de clase, cambia aquí con nota.
+- Las demás vías de `ChangeCredentialsService` siguen recibiendo el actor (`changeCredentials`) o tomándolo del principal (`changeOwnCredentials`, con `AuthorizationAuditActorMapper`).
+
+## Alternatives
+
+| Alternativa | Por qué se descarta |
+|---|---|
+| `SystemAuditActor("password-reset")` | Exige la misma enmienda (la otra regla) y pierde que actuó el titular |
+| Que `app` construya el actor y lo pase | Esquiva la regla de ArchUnit, que solo analiza `identity`, pero contradice el sentido de E1 |
+| Auditar sin actor | Rompe ADR-038 §2.2 (actor obligatorio, post-corte) |
+
+## Consequences
+
+- La lista de E1 pasa a tener cuatro clases que construyen `AccountAuditActor`. La regla de `ArchitectureTest` se actualiza en el mismo PR que el código de R-4, con su texto de `because`.
+- Hay dos excepciones al actor recibido: el autorregistro y la confirmación de la recuperación. Ambas registran a la propia cuenta, con un dato que lo dice (`selfRegistration` y `via`).
+
+## Definición de hecho (con el código de R-4)
+
+1. La confirmación registra `CREDENTIALS_CHANGED` con `actor = {type: ACCOUNT, accountId: <cuenta del token>}` y `changeSummary = {via: "PASSWORD_RESET"}`, sin contraseña ni token (test de R-4).
+2. `ArchitectureTest` sigue en verde con la lista ampliada, y su *bite test* falla si otra clase construye `AccountAuditActor`.
+
