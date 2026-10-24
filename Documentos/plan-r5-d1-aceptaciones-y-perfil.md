@@ -178,3 +178,7 @@ En el código, el login está en `api` y solo ve `AuthenticateAccountPort`, que 
 - **Aceptado en ADR-050 (4):** con Q1 (a), los tokens emitidos antes de una versión nueva sirven hasta 8 h sin aceptarla.
 - **Nuevo, solo registrado:** al desplegar R-5 con D3, **todas** las cuentas existentes (y las de la demo) reciben 403 en su siguiente login hasta aceptar. Es lo que pide D3 ("también las existentes y las de semilla"), pero la web y el móvil deben tener lista la pantalla de aceptación **antes** del despliegue.
 - **Dependencia de la web:** sin los textos en `paxfide-web/Documentos/legal/` con las versiones `v1-2026-10`, la web no puede mostrar lo que se acepta. El backend no lo comprueba ni lo bloquea.
+
+---
+
+**Nota (2026-10-24, más tarde): #120 ya está fusionado.** Carlos fusionó #120 el 2026-10-24 a las 21:54:54Z, sin review en GitHub. La parte 2 de la Enmienda 1 va ahora en el **PR #125**. Por eso la recomendación de P-R5-1 cambia de "parte 3 de #120" a "parte 3 de la Enmienda 1, en #125 o en un PR propio que aprueba Carlos". El fondo no cambia: un solo cambio de la firma de `AuthenticateAccountPort`, coordinado con P-R3-3 (B-2).
