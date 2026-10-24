@@ -14,6 +14,7 @@
 ### 0.1 Delegación (hecho nuevo del 2026-10-24)
 
 - **Fuente:** un mensaje de Carlos del 2026-10-24, enviado por WhatsApp, que Manuel dice adjuntar. **El texto no llegó a la sesión** (no estaba en la respuesta ni en ningún archivo nuevo). Por eso **no se ha registrado todavía** en `decisiones-delegadas-2026-10.md`: el encargo pide registrarlo literal, y no se puede escribir de memoria ni resumido. Queda pendiente de que Manuel pegue el texto (§4).
+  - *Actualización (2026-10-24, más tarde):* Manuel pegó el texto. Está **registrado literal** en `decisiones-delegadas-2026-10.md`, nota del 2026-10-24, con el medio, y es la fuente citada de la delegación. Lo que dicen las líneas de arriba sobre el texto pendiente queda superado.
 - **Lo que cambia, según la respuesta de Manuel:**
   - Los puntos **[Plan]** y **[Manuel]** los aprueba **Manuel**, por delegación. Un "plan aprobado" de Manuel, dado en la sesión o como comentario en el PR, es aprobación citable.
   - **Carlos aprueba cada PR con Approve en GitHub.** Nada se fusiona sin ese Approve, y el agente nunca fusiona.
@@ -125,6 +126,7 @@ Además, a petición de Manuel:
 ## 4. Pendiente de Manuel
 
 - **El texto literal del mensaje de Carlos del 2026-10-24** (WhatsApp), para registrarlo en `decisiones-delegadas-2026-10.md` como nota fechada con el medio, y citarlo como fuente de la delegación (§0.1). Mientras no llegue, la delegación se cita como "mensaje de Carlos del 2026-10-24 por WhatsApp, comunicado por Manuel en la sesión; texto pendiente de registrar".
+  - *Hecho (2026-10-24):* registrado literal en `decisiones-delegadas-2026-10.md`, nota del 2026-10-24.
 
 ---
 

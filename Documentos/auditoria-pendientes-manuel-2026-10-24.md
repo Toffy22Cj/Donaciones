@@ -174,6 +174,7 @@ docs/p4-adr042-enmienda-jmx         feat/core-t1-genesis-sin-reintento fix/p2-ha
 *Se añaden; nada de lo anterior se reescribe.*
 
 - **Delegación.** Según Manuel, un mensaje de Carlos del 2026-10-24 (WhatsApp) delega en Manuel la aprobación de los planes y de los puntos [Plan] y [Manuel]. Carlos aprueba cada PR con Approve en GitHub. **El texto literal no llegó a la sesión;** queda pendiente de registrar en `decisiones-delegadas-2026-10.md`.
+  - *Actualización (2026-10-24):* el texto ya está **registrado literal** en `decisiones-delegadas-2026-10.md`, nota del 2026-10-24.
   - Con esa delegación, el criterio de §1 ("solo cuenta un texto de Carlos") se sustituye, para los planes, por el "plan aprobado" de Manuel.
   - **Por eso H-2 deja de ser un hallazgo** para la aprobación del plan B, que dio Manuel en `5b8e30f`. **H-1 sigue en pie**: esos PR se fusionaron sin Approve de Carlos en GitHub. Va al informe como lista para Carlos.
 - **C-1: cerrado por Manuel con la opción (b).** La premisa era errónea: el génesis tiene `sequence` 1.

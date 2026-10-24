@@ -134,3 +134,44 @@ Columnas: id · fecha UTC · bloque · pregunta · opciones · elegida · motivo
 | DD-79 | 2026-10-08T08:30Z | Encargo 6, P6 (B4, §2.3) | Detalles de `COLLECTING_FAILED`, `RETRY` y `RELEASE` que la aprobación no fija | — | **Tope** `crypto.anchor.collecting-recovery.max-attempts` = **10** por defecto (el aviso sigue en 5): con `recoveryAttempts` mayor que el tope, el batch pasa a `COLLECTING_FAILED` sin hacer la fase 2. Un fallo al **leer** los batches viejos (p. ej. un batch antiguo sin cobertura) se registra y la reclamación de eventos nuevos sigue en el mismo ciclo; ese batch ilegible no se marca, porque no se puede leer. **JMX** `CollectingFailedBatchAdminOperations.resolveCollectingFailedBatch(batchId, RETRY\|RELEASE, operator, reason)`; `RELEASE` exige operador y motivo. **Auditoría** en la colección `batch_release_audit` (`batchId`, `coverage`, `eventIds`, `operator`, `reason`, `releasedAt`), en la misma transacción que el paso a `RELEASED` y la liberación. Las dos operaciones solo actúan sobre `COLLECTING_FAILED`; si no, error y nada cambia. **Consumidores** de `AnchorStatus` revisados: el planificador, el poller y las operaciones de anclaje consultan estados concretos y no ven los nuevos; el seguimiento (P4) los muestra como `NOT_ANCHORED` | El tope de 10 deja margen a fallos transitorios (con el aviso a mitad de camino); marcar un batch ilegible exigiría escribir en un documento que no se puede leer | Sí | PENDIENTE DE RATIFICACIÓN |
 
 **Nota a DD-68 (2026-10-16T03:44Z, ficha S-18):** DD-68 registró que no existía `GET /organizations/{id}` porque no lo pedía la autorización. Con `ficha-S18-estado-verificacion-organizacion.md` (CONGELADA; Q-S18-1 (a), decidida por Manuel el 2026-10-16T03:23Z) pasa a existir `GET /api/v1/organizations/{organizationId}`. No es una contradicción de diseño y DD-68 no cambia: `POST /organizations` sigue sin `Location`.
+
+**Nota (2026-10-24): delegación de Carlos en Manuel para los planes de Fase 7 (backend).** Mensaje de Carlos a Manuel, recibido **por WhatsApp el 2026-10-24** y pegado por Manuel en la sesión de trabajo del mismo día. Se transcribe literal:
+
+```
+Manuel: para que la web quede completa (fiel a los bocetos), hacen falta
+estas piezas del backend. Tienes delegación mía para los detalles técnicos
+de cada plan (los puntos [Plan] / [Manuel]); yo doy el visto bueno en cada
+PR. Las reglas de siempre: plan antes del código, tests en rojo primero,
+resumen literal de Surefire, ci-local completo.
+
+Orden propuesto:
+
+1. ADR-050 R-3 + R-2 (revocación y cambio de contraseña). El plan
+   "plan-r3-r2-revocacion-y-cambio-de-contrasena.md" está PROPUESTO: revísalo
+   contra develop actual (se escribió sobre 4bef7be) y apruébalo tú con la
+   delegación.
+2. ADR-050 R-4 (recuperar la contraseña por correo, D8).
+3. ADR-050 R-5 + D1 (dos casillas legales en el registro, re-aceptación en
+   el login con 403 AcceptanceRequired, términos de organización al crearla,
+   y GET/PUT /account/profile con nombre y apellido). Versiones iniciales:
+   v1-2026-10 en los tres valores traceability.legal.*-version (textos en
+   paxfide-web/Documentos/legal/, borrador académico).
+4. ADR-050 D6 (desactivar la propia cuenta).
+5. Ficha R-6, bloque B: G-2 (fecha del pago), G-6 (recaudado por mes) y G-9
+   (lastEventAt? en la lista de lotes, Enmienda 1 §E2).
+6. Ficha R-6, bloque C: G-4 (parentAssetRef) y G-3 con la Enmienda 1 §E1
+   (eventHash y prueba de Merkle por paso; reabre D-R6-6). Deja los vectores
+   fijos de E1.5 en un recurso: la web los usa en su test.
+7. Ficha R-6, bloque D: G-7 y G-8.
+R-6 de ADR-050 (Google): sigue de última, sin fecha.
+
+Cada PR que llegue a develop desbloquea una parte de la web (F-C1, F-C2 o
+F-C3 del plan de fidelidad). Avísame cuando cada uno esté mergeado.
+
+Documentos: ficha-R6-enmienda-1.md (nuevo), notas del 2026-10-24 en
+ficha-R6-datos-estilo-v2.md §9 y en ADR-050.
+```
+
+Es la fuente de la delegación que citan `plan-ejecucion-cierre-manuel-2026-10-24.md` (versión 2) y los planes de Fase 7. Según Manuel (respuesta a la revisión del 2026-10-24):
+- un "plan aprobado" de Manuel, en la sesión o como comentario del PR, es aprobación citable de los planes y de los puntos [Plan] y [Manuel];
+- Carlos aprueba cada PR con Approve en GitHub, y nada se fusiona sin él.
