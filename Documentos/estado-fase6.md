@@ -229,6 +229,44 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.37 R-3 + R-2: revocación de sesiones y cambio de contraseña (2026-10-24, `feat/identity-r3-r2-revocacion-contrasena`)
+
+- Numerada 0.37 porque el Bloque B (#113) ya usa la 0.36.
+- **Norma:**
+  - `ADR-050-cuenta-y-sesiones.md` (APROBADO — Carlos, 2026-10-18): D4, D5 y la parte de D6 que fija `credentialsNotBefore` al desactivar. Enmienda ADR-047 D5 (nota del 2026-10-24 en ese ADR).
+  - Plan: `plan-r3-r2-revocacion-y-cambio-de-contrasena.md` (PR #118), APROBADO (Manuel, 2026-10-24, por la delegación de Carlos): P-R3-1 (a), P-R3-2 y riesgo R-R3-1 registrado.
+- **Qué hace:**
+  - `contracts`: `IdentityPrincipalPort.resolveAuthenticatedPrincipal(accountId, issuedAt)` y `TokenIssuerPort.issue(accountId, issuedAt)`, abstractos. Los dobles de `core` y `convocatoria` lanzan `UnsupportedOperationException`.
+  - `identity`: `Account.credentialsNotBefore` (`max(segundo truncado, actual) + 1 s` al cambiar la contraseña y al desactivar), `acceptsTokenIssuedAt`, `CredentialsRevokedException`, `CurrentPasswordIncorrectException`, `ChangeCredentialsService.changeOwnCredentials` (actual → política → guardar, en la transacción) y reloj por `ObjectProvider<Clock>` en los dos servicios.
+  - `api`: el verificador lee `iat` (sin `iat` → `MISSING_CLAIMS`), el filtro llama a `resolveAuthenticatedPrincipal(sub, iat)`, el emisor gana `issue(accountId, issuedAt)`; emisor y verificador usan el `Clock` de la aplicación si lo hay.
+  - `app`: `POST /api/v1/account/password` → `200 {token}` con `iat = credentialsNotBefore`, `no-store`; `CurrentPasswordIncorrect` → 400.
+- **Desviación del plan, anotada:** §3 fija `changeOwnCredentials(AccountId, …)`. La regla de `identity.architecture.ArchitectureTest` solo permite construir `AccountAuditActor` en `CreateAccountService`, `AuditLogEntryMapper` y `AuthorizationAuditActorMapper` (ADR-038 §2.2, §2.3). Por eso el método recibe el `AuthorizationPrincipal` y el actor sale de `AuthorizationAuditActorMapper`, como en `InviteMemberService`. No se tocó la regla.
+- **Desviación aprobada:** la firma con `AuthorizationPrincipal` (Manuel, 2026-10-24; plan §10.1, #119).
+- **Tests de `app` adaptados:** los cuatro que simulan `IdentityPrincipalPort` (`CurrentActorRealServerIntegrationTest`, `PrincipalResolutionFailureRealServerIntegrationTest`, `PhysicalAssetHttpIntegrationTest`, `FundHttpIntegrationTest`) programan también `resolveAuthenticatedPrincipal`, que es lo que llama ahora el filtro. Además:
+  - el inventario de rutas incluye la nueva;
+  - `DemoScenarioSeederIntegrationTest` vuelve a iniciar sesión el día de la demo. Con emisor y verificador en el reloj de la aplicación (P-R3-2), el token de `C0` ya había caducado 13 días después.
+  - El plan solo preveía cambiar los dobles de `core` y `convocatoria`; estos cambios son consecuencia directa de P-R3-2.
+- **Evidencia:**
+  - **Rojo primero:** `identity` y `api` no compilaban. En `app`, 9 de 11 fallaron por aserción (404 en la ruta nueva). Uno de esos fallos venía de mi test y no del código (el login del mismo segundo que la revocación, que D4 rechaza con razón; es el defecto P-R3-3). Se corrigió avanzando el reloj un segundo.
+  - **Verde por capas:**
+
+    | Módulo | Resumen de Surefire |
+    |---|---|
+    | `contracts` | "No tests to run." |
+    | `core` | 326 |
+    | `convocatoria` | 253 |
+    | `identity` | 332 |
+    | `api` | 152 |
+    | `app`, sobre la fusión con `develop` `19b4e0f` | 462 |
+
+    Todos con `Failures: 0, Errors: 0, Skipped: 0`.
+  - **10 de 10 mutaciones muertas.** Las 1, 2, 3 y 6 las mataron tests de `identity` antes de llegar a `app`.
+  - `ci-local.sh` en un clon limpio: CI_PENDIENTE.
+- **Pendiente:**
+  - **P-R3-3:** defecto conocido (un login en el segundo de una revocación recibe un token rechazado). Va en su propio PR tras la Enmienda 1 de ADR-050 (#120) y antes de R-4;
+  - R-R3-1 (límite de intentos) como pregunta para Carlos;
+  - avisar a la web y al móvil cuando se fusione: la ruta nueva, el token que hay que sustituir y el 500 tras confirmar.
+
 ### 0.36 Ficha R-6, Bloque B: fecha del pago en el seguimiento (G-2) y recaudado por mes (G-6) (2026-10-23, `feat/r6-bloque-b`)
 
 - **Norma:** ficha R-6, CONGELADA (§4; tests 5 y 6). Plan: `plan-r6-bloque-b.md`, APROBADO (Manuel, 2026-10-23), con P-R6B-1 a P-R6B-7.
