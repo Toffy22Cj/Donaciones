@@ -99,6 +99,14 @@ No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide s
 
 ---
 
+## 7b. Fondos — recaudado por mes (ficha R-6, Bloque B, G-6; 2026-10-23)
+
+*Procedencia:* esta matriz no tenía filas de fondos. `GET /organizations/{organizationId}/funds` (P1.1, DD-31) está documentado en `referencia-api-v1.md` §3. Esta fila es la de la ficha R-6, §8.
+
+| Endpoint | Auth | Read Model | Estado |
+|---|---|---|---|
+| `GET /organizations/{organizationId}/funds/monthly?months=1..12` | JWT + `ADMINISTRATOR` o `EMPLOYEE` de la organización + `OrganizationBoundaryPolicy`, como `/funds` (DD-31) | Sin read model: se calcula al consultar con los `FUNDS_CLEARED` (1.0 y 2.0) del Event Store de los fondos cuya génesis lleva la organización (`FundMonthlyClearingReadPort`, implementado por `FundOperationalQueryService`). `{timezone: "America/Bogota", items: [{month, currency, clearedAmount}], truncated?}`. Tope de 10 000 fondos | IMPLEMENTADO (`feat/r6-bloque-b`) |
+
 ## Frontend Contract / UX Flow — Golden Path: CERRADO
 
 Mapeo completo de pantallas, rutas UX, estados y dependencias contractuales para las seis capas del recorrido (Platform Admin, Organización, Visitante público, Donante con cuenta, Empleado, Tracking/narrativa). Ningún elemento pendiente listado abajo justifica reabrir el mapa de pantallas — son contratos o implementaciones dentro de pantallas ya identificadas, no pantallas faltantes:

@@ -65,6 +65,8 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/account/donations",
             // P1.1: Camino A por HTTP (plan-p1-camino-a-http.md §2.2)
             "GET /api/v1/organizations/{organizationId}/funds",
+            // Ficha R-6, Bloque B, G-6: recaudado por mes, la misma política que /funds (DD-31)
+            "GET /api/v1/organizations/{organizationId}/funds/monthly",
             // P2 (segunda autorización)
             "GET /api/v1/me",
             "GET /api/v1/organizations/{organizationId}/campaigns",

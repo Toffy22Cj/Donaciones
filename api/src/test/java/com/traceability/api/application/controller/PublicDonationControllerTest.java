@@ -44,7 +44,8 @@ class PublicDonationControllerTest {
         String fundId = "fund-123";
         DonationReadModel mockModel = new DonationReadModel(fundId, "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of());
         
-        PublicFinancialSnapshotDTO financial = new PublicFinancialSnapshotDTO("USD", 100L, 100L, 0L, 0L, 0L);
+        PublicFinancialSnapshotDTO financial = new PublicFinancialSnapshotDTO("USD", 100L, 100L, 0L, 0L, 0L,
+                "2026-10-03T14:00:00Z", "2026-10-03T14:00:00Z");
         PublicDonationTrackingDTO mockDto = new PublicDonationTrackingDTO(financial, "camp-1", List.of(), PublicDonationStatus.ACTIVA,
                 "Invierno", null);
 
@@ -59,7 +60,10 @@ class PublicDonationControllerTest {
                 .andExpect(jsonPath("$.financialSnapshot.currency").value("USD"))
                 // ficha R-6, G-1: los campos nulos se omiten (organización sin nombre)
                 .andExpect(jsonPath("$.campaignTitle").value("Invierno"))
-                .andExpect(jsonPath("$.organizationName").doesNotExist());
+                .andExpect(jsonPath("$.organizationName").doesNotExist())
+                // ficha R-6, G-2
+                .andExpect(jsonPath("$.financialSnapshot.firstClearedAt").value("2026-10-03T14:00:00Z"))
+                .andExpect(jsonPath("$.financialSnapshot.lastClearedAt").value("2026-10-03T14:00:00Z"));
     }
 
     @Test

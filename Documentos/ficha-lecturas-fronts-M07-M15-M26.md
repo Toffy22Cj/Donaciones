@@ -297,3 +297,4 @@ Respondidas por Manuel (responsable de backend/BD e identidad) el **2026-10-18T0
 - **A1 y A3:** CONGELADO (2026-10-18T06:35Z). Congelado **no** autoriza código: falta el plan de implementación aprobado.
 - **A2:** pasa a CONGELADO cuando Carlos responda Q-A2-C y su respuesta se registre en §8 (y, si es la opción (a), cuando se apruebe la enmienda de ADR-037).
 - *Nota (2026-10-22):* **A2: CONGELADO.** Se cumplen las dos condiciones: Q-A2-C respondida (a) y registrada en §8, y Enmienda 5 aprobada. Congelado no autoriza código: falta el plan aprobado.
+- *Nota (2026-10-24):* **A2 implementado en `develop` `0b3dc3e`** (PR #112, "feat(convocatoria-a2): historial de donaciones con la Enmienda 5 de ADR-037"). Plan: `plan-a2-historial-donaciones.md`. Contrato publicado en `referencia-api-v1.md` §1 (nota del 2026-10-22).

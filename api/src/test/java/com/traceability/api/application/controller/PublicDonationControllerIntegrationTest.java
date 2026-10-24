@@ -93,6 +93,9 @@ class PublicDonationControllerIntegrationTest {
     // Doble del puerto de la ficha R-6 (G-1): api se prueba sin app, que es quien lo implementa
     @MockitoBean
     private com.traceability.contracts.campaign.CampaignPublicSummaryPort campaignSummaries;
+    // PublicDonationMapper lo necesita (ficha R-6, G-2); lo implementa core, que este test no levanta entero
+    @MockitoBean
+    private com.traceability.core.application.port.out.FundClearingDatesReadPort clearingDates;
 
     @Test
     void shouldReturn200EndToEndWithValidToken() throws Exception {

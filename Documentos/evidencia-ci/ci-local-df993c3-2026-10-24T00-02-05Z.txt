@@ -1,0 +1,50 @@
+# CI local — scripts/ci-local.sh
+commit:   df993c30d9f2ee4020fa18284f666acd5b71d439
+rama:     feat/r6-bloque-b
+inicio:   2026-10-24T00:02:05Z
+fin:      2026-10-24T00:19:52Z
+comando:  mvn -B clean test -fae
+salida:   0
+
+## Versiones
+java:   openjdk version "21.0.12.1" 2026-08-18
+java:   OpenJDK Runtime Environment (build 21.0.12.1+1)
+java:   OpenJDK 64-Bit Server VM (build 21.0.12.1+1, mixed mode, sharing)
+maven:  Apache Maven 3.10.0 (c43a36b8d67be7e0805a411bc0898af1a51f5472)
+docker: cliente 29.9.1, servidor 29.9.1
+
+## Resumen de Surefire por módulo (literal)
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 336, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 147, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 303, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 253, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 451, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.191 s]
+[INFO] contracts .......................................... SUCCESS [  2.253 s]
+[INFO] core ............................................... SUCCESS [02:21 min]
+[INFO] crypto ............................................. SUCCESS [ 23.810 s]
+[INFO] ai ................................................. SUCCESS [ 21.356 s]
+[INFO] api ................................................ SUCCESS [ 41.324 s]
+[INFO] identity ........................................... SUCCESS [02:45 min]
+[INFO] convocatoria ....................................... SUCCESS [ 45.004 s]
+[INFO] app ................................................ SUCCESS [10:23 min]
+[INFO] BUILD SUCCESS
+
+## Tests fallidos (si los hay)
+ninguno
+
+## sha256 del log completo
+c9cf358d277260eb7d4ac478701c697c4d9a0c5c36327ac757a0e2b7a8bee086

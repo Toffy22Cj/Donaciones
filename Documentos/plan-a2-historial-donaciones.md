@@ -4,6 +4,7 @@
 **Fecha:** 2026-10-22. **Autor:** Manuel, con asistencia de Claude. **Base verificada:** `develop` `aae7492`.
 **Norma:**
 - `Documentos/ADR-037-enmienda-5-fecha-de-creacion-y-vista-del-historial.md`, **APROBADA — Carlos** (comunicado por Manuel el 2026-10-21; falta registrar la hora y el lugar exactos). E5-1, E5-2 y E5-3, y su definición de hecho (criterios 1 a 7).
+  - *Nota (2026-10-24):* aprobada por Carlos el **2026-10-22 a las 00:12, hora de Colombia (05:12Z)**, por **WhatsApp**. Dato aportado por Manuel el 2026-10-24; no hay enlace ni commit de Carlos que lo cite.
 - `Documentos/ficha-lecturas-fronts-M07-M15-M26.md`, A2 **CONGELADO** (nota del 2026-10-22): §3.2 (lo que hay) y §8 (Q-A2-1 a Q-A2-5).
 - DD-21, con la nota del 2026-10-22 por el orden de E5-2.
 

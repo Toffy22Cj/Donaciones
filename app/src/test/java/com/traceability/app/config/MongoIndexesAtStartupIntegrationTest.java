@@ -85,6 +85,12 @@ class MongoIndexesAtStartupIntegrationTest {
         // el event store: un evento por (stream, secuencia); es la barrera de concurrencia de los agregados
         unique("event_store", "idx_stream_sequence", new Document("streamId", 1).append("sequence", 1));
         index("event_store", "idx_event_type_campaign");
+        // ficha R-6, Bloque B (P-R6B-7): el directorio de fondos de una organización, por la génesis
+        Document fundGenesis = index("event_store", "idx_fund_genesis_organization");
+        assertThat(fundGenesis.get("key", Document.class)).isEqualTo(new Document("payload.organizationRef", 1)
+                .append("recordedAt", 1).append("streamId", 1));
+        assertThat(fundGenesis.get("partialFilterExpression", Document.class))
+                .isEqualTo(new Document("sequence", 1).append("aggregateType", "Fund"));
         // un EMPLOYEE solo puede ser responsable de una convocatoria activa
         uniquePartial(CampaignAssignmentDocument.COLLECTION, CampaignAssignmentDocument.ACTIVE_EMPLOYEE_INDEX,
                 new Document("employeeRef", 1), new Document("status", "ACTIVE").append("actingRole", "EMPLOYEE"));
