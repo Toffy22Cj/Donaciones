@@ -19,7 +19,7 @@ D6 no depende de P-R3-3 ni de R-4 ni de R-5.
 
 Dentro (ADR-050 D6):
 - `POST /api/v1/account/deactivate` con JWT y `{currentPassword}` (Q3 (a)): la cuenta pasa a `INACTIVE` y fija `credentialsNotBefore` (D4). No se borra nada. Responde `204` y audita `ACCOUNT_DEACTIVATED` (ya existe).
-- **Tres excepciones** en las que la cuenta sigue `ACTIVE`**:
+- **Tres excepciones** en las que la cuenta sigue `ACTIVE`:
   1. administrador de plataforma → 409 (`PlatformAdministratorDeactivationException`, invariante existente);
   2. `REPRESENTATIVE` de una organización → 409 `RepresentativeTransferRequired` (ADR-026, invariante 5);
   3. responsable activo de una convocatoria no cerrada → 409 `ActiveCampaignResponsible`, consultado con `CampaignResponsibilityPort` (ADR-049 D9, con su misma ventana de concurrencia aceptada).
