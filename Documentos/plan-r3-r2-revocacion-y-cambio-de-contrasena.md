@@ -7,7 +7,8 @@
 **Dueño:** Carlos.
 
 > **Revisión del 2026-10-24 (Manuel, con asistencia de Claude).** El texto de arriba y el de §1 a §7 se conservan tal como se redactaron el 2026-10-18; lo que cambia va en notas fechadas y en §8.
-> - **Estado:** BORRADOR revisado. Espera el **"plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (mensaje por WhatsApp, comunicado por Manuel; texto pendiente de registrar en `decisiones-delegadas-2026-10.md`). Carlos aprueba el PR de implementación con Approve en GitHub.
+> - **Estado:** BORRADOR revisado. Espera el **"plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (mensaje por WhatsApp, registrado literal en `decisiones-delegadas-2026-10.md`, nota del 2026-10-24). Carlos aprueba el PR de implementación con Approve en GitHub.
+> - **APROBADO — Manuel, 2026-10-24, por la delegación de Carlos** (§9).
 > - **Dueño:** Manuel (indicación de Manuel, 2026-10-24).
 > - **Base:** `develop` `0b3dc3e`. Rama desde el `develop` del momento de implementar, con su hash.
 > - **Hechos reverificados:** §8.1. Cambian dos: el número de clases de test que usan `Account.reconstitute` y el entorno (§7).
@@ -173,4 +174,14 @@ Igual que el plan R-1 §6: en la sesión de agente del 2026-10-18 Maven no resue
 6. `free -g` con al menos 4 GB y `scripts/ci-local.sh` en un clon limpio del último commit. La evidencia va a `Documentos/evidencia-ci/`.
 7. Autoauditoría contra ADR-050 D4, D5 y D6 (la parte de `credentialsNotBefore`), y sus tests 1 a 10.
 8. PR hacia `develop` con Carlos como revisor; nada se fusiona sin su Approve.
+
+---
+
+## 9. Aprobación — Manuel, 2026-10-24, por la delegación de Carlos
+
+**Texto de Manuel en la sesión:** "Plan aprobado — R-3 + R-2 (Manuel, 2026-10-24, por la delegación de Carlos)." La delegación es el mensaje de Carlos del 2026-10-24 por WhatsApp (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24).
+
+- **P-R3-1: opción (a), el orden literal de ADR-050 D5.** Dentro de la transacción, primero se comprueba la contraseña actual y después la política de la nueva. Va con su test: contraseña actual incorrecta y nueva corta → `400 CurrentPasswordIncorrect`, y nada cambia. Sustituye a lo que §3 decía de `changeOwnCredentials` ("valida la política de la nueva antes de leer nada"), que se conserva como historial.
+- **P-R3-2: los cinco puntos [Plan] aprobados tal como están.**
+- **Riesgo nuevo, solo registrado (R-R3-1):** `POST /api/v1/account/password` permite probar contraseñas sin límite a quien tenga un token robado. ADR-050 no pide limitar intentos (sus riesgos aceptados, `:233`, ya registran la falta de límite por IP en el login, DH-56), así que **no se implementa**. Queda como **pregunta para Carlos**.
 
