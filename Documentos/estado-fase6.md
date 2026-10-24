@@ -252,6 +252,10 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - avisar a la web y al móvil cuando se fusione;
   - nota "A2 implementado en <commit>" en la ficha L-FRONTS;
   - completar la hora y el lugar de la aprobación de la Enmienda 5.
+- *Nota (2026-10-24):*
+  - **La hora y el lugar de la Enmienda 5 quedan registrados:** aprobada por Carlos el **2026-10-22 a las 00:12, hora de Colombia (05:12Z)**, por **WhatsApp**. Dato aportado por Manuel el 2026-10-24; no hay enlace ni commit de Carlos que lo cite (`ADR-037-enmienda-5-…md`, nota bajo el estado).
+  - **La nota "A2 implementado en `0b3dc3e` (#112)" está en la ficha L-FRONTS.**
+  - Los avisos a la web y al móvil siguen pendientes, fuera de este repositorio.
 
 ### 0.34 ADR-051, Tarea 2: logo de la organización (2026-10-21, `feat/app-adr051-t2-logo`)
 
