@@ -79,6 +79,12 @@
 | `CAMPAIGN_CLOSED` | `closedAt` (`CampaignTimelineQuery`) | `campaignRef` | **Depende de P-R6D-2** |
 | `BATCH_ANCHORED` | `anchoredAt` (`MerkleBatch`) | `batchId` (solo dentro del cursor cifrado) | **Depende de P-R6D-1** |
 
+- **De dónde salen los lotes de `BATCH_ANCHORED`** (aclaración de Manuel, 2026-10-24):
+  1. Se parte de la **misma agregación de G-7**: `$match {streamId $in <streams de la organización>}` y `$group` por `merkleBatchId`, que da cada lote con eventos propios y su recuento.
+  2. Cada `merkleBatchId` distinto se lee con `MerkleBatchRepositoryPort.findByBatchId` (`MerkleBatchRepositoryPort.java:12`).
+  3. Entran solo los lotes `ANCHORED`. El instante es su `anchoredAt` (`MerkleBatch.java:20`), y el recuento de eventos propios es el de la agregación.
+  - **Nunca se consulta `MerkleBatch.coverage`:** no se buscan lotes por sus streams ni se leen los streams de otras organizaciones que el lote mezcla (D-V4).
+  - El `batchId` solo va dentro del cursor cifrado, como id estable; nunca en la respuesta (G-7).
 - **Página de 20.** Se piden 21 a cada fuente desde la clave del cursor, se mezclan por el orden total y se devuelven 20, con el cursor del ítem 20.
 - **Cursor:** AES-256-GCM con la clave de DD-58 y un **propósito propio** dentro del texto cifrado, como DD-69. Guarda la clave completa `(instante, tipo de fuente, id estable)`; así un empate de instantes entre fuentes no repite ni salta ítems (test 11). Cursor inválido o de otro propósito → 400.
 - **Ítems:** `{type, occurredAt, subject: {kind, ref}, quantity?, unitOfMeasure?, locationZone?}`.
@@ -166,10 +172,18 @@ Medido el 2026-10-24 en Mongo **6.0.28** (`mongo:6.0`), con los índices reales 
 
 ### 6.2 Preguntas abiertas sobre la ficha (las resuelve Carlos; este plan no las resuelve)
 
-| # | Dónde | Qué no cuadra | Opciones (sin recomendación: la ficha está CONGELADA) |
-|---|---|---|---|
-| **P-R6D-1** | `ficha-R6-datos-estilo-v2.md` §6, G-8, **línea 142** (`BATCH_ANCHORED` "con cuántos eventos propios entraron") frente a la **línea 139** (respuesta `subject: {kind: "ASSET"\|"CAMPAIGN"\|"FUND", ref}, quantity?, unitOfMeasure?, locationZone?`) | `BATCH_ANCHORED` **no tiene `subject.kind`**, porque ningún valor corresponde a un lote, y **no hay campo para el recuento** de eventos propios. Además, G-7 (§6, mismo apartado) prohíbe exponer `batchId`, que sería el `ref` natural de un lote | (a) añadir `kind: "BATCH"` sin `ref` y un campo de recuento (por ejemplo, `eventCount?`); (b) `BATCH_ANCHORED` sin `subject` y con el recuento en otro campo; (c) quitar `BATCH_ANCHORED` de este corte |
-| **P-R6D-2** | `convocatoria/.../port/out/ConvocatoriaAuditLogPort.java:15` (solo `findByCampaignRef`) y `convocatoria/.../audit/ConvocatoriaAuditEntry.java:13-23` (sin organización); ficha §6, G-8, línea 142 (`CAMPAIGN_CLOSED` "desde la fecha de cierre que ya usa `CampaignTimelineQuery`") | El registro de auditoría de `convocatoria` **no se puede consultar por organización**. Para listar los cierres de una organización habría que enumerar sus convocatorias (`ConvocatoriaRepositoryPort.findByOrganizationRef`, `:29`) y leer el registro de cada una (`CampaignTimelineQuery.timelineOf`, `:28-35`): una lectura por convocatoria y por página | (a) una consulta nueva de `convocatoria` que enumere las convocatorias de la organización y lea sus cierres (N lecturas, sin cambiar puertos existentes); (b) un método nuevo en `ConvocatoriaAuditLogPort` por `campaignRef $in` (cambio de un puerto de `convocatoria`, regla 3.5); (c) quitar `CAMPAIGN_CLOSED` de este corte |
+| # | Dónde | Qué no cuadra | Opciones (sin recomendación: la ficha está CONGELADA) | Propuesta de Manuel, pendiente de Carlos (2026-10-24) |
+|---|---|---|---|---|
+| **P-R6D-1** | `ficha-R6-datos-estilo-v2.md` §6, G-8, **línea 142** (`BATCH_ANCHORED` "con cuántos eventos propios entraron") frente a la **línea 139** (respuesta `subject: {kind: "ASSET"\|"CAMPAIGN"\|"FUND", ref}, quantity?, unitOfMeasure?, locationZone?`) | `BATCH_ANCHORED` **no tiene `subject.kind`**, porque ningún valor corresponde a un lote, y **no hay campo para el recuento** de eventos propios. Además, G-7 (§6, mismo apartado) prohíbe exponer `batchId`, que sería el `ref` natural de un lote | (a) añadir `kind: "BATCH"` sin `ref` y un campo de recuento (por ejemplo, `eventCount?`); (b) `BATCH_ANCHORED` sin `subject` y con el recuento en otro campo; (c) quitar `BATCH_ANCHORED` de este corte | **(b)**: `BATCH_ANCHORED` **sin `subject`** y con **`eventCount`**, el número de eventos propios que entraron en el lote (de la agregación de §2.2). Sin `batchId` ni ningún otro identificador del lote. **Propuesta de Manuel, pendiente de Carlos** |
+| **P-R6D-2** | `convocatoria/.../port/out/ConvocatoriaAuditLogPort.java:15` (solo `findByCampaignRef`) y `convocatoria/.../audit/ConvocatoriaAuditEntry.java:13-23` (sin organización); ficha §6, G-8, línea 142 (`CAMPAIGN_CLOSED` "desde la fecha de cierre que ya usa `CampaignTimelineQuery`") | El registro de auditoría de `convocatoria` **no se puede consultar por organización**. Para listar los cierres de una organización habría que enumerar sus convocatorias (`ConvocatoriaRepositoryPort.findByOrganizationRef`, `:29`) y leer el registro de cada una (`CampaignTimelineQuery.timelineOf`, `:28-35`): una lectura por convocatoria y por página | (a) una consulta nueva de `convocatoria` que enumere las convocatorias de la organización y lea sus cierres (N lecturas, sin cambiar puertos existentes); (b) un método nuevo en `ConvocatoriaAuditLogPort` por `campaignRef $in` (cambio de un puerto de `convocatoria`, regla 3.5); (c) quitar `CAMPAIGN_CLOSED` de este corte | **(a), limitada a las convocatorias cerradas de la organización.** Se listan las de la organización con `findByOrganizationRef` (`ConvocatoriaRepositoryPort.java:29`) y se queda con las de `status = CLOSED`, y solo de esas se lee el registro de auditoría con `CampaignTimelineQuery.timelineOf` (`:28-35`). **Propuesta de Manuel, pendiente de Carlos** (ver la nota de abajo) |
+
+**Nota a la propuesta de P-R6D-2: con qué se sabe hoy que una convocatoria está cerrada** (comprobado en `0b3dc3e`, 2026-10-24)
+- **El estado:** `ConvocatoriaStatus` tiene solo `OPEN` y `CLOSED` (`ConvocatoriaStatus.java:6-9`).
+  - Pasa a `CLOSED` con `Convocatoria.close` (`Convocatoria.java:139-144`) y la escritura condicional `closeIfOpen` (`ConvocatoriaRepositoryPort.java:26`).
+  - Se guarda en `ConvocatoriaDocument.status` (`ConvocatoriaDocument.java:29`).
+- **La fecha del cierre no está en la convocatoria.** Sale de la entrada `CONVOCATORIA_CLOSED` del registro de auditoría, la primera por `occurredAt` (`CampaignTimelineQuery.java:30-31`).
+- **`findByOrganizationRef(organizationRef, limit)` no filtra por estado** (`ConvocatoriaRepositoryPort.java:29`). El filtro `CLOSED` se aplica al leer, o con un método nuevo del adaptador. Si es un método nuevo del puerto, es un cambio de un puerto de `convocatoria`: lo decide Carlos (regla 3.5).
+- **Coste:** una lectura del registro por convocatoria cerrada de la organización, no por cada convocatoria.
 
 ### 6.3 Preguntas para la aprobación del plan
 
