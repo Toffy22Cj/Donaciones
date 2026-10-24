@@ -108,6 +108,8 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/organizations/{organizationId}",
             // L-FRONTS A3 (M-26): correo de la propia cuenta (ficha L-FRONTS)
             "GET /api/v1/account",
+            // ADR-050 D5 (R-2): cambiar la contraseña propia
+            "POST /api/v1/account/password",
             // ADR-051, Tarea 2: subir, quitar y leer (autenticado) el logo (F6, F8, Enmienda 1)
             "PUT /api/v1/organizations/{organizationId}/logo",
             "DELETE /api/v1/organizations/{organizationId}/logo",

@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -106,6 +107,9 @@ class CurrentActorRealServerIntegrationTest {
     @BeforeEach
     void principals() {
         when(identityPrincipalPort.resolvePrincipal(anyString())).thenAnswer(inv ->
+                new AuthorizationPrincipal(inv.getArgument(0), "org-7", Set.of(AuthorizationRole.ADMINISTRATOR), null));
+        // el filtro JWT resuelve con el iat del token (ADR-050 D4); core sigue con resolvePrincipal
+        when(identityPrincipalPort.resolveAuthenticatedPrincipal(anyString(), any())).thenAnswer(inv ->
                 new AuthorizationPrincipal(inv.getArgument(0), "org-7", Set.of(AuthorizationRole.ADMINISTRATOR), null));
     }
 

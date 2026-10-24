@@ -8,8 +8,10 @@ import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
 import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
@@ -20,13 +22,16 @@ public class DeactivateAccountService {
     private final AccountRepositoryPort accountRepository;
     private final AuditLogPort auditLogPort;
     private final MongoTransactionRetryHelper retryHelper;
+    private final Clock clock;
 
     public DeactivateAccountService(AccountRepositoryPort accountRepository, 
                                     AuditLogPort auditLogPort,
-                                    MongoTransactionRetryHelper retryHelper) {
+                                    MongoTransactionRetryHelper retryHelper,
+                                    ObjectProvider<Clock> clock) {
         this.accountRepository = accountRepository;
         this.auditLogPort = auditLogPort;
         this.retryHelper = retryHelper;
+        this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
     public void deactivateAccount(AuditActor actor, AccountId accountId) {
@@ -34,15 +39,17 @@ public class DeactivateAccountService {
 
         retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(accountId);
+            Instant now = clock.instant();
             
-            boolean mutated = account.deactivate();
+            // ADR-050 D4 y D6: desactivar revoca los tokens anteriores
+            boolean mutated = account.deactivate(now);
             
             if (mutated) {
                 accountRepository.save(account);
 
                 AuditLogEntry auditLog = AuditLogEntry.record(
                         UlidCreator.getUlid().toString(),
-                        Instant.now(),
+                        now,
                         actor,
                         account.getAccountId(),
                         null,

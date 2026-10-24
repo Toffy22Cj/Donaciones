@@ -7,6 +7,7 @@ import com.traceability.app.web.platform.PlatformAuthorityTargetInactiveExceptio
 import com.traceability.app.web.platform.PlatformAuthorityTargetNotFoundException;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.ActiveCampaignResponsibleException;
+import identity.domain.exception.CurrentPasswordIncorrectException;
 import identity.domain.exception.InvalidMemberRoleException;
 import identity.domain.exception.InvitationNotAcceptableException;
 import identity.domain.exception.InvitationNotPendingException;
@@ -64,6 +65,9 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(DuplicateEmailException.class, HttpStatus.CONFLICT, null),
                 // H-P2-1: contraseña de menos de 12 caracteres
                 new ApiErrorMapping(PasswordTooShortException.class, HttpStatus.BAD_REQUEST, null),
+                // ADR-050 D5: contraseña actual incorrecta al cambiarla, 400 y nunca 401 (un 401 cerraría la sesión del
+                // móvil, ADR-043 T-1). CredentialsRevokedException no se mapea: solo aparece en el filtro JWT (401)
+                new ApiErrorMapping(CurrentPasswordIncorrectException.class, HttpStatus.BAD_REQUEST, null),
                 // P2.8 (pedir información): mensaje vacío o de más de 2000 caracteres
                 new ApiErrorMapping(InvalidInformationRequestMessageException.class, HttpStatus.BAD_REQUEST, null),
                 // P2.7 (miembros): el mismo 403 que cualquier acceso denegado (DD-01)

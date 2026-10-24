@@ -28,8 +28,12 @@ import java.util.Set;
 
 import static com.traceability.api.auth.jwt.JwtTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,7 +61,7 @@ class JwtAuthFilterTest {
     @BeforeEach
     void setUp() throws Exception {
         identity = mock(IdentityPrincipalPort.class);
-        when(identity.resolvePrincipal(anyString()))
+        when(identity.resolveAuthenticatedPrincipal(anyString(), any()))
                 .thenAnswer(inv -> new AuthorizationPrincipal(inv.getArgument(0), null, Set.of(), null));
         JwtTokenVerifier verifier = new JwtTokenVerifier(currentOnly(clockAt(NOW)), clockAt(NOW));
         mvc = MockMvcBuilders.standaloneSetup(new EchoController())
@@ -95,8 +99,10 @@ class JwtAuthFilterTest {
 
     @Test
     void everyFailure_isTheSame401_byteForByte() throws Exception {
-        when(identity.resolvePrincipal("inactive")).thenThrow(new IllegalStateException("Account is inactive: inactive"));
-        when(identity.resolvePrincipal("ghost")).thenThrow(new IllegalArgumentException("Account not found: ghost"));
+        when(identity.resolveAuthenticatedPrincipal(eq("inactive"), any())).thenThrow(new IllegalStateException("Account is inactive: inactive"));
+        when(identity.resolveAuthenticatedPrincipal(eq("ghost"), any())).thenThrow(new IllegalArgumentException("Account not found: ghost"));
+        // ADR-050 test 6: la revocación llega como excepción genérica (api no depende de identity) y es el mismo 401
+        when(identity.resolveAuthenticatedPrincipal(eq("revoked"), any())).thenThrow(new IllegalStateException("Credentials revoked: revoked"));
 
         List<MockHttpServletRequestBuilder> failures = new ArrayList<>();
         failures.add(get("/api/v1/accounts/me"));
@@ -110,6 +116,8 @@ class JwtAuthFilterTest {
         failures.add(bearer(get("/api/v1/accounts/me"), hs256(CURRENT_KID, CURRENT_SECRET, claims("acc-1", NOW.minus(Duration.ofHours(9)), NOW.minus(Duration.ofHours(1))))));
         failures.add(bearer(get("/api/v1/accounts/me"), hs256(CURRENT_KID, CURRENT_SECRET, claims("inactive", NOW, NOW.plusSeconds(60)))));
         failures.add(bearer(get("/api/v1/accounts/me"), hs256(CURRENT_KID, CURRENT_SECRET, claims("ghost", NOW, NOW.plusSeconds(60)))));
+        failures.add(bearer(get("/api/v1/accounts/me"), hs256(CURRENT_KID, CURRENT_SECRET, claims("revoked", NOW, NOW.plusSeconds(60)))));
+        failures.add(bearer(get("/api/v1/accounts/me"), hs256(CURRENT_KID, CURRENT_SECRET, claims("acc-1", null, NOW.plusSeconds(60)))));
 
         MvcResult first = perform(failures.get(0));
         assertThat(first.getResponse().getStatus()).isEqualTo(401);
@@ -120,12 +128,13 @@ class JwtAuthFilterTest {
             assertThat(r.getResponse().getContentAsByteArray()).isEqualTo(first.getResponse().getContentAsByteArray());
         }
         assertThat(first.getResponse().getContentAsString())
-                .doesNotContain("inactive").doesNotContain("kid").doesNotContain("expired").doesNotContain("signature");
+                .doesNotContain("inactive").doesNotContain("kid").doesNotContain("expired").doesNotContain("signature")
+                .doesNotContain("revoked");
     }
 
     @Test
     void aDataAccessFailureWhileResolvingThePrincipal_isNotDisguisedAs401() throws Exception {
-        when(identity.resolvePrincipal("acc-1")).thenThrow(new DataAccessResourceFailureException("mongo down"));
+        when(identity.resolveAuthenticatedPrincipal(eq("acc-1"), any())).thenThrow(new DataAccessResourceFailureException("mongo down"));
 
         Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> perform(bearer(get("/api/v1/accounts/me"), valid())));
         boolean found = false;
@@ -212,5 +221,18 @@ class JwtAuthFilterTest {
             }
         }
         assertThat(logs).doesNotContain(CURRENT_SECRET).doesNotContain(PREVIOUS_SECRET).doesNotContain("Bearer");
+    }
+
+    // ADR-050 D4 y enmienda de ADR-047 D5: el filtro resuelve con el iat del token y nunca sin él
+    @Test
+    void theFilter_resolvesThePrincipalWithTheTokenIat_andNeverWithoutIt() throws Exception {
+        java.time.Instant iat = NOW.minusSeconds(120);
+        String token = hs256(CURRENT_KID, CURRENT_SECRET, claims("acc-1", iat, NOW.plusSeconds(60)));
+
+        MvcResult r = perform(bearer(get("/api/v1/accounts/me"), token));
+
+        assertThat(r.getResponse().getStatus()).isEqualTo(200);
+        verify(identity).resolveAuthenticatedPrincipal("acc-1", iat);
+        verify(identity, never()).resolvePrincipal(anyString());
     }
 }

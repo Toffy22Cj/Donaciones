@@ -7,9 +7,13 @@ import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
 import identity.domain.exception.PlatformAuthorityNotHeldException;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class AccountTest {
+
+    private static final Instant NOW = Instant.parse("2026-10-24T12:00:00.750Z");
 
     @Test
     void testCreateAccount() {
@@ -31,7 +35,7 @@ class AccountTest {
         Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("old-hash"));
         PasswordHash newHash = new PasswordHash("new-hash");
 
-        account.changeCredentials(newHash);
+        account.changeCredentials(newHash, NOW);
 
         assertEquals(newHash, account.getPasswordHash());
     }
@@ -39,11 +43,11 @@ class AccountTest {
     @Test
     void testChangeCredentials_WhenInactive_ThrowsException() {
         Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("old-hash"));
-        account.deactivate();
+        account.deactivate(NOW);
 
         PasswordHash newHash = new PasswordHash("new-hash");
 
-        assertThrows(InactiveAccountException.class, () -> account.changeCredentials(newHash));
+        assertThrows(InactiveAccountException.class, () -> account.changeCredentials(newHash, NOW));
     }
 
     @Test
@@ -51,11 +55,11 @@ class AccountTest {
         Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
         assertEquals(AccountStatus.ACTIVE, account.getStatus());
 
-        account.deactivate();
+        account.deactivate(NOW);
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
 
         // Idempotent call
-        account.deactivate();
+        account.deactivate(NOW);
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
     }
 
@@ -66,7 +70,7 @@ class AccountTest {
         PasswordHash hash = new PasswordHash("hash");
         Account account = Account.reconstitute(id, email, hash, AccountStatus.ACTIVE, null, PlatformAuthority.ADMINISTRATOR);
 
-        assertThrows(PlatformAdministratorDeactivationException.class, account::deactivate);
+        assertThrows(PlatformAdministratorDeactivationException.class, () -> account.deactivate(NOW));
         assertEquals(AccountStatus.ACTIVE, account.getStatus());
         assertEquals(PlatformAuthority.ADMINISTRATOR, account.getPlatformAuthority());
     }
@@ -76,14 +80,14 @@ class AccountTest {
         Account account = Account.createAccount(new Email("user@example.com"), new PasswordHash("hash"));
         assertNull(account.getPlatformAuthority());
 
-        assertTrue(account.deactivate());
+        assertTrue(account.deactivate(NOW));
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
     }
 
     @Test
     void testReactivate_IsIdempotentAndNoOp() {
         Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
-        account.deactivate();
+        account.deactivate(NOW);
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
 
         account.reactivate();
@@ -157,7 +161,7 @@ class AccountTest {
     @Test
     void grantPlatformAuthority_onInactiveAccount_throwsInactiveAccountException() {
         Account account = Account.createAccount(new Email("admin@example.com"), new PasswordHash("hash"));
-        account.deactivate();
+        account.deactivate(NOW);
         assertEquals(AccountStatus.INACTIVE, account.getStatus());
 
         assertThrows(InactiveAccountException.class, account::grantPlatformAuthority);
@@ -193,5 +197,126 @@ class AccountTest {
 
         assertThrows(PlatformAuthorityNotHeldException.class, account::revokePlatformAuthority);
         assertNull(account.getPlatformAuthority());
+    }
+
+    // --- ADR-050 D4: credentialsNotBefore ---
+
+    @Test
+    void createAccount_hasNoCredentialsNotBefore() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
+
+        assertNull(account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void changeCredentials_firstChange_setsTruncatedSecondPlusOne() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("old-hash"));
+
+        account.changeCredentials(new PasswordHash("new-hash"), NOW);
+
+        assertEquals(Instant.parse("2026-10-24T12:00:01Z"), account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void changeCredentials_twiceInSameSecond_growsOnEachChange() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("old-hash"));
+
+        account.changeCredentials(new PasswordHash("hash-1"), NOW);
+        account.changeCredentials(new PasswordHash("hash-2"), NOW.plusMillis(100));
+
+        assertEquals(Instant.parse("2026-10-24T12:00:02Z"), account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void changeCredentials_whenInactive_doesNotTouchCredentialsNotBefore() {
+        Account account = Account.reconstitute(AccountId.generate(), new Email("test@example.com"),
+                new PasswordHash("hash"), AccountStatus.INACTIVE, null, null, null);
+
+        assertThrows(InactiveAccountException.class,
+                () -> account.changeCredentials(new PasswordHash("new-hash"), NOW));
+        assertNull(account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void deactivate_whenStateChanges_setsCredentialsNotBefore() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
+
+        assertTrue(account.deactivate(NOW));
+
+        assertEquals(Instant.parse("2026-10-24T12:00:01Z"), account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void deactivate_whenAlreadyInactive_doesNotTouchCredentialsNotBefore() {
+        Instant previous = Instant.parse("2026-10-20T08:00:00Z");
+        Account account = Account.reconstitute(AccountId.generate(), new Email("test@example.com"),
+                new PasswordHash("hash"), AccountStatus.INACTIVE, null, null, previous);
+
+        assertFalse(account.deactivate(NOW));
+
+        assertEquals(previous, account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void deactivate_withPlatformAuthority_doesNotTouchCredentialsNotBefore() {
+        Account account = Account.reconstitute(AccountId.generate(), new Email("admin@example.com"),
+                new PasswordHash("hash"), AccountStatus.ACTIVE, null, PlatformAuthority.ADMINISTRATOR, null);
+
+        assertThrows(PlatformAdministratorDeactivationException.class, () -> account.deactivate(NOW));
+        assertNull(account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void reactivate_keepsCredentialsNotBefore() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
+        account.deactivate(NOW);
+
+        account.reactivate();
+
+        assertEquals(Instant.parse("2026-10-24T12:00:01Z"), account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void acceptsTokenIssuedAt_withoutCredentialsNotBefore_acceptsAnyIat() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
+
+        assertTrue(account.acceptsTokenIssuedAt(Instant.parse("2000-01-01T00:00:00Z")));
+    }
+
+    @Test
+    void acceptsTokenIssuedAt_atTheBorders() {
+        Instant cnb = Instant.parse("2026-10-24T12:00:01Z");
+        Account account = Account.reconstitute(AccountId.generate(), new Email("test@example.com"),
+                new PasswordHash("hash"), AccountStatus.ACTIVE, null, null, cnb);
+
+        assertTrue(account.acceptsTokenIssuedAt(cnb));
+        assertTrue(account.acceptsTokenIssuedAt(cnb.plusSeconds(1)));
+        assertFalse(account.acceptsTokenIssuedAt(cnb.minusSeconds(1)));
+    }
+
+    @Test
+    void acceptsTokenIssuedAt_tokenFromTheSameSecondAsTheChange_isRejected() {
+        Account account = Account.createAccount(new Email("test@example.com"), new PasswordHash("hash"));
+
+        account.changeCredentials(new PasswordHash("new-hash"), NOW);
+
+        assertFalse(account.acceptsTokenIssuedAt(Instant.parse("2026-10-24T12:00:00Z")));
+    }
+
+    @Test
+    void reconstitute_withSevenArguments_keepsCredentialsNotBefore() {
+        Instant cnb = Instant.parse("2026-10-24T12:00:01Z");
+        Account account = Account.reconstitute(AccountId.generate(), new Email("test@example.com"),
+                new PasswordHash("hash"), AccountStatus.ACTIVE, null, null, cnb);
+
+        assertEquals(cnb, account.getCredentialsNotBefore());
+    }
+
+    @Test
+    void reconstitute_withSixArguments_hasNoCredentialsNotBefore() {
+        Account account = Account.reconstitute(AccountId.generate(), new Email("test@example.com"),
+                new PasswordHash("hash"), AccountStatus.ACTIVE, null, null);
+
+        assertNull(account.getCredentialsNotBefore());
     }
 }

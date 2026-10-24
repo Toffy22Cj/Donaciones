@@ -57,4 +57,37 @@ class NimbusTokenIssuerTest {
         assertThatThrownBy(() -> issuer.issue(" "))
                 .isInstanceOf(TokenIssuanceException.class);
     }
+
+    // ADR-050 D5: el token de POST /account/password sale con iat = credentialsNotBefore
+    @Test
+    void issueWithAnExplicitIssuedAt_writesThatIatAndExpIatPlusTtl() throws Exception {
+        java.time.Instant issuedAt = NOW.plusSeconds(5);
+        String token = new NimbusTokenIssuer(currentOnly(clockAt(NOW)), clockAt(NOW)).issue("acc-1", issuedAt);
+        SignedJWT jwt = SignedJWT.parse(token);
+
+        assertThat(jwt.getJWTClaimsSet().getClaims().keySet()).containsExactlyInAnyOrder("sub", "iat", "exp");
+        assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo("acc-1");
+        assertThat(jwt.getJWTClaimsSet().getIssueTime().toInstant()).isEqualTo(issuedAt);
+        assertThat(jwt.getJWTClaimsSet().getExpirationTime().toInstant()).isEqualTo(issuedAt.plus(Duration.ofHours(8)));
+        assertThat(jwt.verify(new MACVerifier(CURRENT_SECRET.getBytes(StandardCharsets.UTF_8)))).isTrue();
+    }
+
+    @Test
+    void issueWithANullIssuedAt_isATokenIssuanceException() throws Exception {
+        NimbusTokenIssuer issuer = new NimbusTokenIssuer(currentOnly(clockAt(NOW)), clockAt(NOW));
+
+        assertThatThrownBy(() -> issuer.issue("acc-1", null)).isInstanceOf(TokenIssuanceException.class);
+    }
+
+    @Test
+    void theSpringConstructor_usesTheApplicationClock() throws Exception {
+        java.time.Instant appNow = NOW.plusSeconds(42);
+        var beans = new org.springframework.beans.factory.support.DefaultListableBeanFactory();
+        beans.registerSingleton("clock", clockAt(appNow));
+        NimbusTokenIssuer issuer = new NimbusTokenIssuer(currentOnly(clockAt(NOW)), beans.getBeanProvider(java.time.Clock.class));
+
+        SignedJWT jwt = SignedJWT.parse(issuer.issue("acc-1"));
+
+        assertThat(jwt.getJWTClaimsSet().getIssueTime().toInstant()).isEqualTo(appNow);
+    }
 }
