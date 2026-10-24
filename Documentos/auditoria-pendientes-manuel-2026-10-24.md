@@ -166,3 +166,19 @@ docs/p4-adr042-enmienda-jmx         feat/core-t1-genesis-sin-reintento fix/p2-ha
 ### 5.4 Abiertas con PR
 
 `feat/r6-bloque-b` (#113) y `chore/docs-r6-planes-c-d` (#114).
+
+---
+
+## 6. Notas posteriores (2026-10-24, tras la respuesta de Manuel a la revisión)
+
+*Se añaden; nada de lo anterior se reescribe.*
+
+- **Delegación.** Según Manuel, un mensaje de Carlos del 2026-10-24 (WhatsApp) delega en Manuel la aprobación de los planes y de los puntos [Plan] y [Manuel]. Carlos aprueba cada PR con Approve en GitHub. **El texto literal no llegó a la sesión;** queda pendiente de registrar en `decisiones-delegadas-2026-10.md`.
+  - Con esa delegación, el criterio de §1 ("solo cuenta un texto de Carlos") se sustituye, para los planes, por el "plan aprobado" de Manuel.
+  - **Por eso H-2 deja de ser un hallazgo** para la aprobación del plan B, que dio Manuel en `5b8e30f`. **H-1 sigue en pie**: esos PR se fusionaron sin Approve de Carlos en GitHub. Va al informe como lista para Carlos.
+- **C-1: cerrado por Manuel con la opción (b).** La premisa era errónea: el génesis tiene `sequence` 1.
+- **B-8: resuelto según Manuel.** Las versiones son `v1-2026-10` en los tres `traceability.legal.*-version`, y los textos van en `paxfide-web/Documentos/legal/`. Comprobado el 2026-10-24: **esa carpeta no existe** en ninguna rama de PaxFide (`develop` `bd099a3`).
+- **Nuevos pendientes, de `ficha-R6-enmienda-1.md` (PROPUESTA, Carlos, 2026-10-24; copia en `~/Escritorio/`):**
+  - **M-20:** E2 (G-9), `lastEventAt?` en `GET /organizations/{id}/physical-assets`. Va en el Bloque B, dentro del #113. Hoy no existe: `PhysicalAssetOperationalView` no tiene ese campo.
+  - **M-21:** E1, `eventHash` y `anchorProof?` en el historial. Va en el Bloque C.
+- **Orden nuevo:** el de Carlos, transmitido por Manuel. Está en la versión 2 del plan de ejecución, §2.2.
