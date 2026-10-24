@@ -229,6 +229,28 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.36 Ficha R-6, Bloque B: fecha del pago en el seguimiento (G-2) y recaudado por mes (G-6) (2026-10-23, `feat/r6-bloque-b`)
+
+- **Norma:** ficha R-6, CONGELADA (§4; tests 5 y 6). Plan: `plan-r6-bloque-b.md`, APROBADO (Manuel, 2026-10-23), con P-R6B-1 a P-R6B-7.
+- **Qué hace:**
+  - **G-2:**
+    - `core`: `FundClearingDatesReadPort` y `FundClearingDatesQuery`, que dan el primer y el último `FUNDS_CLEARED` (1.0 o 2.0) por `sequence`, leídos del event store (C-2).
+    - `api`: `financialSnapshot.firstClearedAt?` y `lastClearedAt?`.
+  - **G-6:**
+    - `GET /api/v1/organizations/{organizationId}/funds/monthly?months=1..12`, en `FundController` (`api`), con `no-store`.
+    - En `core`, `FundMonthlyClearingReadPort`, implementado por `FundOperationalQueryService` con la política DD-31.
+    - Corte de mes en `America/Bogota`, pertenencia por la génesis y meses vacíos en 0 por cada moneda de los fondos.
+    - Tope de 10 000 fondos, con `truncated`.
+    - `FundClearingEventsPort` y `MongoFundClearingEventsAdapter` leen las liquidaciones con una sola consulta.
+  - **Índice parcial `idx_fund_genesis_organization`** para el directorio de fondos (P-R6B-7), en un commit propio. Medido: 202 000 claves y 514 ms antes, 500 claves y 3 ms después.
+- **Hallazgo registrado (P-R6B-1):** entre `4ab3a34` (2026-09-01) y `0579f41` (2026-09-16), `Fund` escribía `FUND_REGISTERED` y `FUNDS_CLEARED` 1.0 sin organización. Esos fondos quedan fuera de `GET /funds` y de G-6.
+- **Evidencia:**
+  - **Rojo primero:** `core` y `api` no compilaban; `app` falló por aserción (3 fallos de G-6 y 1 error de G-2); el índice falló por aserción.
+  - **Verde por capas,** con el módulo completo en cada una.
+  - **10 de 10 mutaciones muertas:** las 9 del plan más la del índice.
+  - `ci-local.sh` en un clon limpio, con la evidencia en `Documentos/evidencia-ci/`.
+- **Pendiente:** avisar a la web y al móvil (A-4 y B-2 del plan de pantallas) cuando se fusione.
+
 ### 0.35 A2: historial de donaciones con la Enmienda 5 de ADR-037 (2026-10-22, `feat/convocatoria-a2-historial`)
 
 - **Norma:**

@@ -85,6 +85,11 @@
 - **Versiones de esquema (C-3):** `FUNDS_CLEARED` 1.0 (`FundsClearedPayload`) **no** lleva `organizationRef`; la 2.0 sí. La pertenencia a la organización se resuelve por el `FUND_REGISTERED` del mismo stream, como ya hace `MongoFundDirectoryAdapter`, nunca solo por el payload. Test con eventos de las dos versiones.
 - **Zona horaria del corte de mes:** `America/Bogota`, fija y devuelta en `timezone`. **[D-R6-4]**
 - Recalculado en cada petición (sin proyección nueva) mientras el volumen lo permita; el plan registra el límite.
+- *Nota (2026-10-23, plan del Bloque B, P-R6B-6; Manuel):*
+  - **Tope de 10 000 fondos** por petición. Si la organización tiene más, la respuesta añade **`truncated: true`** al contrato de arriba (`200 {timezone, items, truncated?}`).
+  - La pertenencia es por la **génesis** (`FUND_REGISTERED` o `FUNDS_CLEARED` 2.0), como `MongoFundDirectoryAdapter`. Los fondos 1.0 sin organización, anteriores a `0579f41`, quedan fuera (P-R6B-1).
+  - Los meses en 0 salen de las monedas de los fondos de la organización (P-R6B-3).
+  - El texto de arriba no se reescribe.
 - **Módulo (C-7):** consulta en `core` (dueño del Event Store) expuesta por un puerto de lectura; la ruta HTTP donde viven hoy las de fondos. El plan lo fija contra el código.
 
 ---

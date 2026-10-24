@@ -99,6 +99,9 @@ class PublicNarrativeControllerIntegrationTest {
     // PublicDonationMapper lo necesita (ficha R-6, G-1); lo implementa app, que este test no levanta
     @MockitoBean
     private com.traceability.contracts.campaign.CampaignPublicSummaryPort campaignSummaries;
+    // PublicDonationMapper lo necesita (ficha R-6, G-2); lo implementa core, que este test no levanta entero
+    @MockitoBean
+    private com.traceability.core.application.port.out.FundClearingDatesReadPort clearingDates;
 
 
     @Test

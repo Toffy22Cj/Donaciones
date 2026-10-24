@@ -255,6 +255,10 @@ class DonationPaymentHttpIntegrationTest {
         JsonNode body = json.readTree(tracking.body());
         assertThat(body.get("campaignTitle").asText()).isEqualTo("Invierno");
         assertThat(body.get("organizationName").asText()).isEqualTo("Fundación B6-b");
+        // ficha R-6, G-2: una sola liquidación (la génesis del pago): primera = última, ISO-8601 UTC
+        JsonNode snapshot = body.get("financialSnapshot");
+        assertThat(snapshot.get("firstClearedAt").asText()).endsWith("Z");
+        assertThat(snapshot.get("lastClearedAt").asText()).isEqualTo(snapshot.get("firstClearedAt").asText());
         assertThat(body.has("fundId")).isFalse();
         assertThat(body.has("donorRef")).isFalse();
         assertThat(tracking.body()).doesNotContain("anon:").doesNotContain("acct:");

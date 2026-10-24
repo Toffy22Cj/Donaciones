@@ -217,4 +217,62 @@ class FundHttpIntegrationTest {
         assertThat(send("POST", "/api/v1/funds/" + fundId + "/allocations/" + UUID.randomUUID() + "/confirm", ADMIN,
                 UUID.randomUUID().toString(), null).statusCode()).isEqualTo(409);
     }
+
+    // --- Ficha R-6, Bloque B, G-6: recaudado por mes (plan-r6-bloque-b.md, test 6) ---
+
+    private static final java.time.ZoneId BOGOTA = java.time.ZoneId.of("America/Bogota");
+
+    private HttpResponse<String> monthly(String account, String org, String months) throws Exception {
+        return send("GET", "/api/v1/organizations/" + org + "/funds/monthly" + (months == null ? "" : "?months=" + months),
+                account, null, null);
+    }
+
+    @Test
+    void monthly_hasTheTimezone_aRowPerMonth_zeroForEmptyMonths_andNoDonorData() throws Exception {
+        fund(ORG, 1234, null);
+        fund(OTHER_ORG, 999_999, null);
+
+        HttpResponse<String> r = monthly(EMPLOYEE, ORG, "3");
+
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
+        assertThat(r.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
+        JsonNode body = json.readTree(r.body());
+        assertThat(body.get("timezone").asText()).isEqualTo("America/Bogota");
+        assertThat(body.has("truncated")).isFalse();
+        JsonNode items = body.get("items");
+        java.time.YearMonth current = java.time.YearMonth.now(BOGOTA);
+        assertThat(StreamSupport.stream(items.spliterator(), false).map(i -> i.get("month").asText()).toList())
+                .containsExactly(current.minusMonths(2).toString(), current.minusMonths(1).toString(), current.toString());
+        assertThat(StreamSupport.stream(items.spliterator(), false).map(i -> i.get("currency").asText()).distinct().toList())
+                .containsExactly("COP");
+        assertThat(items.get(2).get("clearedAmount").isTextual()).isTrue();
+        assertThat(Long.parseLong(items.get(2).get("clearedAmount").asText())).isGreaterThanOrEqualTo(1234)
+                .isLessThan(999_999);
+        assertThat(r.body()).doesNotContain("fundId").doesNotContain("donorRef").doesNotContain("anon:secret-donor");
+        // sin months: seis meses
+        assertThat(json.readTree(monthly(ADMIN, ORG, null).body()).get("items")).hasSize(6);
+    }
+
+    @Test
+    void monthly_sameAccessAsTheFunds_anotherOrganizationUnknownOrRepresentativeOnly_theSame403() throws Exception {
+        HttpResponse<String> foreign = monthly(OTHER_ADMIN, ORG, "3");
+        HttpResponse<String> unknown = monthly(ADMIN, "no-such-org", "3");
+        HttpResponse<String> noRole = monthly(REPRESENTATIVE_ONLY, ORG, "3");
+
+        assertThat(foreign.statusCode()).isEqualTo(403);
+        assertThat(unknown.statusCode()).isEqualTo(403);
+        assertThat(noRole.statusCode()).isEqualTo(403);
+        assertThat(foreign.body()).isEqualTo(unknown.body()).isEqualTo(noRole.body());
+        assertThat(monthly(null, ORG, "3").statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void monthly_monthsOutOf1To12_is400() throws Exception {
+        for (String months : List.of("0", "13", "-1", "abc", "")) {
+            HttpResponse<String> r = monthly(ADMIN, ORG, months);
+            assertThat(r.statusCode()).as("months=" + months).isEqualTo(400);
+        }
+        assertThat(monthly(ADMIN, ORG, "12").statusCode()).isEqualTo(200);
+        assertThat(monthly(ADMIN, ORG, "1").statusCode()).isEqualTo(200);
+    }
 }
