@@ -94,11 +94,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         AuthorizationPrincipal principal;
         try {
-            principal = identityPrincipalPort.resolvePrincipal(verification.subject());
+            // ADR-050 D4 (enmienda de ADR-047 D5): con el iat del token, que se rechaza si es anterior a credentialsNotBefore
+            principal = identityPrincipalPort.resolveAuthenticatedPrincipal(verification.subject(), verification.issuedAt());
         } catch (DataAccessException e) {
             throw e;
         } catch (RuntimeException e) {
-            // api no depende de identity: InactiveAccountException y AccountNotFoundException llegan como genéricas
+            // api no depende de identity: InactiveAccountException, AccountNotFoundException y CredentialsRevokedException
+            // llegan como genéricas y dan el mismo 401
             reject(response, "principal not resolvable (" + e.getClass().getSimpleName() + ")");
             return;
         }

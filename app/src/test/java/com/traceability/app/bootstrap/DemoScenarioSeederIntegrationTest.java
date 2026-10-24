@@ -194,7 +194,10 @@ class DemoScenarioSeederIntegrationTest {
         Instant before = ControlledClock.CLOCK.now;
         try {
             ControlledClock.CLOCK.now = DEMO_DAY;
-            JsonNode p = ok(get("/api/v1/organizations/" + organizationId + "/campaigns/" + campaignRef + "/prediction", admin));
+            // el emisor y el verificador usan el reloj de la aplicación (plan R-3 + R-2, P-R3-2): el token de C0 ya
+            // caducó el día de la demo, así que se inicia sesión de nuevo
+            String adminOnDemoDay = login("administrador@demo.paxfide.local");
+            JsonNode p = ok(get("/api/v1/organizations/" + organizationId + "/campaigns/" + campaignRef + "/prediction", adminOnDemoDay));
             assertThat(p.get("available").asBoolean()).as(p.toString()).isTrue();
             assertThat(p.get("pctTimeElapsed").asDouble()).isBetween(0.15, 0.50);
         } finally {

@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +92,9 @@ class FundHttpIntegrationTest {
                 OTHER_ADMIN, new AuthorizationPrincipal(OTHER_ADMIN, OTHER_ORG, Set.of(AuthorizationRole.ADMINISTRATOR), null),
                 REPRESENTATIVE_ONLY, new AuthorizationPrincipal(REPRESENTATIVE_ONLY, ORG, Set.of(AuthorizationRole.REPRESENTATIVE), null));
         when(identityPrincipalPort.resolvePrincipal(anyString())).thenAnswer(inv -> principals.get(inv.<String>getArgument(0)));
+        // el filtro JWT resuelve con el iat del token (ADR-050 D4); core sigue con resolvePrincipal
+        when(identityPrincipalPort.resolveAuthenticatedPrincipal(anyString(), any()))
+                .thenAnswer(inv -> principals.get(inv.<String>getArgument(0)));
     }
 
     private String fund(String org, long amount, String campaignRef) {

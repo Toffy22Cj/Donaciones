@@ -29,6 +29,37 @@ class JwtTokenVerifierTest {
 
         assertThat(v.isAccepted()).isTrue();
         assertThat(v.subject()).isEqualTo("acc-1");
+        assertThat(v.issuedAt()).isEqualTo(NOW);
+    }
+
+    // ADR-050 D4: el filtro necesita el iat del token
+    @Test
+    void theIssuedAtClaim_isRead() throws Exception {
+        Instant iat = NOW.minusSeconds(3600);
+        JwtVerification v = currentOnlyAt(NOW).verify(hs256(CURRENT_KID, CURRENT_SECRET, claims("acc-1", iat, NOW.plusSeconds(60))));
+
+        assertThat(v.isAccepted()).isTrue();
+        assertThat(v.issuedAt()).isEqualTo(iat);
+    }
+
+    // [Plan] P-R3-2: un token sin iat es el mismo rechazo que uno sin sub o sin exp
+    @Test
+    void missingIssuedAt_isRejected() throws Exception {
+        JwtVerification v = currentOnlyAt(NOW).verify(hs256(CURRENT_KID, CURRENT_SECRET, claims("acc-1", null, NOW.plusSeconds(60))));
+
+        assertThat(v.isAccepted()).isFalse();
+        assertThat(v.rejectReason()).isEqualTo(RejectReason.MISSING_CLAIMS);
+        assertThat(v.issuedAt()).isNull();
+    }
+
+    @Test
+    void theSpringConstructor_usesTheApplicationClock() throws Exception {
+        var beans = new org.springframework.beans.factory.support.DefaultListableBeanFactory();
+        beans.registerSingleton("clock", clockAt(NOW.plus(Duration.ofDays(1))));
+        JwtTokenVerifier verifier = new JwtTokenVerifier(currentOnly(clockAt(NOW)), beans.getBeanProvider(java.time.Clock.class));
+
+        assertThat(verifier.verify(hs256(CURRENT_KID, CURRENT_SECRET, validClaims())).rejectReason())
+                .isEqualTo(RejectReason.EXPIRED);
     }
 
     // 1

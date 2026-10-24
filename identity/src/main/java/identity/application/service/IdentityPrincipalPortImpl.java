@@ -5,6 +5,7 @@ import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.OrganizationRepositoryPort;
+import identity.domain.exception.CredentialsRevokedException;
 import identity.domain.exception.InactiveAccountException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
@@ -14,6 +15,7 @@ import identity.domain.model.PlatformAuthority;
 import identity.domain.model.Role;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +40,26 @@ public class IdentityPrincipalPortImpl implements IdentityPrincipalPort {
             throw new InactiveAccountException("Account is inactive: " + accountIdStr);
         }
 
+        return principalOf(accountIdStr, accountId, account);
+    }
+
+    /** ADR-050 D4: carga la cuenta una vez; inactiva o con el token revocado, se rechaza antes de leer la organización. */
+    @Override
+    public AuthorizationPrincipal resolveAuthenticatedPrincipal(String accountIdStr, Instant issuedAt) {
+        AccountId accountId = new AccountId(accountIdStr);
+        Account account = accountRepositoryPort.findById(accountId);
+
+        if (account.getStatus() == AccountStatus.INACTIVE) {
+            throw new InactiveAccountException("Account is inactive: " + accountIdStr);
+        }
+        if (!account.acceptsTokenIssuedAt(issuedAt)) {
+            throw new CredentialsRevokedException("Credentials revoked: " + accountIdStr);
+        }
+
+        return principalOf(accountIdStr, accountId, account);
+    }
+
+    private AuthorizationPrincipal principalOf(String accountIdStr, AccountId accountId, Account account) {
         com.traceability.contracts.authorization.PlatformAuthority platformAuthority = mapPlatformAuthority(account.getPlatformAuthority());
 
         if (account.getOrganizationId() == null) {

@@ -9,6 +9,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 import com.traceability.api.auth.jwt.JwtVerification.RejectReason;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -30,7 +31,8 @@ import java.util.Map;
  *   <li>la firma, con la clave elegida por el {@code kid} y ninguna otra;</li>
  *   <li>{@code exp}, con la tolerancia de reloj.</li>
  * </ol>
- * La resolución del principal ({@code resolvePrincipal}) es el paso 5 y la hace {@link JwtAuthFilter}.
+ * Un token sin {@code sub}, {@code iat} o {@code exp} se rechaza ({@code MISSING_CLAIMS}). La resolución del principal
+ * ({@code resolveAuthenticatedPrincipal(sub, iat)}, ADR-050 D4) es el paso 5 y la hace {@link JwtAuthFilter}.
  */
 @Component
 public class JwtTokenVerifier {
@@ -41,9 +43,10 @@ public class JwtTokenVerifier {
     private final JwtSecurityProperties properties;
     private final Clock clock;
 
+    /** El reloj de la aplicación si hay uno (como los servicios de {@code identity}); si no, el del sistema. */
     @Autowired
-    public JwtTokenVerifier(JwtSecurityProperties properties) {
-        this(properties, Clock.systemUTC());
+    public JwtTokenVerifier(JwtSecurityProperties properties, ObjectProvider<Clock> clock) {
+        this(properties, clock.getIfAvailable(Clock::systemUTC));
     }
 
     JwtTokenVerifier(JwtSecurityProperties properties, Clock clock) {
@@ -98,12 +101,13 @@ public class JwtTokenVerifier {
             return JwtVerification.rejected(RejectReason.MALFORMED);
         }
         Date exp = claims.getExpirationTime();
-        if (exp == null || !StringUtils.hasText(claims.getSubject())) {
+        Date iat = claims.getIssueTime();
+        if (exp == null || iat == null || !StringUtils.hasText(claims.getSubject())) {
             return JwtVerification.rejected(RejectReason.MISSING_CLAIMS);
         }
         if (now.isAfter(exp.toInstant().plus(properties.getClockSkew()))) {
             return JwtVerification.rejected(RejectReason.EXPIRED);
         }
-        return JwtVerification.accepted(claims.getSubject());
+        return JwtVerification.accepted(claims.getSubject(), iat.toInstant());
     }
 }
