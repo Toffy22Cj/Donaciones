@@ -2,7 +2,9 @@
 
 ## Status
 
-**APROBADA — Carlos.** Manuel lo comunicó en la sesión de trabajo el 2026-10-21 ("Carlos aprobó la Enmienda 5 de ADR-037"). **[Falta: hora exacta y lugar de la aprobación (revisión del PR #109, mensaje o reunión); Manuel lo completa.]** Las marcas *[Propuesta]* de E5-1 y E5-2 quedan aprobadas y se retiran. **No autoriza código por sí sola:** la tarea A2 necesita además su plan aprobado (regla 3.4; `plan-a2-historial-donaciones.md`).
+**APROBADA — Carlos.** Manuel lo comunicó en la sesión de trabajo el 2026-10-21 ("Carlos aprobó la Enmienda 5 de ADR-037"). ~~**[Falta: hora exacta y lugar de la aprobación (revisión del PR #109, mensaje o reunión); Manuel lo completa.]**~~ Las marcas *[Propuesta]* de E5-1 y E5-2 quedan aprobadas y se retiran. **No autoriza código por sí sola:** la tarea A2 necesita además su plan aprobado (regla 3.4; `plan-a2-historial-donaciones.md`).
+
+*Nota (2026-10-24, Manuel, con asistencia de Claude):* la marca tachada se completa: aprobada por Carlos el **2026-10-22 a las 00:12, hora de Colombia (05:12Z)**, por **WhatsApp**. Dato aportado por Manuel el 2026-10-24; no hay enlace ni commit de Carlos que lo cite.
 
 *Historial del estado:* PROPUESTO — espera la aprobación de Carlos (ADR-037 es de su módulo). Redactada el 2026-10-21 por Manuel, con asistencia de Claude. No autoriza código: la tarea A2 necesita además su plan aprobado (regla 3.4).
 
