@@ -261,7 +261,18 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 
     Todos con `Failures: 0, Errors: 0, Skipped: 0`.
   - **10 de 10 mutaciones muertas.** Las 1, 2, 3 y 6 las mataron tests de `identity` antes de llegar a `app`.
-  - `ci-local.sh` en un clon limpio: CI_PENDIENTE.
+  - `ci-local.sh` en un clon limpio: ~~CI_PENDIENTE~~ **hecho** (nota del 2026-10-24, sesión web de Claude Code): clon limpio de `12ef1e8`, `free -g` con 15 GB disponibles, `BUILD SUCCESS`, ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-12ef1e8-2026-10-24T22-50-09Z.txt`. Resumen literal de Surefire:
+    - `contracts`: "No tests to run."
+    - `core`: "Tests run: 336, Failures: 0, Errors: 0, Skipped: 0"
+    - `crypto`: "Tests run: 50, Failures: 0, Errors: 0, Skipped: 0"
+    - `ai`: "Tests run: 47, Failures: 0, Errors: 0, Skipped: 0"
+    - `api`: "Tests run: 154, Failures: 0, Errors: 0, Skipped: 0"
+    - `identity`: "Tests run: 332, Failures: 0, Errors: 0, Skipped: 0"
+    - `convocatoria`: "Tests run: 253, Failures: 0, Errors: 0, Skipped: 0"
+    - `app`: "Tests run: 462, Failures: 0, Errors: 0, Skipped: 0"
+    - core 336 y api 154, frente a los 326 y 152 de la tabla de arriba: la diferencia son los tests del Bloque B que trajo el merge de `develop` (`1b0a32b`). Las anotaciones `@Test` suben +10 en core y +2 en api entre `11e018d` y `12ef1e8`.
+    - Entorno: Docker Hub daba 429; dockerd usó el espejo `mirror.gcr.io` (configuración fuera del repositorio). `bitnamilegacy/minio` llegó con su digest fijado (§0.32). Detalle en la nota del final de la evidencia.
+  - **Mutaciones repetidas** (nota del 2026-10-24, sesión web): en otro clon limpio de `12ef1e8`, con la CI ya terminada y la línea base sin mutar en verde, "Mutaciones vivas: 0". Las 1, 2, 3 y 6 murieron en tests de `identity` (`AccountTest`, `IdentityPrincipalPortImplTest`, `AccountApplicationServiceIntegrationTest`); la 4 y la 9, en `api`; la 7, en `app`; la 5, la 8 y la 10, en `identity`.
 - **Pendiente:**
   - **P-R3-3:** defecto conocido (un login en el segundo de una revocación recibe un token rechazado). Va en su propio PR tras la Enmienda 1 de ADR-050 (#120) y antes de R-4;
   - R-R3-1 (límite de intentos) como pregunta para Carlos;

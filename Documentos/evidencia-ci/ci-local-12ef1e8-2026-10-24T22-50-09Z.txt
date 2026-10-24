@@ -1,0 +1,59 @@
+# CI local — scripts/ci-local.sh
+commit:   12ef1e88f8add4e9c93fd7bc1ef16668cf947d13
+rama:     feat/identity-r3-r2-revocacion-contrasena
+inicio:   2026-10-24T22:50:09Z
+fin:      2026-10-24T23:06:46Z
+comando:  mvn -B clean test -fae
+salida:   0
+
+## Versiones
+java:   openjdk version "21.0.12.1" 2026-08-18
+java:   OpenJDK Runtime Environment (build 21.0.12.1+1-1-24.04.4-Ubuntu)
+java:   OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-24.04.4-Ubuntu, mixed mode, sharing)
+maven:  Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+docker: cliente 29.9.2, servidor 29.9.2
+
+## Resumen de Surefire por módulo (literal)
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 336, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 154, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 332, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 253, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 462, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.593 s]
+[INFO] contracts .......................................... SUCCESS [  6.209 s]
+[INFO] core ............................................... SUCCESS [02:39 min]
+[INFO] crypto ............................................. SUCCESS [ 35.811 s]
+[INFO] ai ................................................. SUCCESS [ 16.130 s]
+[INFO] api ................................................ SUCCESS [ 23.814 s]
+[INFO] identity ........................................... SUCCESS [02:30 min]
+[INFO] convocatoria ....................................... SUCCESS [ 25.266 s]
+[INFO] app ................................................ SUCCESS [09:32 min]
+[INFO] BUILD SUCCESS
+
+## Tests fallidos (si los hay)
+ninguno
+
+## sha256 del log completo
+bcd69b638f12d2fc2237e53c13adb0c07ffba67fea25a47ed92042dbeea0679c
+
+## Nota del entorno (añadida a mano después de la ejecución; no la genera ci-local.sh)
+- Ejecutado en un contenedor de Claude Code en la nube (sesión web), en un clon limpio de 12ef1e8. `free -g` antes: 15 GB disponibles.
+- Docker Hub respondía "429 Too Many Requests". dockerd se configuró con `registry-mirrors: ["https://mirror.gcr.io"]`
+  (/etc/docker/daemon.json, fuera del repositorio; no entra en ningún commit).
+- mongo:6.0, mongo:6.0.4, trufflesuite/ganache:latest, axllent/mailpit:v1.21 y testcontainers/ryuk:0.11.0 se descargaron
+  de mirror.gcr.io y se reetiquetaron con su nombre original antes de la ejecución.
+- bitnamilegacy/minio@sha256:6dabb4a2088c9a79908de3bc05f4586c23ad2182c8908e7e3acbf61c1467fb20 (fijada por digest, §0.32)
+  la descargó Testcontainers a través del espejo, con ese mismo digest. No se sustituyó por otra versión.
