@@ -210,3 +210,7 @@ Numeración de la definición de hecho de ADR-050.
 - **Mutación nueva (12):** `dispatch` deja salir la excepción del ejecutor (`RejectedExecutionException` o `TaskRejectedException`) → muere R4-20.
 - **Orden del código:** espera a R-3 + R-2 fusionado (B-2), a P-R3-3 fusionado (B-1) y a la aprobación de P-R4-1 por Carlos (B-3).
 
+
+---
+
+**Nota (2026-10-24, más tarde): #120 ya está fusionado.** Carlos fusionó #120 el 2026-10-24 a las 21:54:54Z, sin review en GitHub, con un solo commit, `44d2d1b` (la parte 1, P-R3-3). La parte 2 (P-R4-1 (a), `5794282`) se subió después de la fusión y no llegó a `develop`. Va ahora en el **PR #125** (cherry-pick sobre `8e37667`). Donde este plan dice "PR #120" para P-R4-1, léase **#125**. La condición del código no cambia: P-R4-1 tiene que tener el Approve de Carlos.
