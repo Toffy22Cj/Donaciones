@@ -6,6 +6,14 @@
 **Base:** `develop` en `4bef7be`. **Rama:** `feat/identity-r3-r2-revocacion-contrasena`.
 **Dueño:** Carlos.
 
+> **Revisión del 2026-10-24 (Manuel, con asistencia de Claude).** El texto de arriba y el de §1 a §7 se conservan tal como se redactaron el 2026-10-18; lo que cambia va en notas fechadas y en §8.
+> - **Estado:** BORRADOR revisado. Espera el **"plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (mensaje por WhatsApp, comunicado por Manuel; texto pendiente de registrar en `decisiones-delegadas-2026-10.md`). Carlos aprueba el PR de implementación con Approve en GitHub.
+> - **Dueño:** Manuel (indicación de Manuel, 2026-10-24).
+> - **Base:** `develop` `0b3dc3e`. Rama desde el `develop` del momento de implementar, con su hash.
+> - **Hechos reverificados:** §8.1. Cambian dos: el número de clases de test que usan `Account.reconstitute` y el entorno (§7).
+> - **Choque con ADR-050 D5 en el orden de los pasos:** §8.2, P-R3-1. Este plan no lo resuelve; lo decide Manuel al aprobar.
+> - **Lo que faltaba:** mutaciones (§8.3) y el procedimiento de evidencia (§8.4).
+
 ## 1. Alcance
 
 Dentro:
@@ -109,3 +117,60 @@ Numeración de la definición de hecho de ADR-050.
 ## 7. Entorno
 
 Igual que el plan R-1 §6: en la sesión de agente del 2026-10-18 Maven no resuelve dependencias (proxy). La evidencia de tests la ejecuta y la pega el humano (`estado-fase6.md` §7.2).
+
+---
+
+## 8. Revisión del 2026-10-24 contra `develop` `0b3dc3e`
+
+### 8.1 Hechos de §2, comprobados uno por uno en `4bef7be` y en `0b3dc3e`
+
+| Hecho de §2 | En `0b3dc3e` | ¿Cambió? |
+|---|---|---|
+| `JwtTokenVerifier` no lee `iat`; `JwtVerification` solo lleva `subject`; `NimbusTokenIssuer` siempre escribe `iat` | `JwtVerification.java:7` (`record JwtVerification(String subject, RejectReason rejectReason)`); `NimbusTokenIssuer.java:49` (`.issueTime(Date.from(now))`) | No |
+| `JwtAuthFilter` llama a `resolvePrincipal(sub)`; `core` lo llama 5 veces y `convocatoria` 3 | `JwtAuthFilter.java:97`. Cuenta en `src/main`: `FundCommandService` 1, `PhysicalAssetCommandService` 1, `FundOperationalQueryService` 1, `PhysicalAssetOperationalQueryService` 2 y `ConvocatoriaAuthorizationPolicy` 3. Igual en `feat/r6-bloque-b` (#113) | No |
+| Implementaciones de `IdentityPrincipalPort` y `TokenIssuerPort` | `IdentityPrincipalPortImpl`, `TestIdentityPrincipalPort` (`core`), `FakeIdentityPrincipalPort` (`convocatoria`); `NimbusTokenIssuer`. Ninguna clase anónima ni lambda | No |
+| `ChangeCredentialsService.changeCredentials(actor, accountId, nueva)` sin ruta HTTP ni comprobación de la actual; 8 llamadas en `AccountApplicationServiceIntegrationTest` | `ChangeCredentialsService.java:37-61`; 8 llamadas (`:137`, `:156`, `:169`, `:268`, `:280`, `:332`, `:361`, `:464`) | No |
+| `Account.changeCredentials` y `Account.deactivate`: 1 llamada de producción cada uno; 2 y 8 de test | `ChangeCredentialsService.java:46`; `DeactivateAccountService.java:38`. Test: `AccountTest` (2 y 6) e `IdentityPrincipalPortImplTest` (2) | No |
+| `Account.reconstitute(...)` (6 argumentos): el mapeador y **10** clases de test | **11** clases de test: se añadió `OrganizationLogoReferenceIntegrationTest` (#111). La firma de 6 argumentos que §3 conserva la cubre igual | **Sí** |
+| Hora: los servicios de `identity` con `ObjectProvider<Clock>`; `ChangeCredentialsService` y `DeactivateAccountService` con `Instant.now()` | `ObjectProvider<Clock>` en `AcceptInvitationService`, `InviteMemberService`, `OrganizationInvitationsQuery` y `RevokeInvitationService`. `Instant.now()` en `ChangeCredentialsService.java:52` y `DeactivateAccountService.java:45`. `app/src/main` no declara ningún `Clock` | No |
+| `NimbusTokenIssuer` y `JwtTokenVerifier`: `@Component` con `Clock.systemUTC()` en el constructor público | `NimbusTokenIssuer.java:24`, `:31-32`; `JwtTokenVerifier.java:35`, `:45-46` | No |
+| El test de invitaciones ya controla el reloj del contexto | `OrganizationMembersAndInvitationsHttpIntegrationTest.java:90-112` (`MovableClock`) | No |
+| §3: nombres que el plan reutiliza | Existen: `IdentityApiErrorMappings` (`app/web`), `PasswordHasherPort.matches` (`:19`), `MongoTransactionRetryHelper.executeWithRetry` (`identity`, solo reintenta errores transitorios), `AuditAction.CREDENTIALS_CHANGED`, `TokenIssuanceException`, `JwtVerification.RejectReason.MISSING_CLAIMS`, `AccountDocument`, `AccountMapper` | No |
+| §3 `api`: `InactiveAccountException` llega al filtro como excepción genérica | `JwtAuthFilter.java:100-103` (`catch (RuntimeException e)`; comentario "api no depende de identity") | No |
+| §7: Maven no resuelve dependencias en la sesión del agente | Hoy `mvn` y `scripts/ci-local.sh` corren en la sesión (evidencias de #110 a #113 en `Documentos/evidencia-ci/`) | **Sí**: §7 queda sustituido por §8.4 |
+
+**Desde `4bef7be`,** el diff de `identity/src/main`, `api/.../auth` y `contracts/src/main` solo trae el logo, `AccountEmailQuery`, el estado de verificación, `MediaStoragePort` y `CampaignPublicSummaryPort`. Nada toca el filtro JWT, los dos puertos ni `ChangeCredentialsService`.
+
+### 8.2 Choque con ADR-050 D5 (para la aprobación de Manuel)
+
+| # | Qué | Opciones | Recomendación |
+|---|---|---|---|
+| **P-R3-1** | ADR-050 D5 (`:107-110`) fija el orden "en una transacción de `identity`": **1.** comprobar la actual con BCrypt; **2.** aplicar la política a la nueva; **3.** guardar, fijar `credentialsNotBefore` y auditar. §3 de este plan valida la política de la nueva **antes** de leer nada, fuera de la transacción ("como hoy", `ChangeCredentialsService.java:40`). Si la actual es incorrecta y la nueva es corta, el ADR responde `CurrentPasswordIncorrect` y este plan, `PasswordTooShort` | (a) El orden literal del ADR: dentro de `executeWithRetry`, primero `matches`, después `new PlainPassword(...)`. El helper solo reintenta errores transitorios, así que las dos excepciones de dominio salen sin reintentos. (b) Mantener el orden de §3 y registrar la diferencia como nota de ADR-050 | **(a)**: es lo que dice el ADR, y no cambia el método existente `changeCredentials`, que no tiene contraseña actual. Test nuevo: actual incorrecta y nueva corta → `400 CurrentPasswordIncorrect`, y nada cambia |
+| **P-R3-2** | Puntos **[Plan]** de §3 que aprueba Manuel con el plan: los métodos nuevos del puerto son abstractos; `reconstitute` de 6 argumentos se conserva; el método existente `changeCredentials` también revoca; token sin `iat` → `MISSING_CLAIMS`; `Clock` por `ObjectProvider` en `NimbusTokenIssuer` y `JwtTokenVerifier` | Aprobar o cambiar cada uno | Aprobar los cinco tal como están |
+
+### 8.3 Mutaciones (`scripts/mutaciones.py`)
+
+| # | Mutación | Test que la mata |
+|---|---|---|
+| 1 | `credentialsNotBefore` sin el `+ 1 s` | Test 2 (token del mismo segundo) |
+| 2 | Sin el `max` con el valor anterior | Test 3b (dos cambios en el mismo segundo) |
+| 3 | `acceptsTokenIssuedAt` con `>` en lugar de `>=` | Test 3 (el token devuelto funciona en el mismo segundo) |
+| 4 | El filtro vuelve a llamar a `resolvePrincipal(sub)` | `JwtAuthFilterTest`, aserción negativa |
+| 5 | `changeOwnCredentials` no comprueba la contraseña actual | Test 8 |
+| 6 | `deactivate(now)` no fija `credentialsNotBefore` | Test 4 |
+| 7 | La ruta emite el token con la hora del reloj en lugar de `credentialsNotBefore` | Test 3 |
+| 8 | El método existente `changeCredentials` no fija `credentialsNotBefore` | Su test en `AccountApplicationServiceIntegrationTest` |
+| 9 | El verificador acepta un token sin `iat` | `JwtTokenVerifierTest` |
+| 10 | La auditoría `CREDENTIALS_CHANGED` lleva la contraseña | Test 10 |
+
+### 8.4 Pasos y evidencia (sustituyen a §6.1, §6.4 y §7)
+
+1. Rama `feat/identity-r3-r2-revocacion-contrasena` desde el `develop` del momento, con su hash.
+2. Tests de §5 (más el de P-R3-1) en rojo, con la salida literal. El rojo es una aserción o un fallo de compilación, nunca un test mal escrito.
+3. Verde por capas con el módulo completo en cada una (`mvn test -pl <módulo>`): `contracts` y los dobles de `core` y `convocatoria`, después `identity`, `api` y `app`.
+4. Mutaciones de §8.3 con `scripts/mutaciones.py`.
+5. Documentos de §6.5.
+6. `free -g` con al menos 4 GB y `scripts/ci-local.sh` en un clon limpio del último commit. La evidencia va a `Documentos/evidencia-ci/`.
+7. Autoauditoría contra ADR-050 D4, D5 y D6 (la parte de `credentialsNotBefore`), y sus tests 1 a 10.
+8. PR hacia `develop` con Carlos como revisor; nada se fusiona sin su Approve.
+
