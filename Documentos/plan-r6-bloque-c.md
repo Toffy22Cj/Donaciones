@@ -76,8 +76,12 @@ El Bloque B (#113) modifica estos archivos del seguimiento, y el C también los 
 
   ```java
   /** Estado de anclaje, en los cuatro valores de la ficha R-6 (G-3), de cada evento de un stream. */
-  Map<Long, String> anchorStatusBySequence(String streamId);
+  Map<Long, TrackingAnchorStatus> anchorStatusBySequence(String streamId);
   ```
+
+  - **`TrackingAnchorStatus`**, nombre propuesto en P-R6C-1: un `enum` de `contracts` con los cuatro valores de la tabla, `ANCHORED`, `IN_BATCH`, `PENDING` y `UNDER_REVIEW`. Así la respuesta no puede llevar un quinto valor sin cambiar el contrato.
+  - `PublicTransitionDTO.anchorStatus` lo serializa por su nombre.
+  - *Corrección de Manuel, 2026-10-24:* el borrador devolvía `Map<Long, String>`.
 
 - **Implementación en `app`:**
   1. `EventBatchMembershipPort.findMembership(List.of(assetId), límite)`;
@@ -94,6 +98,7 @@ El Bloque B (#113) modifica estos archivos del seguimiento, y el C también los 
 | Clase o cambio | Módulo | Fuente |
 |---|---|---|
 | Puerto de estado de anclaje por evento (nombre en P-R6C-1) | `contracts` o `core` | §2.2; C-V7: `api` no ve `crypto` |
+| `enum` de los cuatro valores, `TrackingAnchorStatus` (nombre en P-R6C-1) | `contracts` | Ficha §5, tabla de G-3 (C-4); corrección de Manuel del 2026-10-24 |
 | Su implementación (nombre en P-R6C-1) | `app` | Compone `core` (`EventBatchMembershipPort`) y `crypto` (`MerkleBatchRepositoryPort`), como `TrackingIntegrityService` |
 | Campos internos: `LogisticsReadItem.parentAssetId` y `AssetTransitionReadModel.sequence` | `core` | C-V2, C-V7 |
 | Campos de respuesta: `PublicLogisticsItemDTO.parentAssetRef?` y `PublicTransitionDTO.anchorStatus` | `api` | Ficha §5 |
@@ -108,7 +113,7 @@ El Bloque B (#113) modifica estos archivos del seguimiento, y el C también los 
 | 8 | **Aserción negativa:** ningún `parentAssetRef` apunta fuera de `logistics`. Una donación cuyo activo es hijo de un activo de **otra** donación (proyección construida a mano en Mongo) no trae el campo | `api` (mapeador) y `core` (adaptador) |
 | 9a | Historial: un paso por **cada uno de los diez** `AnchorStatus` (lotes construidos a mano en `merkle_batches`) da el valor de la tabla de §2.2 | `app` (implementación del puerto, Mongo real) |
 | 9b | Paso sin lote → `PENDING`; paso en un lote `RELEASED` → `PENDING` | `app` |
-| 9c | **Cobertura exhaustiva del `enum`:** el `switch` no tiene `default`, así que un estado nuevo no compila; además, un test recorre `AnchorStatus.values()` y comprueba que cada valor tiene fila | `app` |
+| 9c | **Cobertura exhaustiva de los dos `enum`:** el `switch` no tiene `default`, así que un estado nuevo no compila. Además, un test recorre `AnchorStatus.values()` y comprueba que cada valor tiene fila, y otro recorre `TrackingAnchorStatus.values()` y comprueba que cada uno de los cuatro sale de al menos un `AnchorStatus` (ninguno sobra) | `app` |
 | 9d | **Aserción negativa:** la respuesta del historial no contiene `sequence`, `streamId`, `merkleBatchId` ni hashes (`merkleRoot`, `eventHash`, `previousHash`) | `api` y `app` (HTTP) |
 | — | Común: `scripts/ci-local.sh` completo en verde, con el resumen literal de Surefire | — |
 
@@ -147,11 +152,20 @@ El Bloque B (#113) modifica estos archivos del seguimiento, y el C también los 
 
 | # | Pregunta | Recomendación |
 |---|---|---|
-| **P-R6C-1** | Puerto de G-3: ¿en `contracts` (como `CampaignPublicSummaryPort`) o en `core.application.port.out`? Y los nombres: puerto e implementación | **`contracts`**, como D-R6-1: el puerto no usa tipos de `core`. Nombres propuestos: `AssetAnchorStatusPort`, implementado en `app` por `AssetAnchorStatusProducer` |
+| **P-R6C-1** | Puerto de G-3: ¿en `contracts` (como `CampaignPublicSummaryPort`) o en `core.application.port.out`? Y los nombres: puerto, `enum` e implementación | **`contracts`**, como D-R6-1: el puerto no usa tipos de `core`. Devuelve un **`enum` de cuatro valores declarado en `contracts`**, no un `String` (corrección de Manuel, 2026-10-24). Nombres propuestos: `AssetAnchorStatusPort` y `TrackingAnchorStatus`, implementado en `app` por `AssetAnchorStatusProducer` |
 | **P-R6C-2** | Añadir `sequence` a `AssetTransitionReadModel` (puerto de `core` que usa `api`): ¿hace falta enmienda? | **No**, por el criterio de P-R6A-2: es mostrar en una vista de lectura un dato que la proyección ya tiene y que no cambia. No sale por HTTP |
 | **P-R6C-3** | Paso sin evento en el mapa (proyección antigua con `sequence = 0`, o sin pertenencia): ¿`PENDING`? | **Sí**: es "todavía no está en ningún lote" desde el punto de vista de lo que se puede comprobar. Nunca se inventa `ANCHORED` |
 | **P-R6C-4** | Registro de la enmienda de G-4 en `api-contract-matrix.md`: la fila del seguimiento aún dice `GET /tracking/{trackingCode}` (§5, ruta antigua). ¿Nota fechada en esa fila o fila nueva con la ruta real `GET /donations/tracking`? | **Nota fechada en esa fila**, que cite la ruta real y D-R6-5, sin reescribirla |
 | **P-R6C-5** | Límite de `findMembership` para el stream de un activo | El de `TrackingIntegrityService` (10 000), que en un solo activo nunca se alcanza |
+
+**Nota a P-R6C-3 (Manuel, 2026-10-24): opción (b), sin cambio de modelo.**
+- Manuel pidió distinguir "sin `sequence`" de "`sequence` 0", porque creía que una proyección antigua leída como 0 chocaría con la `sequence` 0 del génesis y tomaría el estado de su lote. **La premisa era errónea: el génesis tiene `sequence` 1.**
+  - `MongoEventStoreAdapter.java:45` y `:63`: el primer `append` parte de `expectedVersion == 0` y da `newSequence = currentSequence + 1`.
+  - `EventStreamGenesisReadPort.java:17`: `FIRST_SEQUENCE = 1`.
+  - `EventBatchMembershipPort.java:12`: la `sequence` de la pertenencia es la del Event Store.
+- Por tanto, ningún evento tiene `sequence` 0, y un paso leído como 0 no encuentra nada en el mapa y sale `PENDING`, como ya decía esta fila.
+- Además, `AssetTransition.sequence` (`AssetHistoryProjectionDocument.java:39`) existe desde el primer commit (`4ab3a34`) y el handler lo escribe siempre (`DonationProjectionHandler.java:307`).
+- `AssetTransitionReadModel.sequence` sigue siendo `long`.
 
 ## 7. Documentos y aviso a la web (ficha §8)
 
@@ -162,7 +176,7 @@ El Bloque B (#113) modifica estos archivos del seguimiento, y el C también los 
 
 ## 8. Archivos previstos
 
-- **`contracts`:** el puerto de G-3 (P-R6C-1).
+- **`contracts`:** el puerto de G-3 y su `enum` de cuatro valores (P-R6C-1).
 - **`core`:**
   - `application/port/out/LogisticsReadItem.java`, `AssetTransitionReadModel.java`;
   - `infrastructure/projection/mongo/DonationReadAdapter.java`, `MongoAssetHistoryReadAdapter.java`;
