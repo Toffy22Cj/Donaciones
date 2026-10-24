@@ -185,3 +185,24 @@ Igual que el plan R-1 §6: en la sesión de agente del 2026-10-18 Maven no resue
 - **P-R3-2: los cinco puntos [Plan] aprobados tal como están.**
 - **Riesgo nuevo, solo registrado (R-R3-1):** `POST /api/v1/account/password` permite probar contraseñas sin límite a quien tenga un token robado. ADR-050 no pide limitar intentos (sus riesgos aceptados, `:233`, ya registran la falta de límite por IP en el login, DH-56), así que **no se implementa**. Queda como **pregunta para Carlos**.
 
+
+---
+
+## 10. Decisiones durante la implementación — Manuel, 2026-10-24, por la delegación de Carlos
+
+### 10.1 Firma de `changeOwnCredentials`: APROBADA
+
+- **Qué pasó:** §3 fija `Instant changeOwnCredentials(AccountId, String currentPassword, String newPassword)`. Con esa firma, el servicio tendría que construir el `AccountAuditActor` de la cuenta. La regla `only_CreateAccountService_and_AuditLogEntryMapper_may_call_AccountAuditActor_constructor` de `identity/src/test/java/identity/architecture/ArchitectureTest.java` lo prohíbe. Solo lo permite a `CreateAccountService`, `AuditLogEntryMapper` y `AuthorizationAuditActorMapper` (ADR-038 §2.2, §2.3), y el test falló en rojo de arquitectura.
+- **Qué se hizo:** `Instant changeOwnCredentials(AuthorizationPrincipal principal, String currentPassword, String newPassword)`. La cuenta es `principal.accountId()` y el actor sale de `AuthorizationAuditActorMapper`, como en `InviteMemberService`. La regla de arquitectura no se tocó.
+- **Aprobación:** Manuel, 2026-10-24 ("La desviación de la firma (AuthorizationPrincipal) queda aprobada; regístrala igual").
+
+### 10.2 P-R3-3: login con `iat = max(segundo actual truncado, credentialsNotBefore)` — SEPARADA, pendiente de la Enmienda 1 de ADR-050 D4
+
+- **Defecto:** con el `+ 1 s` y el `max` de D4, `credentialsNotBefore` puede quedar uno o varios segundos en el futuro. Un login en ese intervalo devuelve un token que el filtro rechaza. Con R-4 es el flujo normal: recuperar la contraseña e iniciar sesión enseguida.
+- **Decisión de Manuel (2026-10-24):** se corrige emitiendo el token del login con `iat = max(segundo actual truncado, credentialsNotBefore)`, y con el segundo actual si es nulo. ADR-050 D4 acepta un `iat` futuro ("el filtro no valida `iat` futuro") y D5 usa la misma técnica. El login demuestra que se conoce la contraseña vigente, así que no revive ningún token anterior.
+- **Por qué no entra en este plan:** el token del login se emite en `api/src/main/java/com/traceability/api/auth/LoginController.java:62`. `api` solo recibe el `accountId` de `AuthenticateAccountPort.authenticate` (`contracts/.../authentication/AuthenticateAccountPort.java:13`; la cuenta se carga en `identity/.../AuthenticateAccountPortImpl.java:39` y solo se devuelve su id en `:46`). Ese puerto lo usan `api` e `identity`: cambiarlo exige la regla 3.5.
+- **Opción elegida: (a) con (c).**
+  - **(a):** `AuthenticateAccountPort.authenticate` devuelve `{accountId, credentialsNotBefore}`, leído del mismo documento que validó la contraseña. Va en la Enmienda 1 de ADR-050 (PROPUESTA; espera a Carlos).
+  - **(c):** el código va en su propio PR, con un plan corto que aprueba Manuel, solo después de que Carlos apruebe la enmienda, y se fusiona antes que el código de R-4.
+- **Descartada (b)** (un puerto nuevo que lee `credentialsNotBefore` en una segunda lectura) **por seguridad**. Si la contraseña cambia entre las dos lecturas, un login hecho con la contraseña anterior recibiría un token válido después del cambio, y eso se salta la revocación de D4.
+- **Mientras tanto:** este PR sale sin P-R3-3, y `referencia-api-v1.md` lo registra como defecto conocido. El test `deactivateReactivate_andAPreviousTokenIs401` avanza el reloj un segundo antes de volver a iniciar sesión. Con P-R3-3, ese avance se quita.
