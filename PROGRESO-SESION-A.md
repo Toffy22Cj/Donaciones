@@ -18,8 +18,8 @@ la A usa 0.39–0.49.
 | Ítem | Estado | Rama | PR | Evidencia | Bloqueado por |
 |---|---|---|---|---|---|
 | A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `85dc190` (código en `eb7c6a6`) | #140 (depende de #137) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 antes |
-| A2 R-5 (D1, D2, D10) | en curso: rojo y verde hechos; mutaciones corriendo | `feat/identity-r5-aceptaciones-perfil` `52aa433` (desde develop `406f9b2`) | — | ver bitácora | — |
-| A3 D3 | pendiente | — | — | — | P-R3-3 y A2 |
+| A2 R-5 (D1, D2, D10) | **HECHO** (PR listo) | `feat/identity-r5-aceptaciones-perfil` `bfe126f` (código en `3002c6e`) | #142 | ci-local `3002c6e`: core 340, crypto 50, ai 47, api 156, identity 344, convocatoria 253, app 471, BUILD SUCCESS | — |
+| A3 D3 | en curso: código escrito sin Maven | `feat/identity-d3-aceptaciones-login` `cc5239e` (desde R-5 `3002c6e` + merge de `fix/identity-p-r3-3-iat-del-login`) | — | — | #137 y #142 |
 | A4 D6 sin D7 | pendiente | — | — | — | — |
 | A5 CORS (DD-57) | plan APROBADO (Manuel, 2026-10-25); código pendiente, en la cola después de D6 | `fix/cors-put-delete` `2342b97` | #138 (borrador hasta tener la evidencia) | — | turno en la cola |
 
@@ -51,6 +51,9 @@ la A usa 0.39–0.49.
 - A2 verde sobre `42e6e37` (`mvn test -pl … -am`): identity "Tests run: 344", app "Tests run: 471" (api 156, igual que develop), todos "Failures: 0, Errors: 0, Skipped: 0".
 - A2: `52aa433` nota en referencia-api. Mutaciones 1 a 7 (`mutaciones/r5/`); la 4 adaptada a GET /account (MeController está en api y no ve el nombre).
 
+- A2: mutaciones identity 5/5 (52aa433) y app 7/7 (3002c6e) muertas; ci-local 3002c6e verde (`ci-local-3002c6e-2026-10-25T08-19-21Z.txt`); §0.41; PR #142, pie corregido.
+- A3: D3 escrito (contracts AcceptedLegalVersions/AcceptanceRequiredException; puerto con 3 parámetros; AccountRepositoryPort.recordLegalAcceptancesIfUnchanged [nombre propuesto]; LoginController 403; tests LoginAcceptanceIntegrationTest y LoginAcceptanceHttpIntegrationTest; logins de los tests con versiones; recorrido.py).
+
 ## Siguiente paso exacto
 
-A2 (R-5): en `/home/user/a2` (`feat/identity-r5-aceptaciones-perfil`, `42e6e37`, desde develop `406f9b2`): rojo literal apartando la producción, verde por capas, mutaciones 1 a 7 del plan, ci-local, estado-fase6 §0.41 y PR. #138 (CORS): corregir el pie al reescribir el cuerpo con el código.
+A3: rojo literal (producción de D3 apartada) y verde por capas (contracts/identity/api/app); mutaciones de la Enmienda 1 parte 3 §8; ci-local; estado-fase6 §0.42; PR "depende de #137 y #142". Luego A4 (D6, `/home/user/a4`, `feat/identity-d6-desactivacion` `8bc0b09`) y A5 (CORS en #138).
