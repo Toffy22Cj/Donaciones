@@ -457,6 +457,7 @@ class GoldenPathHttpIntegrationTest {
         JsonNode lots = ok(send("GET", "/api/v1/donations/tracking", null, null, "Authorization", "Bearer " + trackingCode), 200)
                 .get("logistics");
         assertThat(lots).hasSize(2);
+        assertThat(lots).as("exactamente un lote viene de una división").filteredOn(l -> l.has("parentAssetRef")).hasSize(1);
         JsonNode rootLot = lots.get(0).has("parentAssetRef") ? lots.get(1) : lots.get(0);
         JsonNode childLot = lots.get(0).has("parentAssetRef") ? lots.get(0) : lots.get(1);
         assertThat(rootLot.has("parentAssetRef")).isFalse();

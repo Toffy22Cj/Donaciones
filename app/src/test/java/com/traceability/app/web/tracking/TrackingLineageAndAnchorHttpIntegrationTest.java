@@ -167,7 +167,7 @@ class TrackingLineageAndAnchorHttpIntegrationTest {
                 "0x" + "ab".repeat(32), Instant.parse("2026-10-20T11:00:00Z"), Instant.parse("2026-10-20T12:00:00Z"), 7L, null));
         donationWith(fundId, List.of(lot(assetId, null)));
         mongoTemplate.save(AssetHistoryProjectionDocument.builder().assetId(assetId).transitions(transitions).build());
-        return fundId + "|" + assetId;
+        return fundId + "|" + assetId + "|" + batchId;
     }
 
     private static TraceabilityEventDocument event(String streamId, long sequence, String eventHash, String batchId) {
@@ -222,6 +222,41 @@ class TrackingLineageAndAnchorHttpIntegrationTest {
 
         System.out.printf("[medición plan C §6] historial: mediana con 1000 hojas = %.2f ms; con 5 hojas = %.2f ms; diferencia = %.2f ms%n",
                 bigMs, smallMs, bigMs - smallMs);
+
+        // explain() de las consultas reales de una llamada (profiler de Mongo): una al event store por
+        // idx_stream_sequence y una por lote distinto por el índice único de batchId
+        mongoTemplate.getDb().runCommand(new org.bson.Document("profile", 2));
+        try {
+            assertThat(tracking("/assets/" + assetRefs.computeRef(big[1]) + "/history",
+                    trackingCodes.generate(big[0], Instant.now().plusSeconds(3600))).statusCode()).isEqualTo(200);
+        } finally {
+            mongoTemplate.getDb().runCommand(new org.bson.Document("profile", 0));
+        }
+        String db = mongoTemplate.getDb().getName();
+        List<org.bson.Document> eventQueries = profiled(db + ".event_store", "command.filter.streamId", big[1]);
+        List<org.bson.Document> batchQueries = profiled(db + ".merkle_batches", "command.filter.batchId", big[2]);
+        for (org.bson.Document q : eventQueries) {
+            System.out.println("[medición plan C §6] event_store: " + q.get("planSummary") + " keysExamined="
+                    + q.get("keysExamined") + " docsExamined=" + q.get("docsExamined"));
+        }
+        for (org.bson.Document q : batchQueries) {
+            System.out.println("[medición plan C §6] merkle_batches: " + q.get("planSummary") + " keysExamined="
+                    + q.get("keysExamined") + " docsExamined=" + q.get("docsExamined"));
+        }
+        assertThat(eventQueries).as("una consulta al event store").hasSize(1);
+        assertThat(eventQueries.get(0).getString("planSummary")).isEqualTo("IXSCAN { streamId: 1, sequence: 1 }");
+        assertThat(((Number) eventQueries.get(0).get("docsExamined")).intValue()).isEqualTo(5);
+        assertThat(batchQueries).as("una lectura del único lote").hasSize(1);
+        assertThat(batchQueries.get(0).getString("planSummary")).startsWith("IXSCAN");
+        assertThat(((Number) batchQueries.get(0).get("docsExamined")).intValue()).isEqualTo(1);
+    }
+
+    /** Las consultas perfiladas de ese caso (filtradas por su stream o su lote: hay tareas de fondo leyendo). */
+    private List<org.bson.Document> profiled(String namespace, String filterField, String value) {
+        List<org.bson.Document> out = new ArrayList<>();
+        mongoTemplate.getDb().getCollection("system.profile")
+                .find(new org.bson.Document("ns", namespace).append("op", "query").append(filterField, value)).into(out);
+        return out;
     }
 
     private static String sha256Hex(String text) {
