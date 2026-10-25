@@ -244,6 +244,16 @@ class AssetAnchorStatusProducerIntegrationTest {
         assertThat(step.proof()).isNull();
     }
 
+    /** Como IntegrityVerificationUseCase: una lista de hojas vacía es también un lote antiguo (no UNDER_REVIEW). */
+    @Test
+    void cE7_anchoredBatchWithAnEmptyLeafHashesList_isAlsoLegacy_anchoredWithoutProof() {
+        insertEvent(TARGET, 1, hashOf(TARGET, 1), "batch-empty");
+        saveBatch("batch-empty", AnchorStatus.ANCHORED, Map.of(TARGET, new SequenceRange(1, 1)), List.of(), "root");
+
+        assertThat(producer.anchorBySequence(TARGET).get(1L))
+                .isEqualTo(new StepAnchor(TrackingAnchorStatus.ANCHORED, hashOf(TARGET, 1), null));
+    }
+
     @Test
     void cE8_alteredEvent_isUnderReview_withoutProof_andTheOtherStepsKeepTheirProof() {
         anchoredBatchWithThreeStreams();
