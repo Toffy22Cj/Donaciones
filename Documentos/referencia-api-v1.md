@@ -77,6 +77,19 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Al desplegar, todas las cuentas** sin las versiones vigentes (las anteriores a R-5 y las de la semilla) reciben 403 en su siguiente login hasta aceptar. Las que se registraron con las versiones vigentes no notan nada.
 - **Los tokens ya emitidos** siguen valiendo hasta su `exp` (riesgo aceptado 4 de ADR-050). El filtro no cambia.
 
+*Nota (2026-10-25, ADR-050 D8 y Q5 (a); plan R-4, `feat/identity-r4-recuperacion-contrasena`):* recuperación de la contraseña. Dos rutas nuevas, **públicas**, sin `Command-Id` (DH-34). Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/password-reset` | pública | `{email}` | **Siempre el mismo `202` sin cuerpo**, con `Cache-Control: no-store`: exista o no la cuenta, esté inactiva, el correo esté mal formado o se repita la petición antes de 5 minutos. Solo una cuenta existente y `ACTIVE`, fuera del enfriamiento, recibe un correo | 400 `email` vacío |
+| `POST /auth/password-reset/confirm` | pública | `{token, newPassword}` | `204`, `no-store`. **No inicia sesión:** la web lleva a iniciar sesión con la contraseña nueva | 400 campo vacío (sin llamar al dominio); **el mismo 400 `PasswordResetTokenInvalid`** para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva; 400 `PasswordTooShort` (menos de 12), que **no consume el token** |
+
+- **El enlace del correo** es `{TRACEABILITY_WEB_BASE_URL}/recuperar#token=…`: el token va en el **fragmento**, que el navegador no envía. La web lo lee, lo borra de la barra y lo manda en el cuerpo de `confirm`. Un token en la query o en la ruta nunca se acepta.
+- **Validez:** 30 minutos y un solo uso. Pedir otro deja sustituido (`SUPERSEDED`) el anterior.
+- **Enfriamiento de 5 minutos:** una segunda petición antes no envía nada. Si el correo no llega (servidor de correo caído o cola llena), la web debe decir "si no llega, vuelve a pedirlo en 5 minutos" (Q5 (a): sin reintentos).
+- **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
+- **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
@@ -192,6 +205,18 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 *Nota (2026-10-21, ficha R-6, Bloque A; G-1; D-R6-1):* `GET /donations/tracking` lleva además **`campaignTitle?`** (el título de la convocatoria) y **`organizationName?`** (el nombre público de su organización). Faltan los dos si la donación no tiene `campaignRef` o la convocatoria no se encuentra; `organizationName` falta también si la organización no tiene nombre (DD-04). Sigue sin `fundId` ni `donorRef` (DD-76). Para una convocatoria `PRIVATE_LINK`, el título se muestra a quien tiene el `trackingCode` (P-R6A-4, aceptado). Las filas de arriba no se reescriben.
 
 *Nota (2026-10-23, ficha R-6, Bloque B; G-2; D-R6-2):* en `GET /donations/tracking`, **`financialSnapshot`** lleva además **`firstClearedAt?`** y **`lastClearedAt?`** (ISO-8601 UTC): el `occurredAt` del primer y del último `FUNDS_CLEARED` (1.0 o 2.0) del fondo, por orden de `sequence` del stream, nunca por fecha. Se leen del Event Store al consultar (C-2). Con una sola liquidación son iguales, y sin liquidaciones faltan los dos. Las filas de arriba no se reescriben.
+
+*Nota (2026-10-25, ficha R-6, Bloque C; G-4; D-R6-5):* en `GET /donations/tracking`, cada ítem de **`logistics`** lleva además **`parentAssetRef?`**: el `assetRef` opaco del lote del que salió por una división, calculado igual que `assetRef`. **Siempre apunta a otro ítem de la misma `logistics`**; si el padre no está en la respuesta, el campo falta (nunca se devuelve el ref de un lote de otra donación). Falta también en los lotes que no vienen de una división. `rootAssetRef` no se expone: se deduce siguiendo `parentAssetRef`. Las filas de arriba no se reescriben.
+
+*Nota (2026-10-25, ficha R-6, Bloque C; G-3 y Enmienda 1, E1; D-R6-6 reabierto):* en `GET /donations/tracking/assets/{assetRef}/history`, cada ítem de **`history`** lleva además:
+- **`anchorStatus`**, siempre, con **cuatro** valores (C-4): `ANCHORED` (lote `ANCHORED`); `IN_BATCH` (lote `COLLECTING`, `PENDING`, `SUBMITTING`, `SUBMITTED` o `STUCK`); `PENDING` (sin lote, o lote `RELEASED`); `UNDER_REVIEW` (lote `FAILED`, `COLLECTING_FAILED` o `ANCHOR_MISMATCH`, o un evento cuyo hash ya no es la hoja anclada; ver abajo).
+- **`eventHash?`**: el `eventHash` del evento en el Event Store, 64 caracteres hexadecimales en minúscula. Falta solo si el paso no tiene evento asociado (proyecciones antiguas; P-C-4), y entonces el paso es `PENDING`.
+- **`anchorProof?`**, solo si el lote está `ANCHORED` y tiene sus `leafHashes` guardados: `{merkleRoot, leafIndex, path: [{side: "LEFT"|"RIGHT", hash}], transactionHash, network, anchoredAt}` (`anchoredAt` en ISO-8601 UTC). **Sin `leafCount`** (plan de ejecución §0.4). `leafIndex` es la posición dentro del lote, no la secuencia del stream.
+- Un lote antiguo sin `leafHashes` da `ANCHORED` sin `anchorProof`: la prueba no se reconstruye con las hojas actuales. Si el `eventHash` actual no es igual a la hoja `leafIndex` del lote, el paso es `UNDER_REVIEW` y no lleva prueba: nunca se devuelve una prueba que no corresponda al hecho mostrado.
+- **Algoritmo de verificación (E1.3):** las hojas son los `eventHash` del lote, por `streamId` y después por `sequence`; el nodo padre es `SHA-256(UTF-8(izquierdo_hex + derecho_hex))` en hexadecimal minúscula (se concatenan los textos hexadecimales, no los bytes); el último nodo de un nivel impar se combina consigo mismo, y su paso es `{side: "RIGHT", hash: <el mismo nodo>}`. Para verificar: `nodo = eventHash`; por cada paso, `LEFT → sha256_hex(hash + nodo)` y `RIGHT → sha256_hex(nodo + hash)`; la prueba vale si al final `nodo == merkleRoot`.
+- **Vectores fijos** para el test del cliente: `crypto/src/test/resources/merkle/proof-vectors.json` (`{description, leaves, index, path, root}`; las hojas son SHA-256 de `"leaf-0"`, `"leaf-1"`…; incluye 5 hojas con índice 4 y con índice 2).
+- **Límites (E1.4):** el árbol no separa por dominio las hojas de los nodos internos y repite el último nodo de un nivel impar, así que en teoría admite segundas preimágenes de árbol; no se cambia porque invalidaría las raíces ya ancladas (haría falta un ADR). La prueba demuestra que el hash del paso está en la raíz anclada en esa transacción; **no** demuestra que el hash corresponda al contenido del evento, que no se expone: eso lo comprueba `GET …/integrity`, en el servidor.
+- Sigue sin `sequence`, `streamId`, `merkleBatchId`, `previousHash` ni `leafHashes` (DD-76). Las filas de arriba no se reescriben.
 
 ## 9. Sin HTTP
 

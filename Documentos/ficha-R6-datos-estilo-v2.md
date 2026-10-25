@@ -150,6 +150,10 @@
 - El texto ("Lote L-0142 recibido en Riohacha") lo arma el front con `labels.ts`; el backend no devuelve frases.
 - **Módulo (C-7):** `app` (compone `core`, `convocatoria` y `crypto`). El plan fija los puertos contra el código.
 
+> **Nota (2026-10-25): respuestas de Carlos a las dos preguntas del plan D sobre esta sección** (`plan-r6-bloque-d.md` §6.2, P-R6D-1 y P-R6D-2). El texto de G-8 de arriba se conserva; esta nota lo precisa. Aprobación: `plan-r6-bloque-d.md:5` ("Respuestas a las dos preguntas abiertas (Manuel, 2026-10-25): P-R6D-1 (b) y P-R6D-2 (a)"), dentro de la aprobación de Carlos de todo lo pendiente (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; confirmación escrita "todo aprobado" en #134). El plan D (§7) pide registrarlo aquí, en su propio PR y antes del de código.
+> - **P-R6D-1 (b):** un ítem `BATCH_ANCHORED` **no lleva `subject`** y lleva **`eventCount`**: el número de eventos propios de la organización que entraron en ese lote. Sin `batchId` ni ningún otro identificador del lote (como G-7). Para los demás tipos, `subject` sigue como dice la respuesta de arriba. La forma de la respuesta queda: `{type, occurredAt, subject?: {kind: "ASSET"|"CAMPAIGN"|"FUND", ref}, eventCount?, quantity?, unitOfMeasure?, locationZone?}`.
+> - **P-R6D-2 (a), limitada a las convocatorias cerradas:** `CAMPAIGN_CLOSED` sale solo de las convocatorias de la organización con estado `CLOSED`, y su fecha es la del cierre que ya usa `CampaignTimelineQuery` (`closedAt`). No se cambia ningún puerto de `convocatoria`.
+
 ---
 
 ## 7. Tests previstos (rojos primero)
@@ -198,6 +202,8 @@
 | D-R6-10 | Orden de los bloques | **A, B, C, D, un PR por bloque** |
 
 > **Nota (2026-10-25, sesión de Manuel, con asistencia de Claude): D-R6-6 y la Enmienda 1.** La tabla de arriba se conserva. `ficha-R6-enmienda-1.md` (E1) **reabre D-R6-6**: cada paso de G-3 llevaría `eventHash` y, con el lote `ANCHORED`, `anchorProof` (decisión de Carlos del 2026-10-24). E2 añade G-9 (`lastEventAt?` por lote). La enmienda está en `develop` (#117), pero su estado sigue siendo **PROPUESTA** (`ficha-R6-enmienda-1.md:3`) y #117 se fusionó sin review. **Hasta que Carlos la confirme, rige D-R6-6 tal como está** (también `[D-R6-6]` en §5) y no se escribe código de E1 ni de G-9. Planes: C, versión 2 (#126), y adenda G-9 del plan B (#124), los dos en BORRADOR.
+
+> **Nota (2026-10-25, más tarde; ficha R-6, Enmienda 1, E4): la Enmienda 1 está APROBADA** por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; confirmación escrita "todo aprobado" en #134), y el plan C, versión 2, también. La nota anterior se conserva; esta la supera en lo que dice de "hasta que Carlos la confirme". **D-R6-6 queda reabierto por E1:** cada paso del historial lleva `eventHash` y, con el lote `ANCHORED` y sus hojas, `anchorProof` sin `leafCount` (`ficha-R6-enmienda-1.md` §E1; `plan-r6-bloque-c.md`). El `[D-R6-6]` de §5 ("No se expone el hash del evento") se lee con esta enmienda. Implementación: rama `feat/r6-bloque-c` (`estado-fase6.md` §0.50).
 
 ## 10. Correcciones sobre el borrador (Manuel, 2026-10-21)
 

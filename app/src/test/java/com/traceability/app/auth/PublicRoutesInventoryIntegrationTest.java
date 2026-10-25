@@ -158,6 +158,8 @@ class PublicRoutesInventoryIntegrationTest {
         assertThat(endpoints).extracting(Endpoint::pattern)
                 .contains("/api/v1/public/campaigns/{publicCode}/organization-logo",
                         "/api/v1/organizations/{organizationId}/logo")
+                // ADR-050 D8: las dos rutas de la recuperación existen y son públicas (PublicRoutes)
+                .contains("/api/v1/auth/password-reset", "/api/v1/auth/password-reset/confirm")
                 .contains("/api/v1/auth/login", "/api/v1/donations/tracking",
                         "/api/v1/donations/tracking/narrative", "/api/v1/donations/tracking/assets/{assetRef}/history");
 
