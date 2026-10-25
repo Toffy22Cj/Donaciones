@@ -242,5 +242,11 @@ class AccountRegistrationAndProfileHttpIntegrationTest {
         }
         assertThat(send("GET", "/api/v1/public/campaigns", null, null).body()).doesNotContain(GIVEN).doesNotContain(FAMILY);
         assertThat(output.getAll().substring(from)).doesNotContain(GIVEN).doesNotContain(FAMILY);
+        // PROFILE_UPDATED solo con los nombres de los campos (P-R5-4), nunca con los valores
+        List<org.bson.Document> audits = mongoTemplate.find(Query.query(Criteria.where("targetAccountId").is(accountId)
+                .and("action").is("PROFILE_UPDATED")), org.bson.Document.class, "identity_audit_log");
+        assertThat(audits).hasSize(1);
+        assertThat(audits.get(0).toJson()).contains("givenName").contains("familyName")
+                .doesNotContain(GIVEN).doesNotContain(FAMILY);
     }
 }
