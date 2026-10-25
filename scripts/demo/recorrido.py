@@ -90,13 +90,18 @@ def main():
     ap.add_argument("--salida", default=f"demo-evidencia/{stamp}")
     args = ap.parse_args()
     password = os.environ["TRACEABILITY_DEMO_SEED_PASSWORD"]
+    # ADR-050 D3: el login manda las versiones legales vigentes; por defecto, las de application-dev.yml
+    terms_version = os.environ.get("TRACEABILITY_LEGAL_TERMS_VERSION", "v1-2026-10")
+    data_policy_version = os.environ.get("TRACEABILITY_LEGAL_DATA_POLICY_VERSION", "v1-2026-10")
     webhook_secret = os.environ["TRACEABILITY_DEMO_WEBHOOK_SECRET"].encode()
     d = Demo(args.base, args.salida)
     print(f"Recorrido contra {args.base}; evidencia en {args.salida}")
 
     tok = {}
     for role, email in SEED.items():
-        _, r = d.call(f"login-{role}", "POST", "/api/v1/auth/login", {"email": email, "password": password}, expect=200,
+        _, r = d.call(f"login-{role}", "POST", "/api/v1/auth/login", {"email": email, "password": password,
+                                 "acceptedTermsVersion": terms_version,
+                                 "acceptedDataPolicyVersion": data_policy_version}, expect=200,
                       command=False)
         tok[role] = r["token"]
     _, me = d.call("me-administrador", "GET", "/api/v1/me", token=tok["administrador"], expect=200)

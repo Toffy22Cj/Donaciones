@@ -229,6 +229,34 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.42 D3: el login exige las aceptaciones vigentes (2026-10-25, `feat/identity-d3-aceptaciones-login`)
+
+- **Norma:** ADR-050 D3 y Q1 (a), con la Enmienda 1, parte 3 (E3-1 a E3-5), APROBADA por Carlos ("todo aprobado" en #134). Plan: `plan-r5-d1-aceptaciones-y-perfil.md`, P-R5-1 (a), P-R5-2 y P-R5-5. **Depende de #142 (R-5, primera parte) y de #137 (P-R3-3):** la rama sale de la de #142 (`3002c6e`) con `fix/identity-p-r3-3-iat-del-login` integrado por merge (`89a1e26`), y después la cabeza de #142 (solo documentos).
+- **Qué hace:**
+  - `contracts`: `AcceptedLegalVersions` y `AcceptanceRequiredException` **[Enmienda]**. `AuthenticateAccountPort.authenticate(email, password, accepted)` **sustituye** al método; no se añade otro (E3-1).
+  - `identity`, en `AuthenticateAccountPortImpl` (E3-2):
+    - primero lo de siempre: la lectura, `matches` y el estado; cualquier fallo es el mismo `AuthenticationFailedException`;
+    - después, las aceptaciones: si falta alguna vigente y `accepted` no trae exactamente esa, `AcceptanceRequiredException` con solo las pendientes;
+    - si la trae, se guardan con una **actualización parcial** condicionada al `passwordHash` validado y a `ACTIVE`, nunca con `save` (E3-3): `AccountRepositoryPort.recordLegalAcceptancesIfUnchanged` **[nombre propuesto en el PR: la enmienda no lo fija]**. Si no escribe, 401.
+  - `api`: `LoginRequest` con las dos versiones; `403` `AcceptanceRequired` con `{pendingTermsVersion?, pendingDataPolicyVersion?}` y sin token (E3-4, P-R5-5).
+  - `app`: `DemoScenarioSeeder` y los tests que inician sesión mandan las versiones. `scripts/demo/recorrido.py` también, con `TRACEABILITY_LEGAL_*_VERSION` o `v1-2026-10`.
+  - Nota fechada en `referencia-api-v1.md`.
+- **Evidencia:**
+  - **Rojo primero** (producción de D3 apartada, sobre `89a1e26`):
+    - `api` e `identity` no compilaban ("cannot find symbol" de `AcceptedLegalVersions` y `AcceptanceRequiredException`);
+    - `app`, con esos tests apartados: "Tests run: 5, Failures: 3". Los tests 1, 2 y 4 dieron "expected: 403 but was: 200".
+  - **Verde por capas** (`mvn test -pl … -am`, sobre `cc5239e`): identity "Tests run: 359", api "Tests run: 162" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones** en un clon limpio de `d0b3d7c`, con un repositorio Maven aislado y la línea base en verde (identity 22, api 11, app 5):
+    - identity: 6 de 6 muertas;
+    - api: 1 de 1;
+    - app: 4 de 7. Las tres vivas en `app` son la 2 (`save` en lugar de la escritura parcial), la 5 (sin la condición del hash) y la 6 (sin la de `ACTIVE`): las tres mueren en `identity` con el test 6, que es de `identity` porque por HTTP no se puede meter una escritura entre la lectura y el `$set`.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `d0b3d7c` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core 340, crypto 50, ai 47, api 162, identity 359, convocatoria 253 y app 478, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-d0b3d7c-2026-10-25T09-15-59Z.txt`, con nota a mano. El merge posterior de la cabeza de #142 solo trae documentos.
+- **Pendiente:**
+  - cuando #137 y #142 estén en `develop`, merge de `develop` y CI otra vez;
+  - #140 (R-4) usa el login en sus tests (R4-19), y el primero de los dos que llegue a `develop` obliga al otro a mandar las versiones;
+  - nota "implementada" en la parte 3 de la Enmienda 1.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` (`a5e56c8`, #140 R-4, y `ccf03f2`, #142 R-5) con merges normales; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados. Con R-4 dentro, `PasswordResetHttpIntegrationTest` dio **rojo** sobre `b2d3b90`: "Tests run: 14, Failures: 4", `403 AcceptanceRequired` donde se esperaba 200 (sus cuentas se crean con `createAccount(email, password)` sin aceptar nada). Corregido en `77903a6`: `login()` y `loginStatus()` del test mandan las dos versiones vigentes, igual que `AccountPasswordHttpIntegrationTest`. `scripts/ci-local.sh` en un clon limpio de `77903a6` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 168, identity 377, convocatoria 253 y app 509, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-77903a6-2026-10-25T16-44-59Z.txt`.
+
 ### 0.41 R-5, primera parte: aceptaciones legales (D2), perfil (D1) y minimización (D10) (2026-10-25, `feat/identity-r5-aceptaciones-perfil`)
 
 - **Norma:** ADR-050 D1, D2 y D10 y los tests 19 a 23 de su definición de hecho. Plan: `plan-r5-d1-aceptaciones-y-perfil.md`, APROBADO por Carlos (nota del 2026-10-25), con P-R5-2: D3 va en su propio PR, después. Versiones `v1-2026-10` en dev y en test (indicación de Carlos); en producción, sin valor por defecto y con *fail-fast*.
@@ -258,6 +286,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - `PROFILE_UPDATED` comprobado por HTTP sin los valores.
 - **Pendiente:** D3 (Enmienda 1, parte 3) en `feat/identity-d3-aceptaciones-login`, que depende de este PR y de #137.
 - *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `a5e56c8` (#140, R-4) con un merge normal en `eed0a29`; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados (ninguna línea de ninguno de los dos padres se pierde). `scripts/ci-local.sh` en un clon limpio de `eed0a29` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 166, identity 364, convocatoria 253 y app 504, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-eed0a29-2026-10-25T16-22-39Z.txt`.
+
 
 ### 0.40 R-4: recuperación de contraseña con envío diferido (2026-10-25, `feat/identity-r4-recuperacion-contrasena`)
 

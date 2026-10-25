@@ -84,7 +84,7 @@ class PathEvasionRealServerIntegrationTest {
         String email = "e" + UUID.randomUUID().toString().substring(0, 8) + "@example.org";
         createAccountService.createAccount(new Email(email), "pw-correct-123");
         RawHttp.Response login = send("POST", "/api/v1/auth/login", null,
-                "{\"email\":\"" + email + "\",\"password\":\"pw-correct-123\"}");
+                "{\"email\":\"" + email + "\",\"password\":\"pw-correct-123\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}");
         assertThat(login.status()).isEqualTo(200);
         jwt = login.body().substring("{\"token\":\"".length(), login.body().length() - 2);
         trackingCode = trackingCodeService.generate("fund-" + UUID.randomUUID(), Instant.now().plus(1, ChronoUnit.DAYS));

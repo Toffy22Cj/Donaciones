@@ -56,4 +56,18 @@ public interface AccountRepositoryPort {
 
     /** Cuentas con autoridad de plataforma, por {@code accountId}, como mucho {@code limit}. */
     java.util.List<Account> findPlatformAdministrators(int limit);
+
+    /**
+     * [Plan: nombre propuesto en el PR de D3] Actualización parcial de las aceptaciones del login (ADR-050 Enmienda 1,
+     * parte 3, E3-3): {@code $set} solo de los campos de la aceptación que no es nula, nunca {@link #save}. Solo escribe
+     * si el documento sigue {@code ACTIVE} y con el {@code passwordHash} que se validó, para no pisar un cambio de
+     * contraseña ni una desactivación concurrentes.
+     *
+     * @param terms la aceptación de los términos que se guarda, o {@code null} para no tocarla
+     * @param dataPolicy la aceptación de la autorización de datos que se guarda, o {@code null} para no tocarla
+     * @return true si escribió; false si la cuenta ya no tiene ese hash o no está activa
+     */
+    boolean recordLegalAcceptancesIfUnchanged(AccountId accountId, identity.domain.model.PasswordHash validatedHash,
+                                              identity.domain.model.LegalAcceptance terms,
+                                              identity.domain.model.LegalAcceptance dataPolicy);
 }

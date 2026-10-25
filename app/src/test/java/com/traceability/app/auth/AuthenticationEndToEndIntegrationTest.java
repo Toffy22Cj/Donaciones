@@ -93,7 +93,7 @@ class AuthenticationEndToEndIntegrationTest {
 
     private MvcResult login(String email, String password) throws Exception {
         return mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}")).andReturn();
+                .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
     }
 
     private static String token(MvcResult login) throws Exception {
