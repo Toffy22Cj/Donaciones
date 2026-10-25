@@ -52,6 +52,15 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Defecto conocido (P-R3-3, decisión de Manuel del 2026-10-24 por la delegación de Carlos):** con el `+ 1 s` y el `max` de D4, `credentialsNotBefore` puede quedar uno o varios segundos en el futuro, y un inicio de sesión en ese intervalo recibe un token que el filtro rechaza (401). Con `POST /account/password` no pasa, porque el token llega en la respuesta. Afecta a quien inicie sesión justo después de cambiar la contraseña, de una desactivación o, con R-4, de una recuperación, donde sería el flujo normal. **Se corrige antes de R-4**, en un PR propio, tras la Enmienda 1 de ADR-050 D4 (el login emitirá con `iat = max(segundo actual truncado, credentialsNotBefore)`). Hasta entonces, el cliente que reciba ese 401 puede repetir el inicio de sesión un segundo después.
 - **Riesgo registrado (R-R3-1, pregunta para Carlos):** la ruta no limita los intentos; quien tenga un token robado puede probar contraseñas actuales.
 
+*Nota (2026-10-25, ADR-050 D6 y Q3 (a); plan D6; `feat/identity-d6-desactivacion`):* desactivar la propia cuenta. Ruta nueva; las filas de arriba no se reescriben. D7 (reactivación por la plataforma) no está.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /account/deactivate` | JWT; solo la cuenta del JWT; sin `Command-Id` | `{currentPassword}` | `204` sin cuerpo. La cuenta pasa a `INACTIVE` y **todos sus tokens quedan revocados**, también el de esta petición (D4): la siguiente petición con cualquiera de ellos da 401. No se borra nada y **la membresía de la organización no cambia** (D6); la organización la retira con la operación de siempre | 400 `currentPassword` vacío (sin llamar al dominio); **400 `CurrentPasswordIncorrect`**, nunca 401; **409 `PlatformAdministratorDeactivation`** (administrador de plataforma); **409 `RepresentativeTransferRequired`** (representante de su organización: antes tiene que transferir el rol); **409 `ActiveCampaignResponsible`** (responsable activo de una convocatoria no cerrada). En todos esos casos la cuenta sigue `ACTIVE` y nada cambia. Orden de las comprobaciones: contraseña, administrador, representante, responsable. 401 sin JWT válido |
+
+- **Sin vuelta atrás por la API:** la reactivación (D7) está pendiente de Carlos. Una cuenta desactivada por error solo se recupera fuera de la API.
+- **Riesgo registrado (R-R3-1, como en `/account/password`):** la ruta no limita los intentos de contraseña.
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
