@@ -67,6 +67,19 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **D10:** la auditoría `ACCOUNT_CREATED` ya no guarda el correo (`{selfRegistration: true}`). Las entradas antiguas no se reescriben.
 - **El login no cambia en esta parte:** exigir las aceptaciones vigentes en el login (D3, `403 AcceptanceRequired`) va en su propio PR.
 
+*Nota (2026-10-25, ADR-050 D8 y Q5 (a); plan R-4, `feat/identity-r4-recuperacion-contrasena`):* recuperación de la contraseña. Dos rutas nuevas, **públicas**, sin `Command-Id` (DH-34). Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/password-reset` | pública | `{email}` | **Siempre el mismo `202` sin cuerpo**, con `Cache-Control: no-store`: exista o no la cuenta, esté inactiva, el correo esté mal formado o se repita la petición antes de 5 minutos. Solo una cuenta existente y `ACTIVE`, fuera del enfriamiento, recibe un correo | 400 `email` vacío |
+| `POST /auth/password-reset/confirm` | pública | `{token, newPassword}` | `204`, `no-store`. **No inicia sesión:** la web lleva a iniciar sesión con la contraseña nueva | 400 campo vacío (sin llamar al dominio); **el mismo 400 `PasswordResetTokenInvalid`** para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva; 400 `PasswordTooShort` (menos de 12), que **no consume el token** |
+
+- **El enlace del correo** es `{TRACEABILITY_WEB_BASE_URL}/recuperar#token=…`: el token va en el **fragmento**, que el navegador no envía. La web lo lee, lo borra de la barra y lo manda en el cuerpo de `confirm`. Un token en la query o en la ruta nunca se acepta.
+- **Validez:** 30 minutos y un solo uso. Pedir otro deja sustituido (`SUPERSEDED`) el anterior.
+- **Enfriamiento de 5 minutos:** una segunda petición antes no envía nada. Si el correo no llega (servidor de correo caído o cola llena), la web debe decir "si no llega, vuelve a pedirlo en 5 minutos" (Q5 (a): sin reintentos).
+- **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
+- **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |

@@ -68,11 +68,14 @@ public class ArchitectureTest {
             noClasses().that().doNotHaveFullyQualifiedName(identity.application.service.CreateAccountService.class.getName())
                     .and().doNotHaveFullyQualifiedName(identity.infrastructure.persistence.mongo.mappers.AuditLogEntryMapper.class.getName())
                     .and().doNotHaveFullyQualifiedName(identity.application.authorization.AuthorizationAuditActorMapper.class.getName())
+                    // ADR-050 Enmienda 1, parte 2 (enmienda de ADR-038 E1): la confirmación de la recuperación audita con la
+                    // cuenta del token, como el autorregistro
+                    .and().doNotHaveFullyQualifiedName(identity.application.service.ChangeCredentialsService.class.getName())
                     .and().doNotHaveFullyQualifiedName(identity.domain.model.AuditActor.AccountAuditActor.class.getName())
                     .should().callConstructorWhere(com.tngtech.archunit.base.DescribedPredicate.describe(
                             "target is AccountAuditActor constructor",
                             call -> call.getTargetOwner().isEquivalentTo(identity.domain.model.AuditActor.AccountAuditActor.class)))
-                    .because("Only CreateAccountService (self-registration), AuditLogEntryMapper and AuthorizationAuditActorMapper may construct AccountAuditActor (D3 / ADR-038 §2.2, §2.3)");
+                    .because("Only CreateAccountService (self-registration), ChangeCredentialsService (password reset confirmation, ADR-050 Enmienda 1 parte 2), AuditLogEntryMapper and AuthorizationAuditActorMapper may construct AccountAuditActor (D3 / ADR-038 §2.2, §2.3, E1)");
 
     @ArchTest
     public static final ArchRule only_BootstrapPlatformAuthorityService_and_AuditLogEntryMapper_may_call_SystemAuditActor_constructor =

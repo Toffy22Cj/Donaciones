@@ -258,6 +258,38 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - `PROFILE_UPDATED` comprobado por HTTP sin los valores.
 - **Pendiente:** D3 (Enmienda 1, parte 3) en `feat/identity-d3-aceptaciones-login`, que depende de este PR y de #137.
 
+### 0.40 R-4: recuperación de contraseña con envío diferido (2026-10-25, `feat/identity-r4-recuperacion-contrasena`)
+
+- **Norma:** ADR-050 D8 y Q5 (a), y los tests 11 a 18 de su definición de hecho; ADR-050 Enmienda 1, parte 2 (actor de la confirmación, enmienda de ADR-038 E1), APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25). Plan: `plan-r4-recuperacion-de-contrasena.md`, APROBADO por Manuel (§11), con los tests R4-19 a R4-21 y la mutación 12. **Depende de #137 (P-R3-3):** la rama sale de `fix/identity-p-r3-3-iat-del-login` (`422a1cb`).
+- **Qué hace:**
+  - `identity`:
+    - `PasswordResetToken` (30 min, enfriamiento de 5 min) y `password_reset_tokens`, con solo el hash del token y un índice único parcial `uq_pending_per_account`;
+    - `RequestPasswordResetService`, con el correo después de confirmar la transacción y el secreto del intento que confirmó;
+    - `ChangeCredentialsService.resetCredentials`, que fija `credentialsNotBefore` y audita `CREDENTIALS_CHANGED {via: "PASSWORD_RESET"}` con el actor de la cuenta. Calcula el hash BCrypt **antes** de la transacción.
+  - `api`: las dos rutas en `PublicRoutes`.
+  - `app`:
+    - `PasswordResetController` (`202` sin cuerpo y `no-store`; `204`);
+    - `SmtpPasswordResetMailAdapter` (enlace `/recuperar#token=`);
+    - `PasswordResetMailExecutorConfig` (de 1 a 2 hilos, cola de 100, `AbortPolicy`, 10 s), con `defaultCandidate = false`;
+    - el mapeo a 400 de `PasswordResetTokenInvalid`.
+  - Documentos: nota fechada en `referencia-api-v1.md` y en el plan R-3 + R-2 (sobre la reutilización).
+- **Dos correcciones que salieron de la evidencia:**
+  1. **Concurrencia:** con el BCrypt dentro de la transacción, dos confirmaciones simultáneas daban `[500, 204]`. La perdedora agotaba los 3 intentos de `WriteConflict` (`IdentityConcurrentModificationException`). Corregido en `eb7c6a6`.
+  2. **El ejecutor sustituía al de Spring:** en Spring Boot 3.4.4, cualquier bean `Executor` hace que no se cree `applicationTaskExecutor` (`@ConditionalOnMissingBean(Executor.class)`), y el plan decía que no lo sustituyera. Corregido con `defaultCandidate = false` y un test.
+- **Evidencia:**
+  - **Rojo primero** (producción de R-4 apartada, sobre `422a1cb`):
+    - `identity` no compilaba: "cannot find symbol" de las 9 clases nuevas;
+    - `api`: "Tests run: 3, Failures: 1" (`PublicRoutesTest.theListIsExactlyTheOneApprovedInThePlan`);
+    - `app` no compilaba (`PasswordResetMailExecutorConfig`); con el test HTTP apartado: "Tests run: 2, Failures: 1" (`PublicRoutesInventoryIntegrationTest`, "could not find the following element(s): [/api/v1/auth/password-reset, /api/v1/auth/password-reset/confirm]");
+    - después, los dos rojos de las correcciones, ya descritos.
+  - **Verde por capas** sobre `eb7c6a6`, cada módulo completo: identity "Tests run: 352", api "Tests run: 160" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones:** en un clon limpio, con un repositorio Maven aislado, `mvn install` (con tests) de las dependencias y la línea base en verde (identity 18, app 14):
+    - identity: 9 de 9 muertas;
+    - app: 11 de 13 muertas. La 6 y la 11 siguen vivas en app y mueren en identity. La 6 (sin `status = PENDING` en `markUsedIfPending`) no la mata el test 15 en ninguna capa, porque el `WriteConflict` de Mongo resuelve la carrera; la mata el test nuevo del contrato del adaptador.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `eb7c6a6` (`free -g`: 15 GB disponibles): `BUILD SUCCESS`, ningún test fallido. Resumen literal: core "Tests run: 340", crypto "Tests run: 50", ai "Tests run: 47", api "Tests run: 160", identity "Tests run: 352", convocatoria "Tests run: 253" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-eb7c6a6-2026-10-25T07-23-51Z.txt`, con la nota del espejo y del repositorio Maven aislado añadida a mano.
+- **Pendiente:** fusionar después de #137; nota "implementada" en la parte 2 de la Enmienda 1 cuando se fusione.
+- **Nota (2026-10-25), integración de `develop` en el tren de fusión:** `develop` `0a54994` (con #141) por un merge normal (`1ec8be3`); el único conflicto, en esta página, se resolvió conservando los dos lados. `ci-local.sh` en un clon limpio de `1ec8be3`: `BUILD SUCCESS`, core 345, crypto 57, ai 47, api 166, identity 352, convocatoria 253, app 495, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-1ec8be3-2026-10-25T16-00-46Z.txt`.
+
 ### 0.50 Ficha R-6, Bloque C con la Enmienda 1 (E1): `parentAssetRef?` (G-4), `anchorStatus` por paso (G-3), `eventHash` y `anchorProof` (2026-10-25, `feat/r6-bloque-c`)
 
 - Numerada 0.50: la sesión B usa la numeración 0.50 a 0.69 (la A, 0.39 a 0.49) para no chocar.
