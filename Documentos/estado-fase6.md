@@ -267,7 +267,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 8 (autorizar después de leer los bytes) → `DeliveryEvidenceControllerTest`, con el `MultipartFile` que cuenta las lecturas;
     - 9 (despachar pasa el gancho de la entrega) → T4-12.
   - **`explain()` de `bindEvidence` (§7),** la escritura real capturada con el profiler: "`IXSCAN { organizationId: 1, purpose: 1, sha256: 1 }` keysExamined=1 docsExamined=1", el índice parcial `uq_evidence_sha256`, sin `COLLSCAN`.
-  - **`ci-local.sh`:** CI_T4.
+  - **`ci-local.sh`** en un clon limpio de `17fbd24` (último commit de código), con `free -g` en 14 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 358, `crypto` 50, `ai` 47, `api` 156, `identity` 332, `convocatoria` 253, `app` 485). Evidencia: `Documentos/evidencia-ci/ci-local-17fbd24-2026-10-25T09-38-34Z.txt`. `develop` sigue en `406f9b2`, la base de la rama. El `[ERROR] Surefire is going to kill self fork JVM` del log, tras los tests de `core` y de `app`, es un hilo de *change stream* de Mongo que sigue vivo al cerrar la JVM, no un fallo.
 - **Pendiente:**
   - **Antes de fusionar, avisar a Adonis (móvil) y a la web** (B-2): una entrega con `evidenceRef` de texto libre recibirá 400. Primero se sube la foto y después se entrega con su `evidenceRef`. La enmienda de ADR-043 (F5) es de Adonis.
   - T5 (lectura de la evidencia, retirada y huella en el seguimiento) sigue esperando la enmienda de ADR-021-D.
