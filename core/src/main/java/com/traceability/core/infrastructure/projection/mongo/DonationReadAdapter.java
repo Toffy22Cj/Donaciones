@@ -37,7 +37,8 @@ public class DonationReadAdapter implements DonationReadPort {
                         l.getUnitOfMeasure(),
                         l.getQuantity(),
                         l.getCurrentLocation(),
-                        l.getCurrentCustodian()
+                        l.getCurrentCustodian(),
+                        l.getParentAssetRef() // ficha R-6, G-4: guarda el assetId del padre (plan C, C-V1)
                 ))
                 .toList();
 

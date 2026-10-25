@@ -113,7 +113,7 @@ class OrganizationVerificationStatusHttpIntegrationTest {
     /** Organización creada por HTTP; devuelve su id. */
     private String createdBy(String representative, String name) throws Exception {
         return ok(send("POST", "/api/v1/organizations", representative,
-                "{\"type\":\"FOUNDATION\",\"name\":\"" + name + "\"}"), 201).get("organizationId").asText();
+                "{\"type\":\"FOUNDATION\",\"name\":\"" + name + "\",\"acceptedOrganizationTermsVersion\":\"v1-2026-10\"}"), 201).get("organizationId").asText();
     }
 
     private HttpResponse<String> read(String organizationId, String account) throws Exception {

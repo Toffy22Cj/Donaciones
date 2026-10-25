@@ -25,6 +25,7 @@ import identity.domain.exception.InactiveAccountException;
 import identity.domain.exception.InsufficientPlatformAuthorityException;
 import identity.domain.exception.InvalidVerificationTransitionException;
 import identity.domain.exception.OrganizationAccessDeniedException;
+import identity.domain.exception.PasswordResetTokenInvalidException;
 import identity.domain.exception.PasswordTooShortException;
 import identity.domain.exception.OrganizationNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -66,6 +67,9 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(DuplicateEmailException.class, HttpStatus.CONFLICT, null),
                 // H-P2-1: contraseña de menos de 12 caracteres
                 new ApiErrorMapping(PasswordTooShortException.class, HttpStatus.BAD_REQUEST, null),
+                // ADR-050 D8: token de recuperación desconocido, caducado, usado, reemplazado o de una cuenta inactiva, el
+                // mismo 400 en los cinco casos
+                new ApiErrorMapping(PasswordResetTokenInvalidException.class, HttpStatus.BAD_REQUEST, null),
                 // ADR-050 D5: contraseña actual incorrecta al cambiarla, 400 y nunca 401 (un 401 cerraría la sesión del
                 // móvil, ADR-043 T-1). CredentialsRevokedException no se mapea: solo aparece en el filtro JWT (401)
                 new ApiErrorMapping(CurrentPasswordIncorrectException.class, HttpStatus.BAD_REQUEST, null),

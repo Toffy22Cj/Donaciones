@@ -117,7 +117,7 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
 
     private String createdBy(String account, String name) throws Exception {
         return ok(send("POST", "/api/v1/organizations", account,
-                "{\"type\":\"FOUNDATION\",\"name\":\"" + name + "\"}"), 201).get("organizationId").asText();
+                "{\"type\":\"FOUNDATION\",\"name\":\"" + name + "\",\"acceptedOrganizationTermsVersion\":\"v1-2026-10\"}"), 201).get("organizationId").asText();
     }
 
     private static String q(String v) {
@@ -130,7 +130,7 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
     void anyRegisteredUser_createsAnOrganization_asItsRepresentative_pendingVerification() throws Exception {
         String user = account();
         JsonNode created = ok(send("POST", "/api/v1/organizations", user,
-                "{\"type\":\"COMPANY\",\"name\":\"  Empresa Solidaria  \"}"), 201);
+                "{\"type\":\"COMPANY\",\"name\":\"  Empresa Solidaria  \",\"acceptedOrganizationTermsVersion\":\"v1-2026-10\"}"), 201);
         assertThat(created.get("verificationStatus").asText()).isEqualTo("PENDING_VERIFICATION");
         assertThat(created.fieldNames()).toIterable().containsExactlyInAnyOrder("organizationId", "verificationStatus");
 
@@ -139,10 +139,10 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
         assertThat(me.get("roles")).extracting(JsonNode::asText).containsExactly("REPRESENTATIVE");
 
         // ya pertenece a una organización (ADR-026, invariante 1): 409, también para un administrador de otra
-        HttpResponse<String> again = send("POST", "/api/v1/organizations", user, "{\"type\":\"COMPANY\",\"name\":\"Otra\"}");
+        HttpResponse<String> again = send("POST", "/api/v1/organizations", user, "{\"type\":\"COMPANY\",\"name\":\"Otra\",\"acceptedOrganizationTermsVersion\":\"v1-2026-10\"}");
         assertThat(again.statusCode()).isEqualTo(409);
         assertThat(title(again)).isEqualTo("AccountAlreadyBelongsToOrganization");
-        assertThat(send("POST", "/api/v1/organizations", orgAdmin, "{\"type\":\"COMPANY\",\"name\":\"Otra\"}").statusCode())
+        assertThat(send("POST", "/api/v1/organizations", orgAdmin, "{\"type\":\"COMPANY\",\"name\":\"Otra\",\"acceptedOrganizationTermsVersion\":\"v1-2026-10\"}").statusCode())
                 .isEqualTo(409);
     }
 
@@ -162,7 +162,7 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
         assertThat(send("POST", "/api/v1/organizations", user, null).statusCode()).isEqualTo(400);
         // nada de lo anterior la incorporó a una organización
         assertThat(ok(send("GET", "/api/v1/me", user, null), 200).has("organizationId")).isFalse();
-        ok(send("POST", "/api/v1/organizations", user, "{\"type\":\"FOUNDATION\",\"name\":\"" + "n".repeat(200) + "\"}"), 201);
+        ok(send("POST", "/api/v1/organizations", user, "{\"type\":\"FOUNDATION\",\"name\":\"" + "n".repeat(200) + "\",\"acceptedOrganizationTermsVersion\":\"v1-2026-10\"}"), 201);
     }
 
     // --- cola de verificación ---

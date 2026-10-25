@@ -10,6 +10,7 @@ import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.SelfTransferNotAllowedException;
 import identity.domain.exception.TransferTargetNotMemberException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +28,8 @@ public class Organization {
     private String name;
     /** Referencia del logo: la {@code objectKey} del proveedor (ADR-051 F9; P-T2-1). Opcional: si falta, no hay logo. */
     private String logoObjectKey;
+    /** ADR-050 D2: los términos de organización aceptados al crearla. Nulo en las organizaciones existentes. */
+    private OrganizationTermsAcceptance organizationTermsAcceptance;
 
     /** Longitud máxima del nombre público (DD-04). */
     public static final int NAME_MAX_LENGTH = 200;
@@ -89,6 +92,21 @@ public class Organization {
         return organization;
     }
 
+    /** Igual que el anterior, con la aceptación de los términos de organización (ADR-050 D2). */
+    public static Organization reconstitute(OrganizationId organizationId,
+                                            OrganizationType type,
+                                            List<Membership> members,
+                                            VerificationStatus verificationStatus,
+                                            InformationRequestMessage verificationInformationRequest,
+                                            String name,
+                                            String logoObjectKey,
+                                            OrganizationTermsAcceptance organizationTermsAcceptance) {
+        Organization organization = reconstitute(organizationId, type, members, verificationStatus,
+                verificationInformationRequest, name, logoObjectKey);
+        organization.organizationTermsAcceptance = organizationTermsAcceptance;
+        return organization;
+    }
+
     public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
         if (type == null) {
             throw new IllegalArgumentException("OrganizationType cannot be null");
@@ -120,6 +138,15 @@ public class Organization {
 
     public String getLogoObjectKey() {
         return logoObjectKey;
+    }
+
+    public OrganizationTermsAcceptance getOrganizationTermsAcceptance() {
+        return organizationTermsAcceptance;
+    }
+
+    /** ADR-050 D2: guarda la versión de los términos de organización, la cuenta que los aceptó y cuándo. */
+    public void acceptOrganizationTerms(String version, AccountId acceptedBy, Instant now) {
+        this.organizationTermsAcceptance = new OrganizationTermsAcceptance(version, acceptedBy, now);
     }
 
     /**

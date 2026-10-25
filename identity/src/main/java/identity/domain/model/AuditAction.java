@@ -21,5 +21,7 @@ public enum AuditAction {
     // ADR-049: invitaciones (los datos no llevan el email ni el token)
     INVITATION_CREATED,
     INVITATION_REVOKED,
-    INVITATION_ACCEPTED
+    INVITATION_ACCEPTED,
+    // ADR-050 D1: perfil (nombre y apellido); los datos solo nombran los campos que cambiaron, nunca sus valores
+    PROFILE_UPDATED
 }

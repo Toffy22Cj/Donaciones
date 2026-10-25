@@ -257,6 +257,165 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - R-R3-1: sin límite de intentos, como en `/account/password`;
   - con D3 (#144) en `develop`, los tests de este PR crean cuentas con `createAccount(email, password)`, pero no inician sesión por `/auth/login` (usan `tokens.issue`), así que D3 no les afecta.
 
+### 0.42 D3: el login exige las aceptaciones vigentes (2026-10-25, `feat/identity-d3-aceptaciones-login`)
+
+- **Norma:** ADR-050 D3 y Q1 (a), con la Enmienda 1, parte 3 (E3-1 a E3-5), APROBADA por Carlos ("todo aprobado" en #134). Plan: `plan-r5-d1-aceptaciones-y-perfil.md`, P-R5-1 (a), P-R5-2 y P-R5-5. **Depende de #142 (R-5, primera parte) y de #137 (P-R3-3):** la rama sale de la de #142 (`3002c6e`) con `fix/identity-p-r3-3-iat-del-login` integrado por merge (`89a1e26`), y después la cabeza de #142 (solo documentos).
+- **Qué hace:**
+  - `contracts`: `AcceptedLegalVersions` y `AcceptanceRequiredException` **[Enmienda]**. `AuthenticateAccountPort.authenticate(email, password, accepted)` **sustituye** al método; no se añade otro (E3-1).
+  - `identity`, en `AuthenticateAccountPortImpl` (E3-2):
+    - primero lo de siempre: la lectura, `matches` y el estado; cualquier fallo es el mismo `AuthenticationFailedException`;
+    - después, las aceptaciones: si falta alguna vigente y `accepted` no trae exactamente esa, `AcceptanceRequiredException` con solo las pendientes;
+    - si la trae, se guardan con una **actualización parcial** condicionada al `passwordHash` validado y a `ACTIVE`, nunca con `save` (E3-3): `AccountRepositoryPort.recordLegalAcceptancesIfUnchanged` **[nombre propuesto en el PR: la enmienda no lo fija]**. Si no escribe, 401.
+  - `api`: `LoginRequest` con las dos versiones; `403` `AcceptanceRequired` con `{pendingTermsVersion?, pendingDataPolicyVersion?}` y sin token (E3-4, P-R5-5).
+  - `app`: `DemoScenarioSeeder` y los tests que inician sesión mandan las versiones. `scripts/demo/recorrido.py` también, con `TRACEABILITY_LEGAL_*_VERSION` o `v1-2026-10`.
+  - Nota fechada en `referencia-api-v1.md`.
+- **Evidencia:**
+  - **Rojo primero** (producción de D3 apartada, sobre `89a1e26`):
+    - `api` e `identity` no compilaban ("cannot find symbol" de `AcceptedLegalVersions` y `AcceptanceRequiredException`);
+    - `app`, con esos tests apartados: "Tests run: 5, Failures: 3". Los tests 1, 2 y 4 dieron "expected: 403 but was: 200".
+  - **Verde por capas** (`mvn test -pl … -am`, sobre `cc5239e`): identity "Tests run: 359", api "Tests run: 162" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones** en un clon limpio de `d0b3d7c`, con un repositorio Maven aislado y la línea base en verde (identity 22, api 11, app 5):
+    - identity: 6 de 6 muertas;
+    - api: 1 de 1;
+    - app: 4 de 7. Las tres vivas en `app` son la 2 (`save` en lugar de la escritura parcial), la 5 (sin la condición del hash) y la 6 (sin la de `ACTIVE`): las tres mueren en `identity` con el test 6, que es de `identity` porque por HTTP no se puede meter una escritura entre la lectura y el `$set`.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `d0b3d7c` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core 340, crypto 50, ai 47, api 162, identity 359, convocatoria 253 y app 478, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-d0b3d7c-2026-10-25T09-15-59Z.txt`, con nota a mano. El merge posterior de la cabeza de #142 solo trae documentos.
+- **Pendiente:**
+  - cuando #137 y #142 estén en `develop`, merge de `develop` y CI otra vez;
+  - #140 (R-4) usa el login en sus tests (R4-19), y el primero de los dos que llegue a `develop` obliga al otro a mandar las versiones;
+  - nota "implementada" en la parte 3 de la Enmienda 1.
+
+### 0.41 R-5, primera parte: aceptaciones legales (D2), perfil (D1) y minimización (D10) (2026-10-25, `feat/identity-r5-aceptaciones-perfil`)
+
+- **Norma:** ADR-050 D1, D2 y D10 y los tests 19 a 23 de su definición de hecho. Plan: `plan-r5-d1-aceptaciones-y-perfil.md`, APROBADO por Carlos (nota del 2026-10-25), con P-R5-2: D3 va en su propio PR, después. Versiones `v1-2026-10` en dev y en test (indicación de Carlos); en producción, sin valor por defecto y con *fail-fast*.
+- **Qué hace:**
+  - `identity`:
+    - `Account` con `givenName?` y `familyName?` (de 1 a 100 puntos de código tras recortar; `null` borra) y las aceptaciones de términos y de datos con su fecha;
+    - `Organization` con `organizationTermsAcceptance {version, acceptedBy, acceptedAt}`;
+    - `CreateAccountService` y `CreateOrganizationService` validan contra `LegalVersions`. `createAccount(email, password)` **[Plan]** se conserva para la semilla y los tests;
+    - `AccountProfileService`, con `PROFILE_UPDATED {fields: [...]}` sin valores (P-R5-4);
+    - `ACCOUNT_CREATED` pasa a `{selfRegistration: true}`, sin el correo (D10).
+  - `app`:
+    - `LegalVersionsConfig` (P-R5-3), con las tres `TRACEABILITY_LEGAL_*_VERSION` sin valor por defecto en `application.yml`;
+    - el registro y la organización piden sus versiones: 400 con el campo nombrado y sin crear nada;
+    - `AccountProfileController` (`GET`/`PUT /api/v1/account/profile`, `no-store`);
+    - `DemoScenarioSeeder` manda las versiones; nota en el runbook.
+  - Documentos: nota fechada en `referencia-api-v1.md`.
+- **Evidencia:**
+  - **Rojo primero** (producción de R-5 apartada, sobre `develop` `406f9b2`):
+    - `identity` no compilaba ("cannot find symbol" de `AccountProfileService`, `InvalidProfileFieldException`, `LegalAcceptance`, `LegalVersionNotCurrentException`, `LegalVersions` y `OrganizationTermsAcceptance`);
+    - `app`, con los tests de `identity` apartados, tampoco ("cannot find symbol" de `LegalVersions` y `LegalVersionsConfig`).
+  - **Verde por capas** (`mvn test -pl … -am`, sobre `42e6e37`): identity "Tests run: 344" y app "Tests run: 471", con "Failures: 0, Errors: 0, Skipped: 0". api, sin cambios: 156.
+  - **Mutaciones** en un clon limpio, con un repositorio Maven aislado y la línea base en verde: 7 de 7 muertas en `app` ("Mutaciones vivas: 0", sobre `3002c6e`) y 5 de 5 en `identity` (sobre `52aa433`: la 1, 2, 3, 5 y 6; la 4 y la 7 solo tienen test en `app`). La 4 del plan ("`GET /me` devuelve `givenName`") se adapta a `GET /account`: `MeController` está en `api` y no ve el nombre; `/account` está en el test 23. La 5 sobrevivió en `app` sobre `52aa433` y murió tras `3002c6e`, que añade la comprobación en `identity_audit_log`.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `3002c6e` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core "Tests run: 340", crypto 50, ai 47, api 156, identity 344, convocatoria 253 y app 471, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-3002c6e-2026-10-25T08-19-21Z.txt`, con la nota del espejo y del repositorio Maven aislado añadida a mano.
+- **Cambios respecto a la wip:**
+  - test 22 con una entrada antigua intacta;
+  - test 23 con `/me/campaigns`: no hay una ruta que liste los responsables;
+  - `PROFILE_UPDATED` comprobado por HTTP sin los valores.
+- **Pendiente:** D3 (Enmienda 1, parte 3) en `feat/identity-d3-aceptaciones-login`, que depende de este PR y de #137.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `a5e56c8` (#140, R-4) con un merge normal en `eed0a29`; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados (ninguna línea de ninguno de los dos padres se pierde). `scripts/ci-local.sh` en un clon limpio de `eed0a29` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 166, identity 364, convocatoria 253 y app 504, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-eed0a29-2026-10-25T16-22-39Z.txt`.
+
+
+### 0.40 R-4: recuperación de contraseña con envío diferido (2026-10-25, `feat/identity-r4-recuperacion-contrasena`)
+
+- **Norma:** ADR-050 D8 y Q5 (a), y los tests 11 a 18 de su definición de hecho; ADR-050 Enmienda 1, parte 2 (actor de la confirmación, enmienda de ADR-038 E1), APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25). Plan: `plan-r4-recuperacion-de-contrasena.md`, APROBADO por Manuel (§11), con los tests R4-19 a R4-21 y la mutación 12. **Depende de #137 (P-R3-3):** la rama sale de `fix/identity-p-r3-3-iat-del-login` (`422a1cb`).
+- **Qué hace:**
+  - `identity`:
+    - `PasswordResetToken` (30 min, enfriamiento de 5 min) y `password_reset_tokens`, con solo el hash del token y un índice único parcial `uq_pending_per_account`;
+    - `RequestPasswordResetService`, con el correo después de confirmar la transacción y el secreto del intento que confirmó;
+    - `ChangeCredentialsService.resetCredentials`, que fija `credentialsNotBefore` y audita `CREDENTIALS_CHANGED {via: "PASSWORD_RESET"}` con el actor de la cuenta. Calcula el hash BCrypt **antes** de la transacción.
+  - `api`: las dos rutas en `PublicRoutes`.
+  - `app`:
+    - `PasswordResetController` (`202` sin cuerpo y `no-store`; `204`);
+    - `SmtpPasswordResetMailAdapter` (enlace `/recuperar#token=`);
+    - `PasswordResetMailExecutorConfig` (de 1 a 2 hilos, cola de 100, `AbortPolicy`, 10 s), con `defaultCandidate = false`;
+    - el mapeo a 400 de `PasswordResetTokenInvalid`.
+  - Documentos: nota fechada en `referencia-api-v1.md` y en el plan R-3 + R-2 (sobre la reutilización).
+- **Dos correcciones que salieron de la evidencia:**
+  1. **Concurrencia:** con el BCrypt dentro de la transacción, dos confirmaciones simultáneas daban `[500, 204]`. La perdedora agotaba los 3 intentos de `WriteConflict` (`IdentityConcurrentModificationException`). Corregido en `eb7c6a6`.
+  2. **El ejecutor sustituía al de Spring:** en Spring Boot 3.4.4, cualquier bean `Executor` hace que no se cree `applicationTaskExecutor` (`@ConditionalOnMissingBean(Executor.class)`), y el plan decía que no lo sustituyera. Corregido con `defaultCandidate = false` y un test.
+- **Evidencia:**
+  - **Rojo primero** (producción de R-4 apartada, sobre `422a1cb`):
+    - `identity` no compilaba: "cannot find symbol" de las 9 clases nuevas;
+    - `api`: "Tests run: 3, Failures: 1" (`PublicRoutesTest.theListIsExactlyTheOneApprovedInThePlan`);
+    - `app` no compilaba (`PasswordResetMailExecutorConfig`); con el test HTTP apartado: "Tests run: 2, Failures: 1" (`PublicRoutesInventoryIntegrationTest`, "could not find the following element(s): [/api/v1/auth/password-reset, /api/v1/auth/password-reset/confirm]");
+    - después, los dos rojos de las correcciones, ya descritos.
+  - **Verde por capas** sobre `eb7c6a6`, cada módulo completo: identity "Tests run: 352", api "Tests run: 160" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones:** en un clon limpio, con un repositorio Maven aislado, `mvn install` (con tests) de las dependencias y la línea base en verde (identity 18, app 14):
+    - identity: 9 de 9 muertas;
+    - app: 11 de 13 muertas. La 6 y la 11 siguen vivas en app y mueren en identity. La 6 (sin `status = PENDING` en `markUsedIfPending`) no la mata el test 15 en ninguna capa, porque el `WriteConflict` de Mongo resuelve la carrera; la mata el test nuevo del contrato del adaptador.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `eb7c6a6` (`free -g`: 15 GB disponibles): `BUILD SUCCESS`, ningún test fallido. Resumen literal: core "Tests run: 340", crypto "Tests run: 50", ai "Tests run: 47", api "Tests run: 160", identity "Tests run: 352", convocatoria "Tests run: 253" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-eb7c6a6-2026-10-25T07-23-51Z.txt`, con la nota del espejo y del repositorio Maven aislado añadida a mano.
+- **Pendiente:** fusionar después de #137; nota "implementada" en la parte 2 de la Enmienda 1 cuando se fusione.
+- **Nota (2026-10-25), integración de `develop` en el tren de fusión:** `develop` `0a54994` (con #141) por un merge normal (`1ec8be3`); el único conflicto, en esta página, se resolvió conservando los dos lados. `ci-local.sh` en un clon limpio de `1ec8be3`: `BUILD SUCCESS`, core 345, crypto 57, ai 47, api 166, identity 352, convocatoria 253, app 495, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-1ec8be3-2026-10-25T16-00-46Z.txt`.
+
+### 0.50 Ficha R-6, Bloque C con la Enmienda 1 (E1): `parentAssetRef?` (G-4), `anchorStatus` por paso (G-3), `eventHash` y `anchorProof` (2026-10-25, `feat/r6-bloque-c`)
+
+- Numerada 0.50: la sesión B usa la numeración 0.50 a 0.69 (la A, 0.39 a 0.49) para no chocar.
+- **Norma:**
+  - `ficha-R6-datos-estilo-v2.md` (CONGELADA), §5 (G-4, G-3), §7 (tests 7, 8 y 9); `ficha-R6-enmienda-1.md` §E1, APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; "todo aprobado" en #134).
+  - Plan: `plan-r6-bloque-c.md`, versión 2, APROBADO (`plan-r6-bloque-c.md:5`), con P-C-0 a P-C-5 y P-R6C-1 a P-R6C-5 como los recomienda; decisiones de Manuel de `plan-ejecucion-cierre-manuel-2026-10-24.md` §0.4.
+- **Qué hace:**
+  - `crypto`: `MerkleTree.proof(leafHashes, index)` con `MerkleTree.Side` y `MerkleTree.ProofStep`; reutiliza `hashPair` y la regla del nodo impar de `build` (el último nodo de un nivel impar da `{RIGHT, el mismo nodo}`). Vectores fijos en `crypto/src/test/resources/merkle/proof-vectors.json` (1, 2, 3 y 5 hojas, con 5 hojas e índices 4 y 2), generados con una implementación independiente en Python.
+  - `core`: `LogisticsReadItem.parentAssetId` (G-4) y `AssetTransitionReadModel.sequence` (P-R6C-2), internos. Puerto nuevo `StreamEventAnchorDataPort.findByStream` (`StreamEventAnchorData(sequence, eventHash, merkleBatchId)`) con `MongoStreamEventAnchorDataAdapter`: una consulta por `idx_stream_sequence`. **`EventBatchMembershipPort` no cambia** (P-C-2, regla 3.5).
+  - `contracts`: `AssetAnchorStatusPort.anchorBySequence` (`StepAnchor`, `AnchorProof` sin `leafCount`, `ProofStep`, `Side`) y `TrackingAnchorStatus` (cuatro valores).
+  - `app`: `AssetAnchorStatusProducer`. `switch` exhaustivo sin `default` (C-4). Con el lote `ANCHORED` y sus hojas, el `leafIndex` se **calcula** desde `coverage` con el criterio de `IntegrityVerificationUseCase.java:69-73` y se compara `leafHashes[leafIndex]` con el `eventHash` actual; **nunca se busca el hash**. Si no coincide, o el evento no cuadra con el lote, `UNDER_REVIEW` sin prueba. Lote antiguo sin hojas: `ANCHORED` sin prueba. Un lote se lee una vez por historial.
+  - `api`: `PublicTransitionDTO` gana `anchorStatus`, `eventHash?` y `anchorProof?` (`PublicAnchorProofDTO`); `AssetHistoryMapper` cruza cada paso por `sequence`, y un paso sin evento es `PENDING` sin hash (P-R6C-3, P-C-4). `PublicLogisticsItemDTO.parentAssetRef?`, solo si el padre está en la misma `logistics` (nunca se calcula el ref de un lote ajeno).
+- **Nombres que el plan no fijaba (H-C-1):** el plan nombra el método y el record del puerto de `core`, no la interfaz. Se eligió `StreamEventAnchorDataPort` (derivado del record **[Plan]**) y `MongoStreamEventAnchorDataAdapter`. El puerto de `contracts` y el productor llevan los nombres de P-R6C-1 (`AssetAnchorStatusPort`, `AssetAnchorStatusProducer`), en el paquete raíz de `contracts`, como `NarrativeReadPort`.
+- **Caso que el plan no cubre (H-C-2), pregunta para Manuel:** `BlockchainAnchorProducer.java:156` reclama los eventos y `:175` guarda el lote después, así que un evento puede tener `merkleBatchId` sin lote guardado. Se trata como `PENDING` sin prueba, con el criterio de P-R6C-3 (nada que se pueda comprobar; nunca se inventa `ANCHORED`). Test: `AssetAnchorStatusProducerIntegrationTest.stepWhoseBatchDoesNotExist_isPendingWithoutProof`.
+- **Tests:** C-E1 a C-E4 (`MerkleTreeTest`); 9a, 9b, C-E5 a C-E9 y las incoherencias de §2.4 paso 4.1 (`AssetAnchorStatusProducerIntegrationTest`, Mongo real); 9c y "un lote, una vez" (`AssetAnchorStatusProducerTest`); 7a, 8, C-E10, 9d y el cruce por `sequence` (`PublicDonationMapperTest`, `AssetHistoryMapperTest`); el adaptador nuevo con `explain()` (`MongoStreamEventAnchorDataAdapterTest`); 8 y la medición por HTTP (`TrackingLineageAndAnchorHttpIntegrationTest`); 7a, 9d y C-E11 por HTTP **al final** de `GoldenPathHttpIntegrationTest`, con la división y los lotes `ANCHORED` reales del recorrido (verifica `anchorProof` con el pseudocódigo de E1.3, sin `MerkleTree`).
+- **Evidencia:**
+  - **Rojo primero:**
+    - `crypto`: no compilaba ("`MerkleTreeTest.java:[5,49] cannot find symbol`", `MerkleTree.ProofStep`; "`[66,53]`", `proof`).
+    - `core`: no compilaba ("`package com.traceability.core.application.port.out.StreamEventAnchorDataPort does not exist`").
+    - `app` (productor): no compilaba ("`AssetAnchorStatusProducerTest.java:[36,24] cannot find symbol`").
+    - `api`: no compilaba ("`constructor AssetHistoryMapper … cannot be applied to given types`").
+    - `app` (HTTP), con G-3 y G-4 desactivados temporalmente en `api/src/main` y restaurados con `git checkout`: fallos de aserción, "`expected: "ANCHORED" but was: "null"`" (medición) y "`[exactamente un lote viene de una división] Expected size: 1 but was: 0`" (golden path). Una primera versión del golden path fallaba con `NullPointerException`; se cambió la aserción para que el rojo fuera de aserción. El test 8 pasa también sin la función: es una aserción negativa, y la valida la mutación 1.
+  - **Verde por capas**, con el módulo completo: `crypto` "Tests run: 57", `core` "Tests run: 345", `api` "Tests run: 162", y en el reactor completo sobre `7a802f0` (`mvn -o install -fae`): contracts "No tests to run.", core 345, crypto 57, ai 47, api 162, identity 332, convocatoria 253 y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0". El `install` de `app` falló después de los tests, en el `repackage` de `spring-boot-maven-plugin`, por una dependencia del plugin no descargada en modo offline; no afecta a los tests.
+  - **Medición (§6):**
+    - `findByStream`, consulta real capturada con el profiler: "`IXSCAN { streamId: 1, sequence: 1 }` keysExamined=6 docsExamined=6", sin etapa de ordenación.
+    - Historial por HTTP: en una llamada, una consulta a `event_store` ("`IXSCAN { streamId: 1, sequence: 1 }` keysExamined=5 docsExamined=5") y una a `merkle_batches` ("`IXSCAN { batchId: 1 }` keysExamined=1 docsExamined=1").
+    - Tiempo, mediana de 20 llamadas tras 5 de calentamiento: **1000 hojas, 49,47 ms; 5 hojas, 27,00 ms; diferencia 22,46 ms** (otra ejecución: 47,52, 22,39 y 25,13 ms). Por debajo de los 50 ms del plan: **no se añade caché**.
+  - **15 de 15 mutaciones muertas** (más la 14, abajo) ("Mutaciones vivas: 0" en `crypto`, `api` y `app`), en un clon limpio de `7a802f0`, con la línea base sin mutar en verde y los módulos no mutados instalados con sus tests:
+    - 1 (sin comprobar que el padre está en `logistics`) → `g4_parentOutsideTheLogistics…`; 2 (`assetId` crudo) → `g4_childOfALotOfTheSameLogistics…`;
+    - 3 (`RELEASED` → `IN_BATCH`) → 9a, 9b y 9c; 4 (`FAILED` → `IN_BATCH`) y 5 (`ANCHOR_MISMATCH` → `ANCHORED`) → 9a;
+    - 6 (cruzar por posición) → `g3_eachStepTakesItsAnchorBySequence…` y C-E10; 7a (`sequence` al DTO) y 7b (`leafCount` al DTO) → 9d;
+    - 8 (`indexOf` del hash) → **C-E9** y las dos incoherencias de `coverage`; 9 (sin comparar la hoja) → C-E8 y C-E9;
+    - 10 (nodo impar con hash vacío) y 11a (`LEFT`/`RIGHT` invertidos en `proof`) → C-E1, C-E2, C-E3 y la regla del nodo impar; 11b (invertidos al traducir la prueba en `app`) → C-E5 y la medición;
+    - 12 (sin sumar los streams anteriores) → C-E5, C-E8 y la medición; 13 (prueba de un lote antiguo con las hojas actuales) → C-E7.
+    - *Nota (2026-10-25, revisión adversaria antes del PR):* una mutación razonable sobrevivía: tratar un lote `ANCHORED` con la lista de hojas **vacía** como no antiguo (C-E7 solo probaba `null`). Se añadió `cE7_anchoredBatchWithAnEmptyLeafHashesList_isAlsoLegacy_anchoredWithoutProof` (`7e411f1`) y la mutación 14 muere en un clon limpio de `7e411f1` ("Mutaciones vivas: 0"). Total: **16 de 16**.
+  - **`ci-local.sh`** en un clon limpio de `7a802f0`, con `free -g` en 14 GB disponibles: `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-7a802f0-2026-10-25T07-17-47Z.txt`. Resumen literal: contracts "No tests to run.", core "Tests run: 345", crypto "Tests run: 57", ai "Tests run: 47", api "Tests run: 162", identity "Tests run: 332", convocatoria "Tests run: 253" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0". En esa ejecución, la medición dio 38,24 ms (1000 hojas) y 13,79 ms (5 hojas): diferencia de 24,45 ms. `develop` seguía en `406f9b2`, la base de la rama.
+  - **`ci-local.sh` repetido** en un clon limpio de **`7e411f1`** (último commit de código, con el test de la mutación 14): `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-7e411f1-2026-10-25T07-39-57Z.txt`. Igual que arriba salvo app, "Tests run: 479, Failures: 0, Errors: 0, Skipped: 0".
+- **Pendiente:**
+  - H-C-2 como pregunta para Manuel;
+  - **Nota (2026-10-25), respuestas de Manuel:**
+    - **H-C-2, resuelta:** cuando el lote de un `merkleBatchId` no existe (`BlockchainAnchorProducer.java:156` reclama y `:175` guarda), el paso es `PENDING` sin prueba, como ya hace el código;
+    - **H-C-1, aprobados** los nombres `StreamEventAnchorDataPort` y `MongoStreamEventAnchorDataAdapter`;
+  - **Nota (2026-10-25), integración de `develop` `aa7a0d2`** (con #137 y #139), por un merge normal (`6c121b1`). El único conflicto fue en esta página, y se conservaron los dos lados (§0.50 y §0.39). `ci-local.sh` se repitió en un clon limpio de `d33a770`: `BUILD SUCCESS`, con core 345, crypto 57, ai 47, api 166, identity 334, convocatoria 253 y app 481, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-d33a770-2026-10-25T15-38-09Z.txt`.
+  - avisar a la web y al móvil (F-C2) cuando se fusione, con el commit de `develop`: `anchorStatus` tiene cuatro valores; `eventHash` y `anchorProof` con su algoritmo y sus límites (E1.3, E1.4); los vectores fijos; `parentAssetRef?`.
+
+### 0.39 P-R3-3: el login emite con `iat = max(segundo truncado, credentialsNotBefore)` (2026-10-25, `fix/identity-p-r3-3-iat-del-login`)
+
+- **Norma:** `ADR-050-enmienda-1-iat-del-login.md`, parte 1 (E1-1, E1-2), APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; "todo aprobado" en #134). Plan: `plan-p-r3-3-iat-del-login.md` (#128), APROBADO por Carlos, con P-PR33-1 a P-PR33-5 como los recomienda. Corrige el defecto conocido de §0.37.
+- **Qué hace:**
+  - `contracts`: `AuthenticatedAccount(accountId, credentialsNotBefore)`. `AuthenticateAccountPort.authenticate` lo devuelve en lugar de `String`: **cambia la firma; no se añade un método**.
+  - `identity`: `AuthenticateAccountPortImpl` lo toma del mismo `Account` que validó la contraseña, en una sola lectura. El hash ficticio y el coste igual (ADR-047 Q5) no cambian.
+  - `api`: `LoginController` emite con `issue(accountId, max(segundo actual truncado, cnb))`, con el reloj de la aplicación (`ObjectProvider<Clock>`, P-PR33-2) y dentro del `try` de la emisión (P-PR33-4).
+  - `referencia-api-v1.md`: nota fechada que da el defecto por corregido. `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPreviousTokenIs401` ya no avanza el reloj.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `api` e `identity` no compilaban ("cannot find symbol", `AuthenticatedAccount`);
+    - en `app`, con los tests de `api` e `identity` apartados para que compilara el reactor: "Tests run: 13, Failures: 3, Errors: 0, Skipped: 0". `p_r3_3_changeThePasswordAndLogInInTheSameSecond_theTokenWorks`, `p_r3_3_twoChangesInARowAndAnImmediateLogin_theTokenWorks` y `deactivateReactivate_andAPreviousTokenIs401` fallaron con "expected: 200": el login del mismo segundo daba 401.
+  - **`ci-local.sh`** en un clon limpio de `e7019e4`, con el `develop` `406f9b2` integrado: `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-e7019e4-2026-10-25T02-09-27Z.txt`. Resumen literal: core "Tests run: 340", crypto "Tests run: 50", ai "Tests run: 47", api "Tests run: 160", identity "Tests run: 334", convocatoria "Tests run: 253" y app "Tests run: 464", todos con "Failures: 0, Errors: 0, Skipped: 0". Es el verde por capas: cada módulo completo.
+  - **5 de 5 mutaciones muertas** ("Mutaciones vivas: 0"), en otro clon limpio, con `mvn install` (con tests) de `.,contracts,core,crypto,ai,convocatoria` y la línea base en verde (api 9, identity 9, app 13). El reactor va en el orden api, identity, app, así que la 1, la 3, la 4 y la 5 murieron en `api` antes de llegar a `app`:
+    1. `issue(accountId)` sin `cnb` → L-1 a L-4 y tres tests más de `LoginControllerTest`;
+    2. `cnb` siempre nulo → A-1 (`identity`);
+    3. `iat = cnb` sin `max` → L-2;
+    4. `min` en lugar de `max` → L-1 y L-2;
+    5. sin truncar → L-2 y L-3.
+- **Pendiente:**
+  - nota fechada en la Enmienda 1 ("implementada en …") cuando se fusione;
+  - **R-4** sale del `develop` que ya tenga esto (el trabajo previo está en `wip/identity-r4-recuperacion`);
+  - **D3** (parte 3) cambiará otra vez la firma del puerto, después de R-5 primera parte.
+
 ### 0.38 Ficha R-6, Enmienda 1, E2: `lastEventAt?` por lote en el listado de la organización (G-9) (2026-10-25, `feat/r6-bloque-b-g9`)
 
 - **Norma:**

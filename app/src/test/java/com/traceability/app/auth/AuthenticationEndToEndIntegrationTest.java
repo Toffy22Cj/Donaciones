@@ -93,7 +93,7 @@ class AuthenticationEndToEndIntegrationTest {
 
     private MvcResult login(String email, String password) throws Exception {
         return mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}")).andReturn();
+                .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
     }
 
     private static String token(MvcResult login) throws Exception {
@@ -126,7 +126,7 @@ class AuthenticationEndToEndIntegrationTest {
         String local = "Ana" + UUID.randomUUID().toString().substring(0, 8);
         String mixed = local + "@Example.ORG";
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"" + mixed + "\",\"password\":\"pw-correct-123\"}")).andReturn();
+                .content("{\"email\":\"" + mixed + "\",\"password\":\"pw-correct-123\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
         assertThat(registered.getResponse().getStatus()).isEqualTo(201);
 
         MvcResult lower = login(mixed.toLowerCase(java.util.Locale.ROOT), "pw-correct-123");
@@ -139,7 +139,7 @@ class AuthenticationEndToEndIntegrationTest {
         // la misma dirección con otras mayúsculas no es una cuenta nueva
         MvcResult again = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + mixed.toLowerCase(java.util.Locale.ROOT)
-                        + "\",\"password\":\"pw-correct-456\"}")).andReturn();
+                        + "\",\"password\":\"pw-correct-456\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
         assertThat(again.getResponse().getStatus()).isEqualTo(409);
         assertThat(login(mixed, "pw-correct-456").getResponse().getStatus()).isEqualTo(401);
     }
@@ -149,7 +149,7 @@ class AuthenticationEndToEndIntegrationTest {
     void theEmail_ignoresSurroundingSpaces_inRegistrationAndLogin() throws Exception {
         String email = uniqueEmail();
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"  " + email + " \",\"password\":\"pw-correct-123\"}")).andReturn();
+                .content("{\"email\":\"  " + email + " \",\"password\":\"pw-correct-123\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
         assertThat(registered.getResponse().getStatus()).isEqualTo(201);
 
         assertThat(login(email, "pw-correct-123").getResponse().getStatus()).isEqualTo(200);

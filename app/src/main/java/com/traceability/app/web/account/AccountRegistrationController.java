@@ -2,6 +2,7 @@ package com.traceability.app.web.account;
 
 import com.traceability.api.web.InvalidRequestFieldException;
 import identity.application.service.CreateAccountService;
+import identity.domain.exception.LegalVersionNotCurrentException;
 import identity.domain.model.Account;
 import identity.domain.model.Email;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
  * <ul>
  *   <li>{@code 201 {accountId, status}};</li>
  *   <li>email o contraseña vacíos → 400 sin llamar al dominio; email mal formado → 400;</li>
- *   <li>email ya registrado → 409 ({@code DuplicateEmail}).</li>
+ *   <li>email ya registrado → 409 ({@code DuplicateEmail});</li>
+ *   <li>sin {@code acceptedTermsVersion} o {@code acceptedDataPolicyVersion}, o con una que no es la vigente → 400 y sin
+ *       cuenta (ADR-050 D2).</li>
  * </ul>
  * Sin {@code Command-Id}: Identity no lo usa (DH-34); un reintento recibe 409. La contraseña debe tener al menos 12
  * caracteres (H-P2-1; regla del dominio, {@code PlainPassword}) → si no, 400 {@code PasswordTooShort}. Nunca registra
@@ -25,7 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AccountRegistrationController {
 
-    public record RegisterRequest(String email, String password) {}
+    /** Las dos versiones vigentes, la de los términos y la de la autorización de datos (ADR-050 D1, D2). */
+    public record RegisterRequest(String email, String password, String acceptedTermsVersion,
+                                  String acceptedDataPolicyVersion) {}
 
     public record RegisterResponse(String accountId, String status) {}
 
@@ -44,7 +49,14 @@ public class AccountRegistrationController {
         if (!StringUtils.hasText(request.password())) {
             throw new InvalidRequestFieldException("password");
         }
-        Account account = accounts.createAccount(new Email(request.email()), request.password());
+        // ADR-050 D2: una versión ausente o distinta de la vigente → 400 con el campo nombrado (en el log), sin cuenta
+        Account account;
+        try {
+            account = accounts.createAccount(new Email(request.email()), request.password(),
+                    request.acceptedTermsVersion(), request.acceptedDataPolicyVersion());
+        } catch (LegalVersionNotCurrentException e) {
+            throw new InvalidRequestFieldException(e.getField());
+        }
         return new RegisterResponse(account.getAccountId().value(), account.getStatus().name());
     }
 }
