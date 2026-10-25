@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class PublicDonationMapper {
@@ -57,8 +59,12 @@ public class PublicDonationMapper {
                 dates.map(d -> d.lastClearedAt().toString()).orElse(null)
         );
 
+        // Ficha R-6, G-4 (D-R6-5): un parentAssetRef solo apunta a otro ítem de esta misma logistics
+        Set<String> assetIdsInResponse = model.logistics() != null
+                ? model.logistics().stream().map(LogisticsReadItem::assetId).collect(Collectors.toSet())
+                : Set.of();
         List<PublicLogisticsItemDTO> logistics = model.logistics() != null
-                ? model.logistics().stream().map(this::mapLogisticsItem).toList()
+                ? model.logistics().stream().map(item -> mapLogisticsItem(item, assetIdsInResponse)).toList()
                 : List.of();
 
         // Ficha R-6, G-1: sin convocatoria, o si no se encuentra, no hay título ni organización (rama defensiva)
@@ -76,7 +82,7 @@ public class PublicDonationMapper {
         );
     }
 
-    private PublicLogisticsItemDTO mapLogisticsItem(LogisticsReadItem item) {
+    private PublicLogisticsItemDTO mapLogisticsItem(LogisticsReadItem item, Set<String> assetIdsInResponse) {
         String assetRef = assetRefService.computeRef(item.assetId());
         String locationZone = locationReferenceService.resolveZone(item.currentLocation()).orElse(null);
         PublicCustodianCategory custodianCategory = mapCustodian(item.lifecycleStatus());
@@ -88,7 +94,11 @@ public class PublicDonationMapper {
                 item.unitOfMeasure(),
                 item.quantity(),
                 locationZone,
-                custodianCategory
+                custodianCategory,
+                // Nunca se calcula el ref de un activo que no esté en la respuesta (plan del Bloque C, §2.1)
+                item.parentAssetId() != null && assetIdsInResponse.contains(item.parentAssetId())
+                        ? assetRefService.computeRef(item.parentAssetId())
+                        : null
         );
     }
 

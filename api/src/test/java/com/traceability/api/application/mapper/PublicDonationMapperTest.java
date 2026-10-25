@@ -231,4 +231,49 @@ class PublicDonationMapperTest {
         assertNull(dto.financialSnapshot().firstClearedAt());
         assertNull(dto.financialSnapshot().lastClearedAt());
     }
+
+    // ---- Ficha R-6, G-4 (plan del Bloque C, §2.1; tests 7a y 8) ----
+
+    private DonationReadModel withLogistics(LogisticsReadItem... items) {
+        return new DonationReadModel("f1", "USD", null, 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of(items));
+    }
+
+    private static LogisticsReadItem lot(String assetId, String parentAssetId) {
+        return new LogisticsReadItem(assetId, "REGISTERED", "t", "u", BigDecimal.ONE, "l", "c", parentAssetId);
+    }
+
+    // 7a: el hijo trae parentAssetRef igual al assetRef del padre de la misma respuesta; el lote sin padre, no
+    @Test
+    void g4_childOfALotOfTheSameLogistics_carriesTheParentsOpaqueRef_andTheRootLotDoesNot() {
+        when(assetRefService.computeRef("parent")).thenReturn("ref-parent");
+        when(assetRefService.computeRef("child")).thenReturn("ref-child");
+
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(withLogistics(lot("parent", null), lot("child", "parent")));
+
+        assertNull(dto.logistics().get(0).parentAssetRef());
+        assertEquals("ref-parent", dto.logistics().get(1).parentAssetRef());
+        // El ref del padre es el assetRef de otro ítem de la respuesta, nunca el assetId crudo
+        assertEquals(dto.logistics().get(0).assetRef(), dto.logistics().get(1).parentAssetRef());
+    }
+
+    // 8: un padre que no está en logistics (otra donación) no da parentAssetRef, ni se calcula su ref
+    @Test
+    void g4_parentOutsideTheLogistics_givesNoParentAssetRef_andItsRefIsNeverComputed() {
+        when(assetRefService.computeRef("child")).thenReturn("ref-child");
+
+        PublicDonationTrackingDTO dto = mapper.toPublicDTO(withLogistics(lot("child", "asset-of-another-donation")));
+
+        assertNull(dto.logistics().get(0).parentAssetRef());
+        verify(assetRefService, never()).computeRef("asset-of-another-donation");
+    }
+
+    // 8 (JSON): sin padre, el campo no se serializa; rootAssetRef nunca existe
+    @Test
+    void g4_withoutParent_theFieldIsOmittedFromTheJson_andThereIsNoRootAssetRef() throws Exception {
+        when(assetRefService.computeRef("child")).thenReturn("ref-child");
+        String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
+                mapper.toPublicDTO(withLogistics(lot("child", "elsewhere"))).logistics().get(0));
+
+        assertThat(json).doesNotContain("parentAssetRef", "rootAssetRef", "elsewhere", "parentAssetId");
+    }
 }
