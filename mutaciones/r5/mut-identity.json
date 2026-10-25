@@ -1,0 +1,59 @@
+{
+ "module": "identity",
+ "tests": "AccountTest,LegalAcceptanceAndProfileIntegrationTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "1 El registro acepta una versión distinta de la vigente",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/CreateAccountService.java",
+     "old": "if (!current.terms().equals(acceptedTermsVersion)) {",
+     "new": "if (false) {"
+    }
+   ]
+  },
+  {
+   "name": "2 ACCOUNT_CREATED vuelve a llevar el correo",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/CreateAccountService.java",
+     "old": "Map.of(\"selfRegistration\", true)",
+     "new": "Map.of(\"selfRegistration\", true, \"email\", email.value())"
+    }
+   ]
+  },
+  {
+   "name": "3 El perfil acepta 101 puntos de código",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Account.java",
+     "old": "codePoints > PROFILE_FIELD_MAX_CODE_POINTS",
+     "new": "codePoints > PROFILE_FIELD_MAX_CODE_POINTS + 1"
+    }
+   ]
+  },
+  {
+   "name": "5 PROFILE_UPDATED lleva el valor",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AccountProfileService.java",
+     "old": "Map.of(\"fields\", changed)",
+     "new": "Map.of(\"fields\", changed, \"givenName\", String.valueOf(givenName))"
+    }
+   ]
+  },
+  {
+   "name": "6 La organización no guarda quién aceptó",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "new OrganizationTermsAcceptance(version, acceptedBy, now)",
+     "new": "new OrganizationTermsAcceptance(version, null, now)"
+    }
+   ]
+  }
+ ]
+}

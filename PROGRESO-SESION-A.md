@@ -18,7 +18,7 @@ la A usa 0.39–0.49.
 | Ítem | Estado | Rama | PR | Evidencia | Bloqueado por |
 |---|---|---|---|---|---|
 | A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `85dc190` (código en `eb7c6a6`) | #140 (depende de #137) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 antes |
-| A2 R-5 (D1, D2, D10) | pendiente | — | — | — | — |
+| A2 R-5 (D1, D2, D10) | en curso: rojo y verde hechos; mutaciones corriendo | `feat/identity-r5-aceptaciones-perfil` `52aa433` (desde develop `406f9b2`) | — | ver bitácora | — |
 | A3 D3 | pendiente | — | — | — | P-R3-3 y A2 |
 | A4 D6 sin D7 | pendiente | — | — | — | — |
 | A5 CORS (DD-57) | plan APROBADO (Manuel, 2026-10-25); código pendiente, en la cola después de D6 | `fix/cors-put-delete` `2342b97` | #138 (borrador hasta tener la evidencia) | — | turno en la cola |
@@ -46,6 +46,10 @@ la A usa 0.39–0.49.
 - A1: ci-local en el clon limpio `/home/user/ci-r4` (`eb7c6a6`), en curso; free -g: 15 disponibles.
 
 - A1: ci-local en el clon limpio `eb7c6a6`: BUILD SUCCESS (evidencia `Documentos/evidencia-ci/ci-local-eb7c6a6-2026-10-25T07-23-51Z.txt`, con nota a mano). Commit de evidencia + estado-fase6 §0.40: `85dc190`. PR #140 abierto, pie corregido. Cuando #137 se fusione: merge de develop en la rama de #140 y repetir ci-local.
+
+- A2 rojo (producción de R-5 apartada, sobre develop): identity BUILD FAILURE en testCompile, "cannot find symbol" de AccountProfileService, InvalidProfileFieldException, LegalAcceptance, LegalVersionNotCurrentException, LegalVersions y OrganizationTermsAcceptance; app (tests de identity apartados) "cannot find symbol" de LegalVersions y LegalVersionsConfig.
+- A2 verde sobre `42e6e37` (`mvn test -pl … -am`): identity "Tests run: 344", app "Tests run: 471" (api 156, igual que develop), todos "Failures: 0, Errors: 0, Skipped: 0".
+- A2: `52aa433` nota en referencia-api. Mutaciones 1 a 7 (`mutaciones/r5/`); la 4 adaptada a GET /account (MeController está en api y no ve el nombre).
 
 ## Siguiente paso exacto
 

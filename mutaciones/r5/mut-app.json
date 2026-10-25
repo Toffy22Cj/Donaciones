@@ -1,0 +1,79 @@
+{
+ "module": "identity,app",
+ "tests": "AccountRegistrationAndProfileHttpIntegrationTest,LegalVersionsConfigTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "1 El registro acepta una versión distinta de la vigente",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/CreateAccountService.java",
+     "old": "if (!current.terms().equals(acceptedTermsVersion)) {",
+     "new": "if (false) {"
+    }
+   ]
+  },
+  {
+   "name": "2 ACCOUNT_CREATED vuelve a llevar el correo",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/CreateAccountService.java",
+     "old": "Map.of(\"selfRegistration\", true)",
+     "new": "Map.of(\"selfRegistration\", true, \"email\", email.value())"
+    }
+   ]
+  },
+  {
+   "name": "3 El perfil acepta 101 puntos de código",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Account.java",
+     "old": "codePoints > PROFILE_FIELD_MAX_CODE_POINTS",
+     "new": "codePoints > PROFILE_FIELD_MAX_CODE_POINTS + 1"
+    }
+   ]
+  },
+  {
+   "name": "4 GET /account devuelve el nombre (adaptación de 'GET /me devuelve givenName')",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AccountEmailQuery.java",
+     "old": "return accounts.findById(new AccountId(accountId)).getEmail().value();",
+     "new": "identity.domain.model.Account a = accounts.findById(new AccountId(accountId));\n        return a.getEmail().value() + (a.getGivenName() == null ? \"\" : \" \" + a.getGivenName());"
+    }
+   ]
+  },
+  {
+   "name": "5 PROFILE_UPDATED lleva el valor",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AccountProfileService.java",
+     "old": "Map.of(\"fields\", changed)",
+     "new": "Map.of(\"fields\", changed, \"givenName\", String.valueOf(givenName))"
+    }
+   ]
+  },
+  {
+   "name": "6 La organización no guarda quién aceptó",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "new OrganizationTermsAcceptance(version, acceptedBy, now)",
+     "new": "new OrganizationTermsAcceptance(version, null, now)"
+    }
+   ]
+  },
+  {
+   "name": "7 Falta una versión y la aplicación arranca igual",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/config/LegalVersionsConfig.java",
+     "old": "        if (value == null || value.isBlank()) {",
+     "new": "        if (false) {"
+    }
+   ]
+  }
+ ]
+}
