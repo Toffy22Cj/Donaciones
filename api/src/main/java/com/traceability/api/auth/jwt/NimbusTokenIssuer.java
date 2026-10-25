@@ -8,6 +8,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.traceability.contracts.authentication.TokenIssuanceException;
 import com.traceability.contracts.authentication.TokenIssuerPort;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -27,9 +28,10 @@ public class NimbusTokenIssuer implements TokenIssuerPort {
     private final JwtSecurityProperties properties;
     private final Clock clock;
 
+    /** El reloj de la aplicación si hay uno (como los servicios de {@code identity}); si no, el del sistema. */
     @Autowired
-    public NimbusTokenIssuer(JwtSecurityProperties properties) {
-        this(properties, Clock.systemUTC());
+    public NimbusTokenIssuer(JwtSecurityProperties properties, ObjectProvider<Clock> clock) {
+        this(properties, clock.getIfAvailable(Clock::systemUTC));
     }
 
     NimbusTokenIssuer(JwtSecurityProperties properties, Clock clock) {
@@ -39,15 +41,23 @@ public class NimbusTokenIssuer implements TokenIssuerPort {
 
     @Override
     public String issue(String accountId) {
+        return issue(accountId, clock.instant());
+    }
+
+    /** ADR-050 D5: {@code iat = issuedAt} y {@code exp = issuedAt + ttl}. */
+    @Override
+    public String issue(String accountId, Instant issuedAt) {
         if (!StringUtils.hasText(accountId)) {
             throw new TokenIssuanceException("Cannot issue a token without accountId", null);
         }
+        if (issuedAt == null) {
+            throw new TokenIssuanceException("Cannot issue a token without issuedAt", null);
+        }
         try {
-            Instant now = clock.instant();
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
                     .subject(accountId)
-                    .issueTime(Date.from(now))
-                    .expirationTime(Date.from(now.plus(properties.getTtl())))
+                    .issueTime(Date.from(issuedAt))
+                    .expirationTime(Date.from(issuedAt.plus(properties.getTtl())))
                     .build();
             JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.HS256)
                     .keyID(properties.getKid())

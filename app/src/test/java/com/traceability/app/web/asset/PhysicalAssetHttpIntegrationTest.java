@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -92,6 +93,9 @@ class PhysicalAssetHttpIntegrationTest {
                 EMPLOYEE, new AuthorizationPrincipal(EMPLOYEE, ORG, Set.of(AuthorizationRole.EMPLOYEE), null),
                 OTHER_EMPLOYEE, new AuthorizationPrincipal(OTHER_EMPLOYEE, OTHER_ORG, Set.of(AuthorizationRole.EMPLOYEE), null));
         when(identityPrincipalPort.resolvePrincipal(anyString())).thenAnswer(inv -> principals.get(inv.<String>getArgument(0)));
+        // el filtro JWT resuelve con el iat del token (ADR-050 D4); core sigue con resolvePrincipal
+        when(identityPrincipalPort.resolveAuthenticatedPrincipal(anyString(), any()))
+                .thenAnswer(inv -> principals.get(inv.<String>getArgument(0)));
     }
 
     private HttpResponse<String> send(String method, String path, String account, String commandId, String body)

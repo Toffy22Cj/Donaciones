@@ -40,6 +40,18 @@
 
 Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final (enmienda de DD-21). La página sigue siendo de 100, sin `nextCursor`, y trae las 100 más recientes. Ninguna respuesta lleva `organizationRef` ni `donorRef`. Las filas de arriba no se reescriben.
 
+*Nota (2026-10-24, ADR-050 D4 y D5; plan R-3 + R-2, `feat/identity-r3-r2-revocacion-contrasena`):* ruta nueva y revocación de sesiones. Las filas de arriba y la regla 401 de §0 no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /account/password` | JWT, sin `Command-Id` (Identity no lo usa) | `{currentPassword, newPassword}` | `200 {token}`, `Cache-Control: no-store`. El token sale con `iat = credentialsNotBefore` y `exp = iat + 8 h`: **la sesión actual sigue con el token nuevo** y todas las demás quedan revocadas. El cliente sustituye el token guardado | 400 campo vacío (sin llamar al dominio); **400 `CurrentPasswordIncorrect`**, nunca 401 (ADR-043 T-1); 400 `PasswordTooShort` (menos de 12). En los tres no cambia nada. Si la actual es incorrecta **y** la nueva es corta, gana `CurrentPasswordIncorrect` (orden de ADR-050 D5). 401 sin JWT válido |
+
+- **Revocación (ADR-050 D4):** cambiar la contraseña y desactivar la cuenta fijan `credentialsNotBefore = max(segundo actual truncado, valor anterior) + 1 s`. Un token con `iat` anterior recibe **el mismo 401** que cualquier otro rechazo. Reactivar no deshace la revocación: la persona inicia sesión de nuevo. Las cuentas que nunca cambiaron nada no tienen `credentialsNotBefore` y sus tokens valen hasta `exp`.
+- **Token sin `iat`:** 401 (el emisor siempre lo escribe).
+- **500 tras confirmar (ADR-038 #7):** si el cambio se confirma y falla la emisión del token, la respuesta es 500. **La contraseña sí cambió** y todas las sesiones quedaron revocadas, también la actual: la web y el móvil deben llevar a iniciar sesión con la contraseña nueva.
+- **Defecto conocido (P-R3-3, decisión de Manuel del 2026-10-24 por la delegación de Carlos):** con el `+ 1 s` y el `max` de D4, `credentialsNotBefore` puede quedar uno o varios segundos en el futuro, y un inicio de sesión en ese intervalo recibe un token que el filtro rechaza (401). Con `POST /account/password` no pasa, porque el token llega en la respuesta. Afecta a quien inicie sesión justo después de cambiar la contraseña, de una desactivación o, con R-4, de una recuperación, donde sería el flujo normal. **Se corrige antes de R-4**, en un PR propio, tras la Enmienda 1 de ADR-050 D4 (el login emitirá con `iat = max(segundo actual truncado, credentialsNotBefore)`). Hasta entonces, el cliente que reciba ese 401 puede repetir el inicio de sesión un segundo después.
+- **Riesgo registrado (R-R3-1, pregunta para Carlos):** la ruta no limita los intentos; quien tenga un token robado puede probar contraseñas actuales.
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |

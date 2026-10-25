@@ -26,6 +26,7 @@ public class AccountMapper {
         if (account.getPlatformAuthority() != null) {
             doc.setPlatformAuthority(account.getPlatformAuthority().name());
         }
+        doc.setCredentialsNotBefore(account.getCredentialsNotBefore());
         return doc;
     }
 
@@ -50,7 +51,8 @@ public class AccountMapper {
             new PasswordHash(doc.getPasswordHash()),
             AccountStatus.valueOf(doc.getStatus()),
             orgId,
-            platformAuthority
+            platformAuthority,
+            doc.getCredentialsNotBefore()
         );
     }
 }

@@ -33,6 +33,12 @@ public class FakeIdentityPrincipalPort implements IdentityPrincipalPort {
         return principal;
     }
 
+    /** Solo lo llama el filtro JWT (ADR-050 D4), que no corre en este módulo. */
+    @Override
+    public AuthorizationPrincipal resolveAuthenticatedPrincipal(String accountId, java.time.Instant issuedAt) {
+        throw new UnsupportedOperationException("resolveAuthenticatedPrincipal is only used by the JWT filter");
+    }
+
     public static class UnknownAccountException extends RuntimeException {
         public UnknownAccountException(String accountId) {
             super("Unknown account " + accountId);
