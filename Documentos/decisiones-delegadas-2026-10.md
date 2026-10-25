@@ -175,3 +175,14 @@ ficha-R6-datos-estilo-v2.md §9 y en ADR-050.
 Es la fuente de la delegación que citan `plan-ejecucion-cierre-manuel-2026-10-24.md` (versión 2) y los planes de Fase 7. Según Manuel (respuesta a la revisión del 2026-10-24):
 - un "plan aprobado" de Manuel, en la sesión o como comentario del PR, es aprobación citable de los planes y de los puntos [Plan] y [Manuel];
 - Carlos aprueba cada PR con Approve en GitHub, y nada se fusiona sin él.
+
+**Nota (2026-10-25): aprobación de Carlos de todo lo pendiente.** Carlos aprobó todo lo pendiente (planes, Enmienda 1 de ADR-050 partes 1 y 2, Enmienda 1 de la ficha R-6) y pidió a Manuel que fusionara él mismo los PR; comunicado por Manuel en la sesión del 2026-10-25; texto literal pendiente de registrar.
+- **Qué abarca** (según Manuel en la misma sesión):
+  - los planes R-5 + D1 (#122), D6 (#123), adenda G-9 (#124), C versión 2 (#126), P-R3-3 (#128) y ADR-051 T4 (#131);
+  - el plan D, con P-R6D-1 (b) y P-R6D-2 (a);
+  - `ADR-050-enmienda-1-iat-del-login.md`, partes 1 y 2;
+  - `ficha-R6-enmienda-1.md`.
+- **Fuera, según Manuel:** D7 (Carlos no lo nombró) y la Tarea 5 de ADR-051 (falta la enmienda de ADR-021-D).
+- Los PR #121 a #131 se fusionaron el 2026-10-25 desde la cuenta de Manuel, por instrucción de Carlos y sin Approve en GitHub (H-1 del informe de la sesión).
+- Esta nota sustituye, para esos PR, a la regla "Carlos aprueba cada PR con Approve en GitHub" de la nota anterior. No la borra.
+
