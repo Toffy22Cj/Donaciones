@@ -301,6 +301,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - D7 (pregunta para Carlos);
   - R-R3-1: sin límite de intentos, como en `/account/password`;
   - con D3 (#144) en `develop`, los tests de este PR crean cuentas con `createAccount(email, password)`, pero no inician sesión por `/auth/login` (usan `tokens.issue`), así que D3 no les afecta.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `69bc88d` (#144 D3, con #142 R-5 y #140 R-4) en `2048827`; conflictos en este archivo, en `referencia-api-v1.md` y en `PublicRoutesInventoryIntegrationTest`, resueltos conservando los dos lados. `scripts/ci-local.sh` sobre `2048827` dio **rojo** en `identity`: "Tests run: 384, Failures: 0, Errors: 13" (`PasswordResetServicesIntegrationTest`, de R-4: el contexto no cargaba porque `DeactivateAccountService` pide ahora `CampaignResponsibilityPort`; evidencia `evidencia-ci/ci-local-2048827-2026-10-25T17-12-12Z.txt`). Corregido en `1297577` con el mismo `StubCampaignResponsibilityPort` que D6 puso en los demás tests del módulo. `scripts/ci-local.sh` en un clon limpio de `1297577` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 168, identity 384, convocatoria 253 y app 517, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-1297577-2026-10-25T17-27-08Z.txt`.
 
 ### 0.42 D3: el login exige las aceptaciones vigentes (2026-10-25, `feat/identity-d3-aceptaciones-login`)
 
@@ -328,6 +329,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - cuando #137 y #142 estén en `develop`, merge de `develop` y CI otra vez;
   - #140 (R-4) usa el login en sus tests (R4-19), y el primero de los dos que llegue a `develop` obliga al otro a mandar las versiones;
   - nota "implementada" en la parte 3 de la Enmienda 1.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` (`a5e56c8`, #140 R-4, y `ccf03f2`, #142 R-5) con merges normales; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados. Con R-4 dentro, `PasswordResetHttpIntegrationTest` dio **rojo** sobre `b2d3b90`: "Tests run: 14, Failures: 4", `403 AcceptanceRequired` donde se esperaba 200 (sus cuentas se crean con `createAccount(email, password)` sin aceptar nada). Corregido en `77903a6`: `login()` y `loginStatus()` del test mandan las dos versiones vigentes, igual que `AccountPasswordHttpIntegrationTest`. `scripts/ci-local.sh` en un clon limpio de `77903a6` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 168, identity 377, convocatoria 253 y app 509, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-77903a6-2026-10-25T16-44-59Z.txt`.
 
 ### 0.41 R-5, primera parte: aceptaciones legales (D2), perfil (D1) y minimización (D10) (2026-10-25, `feat/identity-r5-aceptaciones-perfil`)
 

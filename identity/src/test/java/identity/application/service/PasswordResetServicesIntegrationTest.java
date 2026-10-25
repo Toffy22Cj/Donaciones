@@ -79,6 +79,7 @@ import static org.mockito.Mockito.verify;
         CreateAccountService.class,
         ChangeCredentialsService.class,
         DeactivateAccountService.class,
+        StubCampaignResponsibilityPort.class,
         RequestPasswordResetService.class,
         identity.application.authorization.AuthorizationAuditActorMapper.class,
         PasswordResetServicesIntegrationTest.TestBeans.class
