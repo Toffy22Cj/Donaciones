@@ -21,7 +21,7 @@ la A usa 0.39–0.49.
 | A2 R-5 (D1, D2, D10) | pendiente | — | — | — | — |
 | A3 D3 | pendiente | — | — | — | P-R3-3 y A2 |
 | A4 D6 sin D7 | pendiente | — | — | — | — |
-| A5 CORS (DD-57) | HECHO (solo plan) | `fix/cors-put-delete` `f8f0d4e` | #138 (borrador) | — (sin código) | sí de Carlos (DD-57) y aprobación escrita de Manuel |
+| A5 CORS (DD-57) | plan APROBADO (Manuel, 2026-10-25); código pendiente, en la cola después de D6 | `fix/cors-put-delete` `2342b97` | #138 (borrador hasta tener la evidencia) | — | turno en la cola |
 
 ## Bitácora
 
@@ -35,6 +35,9 @@ la A usa 0.39–0.49.
 - A1 verde: identity "Tests run: 351, Failures: 0, Errors: 0, Skipped: 0"; api "Tests run: 160, Failures: 0, Errors: 0, Skipped: 0".
 - A1 hallazgo de la revisión: el bean `passwordResetMailExecutor` (ThreadPoolTaskExecutor) desactiva el `applicationTaskExecutor` de Boot 3.4.4 (`@ConditionalOnMissingBean(Executor.class)`), contra el plan R-4 §4 app ("no sustituye al de Spring"). Arreglo: `@Bean(defaultCandidate = false)` (OnBeanCondition 3.4.4 usa isDefaultCandidate) y un test que lo compruebe.
 - A5: #138 en borrador con el plan `Documentos/plan-cors-put-delete.md`.
+
+- CORS: Manuel aprobó el plan (#138) el 2026-10-25; notas fechadas en el plan y sobre DD-57 (`2342b97`). La nota de Carlos citada (decisiones-delegadas:179) no nombra CORS expresamente: registrado. Código: ciclo completo después de D6; el PR pasa a listo solo con la evidencia.
+- R-4: `3071605` (defaultCandidate + documentos); R-5: rama `feat/identity-r5-aceptaciones-perfil` `42e6e37` (cherry-pick + tests 22 y 23 ampliados, sin Maven); D6: `feat/identity-d6-desactivacion` `8bc0b09` (sin Maven).
 
 ## Siguiente paso exacto
 
