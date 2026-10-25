@@ -16,6 +16,7 @@ import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +51,7 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
         PhysicalAsset asset = loadAuthorized(assetId, actor);
         return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
                 asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
-                asset.getAssetType());
+                asset.getAssetType(), null);
     }
 
     /** Una página, como los fondos de la organización (DD-31). */
@@ -68,9 +69,12 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
             List<DomainEvent> events = eventStore.loadStream(assetId);
             PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, events.stream().map(DomainEvent::payload).toList(),
                     events.size());
+            // G-9 (adenda G-9, P-G9-1 (b)): loadStream ya devuelve los eventos por sequence ascendente; el último es el
+            // que pide E2, sin ninguna consulta más
+            Instant lastEventAt = events.isEmpty() ? null : events.get(events.size() - 1).occurredAt();
             return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
                     asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
-                    asset.getAssetType());
+                    asset.getAssetType(), lastEventAt);
         }).toList();
     }
 
