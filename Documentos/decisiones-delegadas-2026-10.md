@@ -186,3 +186,5 @@ Es la fuente de la delegación que citan `plan-ejecucion-cierre-manuel-2026-10-2
 - Los PR #121 a #131 se fusionaron el 2026-10-25 desde la cuenta de Manuel, por instrucción de Carlos y sin Approve en GitHub (H-1 del informe de la sesión).
 - Esta nota sustituye, para esos PR, a la regla "Carlos aprueba cada PR con Approve en GitHub" de la nota anterior. No la borra.
 
+**Nota (2026-10-25, más tarde): confirmación escrita de Carlos.** El comentario literal de Carlos en el PR #134, "todo aprobado" (`Toffy22Cj`, 2026-10-25T01:54:37Z, https://github.com/Toffy22Cj/Donaciones/pull/134#issuecomment-6392174129), es la confirmación escrita de su aprobación de la nota anterior. Además aprueba la parte 3 de la Enmienda 1 de ADR-050, que es el contenido de #134. Carlos fusionó #134 él mismo, a las 01:54:41Z, sin Approve formal en GitHub.
+

@@ -134,6 +134,8 @@ El nombre del módulo entre paréntesis lo he añadido yo; en la evidencia va en
 > - Siguen abiertas la ampliación de H-1 al #87 a #103, la rama `claude/focused-goodall-meb6sh`, D7 y la enmienda de ADR-021-D (T5).
 > - #127 queda en `818ebf3`: el aviso 2 de §5 se envía con ese commit.
 
+> **Nota (2026-10-25, más tarde): #134.** La parte 3 de la Enmienda 1 de ADR-050 la fusionó **Carlos** (`Toffy22Cj`) el 2026-10-25 a las 01:54:41Z (`7845c86`), **sin Approve formal**, pero con el comentario "todo aprobado" (https://github.com/Toffy22Cj/Donaciones/pull/134#issuecomment-6392174129). Entra en H-1 con esa marca. Antes, #132 se cerró sin fusionar (lo incluía #133) y #133 se fusionó en `03328e1`.
+
 ### Consecuencias de las fusiones sin review
 
 - El commit `4a99fe8` (plan R-3 + R-2, §10) llegó a la rama de #118 después de la fusión y se movió a #119.

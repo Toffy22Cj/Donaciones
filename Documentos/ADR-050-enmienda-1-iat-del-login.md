@@ -134,6 +134,8 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 ## Status
 
 **PROPUESTA — espera el sí de Carlos a este texto concreto.** La redactó Claude a petición de Manuel el 2026-10-25.
+
+> **Nota (2026-10-25): Aprobada — Carlos, 2026-10-25, comentario 'todo aprobado' en #134, que fusionó él.** El comentario es de `Toffy22Cj`, a las 01:54:37Z (https://github.com/Toffy22Cj/Donaciones/pull/134#issuecomment-6392174129); la fusión, a las 01:54:41Z. "PROPUESTA" y las dos viñetas de abajo se conservan; esta nota las supera. El código de D3 entra en la cola después de P-R3-3 y de D1, D2 y D10 (R-5, primera parte).
 - **La aprobación de Carlos del 2026-10-25** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25) cubre las partes 1 y 2, **no esta**.
 - **El código de D3 no empieza** hasta que Carlos apruebe este texto (regla 3.5). El resto de R-5 (D1, D2 y D10) no depende de esta parte (P-R5-2).
 
