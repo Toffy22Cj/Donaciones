@@ -256,8 +256,10 @@ class OrganizationIntegrityAndActivityHttpIntegrationTest {
         HttpResponse<String> second = get("/api/v1/organizations/" + orgId + "/activity?cursor=" + enc(next), admin);
         assertThat(second.statusCode()).as(second.body()).isEqualTo(200);
 
-        char last = next.charAt(next.length() - 1);
-        String tampered = next.substring(0, next.length() - 1) + (last == 'A' ? 'B' : 'A');
+        // Un carácter del medio (el último Base64 puede llevar bits sobrantes que no se decodifican)
+        int middle = next.length() / 2;
+        char c = next.charAt(middle);
+        String tampered = next.substring(0, middle) + (c == 'A' ? 'B' : 'A') + next.substring(middle + 1);
         String discovery = cursors.encode("ABC123");
         String verificationQueue = cursors.encode(OrganizationVerificationQueueController.CURSOR_PURPOSE
                 + "01JABCDEFGHJKMNPQRSTVWXYZ0");
