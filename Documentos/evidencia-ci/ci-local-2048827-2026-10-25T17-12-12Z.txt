@@ -1,0 +1,60 @@
+# CI local — scripts/ci-local.sh
+commit:   2048827871c8433bcce15a7e12878a28297b1be9
+rama:     feat/identity-d6-desactivacion
+inicio:   2026-10-25T17:12:12Z
+fin:      2026-10-25T17:21:45Z
+comando:  mvn -B clean test -fae
+salida:   1
+
+## Versiones
+java:   openjdk version "21.0.12.1" 2026-08-18
+java:   OpenJDK Runtime Environment (build 21.0.12.1+1)
+java:   OpenJDK 64-Bit Server VM (build 21.0.12.1+1, mixed mode, sharing)
+maven:  Apache Maven 3.10.0 (c43a36b8d67be7e0805a411bc0898af1a51f5472)
+docker: cliente 29.9.1, servidor 29.9.1
+
+## Resumen de Surefire por módulo (literal)
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 345, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 57, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 168, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[ERROR] Tests run: 384, Failures: 0, Errors: 13, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 253, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] app ................................................ SKIPPED
+[INFO] traceability-parent ................................ SUCCESS [  0.310 s]
+[INFO] contracts .......................................... SUCCESS [  3.285 s]
+[INFO] core ............................................... SUCCESS [03:09 min]
+[INFO] crypto ............................................. SUCCESS [ 36.243 s]
+[INFO] ai ................................................. SUCCESS [ 24.127 s]
+[INFO] api ................................................ SUCCESS [ 46.474 s]
+[INFO] convocatoria ....................................... SUCCESS [ 45.405 s]
+[ERROR] identity ........................................... FAILURE [03:43 min]
+[ERROR] BUILD FAILURE
+
+## Tests fallidos (si los hay)
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.request_twiceWithinFiveMinutes_isTheCooldown_noNewTokenAndNoMail -- Time elapsed: 0.004 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.markUsedIfPending_onlyMovesAPendingToken_once -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.twoSimultaneousRequests_leaveASinglePending_andASingleMail -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.confirm_changesThePassword_setsCredentialsNotBefore_usesTheToken_andAuditsViaPasswordReset -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.afterATransientRetry_theMailCarriesTheSecretOfTheAttemptThatCommitted -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.request_withAnActiveAccount_storesOnlyTheHash_andDispatchesOneMailWithTheSecret -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.twoSimultaneousConfirmations_oneWins_andTheOtherIsInvalid -- Time elapsed: 0 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.request_withoutAccount_malformedEmail_orInactiveAccount_writesNothingAndDispatchesNothing -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.confirm_withAShortPassword_isPasswordTooShort_andTheTokenIsNotConsumed -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.aTransactionThatFails_dispatchesNothing -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.confirm_withAnUnknownExpiredUsedSupersededOrInactiveToken_isTheSameException_andNothingChanges -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.request_afterFiveMinutes_supersedesThePreviousToken_andSendsANewOne -- Time elapsed: 0.001 s <<< ERROR!
+[ERROR] identity.application.service.PasswordResetServicesIntegrationTest.theStoredTokenState_isPendingAfterTheRequest -- Time elapsed: 0.001 s <<< ERROR!
+
+## sha256 del log completo
+17216558fc3535c384ea43df8194a75ea9cfd167dbb13cb73cc49b7232d32270
