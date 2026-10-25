@@ -117,3 +117,15 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - Pies de los 7 PRs comprobados: correctos.
 - #140 LISTO: merge develop 0a54994 (`1ec8be3`), CI BUILD SUCCESS (identity 352, app 495), evidencia `8c3134d`. Worktree /home/user/tr-140.
 - #142: merge adelantado de develop 0a54994 (`f4917ae`, worktree /home/user/tr-142). Falta merge de #140 y CI.
+
+## PARADA (2026-10-25, Manuel): el tren lo termina el agente local de Manuel
+
+- La sesión B no hace más push a ninguna rama. No queda ninguna espera ni proceso en marcha.
+- Estado de las ramas en el remoto al parar:
+  - #140 `feat/identity-r4-recuperacion-contrasena` `8c3134d`: LISTO (develop `0a54994` integrado en `1ec8be3`, CI BUILD SUCCESS: core 345, crypto 57, ai 47, api 166, identity 352, convocatoria 253, app 495; evidencia `ci-local-1ec8be3-2026-10-25T16-00-46Z.txt`).
+  - #142 `feat/identity-r5-aceptaciones-perfil` `f4917ae`: **merge adelantado** de develop `0a54994` (conflicto de estado-fase6 resuelto conservando los dos lados, 0 líneas perdidas, §0.41 con su número). **Sin CI todavía.** Falta integrar #140 cuando se fusione y repetir ci-local.
+  - #143 `feat/r6-bloque-d` `33df64d`: sin integrar develop desde `406f9b2`. Incluye las notas de Manuel (H-D-1 aprobados; H-D-2 → DT-B-1 §0.53; G-8 sin truncated como pregunta para Carlos). Le falta el merge de develop (con #139 y #141; ojo: sale de feat/r6-bloque-c) y la CI.
+  - #145 `feat/adr051-t4-evidencia` `00c706e`: sin integrar develop desde `406f9b2`. Choque esperable con #141 en GoldenPathHttpIntegrationTest. Aviso a Adonis y a la web ANTES de fusionar (B-2).
+  - #144, #146 y #138 (los de la sesión A): sin tocar por la B. Pista de la A para #144: los logins de los tests de R-4 tienen que llevar versiones legales. #138: la memoria de la A dice que no se toca hasta que Carlos confirme.
+- Pies de los siete PRs comprobados al arrancar el tren: todos terminan en "🤖 Generated with [Claude Code](https://claude.com/claude-code)".
+- Al reiniciar el contenedor, Docker no arranca solo (`nohup dockerd &`, con el daemon.json local; no va en Git).
