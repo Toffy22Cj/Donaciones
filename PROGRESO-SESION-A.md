@@ -21,7 +21,7 @@ la A usa 0.39–0.49.
 | A2 R-5 (D1, D2, D10) | **HECHO** (PR listo) | `feat/identity-r5-aceptaciones-perfil` `bfe126f` (código en `3002c6e`) | #142 | ci-local `3002c6e`: core 340, crypto 50, ai 47, api 156, identity 344, convocatoria 253, app 471, BUILD SUCCESS | — |
 | A3 D3 | **HECHO** (PR listo) | `feat/identity-d3-aceptaciones-login` `a477610` (código en `cc5239e`) | #144 (depende de #137 y #142) | ci-local `d0b3d7c`: core 340, crypto 50, ai 47, api 162, identity 359, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 y #142 antes |
 | A4 D6 sin D7 | **HECHO** (PR listo) | `feat/identity-d6-desactivacion` `ff9b9d7` (código en `8bc0b09`) | #146 | ci-local `98f366f`: core 340, crypto 50, ai 47, api 156, identity 339, convocatoria 253, app 470, BUILD SUCCESS | — |
-| A5 CORS (DD-57) | en curso: rojo hecho; código `93a6adc` | `fix/cors-put-delete` `93a6adc` | #138 (borrador hasta la evidencia) | — | — |
+| A5 CORS (DD-57) | **HECHO** (PR listo, ya no es borrador) | `fix/cors-put-delete` `517502c` (código en `93a6adc`) | #138 | ci-local `93a6adc`: core 340, crypto 50, ai 47, api 157, identity 332, convocatoria 253, app 464, BUILD SUCCESS | — |
 
 ## Bitácora
 
@@ -61,6 +61,11 @@ la A usa 0.39–0.49.
 
 - A4: mutaciones identity 5/5, app 6/7 (las 6 del plan muertas; la 7 extra viva en app, muerta en identity); ci-local 98f366f verde; §0.43; PR #146 con pie corregido.
 
+- A5: mutaciones api 4/4 y app 4/4; ci-local 93a6adc verde; §0.44; #138 reescrito (título, cuerpo, pie) y pasado a listo.
+- Pasada final (2026-10-25): las cabezas remotas y los cinco archivos de evidencia (salida 0, BUILD SUCCESS) comprobados con git; develop sigue en `406f9b2`.
+
 ## Siguiente paso exacto
 
-A5 (CORS): verde app -am corriendo sobre `93a6adc`; luego mutaciones (`mutaciones/cors/`), ci-local, §0.44, nota de DD-57 ya hecha; reescribir el cuerpo de #138 con la evidencia (pie correcto) y pasarlo a listo. Después: pasada final y resumen.
+Cola de la sesión A sin ítems desbloqueados. Orden de fusión para Manuel: #137 → #140 → #142 → #144 → #146 → #138 (#146 y #138 son independientes y pueden ir antes).
+Tras cada fusión: merge de develop en las ramas que quedan, repetir ci-local; en concreto, cuando #140 y #144 coincidan en develop, los logins de los tests de R-4 (R4-19 y el helper `login`) tienen que mandar las versiones legales.
+Bloqueados: D7, Google, T3, T5.
