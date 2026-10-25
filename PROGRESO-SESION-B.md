@@ -101,3 +101,11 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
   - las tres evidencias de CI existen en sus ramas con BUILD SUCCESS.
 - Orden de fusión: #139 → #141 → #143 (integrar develop + CI de nuevo) → #145 (avisar antes a Adonis y a la web; choque esperable con #141 en el golden path).
 - Cola de la sesión B: TERMINADA.
+
+## Modo tren (2026-10-25, Manuel)
+
+- Orden de fusión: #137, #139, #141, #140, #142, #144, #146, #143, #138, #145. Cuando Manuel avisa, cojo mi siguiente PR: merge normal de develop (conservar los dos lados), repetir ci-local si entró código, y avisar con "#N listo" y el resumen de Surefire.
+- Respuestas anotadas: H-C-2 y H-C-1 en #141 (§0.50); H-D-1, H-D-2 → DT-B-1 (§0.53) y G-8 sin truncated (pregunta para Carlos) en #143 (`9bc1757`, `33df64d`); nombres de #145 (§0.52, `00c706e`).
+- #141 LISTO: develop aa7a0d2 integrado (`6c121b1`), CI `ci-local-d33a770-2026-10-25T15-38-09Z.txt` BUILD SUCCESS (app 481), `611c35f`.
+- Siguiente mío: #143 (tras #140, #142, #144 y #146), luego #145.
+- Tras reiniciar el contenedor, Docker no arranca solo: `nohup dockerd &` (daemon.json local con el mirror; no va en Git).
