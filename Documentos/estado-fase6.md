@@ -229,6 +229,49 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.52 ADR-051, Tarea 4: evidencia de entrega — subida, vínculo y formato `sha256:` (2026-10-25, `feat/adr051-t4-evidencia`)
+
+- Numerada 0.52, en la serie de la sesión B (0.50 a 0.69).
+- **Norma:**
+  - `ADR-051-fotos-y-almacenamiento.md` (APROBADO, Carlos, 2026-10-18, con la Enmienda 1): F2, F3, F4, F5 (la parte del backend) y F8; criterios 2 a 11 y 20; tarea 4 (`ADR-051:300`).
+  - Plan: `plan-adr051-tarea4-evidencia.md`, APROBADO (nota del 2026-10-25 en el plan), con P-T4-1 a P-T4-7 como los recomienda. **B-2 sigue en pie:** el PR no se fusiona sin avisar antes a Adonis y a la web.
+- **Qué hace:**
+  - `contracts.media`: `DeliveryEvidencePort.bindToAsset(organizationId, evidenceRef, assetId)`, `EvidenceAlreadyBoundException` y `EvidenceNotFoundException` (P-T4-3).
+  - `core`: `PhysicalAssetCommandService.deliverAsset` valida `^sha256:[0-9a-f]{64}$` **antes del reclamo del `Command-Id` y del reintento** (`InvalidEvidenceRefException`, P-T4-1). `transition()` recibe un gancho que se llama tras `authorize` y el cambio en memoria, solo si el agregado generó eventos, y antes de `appendAndOutbox` (P-T4-2). La entrega vincula la foto; despachar y recibir pasan un gancho vacío. El agregado no cambia: los eventos antiguos se reconstruyen igual.
+  - `api`: `InvalidEvidenceRefException` → 400 en `CoreApiErrorMappings`.
+  - `app`:
+    - `MediaObjectStore.bindEvidence` y `MongoMediaObjectStore`: un `updateFirst` condicional (`organizationId`, `purpose = DELIVERY_EVIDENCE`, `sha256`, `deletedAt` nulo y `boundAssetId` nulo o ese mismo activo) y, si no coincide, una lectura que elige `NOT_FOUND` o `BOUND_TO_OTHER` (P-T4-5);
+    - `DeliveryEvidenceBinding` implementa el puerto;
+    - `DeliveryEvidenceController`: `POST /api/v1/organizations/{organizationId}/delivery-evidence`, que autoriza con `OrganizationBoundaryPolicy` y `RoleAuthorizationPolicy` (`DELIVER_ASSET`) antes de leer los bytes (P-T4-4) y responde `201 {evidenceRef}`;
+    - `MediaApiErrorMappings`: 409 `EvidenceAlreadyBound` y 400 `EvidenceNotFound`;
+    - `DemoScenarioSeeder` sube un PNG generado en memoria por activo y entrega con su `evidenceRef` (P-T4-7).
+- **Consecuencias en los tests existentes (adaptados, no borrados):**
+  - los tests de `core` que entregaban con texto libre (`"EVIDENCE-1"`, `"EVIDENCE"`, `"E"`, `"evid"`) usan una huella `sha256:`;
+  - `deliverAsset_nullEvidence_exactRedundant_isNoOp` entregaba con `evidenceRef` nulo, que F3 rechaza: se conserva la redundancia exacta con una huella válida, con una nota en el test;
+  - en `PhysicalAssetHttpIntegrationTest`, el 403 uniforme de la entrega usa una huella `sha256:` (con texto libre daría 400 antes de mirar el activo);
+  - **el golden path, `PhysicalAssetHttpIntegrationTest` y el semillero suben fotos reales**, una distinta por activo ("una foto, un activo"). Como los tests de `app` usan un S3 ficticio que nadie escucha, importan `InMemoryMediaStorageConfig` (el proveedor en memoria, como el test del logo). La limpieza y la huella son las reales.
+- **Tests:** T4-1 a T4-10 por HTTP (`DeliveryEvidenceHttpIntegrationTest`), T4-6, T4-9, T4-9b, T4-12 y la redundancia exacta en `core` (`DeliveryEvidenceCommandTest`), la escritura condicional y su `explain()` (`MediaObjectPersistenceIntegrationTest`), la autorización antes de leer (`DeliveryEvidenceControllerTest`), T4-11 (`IntegrityRecomputationIntegrationTest`), T4-13 (el golden path) y la ruta en el inventario.
+- **Evidencia:**
+  - **Rojo primero:**
+    - fase A, con toda la implementación apartada: `core` no compilaba ("`DeliveryEvidenceCommandTest.java:[6,40] cannot find symbol`", `contracts.media.DeliveryEvidencePort`; "`StubDeliveryEvidencePort.java:[3,40] cannot find symbol`");
+    - fase B, con la implementación salvo el controlador de subida y la validación del formato (y el test del controlador apartado): `DeliveryEvidenceHttpIntegrationTest` "Tests run: 13, Failures: 11, Errors: 1". La subida, "`expected: 201 but was: 404`" (también 415, 413 y 403 frente a 404); T4-6, "`expected: "InvalidEvidenceRef" but was: "EvidenceNotFound"`". El error era de T4-7, que leía el `evidenceRef` sin comprobar antes el 201; se corrigió y su rojo es "`expected 201 … 404`".
+    - **T4-4 (más de 5 MB → 413) pasa también sin la ruta:** el límite de Spring (`max-file-size: 5MB`, Tarea 1) es global.
+  - **Verde por capas**, con el módulo completo y un repositorio Maven aislado: `core` "Tests run: 358", `crypto` 50, `ai` 47, `api` 156, `identity` 332, `convocatoria` 253 y `app` "Tests run: 485", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **9 de 9 mutaciones muertas** ("Mutaciones vivas: 0"), en un clon limpio de `17fbd24`, con la línea base en verde y los módulos no mutados instalados con sus tests en un repositorio Maven aislado:
+    - 1 (sin la validación del formato) → T4-6 (los nueve formatos inválidos);
+    - 2 (el gancho antes de `authorize`) → el orden de F3, T4-9b (permisos, rol, estado y ya entregado) y la redundancia exacta;
+    - 3 (el gancho aunque no haya eventos) → la redundancia exacta;
+    - 4 (`bindEvidence` sin la condición sobre `boundAssetId`) → `bindEvidence_toAnotherAsset…`, T4-8 y T4-10;
+    - 5 (sin `deletedAt: null`) y 6 (sin `organizationId`) → `bindEvidence_unknownOtherOrganization…` y T4-7 (la 6, también el `explain()`);
+    - 7 (la huella sin el prefijo) → T4-1, el unitario del controlador y las entregas HTTP;
+    - 8 (autorizar después de leer los bytes) → `DeliveryEvidenceControllerTest`, con el `MultipartFile` que cuenta las lecturas;
+    - 9 (despachar pasa el gancho de la entrega) → T4-12.
+  - **`explain()` de `bindEvidence` (§7),** la escritura real capturada con el profiler: "`IXSCAN { organizationId: 1, purpose: 1, sha256: 1 }` keysExamined=1 docsExamined=1", el índice parcial `uq_evidence_sha256`, sin `COLLSCAN`.
+  - **`ci-local.sh`:** CI_T4.
+- **Pendiente:**
+  - **Antes de fusionar, avisar a Adonis (móvil) y a la web** (B-2): una entrega con `evidenceRef` de texto libre recibirá 400. Primero se sube la foto y después se entrega con su `evidenceRef`. La enmienda de ADR-043 (F5) es de Adonis.
+  - T5 (lectura de la evidencia, retirada y huella en el seguimiento) sigue esperando la enmienda de ADR-021-D.
+
 ### 0.38 Ficha R-6, Enmienda 1, E2: `lastEventAt?` por lote en el listado de la organización (G-9) (2026-10-25, `feat/r6-bloque-b-g9`)
 
 - **Norma:**
