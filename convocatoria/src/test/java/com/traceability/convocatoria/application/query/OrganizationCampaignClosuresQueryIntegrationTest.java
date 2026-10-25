@@ -3,14 +3,12 @@ package com.traceability.convocatoria.application.query;
 import com.traceability.convocatoria.application.audit.ConvocatoriaAuditAction;
 import com.traceability.convocatoria.application.audit.ConvocatoriaAuditEntry;
 import com.traceability.convocatoria.application.command.CloseConvocatoriaCommand;
-import com.traceability.convocatoria.application.port.out.ConvocatoriaAuditLogPort;
 import com.traceability.convocatoria.application.query.OrganizationCampaignClosuresQuery.CampaignClosure;
 import com.traceability.convocatoria.application.service.ConvocatoriaLifecycleService;
 import com.traceability.convocatoria.support.AbstractConvocatoriaServiceIntegrationTest;
 import com.traceability.convocatoria.support.ConvocatoriaScenarios;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 
 import java.time.Instant;
 
@@ -29,7 +27,7 @@ class OrganizationCampaignClosuresQueryIntegrationTest extends AbstractConvocato
 
     @Autowired private ConvocatoriaLifecycleService lifecycle;
     @Autowired private OrganizationCampaignClosuresQuery query;
-    @SpyBean private ConvocatoriaAuditLogPort auditLog;
+    // auditLog: el espía de AbstractConvocatoriaServiceIntegrationTest
 
     private Instant closedAtOf(String campaignRef) {
         return auditLog.findByCampaignRef(campaignRef).stream()
