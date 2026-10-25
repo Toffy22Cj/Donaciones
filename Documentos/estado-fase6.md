@@ -229,6 +229,35 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.38 Ficha R-6, Enmienda 1, E2: `lastEventAt?` por lote en el listado de la organización (G-9) (2026-10-25, `feat/r6-bloque-b-g9`)
+
+- **Norma:**
+  - `ficha-R6-enmienda-1.md` §E2, APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; confirmación escrita "todo aprobado" en #134).
+  - Plan: `plan-r6-bloque-b-adenda-g9.md` (#124), APROBADO por Manuel el 2026-10-25 con P-G9-1 (b), y por Carlos (misma nota). P-G9-2 y P-G9-3, como recomienda el plan. **B-G9-1, resuelto** por esa nota.
+- **Qué hace:**
+  - `core`: `PhysicalAssetOperationalView.lastEventAt`. `listForOrganization` lo toma del último evento que `loadStream` ya devuelve por `sequence` ascendente, **sin ninguna consulta nueva** (P-G9-1 (b)). La vista individual lo deja nulo (P-G9-2).
+  - `api`: `OrganizationAssetsController.OrganizationAssetItem`, propio del listado (P-G9-3), con `lastEventAt?` en ISO-8601 UTC (`Instant.toString()`) y omitido si es nulo (`@JsonInclude(NON_NULL)`). `OperationalResponse` (`GET /physical-assets/{assetRef}`) no cambia.
+- **Tests:**
+  - G9-1 a G9-4: `PhysicalAssetListLastEventAtIntegrationTest` (core, Mongo real), `OrganizationAssetsControllerTest` (api) y la ampliación de `P2EndpointsHttpIntegrationTest.organizationAssets_forAdministratorOrEmployee_withoutDonorData` (app).
+  - `AssetHttpCommandsIntegrationTest.operationalView_hasExactlyTheOperationalFields` fija ahora también `lastEventAt`.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `core` no compilaba: "constructor PhysicalAssetOperationalView in record … cannot be applied to given types" y "cannot find symbol … method lastEventAt()".
+    - `api` falló por aserción: "Tests run: 2, Failures: 1, Errors: 0, Skipped: 0 … `g9_lastEventAt_isIso8601Utc` <<< FAILURE!".
+  - **Un fallo intermedio del test, no del código:** la primera versión de G9-2 usaba `verifyNoMoreInteractions` sobre el adaptador del event store y contaba también la lectura en segundo plano de la proyección (`AssetProjectionRouting.isInKindAsset` → `findGenesisPayload`). Se cambió a "una `loadStream` por activo listado y ninguna más". Sigue matando la mutación 4.
+  - **Verde por capas**, con el módulo completo:
+    - `core`: "Tests run: 340, Failures: 0, Errors: 0, Skipped: 0";
+    - `api`: "Tests run: 149, Failures: 0, Errors: 0, Skipped: 0" (sobre `326f5e6`, antes de integrar `develop`);
+    - `app`: el de `ci-local.sh`.
+  - **`ci-local.sh`** en un clon limpio de `7ae3046`, con el `develop` `3cab9a9` integrado: `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-7ae3046-2026-10-25T01-42-29Z.txt`. Resumen literal: core "Tests run: 340", crypto "Tests run: 50", ai "Tests run: 47", api "Tests run: 156", identity "Tests run: 332", convocatoria "Tests run: 253" y app "Tests run: 462", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **4 de 4 mutaciones muertas** ("Mutaciones vivas: 0"), en otro clon limpio y con la línea base en verde:
+    1. el mayor `occurredAt` → G9-1;
+    2. el primer evento → G9-1 y G9-2;
+    3. serializar `null` → G9-3;
+    4. volver a leer el stream → G9-2.
+- **Registrado (R-G9-1):** las 200 rehidrataciones por página (N+1) ya existían; G-9 no las empeora.
+- **Pendiente:** avisar a la web cuando se fusione (G-9 era parte del Bloque B).
+
 ### Nota (2026-10-25): aprobaciones de Carlos y fusiones del 2026-10-25
 
 - **Carlos aprobó todo lo pendiente** (planes, Enmienda 1 de ADR-050 partes 1 y 2, Enmienda 1 de la ficha R-6) y pidió a Manuel que fusionara él mismo los PR (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25; comunicado por Manuel, texto literal pendiente de registrar).

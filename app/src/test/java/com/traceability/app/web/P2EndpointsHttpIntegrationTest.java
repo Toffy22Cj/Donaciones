@@ -388,6 +388,11 @@ class P2EndpointsHttpIntegrationTest {
         assertThat(item.get("assetType").asText()).isEqualTo("FOOD");
         assertThat(items.toString()).doesNotContain("parentAssetRef").doesNotContain("rootAssetRef");
         assertThat(items.toString()).doesNotContain("donorRef").doesNotContain("anon:").doesNotContain("acct:");
+        // ficha R-6, Enmienda 1, E2 (G-9, test G9-4): lastEventAt en ISO-8601 UTC con Z, solo en el listado
+        String lastEventAt = item.get("lastEventAt").asText();
+        assertThat(lastEventAt).endsWith("Z");
+        assertThat(java.time.Instant.parse(lastEventAt)).isNotNull();
+        assertThat(ok(send("GET", "/api/v1/physical-assets/" + asset, employee, null), 200).has("lastEventAt")).isFalse();
         ok(send("GET", "/api/v1/organizations/" + org + "/physical-assets", employee, null), 200);
 
         HttpResponse<String> foreign = send("GET", "/api/v1/organizations/" + org + "/physical-assets", otherAdmin, null);
