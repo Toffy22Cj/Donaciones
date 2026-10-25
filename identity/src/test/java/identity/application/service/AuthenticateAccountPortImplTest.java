@@ -53,7 +53,29 @@ class AuthenticateAccountPortImplTest {
     void correctCredentials_returnTheAccountId() {
         when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(account(AccountStatus.ACTIVE)));
 
-        assertThat(new AuthenticateAccountPortImpl(accounts, hasher).authenticate(EMAIL, PASSWORD)).isEqualTo("acc-1");
+        assertThat(new AuthenticateAccountPortImpl(accounts, hasher).authenticate(EMAIL, PASSWORD).accountId())
+                .isEqualTo("acc-1");
+    }
+
+    // ADR-050 Enmienda 1, E1-1 (plan P-R3-3, A-1): el credentialsNotBefore del mismo documento que validó la contraseña
+    @Test
+    void correctCredentials_returnTheCredentialsNotBeforeOfThatSameAccount() {
+        java.time.Instant cnb = java.time.Instant.parse("2026-10-25T10:00:03Z");
+        Account withCnb = Account.reconstitute(new AccountId("acc-1"), new Email(EMAIL), storedHash, AccountStatus.ACTIVE,
+                null, null, cnb);
+        when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(withCnb));
+
+        assertThat(new AuthenticateAccountPortImpl(accounts, hasher).authenticate(EMAIL, PASSWORD))
+                .isEqualTo(new com.traceability.contracts.authentication.AuthenticatedAccount("acc-1", cnb));
+        org.mockito.Mockito.verify(accounts, org.mockito.Mockito.times(1)).findByEmail(new Email(EMAIL));
+    }
+
+    @Test
+    void anAccountWithoutCredentialsNotBefore_returnsNull() {
+        when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(account(AccountStatus.ACTIVE)));
+
+        assertThat(new AuthenticateAccountPortImpl(accounts, hasher).authenticate(EMAIL, PASSWORD).credentialsNotBefore())
+                .isNull();
     }
 
     @Test
