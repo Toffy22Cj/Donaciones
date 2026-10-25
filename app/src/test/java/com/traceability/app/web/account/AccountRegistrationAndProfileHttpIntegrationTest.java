@@ -232,8 +232,10 @@ class AccountRegistrationAndProfileHttpIntegrationTest {
         assertThat(send("PUT", PROFILE, token, "{\"givenName\":\"" + GIVEN + "\",\"familyName\":\"" + FAMILY + "\"}")
                 .statusCode()).isEqualTo(200);
 
+        // no hay una ruta que liste los responsables de una convocatoria; la más cercana es /me/campaigns, las
+        // asignaciones de quien llama
         for (String path : List.of("/api/v1/me", "/api/v1/account", "/api/v1/organizations/" + organizationId + "/members",
-                "/api/v1/organizations/" + organizationId)) {
+                "/api/v1/organizations/" + organizationId, "/api/v1/me/campaigns")) {
             HttpResponse<String> r = send("GET", path, token, null);
             assertThat(r.statusCode()).as(path).isEqualTo(200);
             assertThat(r.body()).as(path).doesNotContain(GIVEN).doesNotContain(FAMILY);

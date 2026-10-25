@@ -83,6 +83,7 @@ class LegalAcceptanceAndProfileIntegrationTest extends BaseMongoIntegrationTest 
     @Autowired private OrganizationRepositoryPort organizationRepository;
     @MockitoSpyBean private AccountRepositoryPort accountRepository;
     @MockitoSpyBean private AuditLogPort auditLog;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     @BeforeEach
     void setUp() {
@@ -174,6 +175,26 @@ class LegalAcceptanceAndProfileIntegrationTest extends BaseMongoIntegrationTest 
             assertThat(entry.changeSummary()).isEqualTo(Map.of("selfRegistration", true));
             assertThat(entry.toString()).doesNotContain(email.value());
         }
+    }
+
+    @Test
+    void accountCreated_theOldEntriesWithTheEmail_areNotRewritten() {
+        // ADR-050 D10 y ADR-025: solo las entradas nuevas dejan de llevar el correo; las antiguas se quedan como estaban
+        String oldEmail = "antigua-" + UUID.randomUUID() + "@r5.test";
+        String auditId = "old-" + UUID.randomUUID();
+        org.bson.Document old = new org.bson.Document("_id", auditId)
+                .append("occurredAt", java.util.Date.from(Instant.parse("2026-09-01T10:00:00Z")))
+                .append("actor", new org.bson.Document("type", "SYSTEM").append("processId", "legacy"))
+                .append("action", "ACCOUNT_CREATED")
+                .append("changeSummary", new org.bson.Document("email", oldEmail));
+        mongoTemplate.insert(old, "identity_audit_log");
+
+        accounts.createAccount(newEmail(), "Password123!long", CURRENT, CURRENT);
+
+        org.bson.Document after = mongoTemplate.findById(auditId, org.bson.Document.class, "identity_audit_log");
+        assertThat(after).isNotNull();
+        assertThat(after.get("changeSummary", org.bson.Document.class).getString("email")).isEqualTo(oldEmail);
+        assertThat(after.toJson()).isEqualTo(old.toJson());
     }
 
     // ── D1: perfil ──
