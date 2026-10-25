@@ -306,10 +306,13 @@ class CampaignCoverHttpIntegrationTest {
         World w = world();
 
         HttpResponse<byte[]> tooLarge = put(w, w.admin(), new byte[MediaPurpose.CAMPAIGN_COVER.maxBytes() + 1], "cover.png");
-        HttpResponse<byte[]> notAnImage = put(w, w.admin(), "not an image".getBytes(StandardCharsets.UTF_8), "cover.jpg");
 
         assertThat(tooLarge.statusCode()).isEqualTo(413);
         assertThat(body(tooLarge).get("title").asText()).isEqualTo("ImageTooLarge");
+        // P-1, como el logo: el límite de 2 MB lo da el controlador, sin llegar al servicio de subida
+        verify(uploads, never()).store(eq(MediaPurpose.CAMPAIGN_COVER), any(), any(), any(), any());
+
+        HttpResponse<byte[]> notAnImage = put(w, w.admin(), "not an image".getBytes(StandardCharsets.UTF_8), "cover.jpg");
         assertThat(notAnImage.statusCode()).isEqualTo(415);
         assertThat(body(notAnImage).get("title").asText()).isEqualTo("UnsupportedImageFormat");
         assertThat(mediaOf(w.org())).isEmpty();
