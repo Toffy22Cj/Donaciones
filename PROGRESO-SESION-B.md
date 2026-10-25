@@ -7,8 +7,8 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 | Ítem | Estado | Rama | Commits | PR |
 |---|---|---|---|---|
 | B1 · R-6 Bloque C + E1 | **HECHO** | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | código hasta `7e411f1`; docs `343c70b` | **#141** (abierto, revisor Toffy22Cj) |
-| B2 · R-6 Bloque D | EN CURSO (mutaciones y CI) | `feat/r6-bloque-d` (desde `feat/r6-bloque-c`; merge de C `03d7c83`) | `70a8181`, `9ae6571` (índice), `cf3c18b`, `898977b`, docs `67a5f95` | depende de #141 y #139 |
-| B3 · ADR-051 T4 | PENDIENTE | `feat/adr051-t4-evidencia` | — | — |
+| B2 · R-6 Bloque D | EN CURSO (CI en `/home/user/ci-d` sobre `a5ea0fd`) | `feat/r6-bloque-d` | código hasta `a5ea0fd`; docs `47d6b73` | depende de #141 y #139 |
+| B3 · ADR-051 T4 | EN CURSO (tests `986e047`; implementación escrita SIN commit en `/home/user/wt-t4`) | `feat/adr051-t4-evidencia` (desde `develop` `406f9b2`) | `986e047` | — |
 
 ## Arranque (2026-10-25)
 
@@ -74,7 +74,12 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - Fallos de test (no de código) corregidos: filtro del profiler (ruta anidada); cursor manipulado en el último carácter Base64.
 - Verde: core 351; convocatoria 255; app 494 (con #141 integrado). Todos `Failures: 0, Errors: 0, Skipped: 0`.
 
+## Evidencia B2 (continuación)
+
+- Mutaciones: 12/12 muertas (1 core + 9 app + 8b + 10 y 11 de la revisión adversaria). 10 y 11 VIVAS sobre `67a5f95` ("Mutaciones vivas: 2"), muertas sobre `a5ea0fd` con 11b bis.
+
 ## Paso exacto siguiente
 
-- B2: mutaciones corriendo en `/home/user/mut-d` (clon de `67a5f95`; specs `mut-d-core.json`, `mut-d-app.json` en el scratchpad). Después: CI en clon limpio de `67a5f95`, completar MUT_D y CI_D en estado-fase6 §0.51, PR "depende de #141 y #139".
-- B3: rama `feat/adr051-t4-evidencia` desde `develop`.
+- B2: al terminar la CI, copiar la evidencia a `Documentos/evidencia-ci/`, rellenar CI_D en estado-fase6 §0.51, commit y PR (cuerpo en el scratchpad `pr-d-body.md`, rellenar CI_D_RESUMEN; editar el pie).
+- B3: en `/home/user/wt-t4` la implementación está escrita sin commit. Siguiente: apartar `src/main` nuevos y modificados para el rojo (usar `-Dmaven.repo.local=/home/user/m2-t4`, repositorio aislado), restaurar, verde por capas, mutaciones 1-9 del plan T4, `explain()` de `bindEvidence`, docs (referencia §6 ya escrita; estado-fase6 §0.52), CI, PR con el aviso a Adonis y a la web ANTES de fusionar.
+- Ojo B3: el semillero y el golden path entregan dos activos → dos fotos distintas; los tests de app usan `InMemoryMediaStorageConfig`.
