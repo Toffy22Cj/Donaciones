@@ -426,4 +426,21 @@ class PasswordResetServicesIntegrationTest extends BaseMongoIntegrationTest {
         PasswordResetToken token = resetTokens.findPendingByAccount(account.getAccountId()).orElseThrow();
         assertThat(token.getStatus()).isEqualTo(PasswordResetTokenStatus.PENDING);
     }
+
+    @Test
+    void markUsedIfPending_onlyMovesAPendingToken_once() {
+        // contrato del adaptador (plan R-4 §4): PENDING → USED condicional; un token ya USED no se vuelve a marcar
+        String email = newEmail();
+        Account account = account(email);
+        requests.request(email);
+        PasswordResetToken token = resetTokens.findPendingByAccount(account.getAccountId()).orElseThrow();
+        Instant first = Instant.parse("2026-10-25T10:00:00Z");
+
+        assertThat(resetTokens.markUsedIfPending(token.getId(), first)).isTrue();
+        assertThat(resetTokens.markUsedIfPending(token.getId(), first.plusSeconds(60))).isFalse();
+
+        PasswordResetTokenDocument stored = tokensOf(account.getAccountId()).get(0);
+        assertThat(stored.getStatus()).isEqualTo("USED");
+        assertThat(stored.getUsedAt()).isEqualTo(first);
+    }
 }

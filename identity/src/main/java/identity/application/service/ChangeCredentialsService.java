@@ -111,6 +111,9 @@ public class ChangeCredentialsService {
             throw new PasswordResetTokenInvalidException();
         }
         String tokenHash = InvitationToken.hashOf(token);
+        // BCrypt fuera de la transacción: con él dentro, la confirmación ganadora la mantiene abierta lo que tarda el
+        // hash, y la perdedora agota sus reintentos de WriteConflict en markUsedIfPending (500) en lugar de releer USED
+        PasswordHash newPasswordHash = passwordHasher.hash(password.value());
 
         retryHelper.executeWithRetry(() -> {
             Instant now = clock.instant();
@@ -124,14 +127,17 @@ public class ChangeCredentialsService {
             if (!resetTokens.markUsedIfPending(resetToken.getId(), now)) {
                 throw new PasswordResetTokenInvalidException();
             }
-            applyChange(new AuditActor.AccountAuditActor(account.getAccountId()), account, password,
+            applyChange(new AuditActor.AccountAuditActor(account.getAccountId()), account, newPasswordHash,
                     Map.<String, Object>of("via", "PASSWORD_RESET"));
         });
     }
 
     private void applyChange(AuditActor actor, Account account, PlainPassword password, Map<String, Object> summary) {
+        applyChange(actor, account, passwordHasher.hash(password.value()), summary);
+    }
+
+    private void applyChange(AuditActor actor, Account account, PasswordHash newPasswordHash, Map<String, Object> summary) {
         Instant now = clock.instant();
-        PasswordHash newPasswordHash = passwordHasher.hash(password.value());
         account.changeCredentials(newPasswordHash, now);
 
         accountRepository.save(account);
