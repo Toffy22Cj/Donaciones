@@ -76,6 +76,8 @@ Complementa ADR-038 §2.7 sin cambiar nada de lo que ya decide. Bloquea B3 y, a 
 - **Cualquier** fallo del filtro → 401 con **el mismo cuerpo** `ProblemDetail` (DH-51; "401 uniforme"): token ausente, mal formado, firma inválida, caducado, `kid` desconocido, cuenta `INACTIVE` o inexistente.
 - `exp`: **8 horas** por defecto, configurable (`traceability.security.jwt-ttl`). Motivo: sin *refresh* (ADR-043), un `exp` corto obliga a reentrar varias veces por jornada en campo; y la desactivación no depende de `exp`, porque `resolvePrincipal` se ejecuta en cada request. Es un valor de producto: lo confirma Carlos (Q2).
 
+> **Nota (2026-10-24, enmienda por ADR-050 D4; implementada en `feat/identity-r3-r2-revocacion-contrasena`, plan R-3 + R-2).** El texto de arriba se conserva. ADR-050 D4 enmienda esta validación ("pasa de 5 a 6 pasos"). El paso 5 queda: "`resolveAuthenticatedPrincipal(sub, iat)`, que rechaza cuentas `INACTIVE`, inexistentes o con `iat` anterior a `credentialsNotBefore`". El rechazo es **el mismo 401**, sin distinguir la causa. Además, por el plan R-3 + R-2 (P-R3-2, aprobado por Manuel el 2026-10-24 por la delegación de Carlos), un token sin `iat` se rechaza como uno sin `sub` o sin `exp` (`MISSING_CLAIMS`, el mismo 401). Los claims siguen siendo solo `sub`, `iat` y `exp` (Q4 intacta). `resolvePrincipal(sub)` no cambia para `core` y `convocatoria`.
+
 ### D7. Nunca registrar el token ni el secreto (P3)
 
 - Ni el token, ni el secreto, ni la cabecera `Authorization` aparecen en ningún log, **ni completos ni en parte** (ni prefijos, ni sufijos, ni hashes truncados), en ningún nivel.

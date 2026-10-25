@@ -4,7 +4,9 @@ import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.AuditLogPort;
 import identity.application.port.out.OrganizationRepositoryPort;
 import identity.application.port.out.PasswordHasherPort;
+import identity.domain.exception.CurrentPasswordIncorrectException;
 import identity.domain.exception.DuplicateEmailException;
+import identity.domain.exception.PasswordTooShortException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AccountStatus;
@@ -27,12 +29,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import org.springframework.test.context.ContextConfiguration;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,7 +60,8 @@ import static org.mockito.Mockito.times;
         ChangeCredentialsService.class,
         DeactivateAccountService.class,
         ReactivateAccountService.class,
-        AddEmployeeService.class
+        AddEmployeeService.class,
+        identity.application.authorization.AuthorizationAuditActorMapper.class
 })
 class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
 
@@ -502,5 +508,239 @@ class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest 
 
         assertNotNull(rawDoc);
         assertEquals("ADMINISTRATOR", rawDoc.getString("platformAuthority"));
+    }
+
+    // --- ADR-050 D4 y D5: credentialsNotBefore y changeOwnCredentials ---
+
+    private static final String CURRENT = "currentPassword-123";
+    private static final String NEW = "brandNewPassword-456";
+
+    private static com.traceability.contracts.authorization.AuthorizationPrincipal self(Account account) {
+        return new com.traceability.contracts.authorization.AuthorizationPrincipal(
+                account.getAccountId().value(), null, java.util.Set.of(), null);
+    }
+
+    private org.bson.Document credentialsChangedAudit(AccountId accountId) {
+        return mongoTemplate.findOne(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("targetAccountId").is(accountId.value())
+                                .and("action").is("CREDENTIALS_CHANGED")),
+                org.bson.Document.class,
+                "identity_audit_log"
+        );
+    }
+
+    private void assertNothingChanged(AccountId accountId) {
+        Account reloaded = accountRepository.findById(accountId);
+        assertTrue(passwordHasher.matches(CURRENT, reloaded.getPasswordHash()), "el hash no debe cambiar");
+        assertNull(reloaded.getCredentialsNotBefore(), "credentialsNotBefore no debe cambiar");
+        verify(auditLogPort, never()).record(any());
+        assertNull(credentialsChangedAudit(accountId), "no debe haber auditoría CREDENTIALS_CHANGED");
+    }
+
+    @Test
+    void changeOwnCredentials_success_savesHashSetsAndReturnsCredentialsNotBeforeAndAudits() {
+        Account account = createAccountService.createAccount(new Email("own.change@example.com"), CURRENT);
+        reset(auditLogPort);
+        Instant before = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        Instant cnb = changeCredentialsService.changeOwnCredentials(self(account), CURRENT, NEW);
+
+        Instant after = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        assertNotNull(cnb);
+        assertEquals(0, cnb.getNano(), "credentialsNotBefore va en segundos enteros");
+        assertFalse(cnb.isBefore(before.plusSeconds(1)));
+        assertFalse(cnb.isAfter(after.plusSeconds(1)));
+
+        Account reloaded = accountRepository.findById(account.getAccountId());
+        assertTrue(passwordHasher.matches(NEW, reloaded.getPasswordHash()));
+        assertFalse(passwordHasher.matches(CURRENT, reloaded.getPasswordHash()));
+        assertEquals(cnb, reloaded.getCredentialsNotBefore(), "devuelve el valor confirmado en Mongo");
+        verify(auditLogPort, times(1)).record(any());
+
+        org.bson.Document audit = credentialsChangedAudit(account.getAccountId());
+        assertNotNull(audit);
+        org.bson.Document actorDoc = audit.get("actor", org.bson.Document.class);
+        assertEquals("ACCOUNT", actorDoc.getString("type"));
+        assertEquals(account.getAccountId().value(), actorDoc.getString("accountId"));
+    }
+
+    @Test
+    void changeOwnCredentials_wrongCurrentPassword_throwsAndNothingChanges() {
+        // ADR-050 test 8
+        Account account = createAccountService.createAccount(new Email("own.wrong@example.com"), CURRENT);
+        reset(auditLogPort);
+        int retriesBefore = retryHelper.getRetryCount();
+
+        assertThrows(CurrentPasswordIncorrectException.class,
+                () -> changeCredentialsService.changeOwnCredentials(self(account), "notTheCurrent-123", NEW));
+
+        assertNothingChanged(account.getAccountId());
+        assertEquals(retriesBefore, retryHelper.getRetryCount(), "Domain exceptions must not trigger transaction retries");
+    }
+
+    @Test
+    void changeOwnCredentials_wrongCurrentAndShortNew_reportsCurrentPasswordIncorrect() {
+        // P-R3-1 (a): el orden literal de ADR-050 D5, primero la actual y después la política
+        Account account = createAccountService.createAccount(new Email("own.wrong.short@example.com"), CURRENT);
+        reset(auditLogPort);
+
+        assertThrows(CurrentPasswordIncorrectException.class,
+                () -> changeCredentialsService.changeOwnCredentials(self(account), "notTheCurrent-123", "short"));
+
+        assertNothingChanged(account.getAccountId());
+    }
+
+    @Test
+    void changeOwnCredentials_shortNewPassword_throwsPasswordTooShortAndNothingChanges() {
+        // ADR-050 test 9
+        Account account = createAccountService.createAccount(new Email("own.short@example.com"), CURRENT);
+        reset(auditLogPort);
+
+        assertThrows(PasswordTooShortException.class,
+                () -> changeCredentialsService.changeOwnCredentials(self(account), CURRENT, "elevenchars"));
+
+        assertNothingChanged(account.getAccountId());
+    }
+
+    @Test
+    void changeOwnCredentials_auditContainsNoPassword() {
+        // ADR-050 test 10
+        Account account = createAccountService.createAccount(new Email("own.audit@example.com"), CURRENT);
+
+        changeCredentialsService.changeOwnCredentials(self(account), CURRENT, NEW);
+
+        org.bson.Document audit = credentialsChangedAudit(account.getAccountId());
+        assertNotNull(audit);
+        String json = audit.toJson();
+        assertFalse(json.contains(CURRENT), "la auditoría no lleva la contraseña actual");
+        assertFalse(json.contains(NEW), "la auditoría no lleva la contraseña nueva");
+        assertFalse(json.contains(accountRepository.findById(account.getAccountId()).getPasswordHash().value()),
+                "la auditoría no lleva el hash");
+    }
+
+    @Test
+    void changeOwnCredentials_onInactiveAccount_throwsInactiveAndNothingChanges() {
+        Account account = createAccountService.createAccount(new Email("own.inactive@example.com"), CURRENT);
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
+        Instant cnbAfterDeactivation = accountRepository.findById(account.getAccountId()).getCredentialsNotBefore();
+        reset(auditLogPort);
+
+        assertThrows(identity.domain.exception.InactiveAccountException.class,
+                () -> changeCredentialsService.changeOwnCredentials(self(account), CURRENT, NEW));
+
+        Account reloaded = accountRepository.findById(account.getAccountId());
+        assertTrue(passwordHasher.matches(CURRENT, reloaded.getPasswordHash()));
+        assertEquals(cnbAfterDeactivation, reloaded.getCredentialsNotBefore());
+        verify(auditLogPort, never()).record(any());
+    }
+
+    @Test
+    void changeOwnCredentials_twiceInARow_credentialsNotBeforeGrows() {
+        Account account = createAccountService.createAccount(new Email("own.twice@example.com"), CURRENT);
+
+        Instant first = changeCredentialsService.changeOwnCredentials(self(account), CURRENT, NEW);
+        Instant second = changeCredentialsService.changeOwnCredentials(self(account), NEW, "thirdPassword-789");
+
+        assertTrue(second.isAfter(first), "cada cambio revoca los tokens del anterior: " + first + " -> " + second);
+    }
+
+    @Test
+    void changeCredentials_existingMethod_alsoSetsCredentialsNotBefore() {
+        // [Plan] P-R3-2: ningún camino cambia la contraseña sin revocar
+        Account account = createAccountService.createAccount(new Email("existing.revokes@example.com"), CURRENT);
+        assertNull(accountRepository.findById(account.getAccountId()).getCredentialsNotBefore());
+
+        changeCredentialsService.changeCredentials(testActor, account.getAccountId(), NEW);
+
+        Instant cnb = accountRepository.findById(account.getAccountId()).getCredentialsNotBefore();
+        assertNotNull(cnb);
+        assertEquals(0, cnb.getNano());
+    }
+
+    @Test
+    void deactivateAccount_setsCredentialsNotBefore_andReactivateKeepsIt() {
+        // ADR-050 D4/D6: desactivar revoca; reactivar no borra la revocación
+        Account account = createAccountService.createAccount(new Email("deact.revokes@example.com"), CURRENT);
+
+        deactivateAccountService.deactivateAccount(testActor, account.getAccountId());
+        Instant cnb = accountRepository.findById(account.getAccountId()).getCredentialsNotBefore();
+        assertNotNull(cnb);
+
+        reactivateAccountService.reactivateAccount(testActor, account.getAccountId());
+        assertEquals(cnb, accountRepository.findById(account.getAccountId()).getCredentialsNotBefore());
+    }
+
+    @Test
+    void concurrentChangeOwnCredentials_sameCurrentPassword_oneWinsAndTheOtherGetsCurrentPasswordIncorrect() throws InterruptedException {
+        Account account = createAccountService.createAccount(new Email("own.concurrent@example.com"), CURRENT);
+        String password1 = "concurrentAlpha-123";
+        String password2 = "concurrentBeta-456";
+        reset(auditLogPort);
+
+        CyclicBarrier readBarrier = new CyclicBarrier(2);
+        AtomicBoolean firstPass = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            Object result = invocation.callRealMethod();
+            if (firstPass.get()) {
+                try {
+                    readBarrier.await(5, TimeUnit.SECONDS);
+                } catch (java.util.concurrent.TimeoutException e) {
+                    // Ignorar si hay timeout en la barrera
+                }
+                if (readBarrier.getNumberWaiting() == 0) {
+                    firstPass.set(false);
+                }
+            }
+            return result;
+        }).when(accountRepository).findById(account.getAccountId());
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        try {
+            CountDownLatch startLatch = new CountDownLatch(1);
+            CountDownLatch doneLatch = new CountDownLatch(2);
+            AtomicInteger successes = new AtomicInteger();
+            AtomicInteger incorrect = new AtomicInteger();
+            AtomicReference<Throwable> unexpected = new AtomicReference<>();
+
+            for (String target : new String[]{password1, password2}) {
+                executorService.submit(() -> {
+                    try {
+                        startLatch.await();
+                        changeCredentialsService.changeOwnCredentials(self(account), CURRENT, target);
+                        successes.incrementAndGet();
+                    } catch (CurrentPasswordIncorrectException e) {
+                        incorrect.incrementAndGet();
+                    } catch (Throwable t) {
+                        unexpected.compareAndSet(null, t);
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+            startLatch.countDown();
+            assertTrue(doneLatch.await(15, TimeUnit.SECONDS), "Timeout: los hilos concurrentes no terminaron");
+
+            if (unexpected.get() != null) {
+                fail("Unexpected exception: " + unexpected.get(), unexpected.get());
+            }
+            assertEquals(1, successes.get(), "exactamente un cambio gana");
+            assertEquals(1, incorrect.get(), "el otro recibe CurrentPasswordIncorrect");
+
+            Account updated = accountRepository.findById(account.getAccountId());
+            boolean p1Matches = passwordHasher.matches(password1, updated.getPasswordHash());
+            boolean p2Matches = passwordHasher.matches(password2, updated.getPasswordHash());
+            assertTrue(p1Matches ^ p2Matches, "la contraseña es exactamente una de las dos");
+            assertNotNull(updated.getCredentialsNotBefore());
+            long committedAudits = mongoTemplate.count(
+                    new org.springframework.data.mongodb.core.query.Query(
+                            org.springframework.data.mongodb.core.query.Criteria.where("targetAccountId").is(account.getAccountId().value())
+                                    .and("action").is("CREDENTIALS_CHANGED")),
+                    "identity_audit_log");
+            assertEquals(1, committedAudits, "una sola auditoría confirmada");
+        } finally {
+            reset(accountRepository);
+            executorService.shutdownNow();
+        }
     }
 }

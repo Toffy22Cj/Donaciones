@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +80,8 @@ class PrincipalResolutionFailureRealServerIntegrationTest {
 
     @Test
     void control_aResolvablePrincipal_reachesTheController() throws Exception {
-        when(identityPrincipalPort.resolvePrincipal(anyString()))
+        // el filtro JWT resuelve con el iat del token (ADR-050 D4)
+        when(identityPrincipalPort.resolveAuthenticatedPrincipal(anyString(), any()))
                 .thenAnswer(inv -> new AuthorizationPrincipal(inv.getArgument(0), null, Set.of(), null));
 
         RawHttp.Response r = RawHttp.send(port, "GET", PROTECTED, tokenIssuerPort.issue("acc-1"), null);
@@ -90,7 +92,7 @@ class PrincipalResolutionFailureRealServerIntegrationTest {
 
     @Test
     void aDatabaseFailureWhileResolvingThePrincipal_is500_never401_andTheControllerNeverRuns() throws Exception {
-        when(identityPrincipalPort.resolvePrincipal(anyString()))
+        when(identityPrincipalPort.resolveAuthenticatedPrincipal(anyString(), any()))
                 .thenThrow(new DataAccessResourceFailureException("mongo down"));
 
         RawHttp.Response r = RawHttp.send(port, "GET", PROTECTED, tokenIssuerPort.issue("acc-1"), null);

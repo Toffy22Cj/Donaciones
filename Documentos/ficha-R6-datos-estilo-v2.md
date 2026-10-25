@@ -197,6 +197,8 @@
 | D-R6-9 | G-8: tipos | **Los de §6**, con el orden total y el cursor de C-7 |
 | D-R6-10 | Orden de los bloques | **A, B, C, D, un PR por bloque** |
 
+> **Nota (2026-10-25, sesión de Manuel, con asistencia de Claude): D-R6-6 y la Enmienda 1.** La tabla de arriba se conserva. `ficha-R6-enmienda-1.md` (E1) **reabre D-R6-6**: cada paso de G-3 llevaría `eventHash` y, con el lote `ANCHORED`, `anchorProof` (decisión de Carlos del 2026-10-24). E2 añade G-9 (`lastEventAt?` por lote). La enmienda está en `develop` (#117), pero su estado sigue siendo **PROPUESTA** (`ficha-R6-enmienda-1.md:3`) y #117 se fusionó sin review. **Hasta que Carlos la confirme, rige D-R6-6 tal como está** (también `[D-R6-6]` en §5) y no se escribe código de E1 ni de G-9. Planes: C, versión 2 (#126), y adenda G-9 del plan B (#124), los dos en BORRADOR.
+
 ## 10. Correcciones sobre el borrador (Manuel, 2026-10-21)
 
 | # | Dónde | Qué decía el borrador | Por qué se corrige |
