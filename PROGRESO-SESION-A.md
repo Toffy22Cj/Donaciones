@@ -17,7 +17,7 @@ la A usa 0.39–0.49.
 
 | Ítem | Estado | Rama | PR | Evidencia | Bloqueado por |
 |---|---|---|---|---|---|
-| A1 R-4 | en curso: rojo hecho; verde identity 351 y api 160; app corriendo | `feat/identity-r4-recuperacion-contrasena` (sobre `422a1cb`; cherry-pick de la wip → `9726be9`) | — | ver bitácora | depende de #137 |
+| A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `85dc190` (código en `eb7c6a6`) | #140 (depende de #137) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 antes |
 | A2 R-5 (D1, D2, D10) | pendiente | — | — | — | — |
 | A3 D3 | pendiente | — | — | — | P-R3-3 y A2 |
 | A4 D6 sin D7 | pendiente | — | — | — | — |
@@ -45,8 +45,8 @@ la A usa 0.39–0.49.
 - A1: mutaciones en el clon limpio `/home/user/mut-r4` (`eb7c6a6`, repo Maven aislado; install con tests de .,contracts,core,crypto,ai,api,convocatoria; base identity 18 y app 14 en verde). identity: 9 de 9 muertas. app: 11 de 13 muertas; VIVAS en app la 6 (la mata en identity `markUsedIfPending_onlyMovesAPendingToken_once`; el WriteConflict de Mongo resuelve la carrera, así que el test 15 no la mata en ninguna capa) y la 11 (la mata en identity `afterATransientRetry_…`, que es donde la pone el plan). Resultado literal: `mutaciones/r4/resultado-eb7c6a6.txt`.
 - A1: ci-local en el clon limpio `/home/user/ci-r4` (`eb7c6a6`), en curso; free -g: 15 disponibles.
 
+- A1: ci-local en el clon limpio `eb7c6a6`: BUILD SUCCESS (evidencia `Documentos/evidencia-ci/ci-local-eb7c6a6-2026-10-25T07-23-51Z.txt`, con nota a mano). Commit de evidencia + estado-fase6 §0.40: `85dc190`. PR #140 abierto, pie corregido. Cuando #137 se fusione: merge de develop en la rama de #140 y repetir ci-local.
+
 ## Siguiente paso exacto
 
-A1: con app en verde sobre `eb7c6a6`: mutaciones (specs en esta rama: `mutaciones/r4/mut-identity.json` y `mutaciones/r4/mut-app.json`;
-1 a 13) en un clon limpio con un repositorio Maven aislado (MAVEN_ARGS=-Dmaven.repo.local=…); estado-fase6 §0.40;
-ci-local en un clon limpio; PR "depende de #137".
+A2 (R-5): en `/home/user/a2` (`feat/identity-r5-aceptaciones-perfil`, `42e6e37`, desde develop `406f9b2`): rojo literal apartando la producción, verde por capas, mutaciones 1 a 7 del plan, ci-local, estado-fase6 §0.41 y PR. #138 (CORS): corregir el pie al reescribir el cuerpo con el código.
