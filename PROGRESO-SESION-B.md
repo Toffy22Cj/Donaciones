@@ -7,8 +7,8 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 | Ítem | Estado | Rama | Commits | PR |
 |---|---|---|---|---|
 | B1 · R-6 Bloque C + E1 | **HECHO** | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | código hasta `7e411f1`; docs `343c70b` | **#141** (abierto, revisor Toffy22Cj) |
-| B2 · R-6 Bloque D | EN CURSO (CI en `/home/user/ci-d` sobre `a5ea0fd`) | `feat/r6-bloque-d` | código hasta `a5ea0fd`; docs `47d6b73` | depende de #141 y #139 |
-| B3 · ADR-051 T4 | EN CURSO (tests `986e047`; implementación escrita SIN commit en `/home/user/wt-t4`) | `feat/adr051-t4-evidencia` (desde `develop` `406f9b2`) | `986e047` | — |
+| B2 · R-6 Bloque D | **HECHO** | `feat/r6-bloque-d` | código hasta `a5ea0fd`; docs `6472f50` | **#143** (depende de #141 y #139) |
+| B3 · ADR-051 T4 | EN CURSO | `feat/adr051-t4-evidencia` (desde `develop` `406f9b2`) | tests `986e047`, implementación `bd0b963` (sin compilar) | — |
 
 ## Arranque (2026-10-25)
 
@@ -80,6 +80,6 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 
 ## Paso exacto siguiente
 
-- B2: al terminar la CI, copiar la evidencia a `Documentos/evidencia-ci/`, rellenar CI_D en estado-fase6 §0.51, commit y PR (cuerpo en el scratchpad `pr-d-body.md`, rellenar CI_D_RESUMEN; editar el pie).
+- B2: HECHO (#143, CI `ci-local-a5ea0fd-2026-10-25T08-42-12Z.txt`, app 495). Revisión adversaria: limpia tras 11b bis.
 - B3: en `/home/user/wt-t4` la implementación está escrita sin commit. Siguiente: apartar `src/main` nuevos y modificados para el rojo (usar `-Dmaven.repo.local=/home/user/m2-t4`, repositorio aislado), restaurar, verde por capas, mutaciones 1-9 del plan T4, `explain()` de `bindEvidence`, docs (referencia §6 ya escrita; estado-fase6 §0.52), CI, PR con el aviso a Adonis y a la web ANTES de fusionar.
 - Ojo B3: el semillero y el golden path entregan dos activos → dos fotos distintas; los tests de app usan `InMemoryMediaStorageConfig`.
