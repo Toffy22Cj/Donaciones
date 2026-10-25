@@ -1,5 +1,6 @@
 # Plan — Ficha R-6, Bloque B, adenda G-9: fecha del último cambio de cada lote (`lastEventAt?`)
 
+~~**Estado: BORRADOR. Espera el "plan aprobado" de Manuel**~~ → **APROBADO — Manuel, 2026-10-25** (§9; nota del 2026-10-25). Texto original de esta línea:
 **Estado: BORRADOR. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No se escribe código antes (regla 3.4).
 **Fecha:** 2026-10-24 (UTC).
 **Por qué es una adenda en su propio PR:** G-9 debía ir en el Bloque B, dentro del #113 (ficha R-6 Enmienda 1, E3; orden v2 de Carlos). El #113 se fusionó el 2026-10-24 antes de añadirla, así que G-9 va como adenda de `plan-r6-bloque-b.md` en su propio PR (indicación de Manuel, 2026-10-24). El plan B no se reescribe.
@@ -96,3 +97,12 @@ Además de lo anterior:
 | **P-G9-2** | `lastEventAt` solo en el listado, no en la vista individual | Sí, es lo que pide E2 |
 | **P-G9-3** | Un registro propio para el ítem del listado | Sí: la vista individual no cambia de forma |
 | **B-G9-1** | El estado de la Enmienda 1 de la ficha | Pregunta para Carlos |
+
+## 9. Aprobación — Manuel, 2026-10-25, por la delegación de Carlos
+
+**Texto de Manuel en la sesión:** "Plan aprobado — G-9 (#124) con P-G9-1 (b), Manuel, 2026-10-25". La delegación es el mensaje de Carlos del 2026-10-24 por WhatsApp (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24).
+
+- **P-G9-1: opción (b).** `lastEventAt` sale de los eventos que `loadStream` ya devuelve ordenados por `sequence`, sin consultas nuevas. Sustituye, para G-9, a la agregación de §0.5 del plan de ejecución. G9-2 cuenta "ninguna consulta además de las de rehidratación", y no hay `explain()` (§4.1 no se aplica). R-G9-1 (el N+1 que ya existía) queda solo registrado.
+- **P-G9-2 y P-G9-3:** el texto de Manuel no los nombra. Se aplican tal como los recomienda §8, que es lo que aprueba "plan aprobado": el campo solo en el listado y un registro propio para el ítem. Si Manuel quiere otra cosa, lo dice en el PR de código.
+- **B-G9-1 sigue abierto:** `ficha-R6-enmienda-1.md:3` dice PROPUESTA y #117 se fusionó sin review. Esta aprobación es del plan y **no** marca como aprobada la Enmienda 1 de la ficha (regla 2). La fuente citable del "qué" de G-9 es el mensaje literal de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24, punto 5: "G-9 (lastEventAt? en la lista de lotes, Enmienda 1 §E2)"). El PR de código lo cita y deja la pregunta a Carlos abierta.
+
