@@ -19,6 +19,8 @@
 | Campos opcionales | En las respuestas, `campo?` **puede faltar o llegar `null`** según el endpoint; el cliente trata los dos casos igual. Un campo sin `?` siempre llega y no es `null` (revisión de nulabilidad del 2026-10-08 contra el código) |
 | Paginación | `{items, nextCursor?}`; `nextCursor` omitido en la última página; cursor inválido → 400 (T-35). Donde se indica "una página", hay tope fijo y nunca `nextCursor` |
 
+*Nota (2026-10-25, DD-57 ampliada; plan CORS, #138):* CORS admite además **`PUT` y `DELETE`** (métodos: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`; sin `PATCH`), para que la web de otro origen pueda subir y quitar el logo (`PUT`/`DELETE /organizations/{organizationId}/logo`). El resto de la fila de CORS no cambia. La fila de arriba no se reescribe.
+
 ## 1. Autenticación y cuenta
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
