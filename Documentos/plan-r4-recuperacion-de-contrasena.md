@@ -214,3 +214,7 @@ Numeración de la definición de hecho de ADR-050.
 ---
 
 **Nota (2026-10-24, más tarde): #120 ya está fusionado.** Carlos fusionó #120 el 2026-10-24 a las 21:54:54Z, sin review en GitHub, con un solo commit, `44d2d1b` (la parte 1, P-R3-3). La parte 2 (P-R4-1 (a), `5794282`) se subió después de la fusión y no llegó a `develop`. Va ahora en el **PR #125** (cherry-pick sobre `8e37667`). Donde este plan dice "PR #120" para P-R4-1, léase **#125**. La condición del código no cambia: P-R4-1 tiene que tener el Approve de Carlos.
+
+---
+
+**Nota (2026-10-25, implementación en #140; aprobada por Manuel el 2026-10-25):** en §7, la mutación 6 (`markUsedIfPending` sin la condición `status = PENDING`) **no la mata el test 15**, ni por HTTP ni en `identity`. Con transacciones, la confirmación perdedora choca con un `WriteConflict`, reintenta, relee `USED` y recibe 400 aunque falte la condición. La mata el test nuevo del contrato del adaptador, `PasswordResetServicesIntegrationTest.markUsedIfPending_onlyMovesAPendingToken_once`, en `identity`. La tabla de §7 no se reescribe.
