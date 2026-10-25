@@ -18,6 +18,13 @@ Dueño: Identidad. Cubre, por la regla 3.5:
 
 **Enmienda ADR-047** (D5, validación del token) y **complementa** ADR-026, ADR-038 §2.7 y ADR-049 sin contradecirlos.
 
+> **Nota (2026-10-25, sesión de Manuel, con asistencia de Claude): enmiendas de este ADR.** El texto de este ADR se conserva. Las enmiendas van en `ADR-050-enmienda-1-iat-del-login.md`:
+> - **Parte 1 (E1-1, E1-2), enmienda de D4 (P-R3-3):** el login emite con `iat = max(segundo actual truncado, credentialsNotBefore)`, y `AuthenticateAccountPort.authenticate` devuelve también `credentialsNotBefore`, leído en la misma lectura. Está en `develop` (#120, `8e37667`), pero dice **PROPUESTA** (`ADR-050-enmienda-1-iat-del-login.md:5`) y #120 se fusionó sin review. Pregunta abierta para Carlos: ¿cuenta como aprobación? El plan corto de su código es #128 (BORRADOR).
+> - **Parte 2, enmienda de ADR-038 E1 (P-R4-1 (a)):** el actor de `CREDENTIALS_CHANGED` en la confirmación de la recuperación (R-4). En #125, abierto; espera el Approve de Carlos.
+> - **Posible parte 3 (P-R5-1, plan R-5 en #122):** D3 (`403 AcceptanceRequired`) exige cambiar `AuthenticateAccountPort`, y eso choca con Q1 (a) ("no toca el filtro ni el puerto", §"Preguntas", fila Q1; línea 197 antes de esta nota). No está redactada; la decide Carlos.
+> - **Implementación:** R-3 + R-2 (tarea 1 de §"Implementación") en #127, abierto y en verde, sin la parte 1 (P-R3-3 queda como defecto conocido en `referencia-api-v1.md`).
+> - Mientras ninguna parte esté aprobada, rigen D4 y Q1 tal como están escritos.
+
 ## Context
 
 ### Lo que ya está decidido y no se reabre
