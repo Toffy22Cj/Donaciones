@@ -64,8 +64,9 @@ la A usa 0.39–0.49.
 - A5: mutaciones api 4/4 y app 4/4; ci-local 93a6adc verde; §0.44; #138 reescrito (título, cuerpo, pie) y pasado a listo.
 - Pasada final (2026-10-25): las cabezas remotas y los cinco archivos de evidencia (salida 0, BUILD SUCCESS) comprobados con git; develop sigue en `406f9b2`.
 
+- 2026-10-25, modo tren (Manuel): fusionados #137 y #139 (develop `aa7a0d2`). Respuestas de Manuel: D3 nombre y "solo la pendiente" aprobados (nota en #144); R-5 una clase y mutación 4 en /account aprobadas (nota en #142); R-4 nota fechada en el plan (`84c1ad8`); CORS #138 no se toca hasta que Carlos confirme.
+- #140: merge de develop `aa7a0d2` (`4531319`, sin conflictos) + nota del plan (`84c1ad8`). Fuera de Documentos, el árbol es idéntico a `eb7c6a6` (CI ya en verde con #137 dentro): no se repite la CI. Avisado "#140 listo".
+
 ## Siguiente paso exacto
 
-Cola de la sesión A sin ítems desbloqueados. Orden de fusión para Manuel: #137 → #140 → #142 → #144 → #146 → #138 (#146 y #138 son independientes y pueden ir antes).
-Tras cada fusión: merge de develop en las ramas que quedan, repetir ci-local; en concreto, cuando #140 y #144 coincidan en develop, los logins de los tests de R-4 (R4-19 y el helper `login`) tienen que mandar las versiones legales.
-Bloqueados: D7, Google, T3, T5.
+Orden de Manuel: #137 ✓, #139 ✓, #141 (B), #140, #142, #144, #146, #143 (B), #138 (espera a Carlos), #145 (B). Al aviso de cada fusión: coger el siguiente PR propio, merge de develop (conservar los dos lados), CI si entró código desde la última, avisar "#N listo" con Surefire literal. En #144: los logins de los tests de R-4 con versiones.
