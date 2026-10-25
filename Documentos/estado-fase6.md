@@ -232,7 +232,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 ### 0.53 Deuda DT-B-1: la precisión de `recordedAt` en el Event Store (2026-10-25, registrada por indicación de Manuel)
 
 - Numerada 0.53, en la serie de la sesión B (0.50 a 0.69). Hallazgo H-D-2 del Bloque D (§0.51).
-- **Qué pasa:** `MongoEventStoreAdapter.java:96` guarda `recordedAt` como texto con `Instant.toString()`. Su precisión varía: omite los ceros finales de las fracciones, y sin fracción no escribe ninguna. Al ordenar como texto, dos eventos del mismo segundo pueden salir en mal orden: `…:05Z` va después de `…:05.1Z`.
+- **Qué pasa:** `MongoEventStoreAdapter.java:96` guarda `recordedAt` como texto con `Instant.toString()`. Su precisión varía: escribe la fracción con 3, 6 o 9 dígitos, y ninguna si es cero. Al ordenar como texto, dos eventos del mismo segundo pueden salir en mal orden: `…:05Z`, el segundo exacto, queda detrás de `…:05.100Z` aunque es anterior, porque `.` va antes que `Z`.
 - **Dónde afecta:** los directorios por génesis y G-8 (`OrganizationActivityQuery`) ordenan por `recordedAt` como texto. G-8 compara todos los instantes con ese mismo orden, así que el cursor nunca repite ni salta. El riesgo es que, dentro de un mismo segundo, el orden puede no ser cronológico.
 - **Decisión (Manuel, 2026-10-25):** se registra como deuda. **No se arregla en el PR del Bloque D** (#143). Arreglarlo pide escribir con precisión fija y migrar o tolerar los datos ya guardados.
 
