@@ -229,6 +229,35 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.43 D6: desactivar la propia cuenta, sin D7 (2026-10-25, `feat/identity-d6-desactivacion`)
+
+- **Norma:** ADR-050 D6 y Q3 (a), y los tests 24 y 25 de su definición de hecho. Plan: `plan-d6-desactivacion-propia.md`, APROBADO por Carlos (nota del 2026-10-25), con P-D6-1 a P-D6-4. **D7 queda fuera** (Manuel, 2026-10-25). Base: `develop` `406f9b2`.
+- **Qué hace:**
+  - `identity`: `DeactivateAccountService.deactivateOwnAccount(principal, currentPassword)`. En una transacción y en este orden (P-D6-2):
+    1. contraseña actual → `CurrentPasswordIncorrectException` (400, nunca 401; P-D6-1);
+    2. administrador de plataforma → `PlatformAdministratorDeactivationException`;
+    3. `REPRESENTATIVE` → `RepresentativeTransferRequiredException`;
+    4. responsable activo (`CampaignResponsibilityPort`) → `ActiveCampaignResponsibleException`.
+
+    Si pasa: `deactivate(now)`, que fija `credentialsNotBefore`, y `ACCOUNT_DEACTIVATED` con el actor de la cuenta. La membresía no cambia (D6).
+  - `app`: `AccountDeactivationController` (`POST /api/v1/account/deactivate` → `204`); `PlatformAdministratorDeactivationException` → **409** (P-D6-3; antes, 500); la ruta en el inventario.
+  - Tests de `identity` que cargan el servicio: el doble `StubCampaignResponsibilityPort` y los adaptadores de organización y BCrypt.
+  - Nota fechada en `referencia-api-v1.md`.
+- **Evidencia:**
+  - **Rojo primero** (producción de D6 apartada, sobre `develop`):
+    - `identity` no compilaba ("cannot find symbol: method deactivateOwnAccount");
+    - `app`, con el test de `identity` apartado: "Tests run: 8, Failures: 7". "expected: 409/400/204 but was: 404": la ruta no existía. El de sin JWT ya daba 401.
+  - **Verde por capas** (`mvn test -pl … -am`, sobre `98f366f`): identity "Tests run: 339" y app "Tests run: 470", con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones** en un clon limpio de `98f366f`, con un repositorio Maven aislado y la línea base en verde (identity 7, app 8):
+    - las 6 del plan, muertas en `app`; la 1 a la 4, también en `identity`;
+    - una 7 extra (sin la comprobación explícita del administrador, que es el orden P-D6-2) muere en `identity` (`test24_aPlatformAdministratorWhoIsAlsoRepresentative_…`) y sobrevive en `app`, donde no hay ese caso.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `98f366f` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core 340, crypto 50, ai 47, api 156, identity 339, convocatoria 253 y app 470, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-98f366f-2026-10-25T10-08-45Z.txt`, con nota a mano.
+- **Pendiente:**
+  - D7 (pregunta para Carlos);
+  - R-R3-1: sin límite de intentos, como en `/account/password`;
+  - con D3 (#144) en `develop`, los tests de este PR crean cuentas con `createAccount(email, password)`, pero no inician sesión por `/auth/login` (usan `tokens.issue`), así que D3 no les afecta.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `69bc88d` (#144 D3, con #142 R-5 y #140 R-4) en `2048827`; conflictos en este archivo, en `referencia-api-v1.md` y en `PublicRoutesInventoryIntegrationTest`, resueltos conservando los dos lados. `scripts/ci-local.sh` sobre `2048827` dio **rojo** en `identity`: "Tests run: 384, Failures: 0, Errors: 13" (`PasswordResetServicesIntegrationTest`, de R-4: el contexto no cargaba porque `DeactivateAccountService` pide ahora `CampaignResponsibilityPort`; evidencia `evidencia-ci/ci-local-2048827-2026-10-25T17-12-12Z.txt`). Corregido en `1297577` con el mismo `StubCampaignResponsibilityPort` que D6 puso en los demás tests del módulo. `scripts/ci-local.sh` en un clon limpio de `1297577` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 168, identity 384, convocatoria 253 y app 517, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-1297577-2026-10-25T17-27-08Z.txt`.
+
 ### 0.42 D3: el login exige las aceptaciones vigentes (2026-10-25, `feat/identity-d3-aceptaciones-login`)
 
 - **Norma:** ADR-050 D3 y Q1 (a), con la Enmienda 1, parte 3 (E3-1 a E3-5), APROBADA por Carlos ("todo aprobado" en #134). Plan: `plan-r5-d1-aceptaciones-y-perfil.md`, P-R5-1 (a), P-R5-2 y P-R5-5. **Depende de #142 (R-5, primera parte) y de #137 (P-R3-3):** la rama sale de la de #142 (`3002c6e`) con `fix/identity-p-r3-3-iat-del-login` integrado por merge (`89a1e26`), y después la cabeza de #142 (solo documentos).

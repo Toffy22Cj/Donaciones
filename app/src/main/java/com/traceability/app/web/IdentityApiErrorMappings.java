@@ -12,6 +12,7 @@ import identity.domain.exception.InvalidMemberRoleException;
 import identity.domain.exception.InvitationNotAcceptableException;
 import identity.domain.exception.InvitationNotPendingException;
 import identity.domain.exception.MemberAlreadyHasRoleException;
+import identity.domain.exception.PlatformAdministratorDeactivationException;
 import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.LastPlatformAdministratorException;
 import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
@@ -91,6 +92,9 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(InvitationNotPendingException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(MemberAlreadyHasRoleException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(ActiveCampaignResponsibleException.class, HttpStatus.CONFLICT, null),
-                new ApiErrorMapping(RepresentativeTransferRequiredException.class, HttpStatus.CONFLICT, null));
+                new ApiErrorMapping(RepresentativeTransferRequiredException.class, HttpStatus.CONFLICT, null),
+                // ADR-050 D6 (plan D6, P-D6-3): el administrador de plataforma no puede desactivar su cuenta; antes no
+                // estaba mapeada y salía como 500
+                new ApiErrorMapping(PlatformAdministratorDeactivationException.class, HttpStatus.CONFLICT, null));
     }
 }

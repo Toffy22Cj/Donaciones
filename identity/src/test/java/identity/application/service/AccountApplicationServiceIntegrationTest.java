@@ -62,7 +62,8 @@ import static org.mockito.Mockito.times;
         DeactivateAccountService.class,
         ReactivateAccountService.class,
         AddEmployeeService.class,
-        identity.application.authorization.AuthorizationAuditActorMapper.class
+        identity.application.authorization.AuthorizationAuditActorMapper.class,
+        StubCampaignResponsibilityPort.class
 })
 class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
 

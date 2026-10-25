@@ -110,6 +110,8 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/account",
             // ADR-050 D5 (R-2): cambiar la contraseña propia
             "POST /api/v1/account/password",
+            // ADR-050 D6: desactivar la propia cuenta
+            "POST /api/v1/account/deactivate",
             // ADR-050 D1 (plan R-5): el perfil de la propia cuenta
             "GET /api/v1/account/profile",
             "PUT /api/v1/account/profile",

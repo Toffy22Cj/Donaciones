@@ -25,7 +25,9 @@ import identity.infrastructure.persistence.mongo.BaseMongoIntegrationTest;
 import identity.infrastructure.persistence.mongo.documents.PlatformAuthorityStateDocument;
 import identity.infrastructure.persistence.mongo.repositories.MongoAccountRepositoryAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoAuditLogAdapter;
+import identity.infrastructure.persistence.mongo.repositories.MongoOrganizationRepositoryAdapter;
 import identity.infrastructure.persistence.mongo.repositories.MongoPlatformAuthorityStateAdapter;
+import identity.infrastructure.security.BCryptPasswordHasherAdapter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +66,10 @@ import static org.mockito.Mockito.reset;
         AuthorizationAuditActorMapper.class,
         GrantPlatformAuthorityService.class,
         RevokePlatformAuthorityService.class,
-        DeactivateAccountService.class
+        DeactivateAccountService.class,
+        MongoOrganizationRepositoryAdapter.class,
+        BCryptPasswordHasherAdapter.class,
+        StubCampaignResponsibilityPort.class
 })
 @org.springframework.test.annotation.DirtiesContext
 class PlatformAuthorityConcurrencyIntegrationTest extends BaseMongoIntegrationTest {
