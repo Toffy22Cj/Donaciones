@@ -150,6 +150,10 @@
 - El texto ("Lote L-0142 recibido en Riohacha") lo arma el front con `labels.ts`; el backend no devuelve frases.
 - **Módulo (C-7):** `app` (compone `core`, `convocatoria` y `crypto`). El plan fija los puertos contra el código.
 
+> **Nota (2026-10-25): respuestas de Carlos a las dos preguntas del plan D sobre esta sección** (`plan-r6-bloque-d.md` §6.2, P-R6D-1 y P-R6D-2). El texto de G-8 de arriba se conserva; esta nota lo precisa. Aprobación: `plan-r6-bloque-d.md:5` ("Respuestas a las dos preguntas abiertas (Manuel, 2026-10-25): P-R6D-1 (b) y P-R6D-2 (a)"), dentro de la aprobación de Carlos de todo lo pendiente (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; confirmación escrita "todo aprobado" en #134). El plan D (§7) pide registrarlo aquí, en su propio PR y antes del de código.
+> - **P-R6D-1 (b):** un ítem `BATCH_ANCHORED` **no lleva `subject`** y lleva **`eventCount`**: el número de eventos propios de la organización que entraron en ese lote. Sin `batchId` ni ningún otro identificador del lote (como G-7). Para los demás tipos, `subject` sigue como dice la respuesta de arriba. La forma de la respuesta queda: `{type, occurredAt, subject?: {kind: "ASSET"|"CAMPAIGN"|"FUND", ref}, eventCount?, quantity?, unitOfMeasure?, locationZone?}`.
+> - **P-R6D-2 (a), limitada a las convocatorias cerradas:** `CAMPAIGN_CLOSED` sale solo de las convocatorias de la organización con estado `CLOSED`, y su fecha es la del cierre que ya usa `CampaignTimelineQuery` (`closedAt`). No se cambia ningún puerto de `convocatoria`.
+
 ---
 
 ## 7. Tests previstos (rojos primero)

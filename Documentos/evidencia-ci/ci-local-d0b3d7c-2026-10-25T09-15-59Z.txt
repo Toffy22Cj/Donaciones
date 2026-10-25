@@ -1,0 +1,55 @@
+# CI local — scripts/ci-local.sh
+commit:   d0b3d7c2f949f68b8887a243abbb5efc490dbb51
+rama:     feat/identity-d3-aceptaciones-login
+inicio:   2026-10-25T09:15:59Z
+fin:      2026-10-25T09:31:11Z
+comando:  mvn -B clean test -fae
+salida:   0
+
+## Versiones
+java:   openjdk version "21.0.12.1" 2026-08-18
+java:   OpenJDK Runtime Environment (build 21.0.12.1+1-1-24.04.4-Ubuntu)
+java:   OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-24.04.4-Ubuntu, mixed mode, sharing)
+maven:  Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+docker: cliente 29.9.2, servidor 29.9.2
+
+## Resumen de Surefire por módulo (literal)
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 340, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 162, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 359, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 253, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 478, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.179 s]
+[INFO] contracts .......................................... SUCCESS [  1.079 s]
+[INFO] core ............................................... SUCCESS [02:13 min]
+[INFO] crypto ............................................. SUCCESS [ 18.213 s]
+[INFO] ai ................................................. SUCCESS [ 12.475 s]
+[INFO] api ................................................ SUCCESS [ 21.057 s]
+[INFO] identity ........................................... SUCCESS [02:38 min]
+[INFO] convocatoria ....................................... SUCCESS [ 27.272 s]
+[INFO] app ................................................ SUCCESS [08:57 min]
+[INFO] BUILD SUCCESS
+
+## Tests fallidos (si los hay)
+ninguno
+
+## sha256 del log completo
+0dd6f3700b524f6295732e9290848187d1b9214c802f33e0df5de493880b07bb
+
+## Nota añadida a mano (2026-10-25, sesión A; no la escribe el script)
+- Docker usó el espejo `mirror.gcr.io` (`/etc/docker/daemon.json` con `registry-mirrors`) por el límite 429 de Docker Hub. Esa configuración es de la máquina y no entra en ningún commit.
+- `MAVEN_ARGS=-Dmaven.repo.local=/home/user/m2-d3/repository`: repositorio Maven aislado, porque otra sesión trabaja a la vez en el mismo repositorio. El comando del script no cambia.
+- Clon limpio de `origin/feat/identity-d3-aceptaciones-login` en `d0b3d7c` (rama de R-5 #142 con #137 integrado); `free -g` antes: 14 GB disponibles.

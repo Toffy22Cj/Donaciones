@@ -60,7 +60,7 @@ class DemoSeedRunnerIntegrationTest {
     private JsonNode me(String email) throws Exception {
         HttpResponse<String> login = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v1/auth/login"))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString("{\"email\":\"" + email + "\",\"password\":\"test-only-seed-password\"}"))
+                .POST(HttpRequest.BodyPublishers.ofString("{\"email\":\"" + email + "\",\"password\":\"test-only-seed-password\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}"))
                 .build(), HttpResponse.BodyHandlers.ofString());
         assertThat(login.statusCode()).as(email).isEqualTo(200);
         String token = json.readTree(login.body()).get("token").asText();

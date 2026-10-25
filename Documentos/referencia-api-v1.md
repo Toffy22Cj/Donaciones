@@ -50,7 +50,54 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Token sin `iat`:** 401 (el emisor siempre lo escribe).
 - **500 tras confirmar (ADR-038 #7):** si el cambio se confirma y falla la emisión del token, la respuesta es 500. **La contraseña sí cambió** y todas las sesiones quedaron revocadas, también la actual: la web y el móvil deben llevar a iniciar sesión con la contraseña nueva.
 - **Defecto conocido (P-R3-3, decisión de Manuel del 2026-10-24 por la delegación de Carlos):** con el `+ 1 s` y el `max` de D4, `credentialsNotBefore` puede quedar uno o varios segundos en el futuro, y un inicio de sesión en ese intervalo recibe un token que el filtro rechaza (401). Con `POST /account/password` no pasa, porque el token llega en la respuesta. Afecta a quien inicie sesión justo después de cambiar la contraseña, de una desactivación o, con R-4, de una recuperación, donde sería el flujo normal. **Se corrige antes de R-4**, en un PR propio, tras la Enmienda 1 de ADR-050 D4 (el login emitirá con `iat = max(segundo actual truncado, credentialsNotBefore)`). Hasta entonces, el cliente que reciba ese 401 puede repetir el inicio de sesión un segundo después.
+  - *Nota (2026-10-25, plan P-R3-3; ADR-050 Enmienda 1, E1-1 y E1-2):* **corregido.** `POST /api/v1/auth/login` emite ahora con `iat = max(segundo actual truncado, credentialsNotBefore)`, y un inicio de sesión justo después de cambiar la contraseña, de una desactivación o de una recuperación recibe un token que vale. Ya no hace falta repetirlo un segundo después. El párrafo de arriba se conserva.
 - **Riesgo registrado (R-R3-1, pregunta para Carlos):** la ruta no limita los intentos; quien tenga un token robado puede probar contraseñas actuales.
+
+*Nota (2026-10-25, ADR-050 D6 y Q3 (a); plan D6; `feat/identity-d6-desactivacion`):* desactivar la propia cuenta. Ruta nueva; las filas de arriba no se reescriben. D7 (reactivación por la plataforma) no está.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /account/deactivate` | JWT; solo la cuenta del JWT; sin `Command-Id` | `{currentPassword}` | `204` sin cuerpo. La cuenta pasa a `INACTIVE` y **todos sus tokens quedan revocados**, también el de esta petición (D4): la siguiente petición con cualquiera de ellos da 401. No se borra nada y **la membresía de la organización no cambia** (D6); la organización la retira con la operación de siempre | 400 `currentPassword` vacío (sin llamar al dominio); **400 `CurrentPasswordIncorrect`**, nunca 401; **409 `PlatformAdministratorDeactivation`** (administrador de plataforma); **409 `RepresentativeTransferRequired`** (representante de su organización: antes tiene que transferir el rol); **409 `ActiveCampaignResponsible`** (responsable activo de una convocatoria no cerrada). En todos esos casos la cuenta sigue `ACTIVE` y nada cambia. Orden de las comprobaciones: contraseña, administrador, representante, responsable. 401 sin JWT válido |
+
+- **Sin vuelta atrás por la API:** la reactivación (D7) está pendiente de Carlos. Una cuenta desactivada por error solo se recupera fuera de la API.
+- **Riesgo registrado (R-R3-1, como en `/account/password`):** la ruta no limita los intentos de contraseña.
+
+*Nota (2026-10-25, ADR-050 D1, D2 y D10; plan R-5 + D1, primera parte; `feat/identity-r5-aceptaciones-perfil`):* aceptaciones legales, perfil y minimización. Las filas de arriba y la de `POST /organizations` (§3) no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/register` (ampliado) | pública | `{email, password, acceptedTermsVersion, acceptedDataPolicyVersion}` | `201 {accountId, status}`, como antes. La cuenta guarda cada versión con su fecha | Además de los de antes: **400** (`title` `BadRequest`) si falta alguna de las dos versiones o no es la vigente, **sin cuenta creada**. El campo va en el log, nunca el valor del correo |
+| `POST /organizations` (ampliado) | JWT, como antes | `{type, name, acceptedOrganizationTermsVersion}` | `201`, como antes. La organización guarda la versión, la cuenta que la aceptó y la fecha | Además: **400** si falta la versión o no es la vigente, **sin organización** |
+| `GET /account/profile` | JWT; solo la cuenta del JWT | — | `200 {email, givenName?, familyName?}`, `Cache-Control: no-store` | 401 |
+| `PUT /account/profile` | JWT; solo la cuenta del JWT; sin `Command-Id` | `{givenName?, familyName?}`; se recortan los espacios; `null` o ausente **borra** el campo | `200` con el mismo cuerpo que el `GET`, `no-store` | **400** si un campo queda vacío tras recortar o pasa de **100 puntos de código** (un emoji cuenta uno); nada cambia. 401 |
+
+- **Versiones vigentes:** hoy son `v1-2026-10` las tres (términos, autorización de datos y términos de organización). Fuera de `dev`, el servidor no arranca sin `TRACEABILITY_LEGAL_TERMS_VERSION`, `TRACEABILITY_LEGAL_DATA_POLICY_VERSION` y `TRACEABILITY_LEGAL_ORGANIZATION_TERMS_VERSION`. Los textos los publica la web (`paxfide-web/Documentos/legal/`); el backend solo guarda versiones.
+- **El nombre es privado:** no aparece en `GET /me`, `GET /account`, la lista de miembros, `GET /organizations/{id}`, `GET /me/campaigns`, las rutas públicas ni los logs. La auditoría `PROFILE_UPDATED` guarda solo qué campos cambiaron (`{fields: […]}`), nunca los valores.
+- **D10:** la auditoría `ACCOUNT_CREATED` ya no guarda el correo (`{selfRegistration: true}`). Las entradas antiguas no se reescriben.
+- **El login no cambia en esta parte:** exigir las aceptaciones vigentes en el login (D3, `403 AcceptanceRequired`) va en su propio PR.
+
+*Nota (2026-10-25, ADR-050 D3 y Q1 (a); Enmienda 1, parte 3; `feat/identity-d3-aceptaciones-login`):* el login exige las aceptaciones vigentes. La fila de `POST /auth/login` de arriba y la viñeta de esta nota anterior no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/login` (ampliado) | pública | `{email, password, acceptedTermsVersion?, acceptedDataPolicyVersion?}` | `200 {token}`, como antes, si la cuenta está al día o si el cuerpo trae **exactamente** las versiones vigentes que le faltan; en ese caso se guardan con la fecha | **`403`** (`application/problem+json`, `title` `AcceptanceRequired`) con `{pendingTermsVersion?, pendingDataPolicyVersion?}` (solo las pendientes) y **sin token**, si la contraseña es correcta pero falta alguna versión y el cuerpo no la trae o trae otra; no se guarda nada. **El 401 no cambia**: con una contraseña incorrecta, un correo inexistente o una cuenta inactiva, el mismo 401 de siempre, **nunca 403** |
+
+- **Flujo para la web y el móvil:** si el login da 403 `AcceptanceRequired`, mostrar los textos de las versiones pendientes y repetir el login con `acceptedTermsVersion` y `acceptedDataPolicyVersion` en el cuerpo. El 403 llega solo después de comprobar la contraseña.
+- **Al desplegar, todas las cuentas** sin las versiones vigentes (las anteriores a R-5 y las de la semilla) reciben 403 en su siguiente login hasta aceptar. Las que se registraron con las versiones vigentes no notan nada.
+- **Los tokens ya emitidos** siguen valiendo hasta su `exp` (riesgo aceptado 4 de ADR-050). El filtro no cambia.
+
+*Nota (2026-10-25, ADR-050 D8 y Q5 (a); plan R-4, `feat/identity-r4-recuperacion-contrasena`):* recuperación de la contraseña. Dos rutas nuevas, **públicas**, sin `Command-Id` (DH-34). Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/password-reset` | pública | `{email}` | **Siempre el mismo `202` sin cuerpo**, con `Cache-Control: no-store`: exista o no la cuenta, esté inactiva, el correo esté mal formado o se repita la petición antes de 5 minutos. Solo una cuenta existente y `ACTIVE`, fuera del enfriamiento, recibe un correo | 400 `email` vacío |
+| `POST /auth/password-reset/confirm` | pública | `{token, newPassword}` | `204`, `no-store`. **No inicia sesión:** la web lleva a iniciar sesión con la contraseña nueva | 400 campo vacío (sin llamar al dominio); **el mismo 400 `PasswordResetTokenInvalid`** para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva; 400 `PasswordTooShort` (menos de 12), que **no consume el token** |
+
+- **El enlace del correo** es `{TRACEABILITY_WEB_BASE_URL}/recuperar#token=…`: el token va en el **fragmento**, que el navegador no envía. La web lo lee, lo borra de la barra y lo manda en el cuerpo de `confirm`. Un token en la query o en la ruta nunca se acepta.
+- **Validez:** 30 minutos y un solo uso. Pedir otro deja sustituido (`SUPERSEDED`) el anterior.
+- **Enfriamiento de 5 minutos:** una segunda petición antes no envía nada. Si el correo no llega (servidor de correo caído o cola llena), la web debe decir "si no llega, vuelve a pedirlo en 5 minutos" (Q5 (a): sin reintentos).
+- **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
+- **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
 ## 2. Plataforma
 
