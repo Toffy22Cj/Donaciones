@@ -19,6 +19,11 @@ import java.util.Map;
 // Ningún cambio de evento. Medido: 202 000 claves y 514 ms → 500 claves y 3 ms (plan-r6-bloque-b.md, Aprobación)
 @CompoundIndex(name = "idx_fund_genesis_organization", def = "{'payload.organizationRef': 1, 'recordedAt': 1, 'streamId': 1}",
         partialFilter = "{'sequence': 1, 'aggregateType': 'Fund'}")
+// Ficha R-6, Bloque D (plan D, P-R6D-6; R-R6D-1): el directorio de activos de una organización (MongoAssetDirectoryAdapter,
+// GET /physical-assets de la organización, G-7 y G-8) busca por la génesis y ordena por recordedAt y streamId. Parcial:
+// solo las génesis de activos. Ningún cambio de evento. Medido en el plan: 52 000 claves y 176 ms → 2000 claves y 15 ms
+@CompoundIndex(name = "idx_asset_genesis_organization", def = "{'payload.organizationRef': 1, 'recordedAt': 1, 'streamId': 1}",
+        partialFilter = "{'sequence': 1, 'aggregateType': 'PhysicalAsset'}")
 @Data
 @Builder
 @NoArgsConstructor
