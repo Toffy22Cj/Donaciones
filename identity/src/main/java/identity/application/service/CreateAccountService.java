@@ -5,15 +5,19 @@ import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.AuditLogPort;
 import identity.application.port.out.PasswordHasherPort;
 import identity.domain.exception.DuplicateEmailException;
+import identity.domain.exception.LegalVersionNotCurrentException;
 import identity.domain.model.Account;
 import identity.domain.model.AuditAction;
 import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Email;
+import identity.domain.model.LegalVersions;
 import identity.domain.model.PlainPassword;
 import identity.domain.model.PasswordHash;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
 
@@ -24,18 +28,50 @@ public class CreateAccountService {
     private final PasswordHasherPort passwordHasher;
     private final AuditLogPort auditLogPort;
     private final MongoTransactionRetryHelper retryHelper;
+    private final ObjectProvider<LegalVersions> legalVersions;
+    private final Clock clock;
 
     public CreateAccountService(AccountRepositoryPort accountRepository, 
                                 PasswordHasherPort passwordHasher, 
                                 AuditLogPort auditLogPort,
-                                MongoTransactionRetryHelper retryHelper) {
+                                MongoTransactionRetryHelper retryHelper,
+                                ObjectProvider<LegalVersions> legalVersions,
+                                ObjectProvider<Clock> clock) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.auditLogPort = auditLogPort;
         this.retryHelper = retryHelper;
+        this.legalVersions = legalVersions;
+        this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
+    /**
+     * Registro público (ADR-050 D1, D2): exige las dos versiones vigentes, la de los términos y la de la autorización de
+     * datos. Una ausente o distinta de la vigente → {@link LegalVersionNotCurrentException} con el campo, antes de leer
+     * nada: sin cuenta y sin auditoría. Las dos se guardan con la fecha del alta.
+     */
+    public Account createAccount(Email email, String plainPassword, String acceptedTermsVersion,
+                                 String acceptedDataPolicyVersion) {
+        LegalVersions current = legalVersions.getObject();
+        if (!current.terms().equals(acceptedTermsVersion)) {
+            throw new LegalVersionNotCurrentException("acceptedTermsVersion");
+        }
+        if (!current.dataPolicy().equals(acceptedDataPolicyVersion)) {
+            throw new LegalVersionNotCurrentException("acceptedDataPolicyVersion");
+        }
+        return create(email, plainPassword, account -> account.acceptLegalTerms(acceptedTermsVersion,
+                acceptedDataPolicyVersion, clock.instant()));
+    }
+
+    /**
+     * Alta sin aceptaciones, para la semilla de la demo y los tests (plan R-5 [Plan]). La cuenta queda sin versiones
+     * aceptadas; con D3, su primer inicio de sesión las exigirá.
+     */
     public Account createAccount(Email email, String plainPassword) {
+        return create(email, plainPassword, account -> {});
+    }
+
+    private Account create(Email email, String plainPassword, java.util.function.Consumer<Account> beforeSave) {
         // H-P2-1: la política se comprueba antes de leer nada
         PlainPassword password = new PlainPassword(plainPassword);
         return retryHelper.executeWithRetry(() -> {
@@ -45,18 +81,20 @@ public class CreateAccountService {
 
             PasswordHash passwordHash = passwordHasher.hash(password.value());
             Account newAccount = Account.createAccount(email, passwordHash);
+            beforeSave.accept(newAccount);
 
             accountRepository.save(newAccount);
 
             AuditActor actor = new AuditActor.AccountAuditActor(newAccount.getAccountId());
             AuditLogEntry auditLog = AuditLogEntry.record(
                     UlidCreator.getUlid().toString(),
-                    Instant.now(),
+                    clock.instant(),
                     actor,
                     newAccount.getAccountId(),
                     null,
                     AuditAction.ACCOUNT_CREATED,
-                    Map.of("email", email.value(), "selfRegistration", true)
+                    // ADR-050 D10: sin el correo (las entradas anteriores no se tocan)
+                    Map.of("selfRegistration", true)
             );
             auditLogPort.record(auditLog);
 

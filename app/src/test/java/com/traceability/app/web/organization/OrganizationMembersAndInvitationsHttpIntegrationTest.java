@@ -353,7 +353,7 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
     void anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail() throws Exception {
         String email = email();
         HttpResponse<String> registered = send("POST", "/api/v1/auth/register", null,
-                "{\"email\":\"" + email.toUpperCase(java.util.Locale.ROOT) + "\",\"password\":\"" + PASSWORD + "\"}");
+                "{\"email\":\"" + email.toUpperCase(java.util.Locale.ROOT) + "\",\"password\":\"" + PASSWORD + "\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}");
         String invitee = ok(registered, 201).get("accountId").asText();
         String token = invitedToken(email, "EMPLOYEE");
 

@@ -35,6 +35,21 @@ class DonationReadAdapterTest {
         assertThat(result).isEmpty();
     }
 
+    // Ficha R-6, G-4: un lote que no viene de una división no trae padre
+    @Test
+    void findByFundId_logisticsItemWithoutParent_hasNullParentAssetId() {
+        DonationProjectionDocument doc = new DonationProjectionDocument();
+        doc.setProjectionId("fund-1");
+        doc.setStatus("ACTIVE");
+        DonationProjectionDocument.LogisticsProjection l = new DonationProjectionDocument.LogisticsProjection();
+        l.setAssetId("asset-root");
+        l.setLifecycleStatus("REGISTERED");
+        doc.setLogistics(Arrays.asList(l));
+        when(repository.findById("fund-1")).thenReturn(Optional.of(doc));
+
+        assertThat(adapter.findByFundId("fund-1").orElseThrow().logistics().get(0).parentAssetId()).isNull();
+    }
+
     @Test
     void findByFundId_WhenFound_CalculatesConfirmedAmountAndMapsCorrectly() {
         DonationProjectionDocument doc = new DonationProjectionDocument();
@@ -116,7 +131,13 @@ class DonationReadAdapterTest {
         assertThat(log.quantity()).isEqualTo(new BigDecimal("100"));
         assertThat(log.currentLocation()).isEqualTo("ZONE_A");
         assertThat(log.currentCustodian()).isEqualTo("LOGISTICS_PARTNER");
+        // Ficha R-6, G-4 (plan del Bloque C, §2.1): el assetId del padre pasa como dato interno; api decide si lo
+        // publica (solo si el padre está en la misma logistics) y nunca lo publica crudo
+        assertThat(log.parentAssetId()).isEqualTo("parent-ref");
 
+        // Nota (2026-10-25, ficha R-6, G-4): parentAssetRef ya llega, como parentAssetId interno; rootAssetRef sigue fuera.
+        assertThat(LogisticsReadItem.class.getRecordComponents()).extracting(c -> c.getName())
+                .doesNotContain("rootAssetRef", "rootAssetId", "sourceAllocationId", "splitsBeforeCompensation");
         // The Java compiler enforces that fields like allocationId, vendorId, parentAssetRef, rootAssetRef 
         // are not present in DonationReadModel and LogisticsReadItem. 
         // We do not need a reflection assertion since the record definition itself guarantees data purging.

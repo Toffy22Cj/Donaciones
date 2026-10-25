@@ -72,7 +72,7 @@ class TrackingIntegrityServiceTest {
         service = new TrackingIntegrityService(donations, membership, batches, verification, provider);
         when(donations.findByFundId("FUND-1")).thenReturn(Optional.of(new DonationReadModel("FUND-1", "COP", "CAMP-1",
                 100, 100, 0, 0, 0, "ACTIVE", List.of(new LogisticsReadItem("ASSET-1", "RECEIVED", "kit", "unit",
-                java.math.BigDecimal.ONE, "zona", null)))));
+                java.math.BigDecimal.ONE, "zona", null, null)))));
     }
 
     static MerkleBatch batch(String id, AnchorStatus status, Instant createdAt, Map<String, SequenceRange> coverage) {

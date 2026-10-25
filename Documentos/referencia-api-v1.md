@@ -52,7 +52,54 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Token sin `iat`:** 401 (el emisor siempre lo escribe).
 - **500 tras confirmar (ADR-038 #7):** si el cambio se confirma y falla la emisión del token, la respuesta es 500. **La contraseña sí cambió** y todas las sesiones quedaron revocadas, también la actual: la web y el móvil deben llevar a iniciar sesión con la contraseña nueva.
 - **Defecto conocido (P-R3-3, decisión de Manuel del 2026-10-24 por la delegación de Carlos):** con el `+ 1 s` y el `max` de D4, `credentialsNotBefore` puede quedar uno o varios segundos en el futuro, y un inicio de sesión en ese intervalo recibe un token que el filtro rechaza (401). Con `POST /account/password` no pasa, porque el token llega en la respuesta. Afecta a quien inicie sesión justo después de cambiar la contraseña, de una desactivación o, con R-4, de una recuperación, donde sería el flujo normal. **Se corrige antes de R-4**, en un PR propio, tras la Enmienda 1 de ADR-050 D4 (el login emitirá con `iat = max(segundo actual truncado, credentialsNotBefore)`). Hasta entonces, el cliente que reciba ese 401 puede repetir el inicio de sesión un segundo después.
+  - *Nota (2026-10-25, plan P-R3-3; ADR-050 Enmienda 1, E1-1 y E1-2):* **corregido.** `POST /api/v1/auth/login` emite ahora con `iat = max(segundo actual truncado, credentialsNotBefore)`, y un inicio de sesión justo después de cambiar la contraseña, de una desactivación o de una recuperación recibe un token que vale. Ya no hace falta repetirlo un segundo después. El párrafo de arriba se conserva.
 - **Riesgo registrado (R-R3-1, pregunta para Carlos):** la ruta no limita los intentos; quien tenga un token robado puede probar contraseñas actuales.
+
+*Nota (2026-10-25, ADR-050 D6 y Q3 (a); plan D6; `feat/identity-d6-desactivacion`):* desactivar la propia cuenta. Ruta nueva; las filas de arriba no se reescriben. D7 (reactivación por la plataforma) no está.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /account/deactivate` | JWT; solo la cuenta del JWT; sin `Command-Id` | `{currentPassword}` | `204` sin cuerpo. La cuenta pasa a `INACTIVE` y **todos sus tokens quedan revocados**, también el de esta petición (D4): la siguiente petición con cualquiera de ellos da 401. No se borra nada y **la membresía de la organización no cambia** (D6); la organización la retira con la operación de siempre | 400 `currentPassword` vacío (sin llamar al dominio); **400 `CurrentPasswordIncorrect`**, nunca 401; **409 `PlatformAdministratorDeactivation`** (administrador de plataforma); **409 `RepresentativeTransferRequired`** (representante de su organización: antes tiene que transferir el rol); **409 `ActiveCampaignResponsible`** (responsable activo de una convocatoria no cerrada). En todos esos casos la cuenta sigue `ACTIVE` y nada cambia. Orden de las comprobaciones: contraseña, administrador, representante, responsable. 401 sin JWT válido |
+
+- **Sin vuelta atrás por la API:** la reactivación (D7) está pendiente de Carlos. Una cuenta desactivada por error solo se recupera fuera de la API.
+- **Riesgo registrado (R-R3-1, como en `/account/password`):** la ruta no limita los intentos de contraseña.
+
+*Nota (2026-10-25, ADR-050 D1, D2 y D10; plan R-5 + D1, primera parte; `feat/identity-r5-aceptaciones-perfil`):* aceptaciones legales, perfil y minimización. Las filas de arriba y la de `POST /organizations` (§3) no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/register` (ampliado) | pública | `{email, password, acceptedTermsVersion, acceptedDataPolicyVersion}` | `201 {accountId, status}`, como antes. La cuenta guarda cada versión con su fecha | Además de los de antes: **400** (`title` `BadRequest`) si falta alguna de las dos versiones o no es la vigente, **sin cuenta creada**. El campo va en el log, nunca el valor del correo |
+| `POST /organizations` (ampliado) | JWT, como antes | `{type, name, acceptedOrganizationTermsVersion}` | `201`, como antes. La organización guarda la versión, la cuenta que la aceptó y la fecha | Además: **400** si falta la versión o no es la vigente, **sin organización** |
+| `GET /account/profile` | JWT; solo la cuenta del JWT | — | `200 {email, givenName?, familyName?}`, `Cache-Control: no-store` | 401 |
+| `PUT /account/profile` | JWT; solo la cuenta del JWT; sin `Command-Id` | `{givenName?, familyName?}`; se recortan los espacios; `null` o ausente **borra** el campo | `200` con el mismo cuerpo que el `GET`, `no-store` | **400** si un campo queda vacío tras recortar o pasa de **100 puntos de código** (un emoji cuenta uno); nada cambia. 401 |
+
+- **Versiones vigentes:** hoy son `v1-2026-10` las tres (términos, autorización de datos y términos de organización). Fuera de `dev`, el servidor no arranca sin `TRACEABILITY_LEGAL_TERMS_VERSION`, `TRACEABILITY_LEGAL_DATA_POLICY_VERSION` y `TRACEABILITY_LEGAL_ORGANIZATION_TERMS_VERSION`. Los textos los publica la web (`paxfide-web/Documentos/legal/`); el backend solo guarda versiones.
+- **El nombre es privado:** no aparece en `GET /me`, `GET /account`, la lista de miembros, `GET /organizations/{id}`, `GET /me/campaigns`, las rutas públicas ni los logs. La auditoría `PROFILE_UPDATED` guarda solo qué campos cambiaron (`{fields: […]}`), nunca los valores.
+- **D10:** la auditoría `ACCOUNT_CREATED` ya no guarda el correo (`{selfRegistration: true}`). Las entradas antiguas no se reescriben.
+- **El login no cambia en esta parte:** exigir las aceptaciones vigentes en el login (D3, `403 AcceptanceRequired`) va en su propio PR.
+
+*Nota (2026-10-25, ADR-050 D3 y Q1 (a); Enmienda 1, parte 3; `feat/identity-d3-aceptaciones-login`):* el login exige las aceptaciones vigentes. La fila de `POST /auth/login` de arriba y la viñeta de esta nota anterior no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/login` (ampliado) | pública | `{email, password, acceptedTermsVersion?, acceptedDataPolicyVersion?}` | `200 {token}`, como antes, si la cuenta está al día o si el cuerpo trae **exactamente** las versiones vigentes que le faltan; en ese caso se guardan con la fecha | **`403`** (`application/problem+json`, `title` `AcceptanceRequired`) con `{pendingTermsVersion?, pendingDataPolicyVersion?}` (solo las pendientes) y **sin token**, si la contraseña es correcta pero falta alguna versión y el cuerpo no la trae o trae otra; no se guarda nada. **El 401 no cambia**: con una contraseña incorrecta, un correo inexistente o una cuenta inactiva, el mismo 401 de siempre, **nunca 403** |
+
+- **Flujo para la web y el móvil:** si el login da 403 `AcceptanceRequired`, mostrar los textos de las versiones pendientes y repetir el login con `acceptedTermsVersion` y `acceptedDataPolicyVersion` en el cuerpo. El 403 llega solo después de comprobar la contraseña.
+- **Al desplegar, todas las cuentas** sin las versiones vigentes (las anteriores a R-5 y las de la semilla) reciben 403 en su siguiente login hasta aceptar. Las que se registraron con las versiones vigentes no notan nada.
+- **Los tokens ya emitidos** siguen valiendo hasta su `exp` (riesgo aceptado 4 de ADR-050). El filtro no cambia.
+
+*Nota (2026-10-25, ADR-050 D8 y Q5 (a); plan R-4, `feat/identity-r4-recuperacion-contrasena`):* recuperación de la contraseña. Dos rutas nuevas, **públicas**, sin `Command-Id` (DH-34). Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/password-reset` | pública | `{email}` | **Siempre el mismo `202` sin cuerpo**, con `Cache-Control: no-store`: exista o no la cuenta, esté inactiva, el correo esté mal formado o se repita la petición antes de 5 minutos. Solo una cuenta existente y `ACTIVE`, fuera del enfriamiento, recibe un correo | 400 `email` vacío |
+| `POST /auth/password-reset/confirm` | pública | `{token, newPassword}` | `204`, `no-store`. **No inicia sesión:** la web lleva a iniciar sesión con la contraseña nueva | 400 campo vacío (sin llamar al dominio); **el mismo 400 `PasswordResetTokenInvalid`** para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva; 400 `PasswordTooShort` (menos de 12), que **no consume el token** |
+
+- **El enlace del correo** es `{TRACEABILITY_WEB_BASE_URL}/recuperar#token=…`: el token va en el **fragmento**, que el navegador no envía. La web lo lee, lo borra de la barra y lo manda en el cuerpo de `confirm`. Un token en la query o en la ruta nunca se acepta.
+- **Validez:** 30 minutos y un solo uso. Pedir otro deja sustituido (`SUPERSEDED`) el anterior.
+- **Enfriamiento de 5 minutos:** una segunda petición antes no envía nada. Si el correo no llega (servidor de correo caído o cola llena), la web debe decir "si no llega, vuelve a pedirlo en 5 minutos" (Q5 (a): sin reintentos).
+- **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
+- **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
 ## 2. Plataforma
 
@@ -95,6 +142,13 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 *Nota (2026-10-21, ADR-051 Tarea 2; ficha S-18, nota del 2026-10-21):* `GET /organizations/{organizationId}` lleva además **`logoUrl?`** (`/api/v1/organizations/{organizationId}/logo`, la ruta autenticada), solo si la organización tiene logo. Los roles de S-18 no cambian. Las filas de arriba no se reescriben.
 
 *Nota (2026-10-23, ficha R-6, Bloque B; G-6; P-R6B-6):* el recaudado por mes lee como mucho **10 000 fondos** de la organización. Si tiene más, la respuesta lleva **`truncated: true`** y el resultado no está completo. Con 10 000 o menos, `truncated` no aparece.
+
+*Nota (2026-10-25, ficha R-6, Bloque D; G-7 y G-8; plan D con P-R6D-1 (b) y P-R6D-2 (a)): dos rutas nuevas.* Las filas de arriba no se reescriben.
+
+| Método y ruta | Quién | Respuesta | Errores |
+|---|---|---|---|
+| `GET /organizations/{organizationId}/integrity` (G-7) | `ADMINISTRATOR` o `REPRESENTATIVE` de la organización (como la predicción, DD-43) | `200 {unanchoredEvents, inPendingBatches, underReviewEvents, lastAnchoredAt?, truncated, checkedAt}`, `no-store`. Cuenta los eventos de los fondos y los activos de la organización (por su génesis) según el estado de su lote, con la tabla de G-3: `inPendingBatches` = en lotes `COLLECTING`, `PENDING`, `SUBMITTING`, `SUBMITTED` o `STUCK`; `underReviewEvents` = en lotes `FAILED`, `COLLECTING_FAILED` o `ANCHOR_MISMATCH`; `unanchoredEvents` = sin lote o en un lote `RELEASED`. `lastAnchoredAt` es el mayor `anchoredAt` de los lotes `ANCHORED` con eventos propios. Aunque un lote mezcle organizaciones, solo cuenta los eventos propios. Lee como mucho 10 000 fondos y 10 000 activos; si hay más, `truncated: true`. Sin `lastVerification` (D-R6-7). Nunca `batchId`, `merkleRoot`, `transactionHash` ni nada de otras organizaciones | 401 sin JWT; 403 (el mismo para un `EMPLOYEE`, otra organización o una inexistente, DD-01) |
+| `GET /organizations/{organizationId}/activity?cursor=` (G-8) | `ADMINISTRATOR`, `REPRESENTATIVE` o `EMPLOYEE` de la organización (D-R6-8) | `200 {items: [{type, occurredAt, subject?: {kind: "ASSET"\|"CAMPAIGN"\|"FUND", ref}, eventCount?, quantity?, unitOfMeasure?, locationZone?}], nextCursor?}`, 20 por página, de lo más reciente a lo más antiguo, `no-store`. `type`: `ASSET_REGISTERED`, `ASSET_DISPATCHED`, `ASSET_RECEIVED`, `ASSET_DELIVERED`, `ASSET_SPLIT` y `FUNDS_CLEARED` (los eventos, con `ref` = `assetId` o `fundId`); `CAMPAIGN_CLOSED` (las convocatorias `CLOSED`, con `ref` = `campaignRef` y la fecha de cierre); `BATCH_ANCHORED` (**sin `subject`** y con **`eventCount`**, los eventos propios que entraron en el lote; P-R6D-1 (b)). `quantity` y `unitOfMeasure`, en el registro y en la división; `locationZone`, en el registro, la recepción y la entrega, calculada como en el seguimiento. `occurredAt` es el del hecho; el orden usa el instante de listado (`recordedAt` de los eventos, la fecha de cierre o `anchoredAt`) y, en un empate, eventos, después cierres y después lotes. Un `FUNDS_CLEARED` no lleva importe. Nunca el actor, `donorRef`, `beneficiaryRef`, custodios, la ubicación exacta ni importes. `nextCursor` es opaco y solo vale para la misma lista de la misma organización | 400 `cursor` (inválido, alterado, de otro propósito o de otra organización); 401 sin JWT; 403 (el mismo, DD-01) |
 
 ## 4. Convocatoria (administración)
 
@@ -169,6 +223,18 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 *Nota (2026-10-21, ficha R-6, Bloque A; G-1; D-R6-1):* `GET /donations/tracking` lleva además **`campaignTitle?`** (el título de la convocatoria) y **`organizationName?`** (el nombre público de su organización). Faltan los dos si la donación no tiene `campaignRef` o la convocatoria no se encuentra; `organizationName` falta también si la organización no tiene nombre (DD-04). Sigue sin `fundId` ni `donorRef` (DD-76). Para una convocatoria `PRIVATE_LINK`, el título se muestra a quien tiene el `trackingCode` (P-R6A-4, aceptado). Las filas de arriba no se reescriben.
 
 *Nota (2026-10-23, ficha R-6, Bloque B; G-2; D-R6-2):* en `GET /donations/tracking`, **`financialSnapshot`** lleva además **`firstClearedAt?`** y **`lastClearedAt?`** (ISO-8601 UTC): el `occurredAt` del primer y del último `FUNDS_CLEARED` (1.0 o 2.0) del fondo, por orden de `sequence` del stream, nunca por fecha. Se leen del Event Store al consultar (C-2). Con una sola liquidación son iguales, y sin liquidaciones faltan los dos. Las filas de arriba no se reescriben.
+
+*Nota (2026-10-25, ficha R-6, Bloque C; G-4; D-R6-5):* en `GET /donations/tracking`, cada ítem de **`logistics`** lleva además **`parentAssetRef?`**: el `assetRef` opaco del lote del que salió por una división, calculado igual que `assetRef`. **Siempre apunta a otro ítem de la misma `logistics`**; si el padre no está en la respuesta, el campo falta (nunca se devuelve el ref de un lote de otra donación). Falta también en los lotes que no vienen de una división. `rootAssetRef` no se expone: se deduce siguiendo `parentAssetRef`. Las filas de arriba no se reescriben.
+
+*Nota (2026-10-25, ficha R-6, Bloque C; G-3 y Enmienda 1, E1; D-R6-6 reabierto):* en `GET /donations/tracking/assets/{assetRef}/history`, cada ítem de **`history`** lleva además:
+- **`anchorStatus`**, siempre, con **cuatro** valores (C-4): `ANCHORED` (lote `ANCHORED`); `IN_BATCH` (lote `COLLECTING`, `PENDING`, `SUBMITTING`, `SUBMITTED` o `STUCK`); `PENDING` (sin lote, o lote `RELEASED`); `UNDER_REVIEW` (lote `FAILED`, `COLLECTING_FAILED` o `ANCHOR_MISMATCH`, o un evento cuyo hash ya no es la hoja anclada; ver abajo).
+- **`eventHash?`**: el `eventHash` del evento en el Event Store, 64 caracteres hexadecimales en minúscula. Falta solo si el paso no tiene evento asociado (proyecciones antiguas; P-C-4), y entonces el paso es `PENDING`.
+- **`anchorProof?`**, solo si el lote está `ANCHORED` y tiene sus `leafHashes` guardados: `{merkleRoot, leafIndex, path: [{side: "LEFT"|"RIGHT", hash}], transactionHash, network, anchoredAt}` (`anchoredAt` en ISO-8601 UTC). **Sin `leafCount`** (plan de ejecución §0.4). `leafIndex` es la posición dentro del lote, no la secuencia del stream.
+- Un lote antiguo sin `leafHashes` da `ANCHORED` sin `anchorProof`: la prueba no se reconstruye con las hojas actuales. Si el `eventHash` actual no es igual a la hoja `leafIndex` del lote, el paso es `UNDER_REVIEW` y no lleva prueba: nunca se devuelve una prueba que no corresponda al hecho mostrado.
+- **Algoritmo de verificación (E1.3):** las hojas son los `eventHash` del lote, por `streamId` y después por `sequence`; el nodo padre es `SHA-256(UTF-8(izquierdo_hex + derecho_hex))` en hexadecimal minúscula (se concatenan los textos hexadecimales, no los bytes); el último nodo de un nivel impar se combina consigo mismo, y su paso es `{side: "RIGHT", hash: <el mismo nodo>}`. Para verificar: `nodo = eventHash`; por cada paso, `LEFT → sha256_hex(hash + nodo)` y `RIGHT → sha256_hex(nodo + hash)`; la prueba vale si al final `nodo == merkleRoot`.
+- **Vectores fijos** para el test del cliente: `crypto/src/test/resources/merkle/proof-vectors.json` (`{description, leaves, index, path, root}`; las hojas son SHA-256 de `"leaf-0"`, `"leaf-1"`…; incluye 5 hojas con índice 4 y con índice 2).
+- **Límites (E1.4):** el árbol no separa por dominio las hojas de los nodos internos y repite el último nodo de un nivel impar, así que en teoría admite segundas preimágenes de árbol; no se cambia porque invalidaría las raíces ya ancladas (haría falta un ADR). La prueba demuestra que el hash del paso está en la raíz anclada en esa transacción; **no** demuestra que el hash corresponda al contenido del evento, que no se expone: eso lo comprueba `GET …/integrity`, en el servidor.
+- Sigue sin `sequence`, `streamId`, `merkleBatchId`, `previousHash` ni `leafHashes` (DD-76). Las filas de arriba no se reescriben.
 
 ## 9. Sin HTTP
 

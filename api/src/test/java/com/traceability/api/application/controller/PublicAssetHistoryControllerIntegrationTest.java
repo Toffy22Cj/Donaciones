@@ -117,6 +117,9 @@ class PublicAssetHistoryControllerIntegrationTest {
     // PublicDonationMapper lo necesita (ficha R-6, G-2); lo implementa core, que este test no levanta entero
     @MockBean
     private com.traceability.core.application.port.out.FundClearingDatesReadPort clearingDates;
+    // AssetHistoryMapper lo necesita (ficha R-6, G-3 y Enmienda 1, E1); lo implementa app, que este test no levanta
+    @MockBean
+    private com.traceability.contracts.AssetAnchorStatusPort assetAnchors;
 
     @BeforeEach
     void setUp() {
@@ -189,7 +192,16 @@ class PublicAssetHistoryControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.history[0].eventType").value("AssetRegisteredEvent"))
                 .andExpect(jsonPath("$.history[0].locationZone").value("Zone X"))
-                .andExpect(jsonPath("$.history[0].custodianCategory").value("UNCATEGORIZED"));
+                .andExpect(jsonPath("$.history[0].custodianCategory").value("UNCATEGORIZED"))
+                // Ficha R-6, G-3: sin evento en el mapa (el doble devuelve un mapa vacío) → PENDING, sin hash ni prueba
+                .andExpect(jsonPath("$.history[0].anchorStatus").value("PENDING"))
+                .andExpect(jsonPath("$.history[0].eventHash").doesNotExist())
+                .andExpect(jsonPath("$.history[0].anchorProof").doesNotExist())
+                // 9d: nada interno sale por HTTP
+                .andExpect(jsonPath("$.history[0].sequence").doesNotExist())
+                .andExpect(jsonPath("$.history[0].streamId").doesNotExist())
+                .andExpect(jsonPath("$.history[0].merkleBatchId").doesNotExist());
+        Mockito.verify(assetAnchors).anchorBySequence(assetId);
     }
 
     @Test

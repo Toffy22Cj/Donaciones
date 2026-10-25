@@ -65,6 +65,8 @@
 | `GET /tracking/{trackingCode}/narrative` | ídem | **YA EXISTE** (Fase 3) |
 | `GET /public/campaigns/{publicCode}/narrative` | pública | CONTRATO DEFINIDO — `CampaignAuditFactsPort` diseñado, implementación pendiente |
 
+*Nota (2026-10-25) a la fila `GET /tracking/{trackingCode}` (ficha R-6, Bloque C, G-4; D-R6-5; plan C, P-R6C-4):* la ruta real es `GET /api/v1/donations/tracking`, con el `trackingCode` en `Authorization: Bearer` (`referencia-api-v1.md` §8). **Enmienda de contrato:** cada ítem de `logistics` gana `parentAssetRef?`, el `assetRef` opaco del lote del que salió, solo si ese lote está en la misma `logistics`. La genealogía se había excluido de las lecturas "para no relajar el perímetro de privacidad"; para el **donante** solo se añade la relación entre lotes que ya ve. La vista del staff no cambia y `rootAssetRef` no se expone. La fila de arriba no se reescribe.
+
 ## 6. Operaciones internas (sin HTTP, decisión ya cerrada)
 
 `MerkleBatch` Producer, `BlockchainAnchorScheduler`, `AnchorConfirmationPoller`, `IntegrityVerificationPort.verifyBatch/verifyAllAnchored` — ninguno expone endpoint en el Golden Path. Son procesos internos (scheduler-driven) o de invocación administrativa futura fuera de este alcance.
@@ -106,6 +108,15 @@ No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide s
 | Endpoint | Auth | Read Model | Estado |
 |---|---|---|---|
 | `GET /organizations/{organizationId}/funds/monthly?months=1..12` | JWT + `ADMINISTRATOR` o `EMPLOYEE` de la organización + `OrganizationBoundaryPolicy`, como `/funds` (DD-31) | Sin read model: se calcula al consultar con los `FUNDS_CLEARED` (1.0 y 2.0) del Event Store de los fondos cuya génesis lleva la organización (`FundMonthlyClearingReadPort`, implementado por `FundOperationalQueryService`). `{timezone: "America/Bogota", items: [{month, currency, clearedAmount}], truncated?}`. Tope de 10 000 fondos | IMPLEMENTADO (`feat/r6-bloque-b`) |
+
+## 7c. Organización — integridad y actividad (ficha R-6, Bloque D, G-7 y G-8; 2026-10-25)
+
+*Procedencia:* las filas de la ficha R-6, §8, con P-R6D-1 (b) y P-R6D-2 (a) (`plan-r6-bloque-d.md`). Detalle de la respuesta: `referencia-api-v1.md` §3, nota del 2026-10-25.
+
+| Endpoint | Auth | Read Model | Estado |
+|---|---|---|---|
+| `GET /organizations/{organizationId}/integrity` | JWT + `ADMINISTRATOR` o `REPRESENTATIVE` de la organización + `OrganizationBoundaryPolicy` (como la predicción, DD-43) | Sin read model: directorios de fondos y activos por la génesis (10 000 cada uno, `truncated`), una agregación por `merkleBatchId` sin tope (`EventBatchCountPort`) y un `findByBatchId` por lote, clasificados con la tabla de G-3 (`OrganizationIntegrityQuery`, `app`) | IMPLEMENTADO (`feat/r6-bloque-d`) |
+| `GET /organizations/{organizationId}/activity?cursor=` | JWT + `ADMINISTRATOR`, `REPRESENTATIVE` o `EMPLOYEE` de la organización + `OrganizationBoundaryPolicy` (D-R6-8) | Sin read model: tres fuentes mezcladas con el orden total `(instante descendente, fuente, id)` (`OrganizationActivityQuery`, `app`): eventos del Event Store (`ActivityEventsPort`, una consulta por página), cierres de convocatorias `CLOSED` (`OrganizationCampaignClosuresQuery`, `convocatoria`) y lotes `ANCHORED` con eventos propios. Cursor AES-GCM con la clave de DD-58 y propósito propio (DD-69) | IMPLEMENTADO (`feat/r6-bloque-d`) |
 
 ## Frontend Contract / UX Flow — Golden Path: CERRADO
 
