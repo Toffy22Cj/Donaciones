@@ -1,6 +1,8 @@
 # Plan — Ficha R-6, Bloque B, adenda G-9: fecha del último cambio de cada lote (`lastEventAt?`)
 
 ~~**Estado: BORRADOR. Espera el "plan aprobado" de Manuel**~~ → **APROBADO — Manuel, 2026-10-25** (§9; nota del 2026-10-25). Texto original de esta línea:
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. Además de la aprobación de Manuel (§9). **B-G9-1 queda resuelto:** la Enmienda 1 de la ficha R-6 está aprobada (misma nota).
 **Estado: BORRADOR. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No se escribe código antes (regla 3.4).
 **Fecha:** 2026-10-24 (UTC).
 **Por qué es una adenda en su propio PR:** G-9 debía ir en el Bloque B, dentro del #113 (ficha R-6 Enmienda 1, E3; orden v2 de Carlos). El #113 se fusionó el 2026-10-24 antes de añadirla, así que G-9 va como adenda de `plan-r6-bloque-b.md` en su propio PR (indicación de Manuel, 2026-10-24). El plan B no se reescribe.

@@ -1,6 +1,8 @@
 # Plan — ADR-051, Tarea 4: evidencia de entrega (subida, vínculo y validación del formato)
 
 **Estado: BORRADOR. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No se escribe código antes (regla 3.4). Carlos aprueba el PR de implementación con Approve en GitHub.
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. Los puntos P-T4-1 a P-T4-7 se aplican como los recomienda el plan. **B-2 sigue en pie:** el PR de código no se fusiona sin avisar antes a Adonis y a la web.
 **Fecha:** 2026-10-25 (UTC). **Autor:** Manuel, con asistencia de Claude.
 **Norma:** `Documentos/ADR-051-fotos-y-almacenamiento.md` (APROBADO — Carlos, 2026-10-18, con la Enmienda 1), tarea 4 de §"Implementación" (`:300`).
 - Aplican F2, F3, F4, F5 (en la parte del backend) y F8.

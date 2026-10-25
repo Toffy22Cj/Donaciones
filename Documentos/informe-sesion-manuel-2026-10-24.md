@@ -113,6 +113,27 @@ El nombre del módulo entre paréntesis lo he añadido yo; en la evidencia va en
 - **Hallazgo nuevo, solo registrado:** del **#87 al #103** (2026-10-08, de 00:08Z a 08:18Z) tampoco hay ninguna review. Del #92 al #103 los fusionó Manuel, según sus commits de merge en `develop`. Del #87 al #91 no hay commit "Merge pull request" en `develop`: no se ha comprobado en qué rama ni quién los fusionó. La auditoría acotó H-1 al #104 en adelante. Este informe no cambia ese alcance y deja a Carlos decidir si la lista se amplía.
 - **#127:** abierto y sin fusionar. Si se fusiona sin Approve, entra en esta lista con una nota fechada.
 
+> **Nota (2026-10-25): fusiones del 2026-10-25, sin Approve en GitHub, por instrucción de Carlos.** Carlos aprobó todo lo pendiente y pidió a Manuel que fusionara él mismo los PR (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25; texto literal pendiente de registrar). Los 11 se fusionaron desde la cuenta `buelvasmanuel`, y `is:merged merged:>=2026-10-25 -review:none` da 0:
+>
+> | PR | Fusionado (UTC) | Commit de merge | Qué |
+> |---|---|---|---|
+> | #121 | 01:37:16 | `4be5c6e` | Plan R-4 |
+> | #122 | 01:37:27 | `91ee264` | Plan R-5 + D1 |
+> | #123 | 01:37:39 | `a8596a6` | Plan D6 |
+> | #127 | 01:40:02 | `818ebf3` | Código de R-3 + R-2 |
+> | #125 | 01:40:10 | `dd8033c` | ADR-050, Enmienda 1, parte 2 |
+> | #130 | 01:40:17 | `93940e3` | Notas de la ficha R-6 §9 y de ADR-050 |
+> | #128 | 01:40:24 | `b119386` | Plan P-R3-3 |
+> | #124 | 01:40:32 | `8bfe713` | Adenda G-9 |
+> | #126 | 01:40:39 | `b1eae78` | Plan C, versión 2 |
+> | #131 | 01:40:46 | `f57611d` | Plan de ADR-051 T4 |
+> | #129 | 01:40:53 | `3cab9a9` | Informe de la sesión |
+>
+> - Entran en la lista H-1 (fusionados sin Approve), con la marca "por instrucción de Carlos".
+> - Quedan resueltas las preguntas 1 y 2 de §3 y del PR #129 (Enmienda 1 de ADR-050 y Enmienda 1 de la ficha R-6), y también B-G9-1 y B-C-1.
+> - Siguen abiertas la ampliación de H-1 al #87 a #103, la rama `claude/focused-goodall-meb6sh`, D7 y la enmienda de ADR-021-D (T5).
+> - #127 queda en `818ebf3`: el aviso 2 de §5 se envía con ese commit.
+
 ### Consecuencias de las fusiones sin review
 
 - El commit `4a99fe8` (plan R-3 + R-2, §10) llegó a la rama de #118 después de la fusión y se movió a #119.

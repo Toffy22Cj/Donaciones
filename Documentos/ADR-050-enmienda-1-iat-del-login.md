@@ -4,6 +4,8 @@
 
 **PROPUESTA — espera la aprobación de Carlos.** La redactó Manuel, con asistencia de Claude, el 2026-10-24. La decisión de fondo (P-R3-3, opción (a) con (c)) es de Manuel, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). Carlos aprueba o cambia la enmienda en su PR.
 
+> **Nota (2026-10-25): APROBADA por Carlos, partes 1 y 2** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, comunicado por Manuel; texto literal pendiente de registrar). "PROPUESTA" se conserva; esta nota lo supera. La parte 3 (P-R5-1, D3) no existe todavía y no queda cubierta.
+
 **No autoriza código por sí sola.** El código va en su propio PR, con un plan corto aprobado por Manuel (regla 3.4), y solo después de que Carlos apruebe esta enmienda. **Ese PR se fusiona antes que el código de R-4.**
 
 **Por qué es una enmienda.** La regla 3.5 la exige cuando se cambia el contrato de un puerto que ya usa otro módulo. `AuthenticateAccountPort` está en `contracts`: lo implementa `identity` y lo llama `api`.
@@ -88,6 +90,8 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 
 **Estado: PROPUESTA — espera la aprobación de Carlos.** La decisión de fondo (P-R4-1, opción (a)) es de Manuel, del 2026-10-24, por la delegación de Carlos, al aprobar el plan R-4 (`plan-r4-recuperacion-de-contrasena.md` §11, PR #121). Sin esta aprobación, la confirmación de R-4 no se implementa.
 
+> **Nota (2026-10-25): APROBADA por Carlos** (la misma nota de `decisiones-delegadas-2026-10.md`). "PROPUESTA" se conserva; esta nota lo supera.
+
 ## Context
 
 - **ADR-050 D8** manda que la confirmación (`POST /api/v1/auth/password-reset/confirm`, pública y sin JWT) "audita `CREDENTIALS_CHANGED` con un dato `{via: "PASSWORD_RESET"}`". No dice quién es el actor.
@@ -122,3 +126,115 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 1. La confirmación registra `CREDENTIALS_CHANGED` con `actor = {type: ACCOUNT, accountId: <cuenta del token>}` y `changeSummary = {via: "PASSWORD_RESET"}`, sin contraseña ni token (test de R-4).
 2. `ArchitectureTest` sigue en verde con la lista ampliada, y su *bite test* falla si otra clase construye `AccountAuditActor`.
 
+
+---
+
+# Parte 3 (PROPUESTA) — El login exige las aceptaciones vigentes (D3, Q1 (a); P-R5-1 del plan R-5 + D1)
+
+## Status
+
+**PROPUESTA — espera el sí de Carlos a este texto concreto.** La redactó Claude a petición de Manuel el 2026-10-25.
+- **La aprobación de Carlos del 2026-10-25** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25) cubre las partes 1 y 2, **no esta**.
+- **El código de D3 no empieza** hasta que Carlos apruebe este texto (regla 3.5). El resto de R-5 (D1, D2 y D10) no depende de esta parte (P-R5-2).
+
+**Enmienda a:** ADR-050 (APROBADO — Carlos, 2026-10-18), §"Preguntas", fila Q1, y D3.
+**Origen:** `plan-r5-d1-aceptaciones-y-perfil.md`, §3 (P-R5-1) y §4.
+
+## Context
+
+### La contradicción con Q1
+
+- **D3** pide que toda cuenta acepte una versión nueva en su siguiente inicio de sesión. Su mecanismo es **Q1 (a)**: "El login no emite token hasta aceptar: responde `403 AcceptanceRequired` con las versiones pendientes y el cliente repite el login con `acceptedTermsVersion`/`acceptedDataPolicyVersion` en el cuerpo".
+- **Q1 (a) se justificó así** (ADR-050, §"Preguntas", fila Q1, columna de la recomendación): "**no toca el filtro ni el puerto**".
+- **En el código, sí toca el puerto:**
+  - el login está en `api` (`api/src/main/java/com/traceability/api/auth/LoginController.java`) y solo ve `AuthenticateAccountPort` (`contracts`), que hoy devuelve el `accountId` o, tras la parte 1, `AuthenticatedAccount`;
+  - para decidir el 403 hay que conocer las versiones aceptadas por la cuenta, que están en `identity`;
+  - para registrar la aceptación del segundo intento hay que escribir en `identity`;
+  - las dos cosas cambian `AuthenticateAccountPort`, que usan `api` e `identity`, y eso activa la regla 3.5.
+- **El filtro** sí queda como dice Q1: no cambia (ADR-047 D5 y ADR-050 D4).
+
+### Hechos verificados (`develop` `03328e1`, 2026-10-25)
+
+- `AuthenticateAccountPortImpl.authenticate` hace una sola lectura (`findByEmail`) y llama siempre a `matches`, contra un hash ficticio si la cuenta no existe. Después comprueba el estado, y los tres fallos lanzan la misma `AuthenticationFailedException` (ID01-D1; ADR-047 Q5). Hoy es **de solo lectura**.
+- `AccountRepositoryPort.save(Account)` **sustituye el documento entero** (`MongoAccountRepositoryAdapter.java:26-27`) y no comprueba versión.
+- La parte 1 (P-R3-3, aprobada) cambia la firma a `AuthenticatedAccount authenticate(String email, String password)`. Su código es el siguiente PR de la cola, antes que D3.
+
+## Decision
+
+### E3-1. Una sola firma del puerto, que recibe las versiones del cuerpo
+
+`AuthenticateAccountPort` **sustituye** su método; no añade otro. Así no queda un camino de login que se salte las aceptaciones, igual que E1-1 hizo con `credentialsNotBefore`.
+
+```java
+AuthenticatedAccount authenticate(String email, String password, AcceptedLegalVersions accepted);
+```
+
+- `AcceptedLegalVersions(String termsVersion, String dataPolicyVersion)` **[Enmienda]**, en `contracts.authentication`. Los dos campos son anulables: un login sin versiones las manda nulas.
+- El resultado sigue siendo `AuthenticatedAccount` (E1-1), con el `credentialsNotBefore` de la misma lectura que validó la contraseña.
+
+### E3-2. Orden: primero la contraseña, después las aceptaciones
+
+Dentro de `AuthenticateAccountPortImpl`, en este orden:
+1. **Lo de hoy, sin cambios:** la lectura, `matches` siempre y el estado. Cualquier fallo da `AuthenticationFailedException`, **antes de mirar las aceptaciones**. **Una contraseña incorrecta sigue dando siempre el mismo 401, nunca 403**, para no revelar que la cuenta existe ni qué versiones aceptó.
+2. Se comparan las versiones aceptadas por la cuenta con las vigentes (`LegalVersions`, P-R5-3).
+3. Si están al día, se devuelve `AuthenticatedAccount`, como en la parte 1.
+4. Si falta alguna:
+   - si `accepted` trae **exactamente las vigentes** que faltan, se guardan con la fecha (D2) y se devuelve `AuthenticatedAccount`;
+   - si no las trae, o trae otras, se lanza `AcceptanceRequiredException(pendingTermsVersion?, pendingDataPolicyVersion?)` **[Enmienda]**, en `contracts.authentication`, con solo las pendientes.
+
+### E3-3. La escritura de las aceptaciones no pisa la cuenta
+
+`authenticate` deja de ser de solo lectura en el caso 4. Para no pisar un cambio de contraseña o una desactivación concurrentes, que guardan la cuenta entera:
+- las aceptaciones se escriben con una **actualización parcial** **[Enmienda]**: un método nuevo del puerto de salida de `identity` que hace `$set` solo de los cuatro campos de aceptación, y nunca con `save(Account)`;
+- la escritura exige que el documento siga teniendo el `passwordHash` que se validó y el estado `ACTIVE`. Si no coincide, el login falla con la misma `AuthenticationFailedException` (401) y no se guarda nada;
+- el `credentialsNotBefore` devuelto es el de la lectura que validó la contraseña. Aceptar no lo cambia.
+
+### E3-4. El login en `api`
+
+- `LoginRequest` gana `acceptedTermsVersion?` y `acceptedDataPolicyVersion?` y los pasa al puerto.
+- **Con `AcceptanceRequiredException`, responde `403`** con `title = AcceptanceRequired`, un cuerpo `{pendingTermsVersion?, pendingDataPolicyVersion?}` (P-R5-5), **sin token** y nunca con el texto de los términos.
+- El 401 y el 500 no cambian (ID01-D1, ID01-D4). El `iat` sigue la regla `max` de E1-2.
+
+### E3-5. Cómo se combina con la parte 1
+
+**Dos cambios seguidos y ordenados**, cada uno en su PR:
+1. La parte 1 (P-R3-3, aprobada) cambia el retorno: `String` → `AuthenticatedAccount`. Va primero, y R-4 depende de ella.
+2. Esta parte 3 cambia los parámetros: `(email, password)` → `(email, password, AcceptedLegalVersions)`. Va después de D1, D2 y D10, que crean `LegalVersions` y las aceptaciones de la cuenta.
+
+- Ninguno de los dos añade un método. Cada uno sustituye el único que hay.
+- **Por qué no un único cambio:** la parte 1 está aprobada y su código va antes en la cola, porque R-4 lo necesita. La parte 3 espera a Carlos y depende de D2. Juntarlas retrasaría R-4 sin ganar nada.
+- Los consumidores son los mismos en los dos cambios: `LoginController` y `LoginControllerTest` en `api`, y `AuthenticateAccountPortImpl` y `AuthenticateAccountPortImplTest` en `identity`.
+
+## Alternatives
+
+| Opción | Qué es | Por qué no |
+|---|---|---|
+| **(a), la elegida** | El puerto recibe las versiones y lanza `AcceptanceRequiredException` (E3-1 a E3-5) | — |
+| **(b)** | Mover el login de `api` a `app`, que ve `identity` directamente | Cambia ADR-038 §2.7 y la organización de `api` (el login, el emisor y el filtro viven juntos). Es más grande y aun así habría que enmendar el ADR |
+| **(c)** | Dejar D3 fuera de R-5 y registrarlo como pendiente | Las cuentas existentes y las de semilla nunca aceptarían una versión nueva. Incumple D3 |
+| (a') | (a) con `save(Account)` en vez de la actualización parcial | Un cambio de contraseña concurrente podría quedar deshecho y volver el hash anterior (E3-3) |
+| (a'') | (a) con un método nuevo junto al actual | Dejaría un camino de login sin comprobar las aceptaciones |
+
+## Consequences
+
+- `contracts` gana `AcceptedLegalVersions` y `AcceptanceRequiredException`, y la firma del puerto cambia por segunda vez (E3-5).
+- `identity`: la autenticación escribe en un caso (E3-3), con un método nuevo de actualización parcial en su puerto de salida.
+- **Al desplegar D3, todas las cuentas** (también las existentes y las de la demo) reciben 403 en su siguiente login hasta aceptar. Es lo que pide D3. La web y el móvil deben tener lista la pantalla de aceptación **antes** del despliegue (riesgo del plan R-5).
+- **Sin cambios:** el filtro y el verificador (Q1 (a) en lo demás). Los tokens ya emitidos siguen hasta su `exp` (riesgo aceptado 4 de ADR-050).
+- `DemoScenarioSeeder`, `scripts/demo/recorrido.py` y los tests que inician sesión mandan las versiones vigentes.
+
+## Definición de hecho (tests, rojos primero)
+
+1. Contraseña correcta y versiones pendientes, sin versiones en el cuerpo → `403 AcceptanceRequired` con solo las pendientes y **sin token**.
+2. Repetir el login con las versiones vigentes → se guardan, con la fecha, y se emite el token. El siguiente login sin versiones da 200.
+3. Contraseña incorrecta con versiones pendientes → **el mismo 401 de siempre, byte a byte**, nunca 403. Lo mismo con una cuenta inexistente o `INACTIVE`.
+4. Versiones en el cuerpo que no son las vigentes → 403 con las pendientes, y no se guarda nada.
+5. Cuenta al día → el login no escribe nada (aserción negativa sobre la actualización parcial).
+6. **Concurrencia (E3-3):** un cambio de contraseña entre la lectura y la escritura de las aceptaciones → el login da 401, la contraseña nueva se conserva y no se guarda ninguna aceptación.
+7. El `iat` del token sigue la regla `max` de E1-2 (los tests de la parte 1 siguen en verde).
+8. **Mutaciones:**
+   - comprobar las aceptaciones antes que la contraseña → muere el test 3;
+   - guardar con `save(Account)` → muere el test 6;
+   - aceptar cualquier versión → muere el test 4;
+   - no exigirlas → muere el test 1.
+9. `GoldenPathHttpIntegrationTest` en verde y `scripts/ci-local.sh` completo en un clon limpio.

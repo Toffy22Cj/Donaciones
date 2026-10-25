@@ -1,6 +1,8 @@
 # Plan R-5 + D1 — Aceptaciones legales, perfil y minimización de la auditoría
 
 **Estado: BORRADOR. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No se escribe código antes (regla 3.4). Carlos aprueba el PR de implementación con Approve en GitHub.
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. Orden de la implementación (Manuel, 2026-10-25): primero D1, D2 y D10; D3 después, en su propio PR (P-R5-2). **D3 sigue necesitando la parte 3 de la Enmienda 1 de ADR-050 (P-R5-1 (a)), que no está redactada:** el código de D3 no empieza sin ella (regla 3.5).
 **Fecha:** 2026-10-24 (UTC).
 **Contrato:** ADR-050 (APROBADO — Carlos, 2026-10-18): D1, D2, D3 (con Q1 (a)) y D10 (minimización), y los tests 19 a 23 de su definición de hecho. Los puntos **[Plan]** se aprueban con el plan.
 **Indicación de Carlos (orden v2, 2026-10-24):** versiones `v1-2026-10` en las tres `traceability.legal.*-version`. Los textos van en `paxfide-web/Documentos/legal/`, que no existe: quedan como **dependencia de la web**, sin detenerse por ello.

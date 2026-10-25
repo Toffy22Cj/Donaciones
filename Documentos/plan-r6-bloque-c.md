@@ -1,6 +1,8 @@
 # Plan — Ficha R-6, Bloque C (versión 2): parentAssetRef (G-4), anchorStatus por paso (G-3) y hash con prueba de Merkle (E1)
 
 **Estado: BORRADOR, versión 2. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No autoriza código (regla 3.4).
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. **B-C-1 queda resuelto:** la Enmienda 1 de la ficha R-6 está aprobada (misma nota). Los puntos P-C-0 a P-C-5 y P-R6C-1 a P-R6C-5 se aplican como los recomienda el plan.
 **Fecha:** 2026-10-24 (UTC). **Autor:** Manuel, con asistencia de Claude.
 **Base verificada:** `develop` `8e37667` (posterior a la fusión del #113, el Bloque B).
 **Norma:**

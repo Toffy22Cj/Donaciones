@@ -1,6 +1,8 @@
 # Plan P-R3-3 — El login emite con `iat = max(segundo actual truncado, credentialsNotBefore)`
 
 **Estado: BORRADOR. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No se escribe código antes (regla 3.4). Carlos aprueba el PR de implementación con Approve en GitHub.
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. **B-1 queda resuelto:** la Enmienda 1 de ADR-050, parte 1, está aprobada (misma nota). Los puntos P-PR33-1 a P-PR33-5 se aplican como los recomienda el plan.
 **Fecha:** 2026-10-24 (UTC).
 **Contrato:** `ADR-050-enmienda-1-iat-del-login.md` (E1-1, E1-2 y su definición de hecho), que enmienda ADR-050 D4. Este plan no decide nada que la enmienda no fije, salvo los puntos marcados **[Plan]**, que se aprueban con el plan.
 **Origen:** plan R-3 + R-2 §10.2 (`plan-r3-r2-revocacion-y-cambio-de-contrasena.md:199-208`): opción (a) con (c); (b) descartada por seguridad.
