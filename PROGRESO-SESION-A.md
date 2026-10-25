@@ -17,17 +17,27 @@ la A usa 0.39–0.49.
 
 | Ítem | Estado | Rama | PR | Evidencia | Bloqueado por |
 |---|---|---|---|---|---|
-| A1 R-4 | pendiente | — | — | — | (depende de #137: rama desde `fix/identity-p-r3-3-iat-del-login`) |
+| A1 R-4 | en curso: rojo hecho; verde identity 351 y api 160; app corriendo | `feat/identity-r4-recuperacion-contrasena` (sobre `422a1cb`; cherry-pick de la wip → `9726be9`) | — | ver bitácora | depende de #137 |
 | A2 R-5 (D1, D2, D10) | pendiente | — | — | — | — |
 | A3 D3 | pendiente | — | — | — | P-R3-3 y A2 |
 | A4 D6 sin D7 | pendiente | — | — | — | — |
-| A5 CORS (DD-57) | pendiente (PR borrador, sin código) | — | — | — | sí escrito de Manuel |
+| A5 CORS (DD-57) | HECHO (solo plan) | `fix/cors-put-delete` `f8f0d4e` | #138 (borrador) | — (sin código) | sí de Carlos (DD-57) y aprobación escrita de Manuel |
 
 ## Bitácora
 
 - 2026-10-25: arranque de la sesión A; memoria creada desde `develop` `406f9b2`.
 
+- #137: pie del PR corregido a "🤖 Generated with [Claude Code](https://claude.com/claude-code)".
+- A1 rojo (worktree `/home/user/a1-rojo`, producción de R-4 apartada):
+  - identity: BUILD FAILURE en testCompile, "cannot find symbol" de PasswordResetToken, PasswordResetTokenStatus, PasswordResetMailPort, PasswordResetMail, PasswordResetTokenRepositoryPort, PasswordResetTokenDocument, MongoPasswordResetTokenRepositoryAdapter, PasswordResetTokenInvalidException y RequestPasswordResetService.
+  - api: "Tests run: 3, Failures: 1" — PublicRoutesTest.theListIsExactlyTheOneApprovedInThePlan (faltan las dos rutas).
+  - app (tests de identity y api apartados): compilación, "cannot find symbol: class PasswordResetMailExecutorConfig"; con PasswordResetHttpIntegrationTest apartado: "Tests run: 2, Failures: 1" — PublicRoutesInventoryIntegrationTest, "could not find the following element(s): [/api/v1/auth/password-reset, /api/v1/auth/password-reset/confirm]".
+- A1 verde: identity "Tests run: 351, Failures: 0, Errors: 0, Skipped: 0"; api "Tests run: 160, Failures: 0, Errors: 0, Skipped: 0".
+- A1 hallazgo de la revisión: el bean `passwordResetMailExecutor` (ThreadPoolTaskExecutor) desactiva el `applicationTaskExecutor` de Boot 3.4.4 (`@ConditionalOnMissingBean(Executor.class)`), contra el plan R-4 §4 app ("no sustituye al de Spring"). Arreglo: `@Bean(defaultCandidate = false)` (OnBeanCondition 3.4.4 usa isDefaultCandidate) y un test que lo compruebe.
+- A5: #138 en borrador con el plan `Documentos/plan-cors-put-delete.md`.
+
 ## Siguiente paso exacto
 
-A1: crear `feat/identity-r4-recuperacion-contrasena` desde `origin/fix/identity-p-r3-3-iat-del-login` (`422a1cb`),
-traer `wip/identity-r4-recuperacion`, compilar y enseñar el rojo literal apartando el código de producción.
+A1: cuando acabe `mvn test -pl app -am`, aplicar `defaultCandidate = false` y su test, volver a pasar app, y después
+documentos (referencia-api, ya escrita sin commit; nota en el plan R-3 + R-2, escrita sin commit; estado-fase6 §0.40),
+commit, push, mutaciones 1 a 12 en un clon limpio, ci-local y PR "depende de #137".
