@@ -229,6 +229,13 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.53 Deuda DT-B-1: la precisión de `recordedAt` en el Event Store (2026-10-25, registrada por indicación de Manuel)
+
+- Numerada 0.53, en la serie de la sesión B (0.50 a 0.69). Hallazgo H-D-2 del Bloque D (§0.51).
+- **Qué pasa:** `MongoEventStoreAdapter.java:96` guarda `recordedAt` como texto con `Instant.toString()`. Su precisión varía: omite los ceros finales de las fracciones, y sin fracción no escribe ninguna. Al ordenar como texto, dos eventos del mismo segundo pueden salir en mal orden: `…:05Z` va después de `…:05.1Z`.
+- **Dónde afecta:** los directorios por génesis y G-8 (`OrganizationActivityQuery`) ordenan por `recordedAt` como texto. G-8 compara todos los instantes con ese mismo orden, así que el cursor nunca repite ni salta. El riesgo es que, dentro de un mismo segundo, el orden puede no ser cronológico.
+- **Decisión (Manuel, 2026-10-25):** se registra como deuda. **No se arregla en el PR del Bloque D** (#143). Arreglarlo pide escribir con precisión fija y migrar o tolerar los datos ya guardados.
+
 ### 0.51 Ficha R-6, Bloque D: integridad de la organización (G-7) y actividad reciente (G-8) (2026-10-25, `feat/r6-bloque-d`)
 
 - **Norma:**
@@ -262,6 +269,10 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - *de la revisión adversaria:* 10 (el filtro de eventos usa el id de un cursor de otra fuente) y 11 (`>=` en el filtro de los cierres) sobrevivían porque ningún borde de página caía en un ítem que no fuera un evento: en un clon limpio de `67a5f95`, con las cuatro clases de D, "VIVA" las dos ("Mutaciones vivas: 2"). Se añadió `t11b_aPageThatEndsOnAClosureTiedWithAnEvent_repeatsNeitherOnTheNextPage` (`a5ea0fd`) y las dos mueren.
   - **`ci-local.sh`** en un clon limpio de `a5ea0fd`, con `free -g` en 14 GB disponibles: `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-a5ea0fd-2026-10-25T08-42-12Z.txt`. Resumen literal: contracts "No tests to run.", core "Tests run: 351", crypto "Tests run: 57", ai "Tests run: 47", api "Tests run: 162", identity "Tests run: 332", convocatoria "Tests run: 255" y app "Tests run: 495", todos con "Failures: 0, Errors: 0, Skipped: 0". `develop` seguía en `406f9b2`.
 - **Pendiente:** avisar a la web y al móvil (F-C3) cuando se fusione, con el commit de `develop`.
+- **Nota (2026-10-25), respuestas de Manuel:**
+  - **H-D-1, aprobados** los nombres que el plan no fijaba: `BatchEventCount`, `countByBatch`, `ActivityEvent`, `findPage`, `OrganizationCampaignClosuresQuery`, `CampaignClosure`, `ActivityKey`, `ActivityItem`, `Subject`, `ActivityPage`, el propósito del cursor y el índice `idx_asset_genesis_organization`.
+  - **H-D-2:** queda como deuda DT-B-1 (§0.53). No se arregla en este PR.
+  - **Pregunta abierta para Carlos (no se implementa):** G-8 lee como mucho 10 000 fondos y 10 000 activos (`OrganizationActivityQuery.java:61` y `:126-127`), igual que G-7 (`OrganizationIntegrityQuery.java:37` y `:64-66`). Pero la ficha CONGELADA no le da `truncated` (`ficha-R6-datos-estilo-v2.md:144`, la respuesta de G-8). Añadirlo sería cambiar la ficha. ¿Se le añade `truncated`?
 
 ### 0.50 Ficha R-6, Bloque C con la Enmienda 1 (E1): `parentAssetRef?` (G-4), `anchorStatus` por paso (G-3), `eventHash` y `anchorProof` (2026-10-25, `feat/r6-bloque-c`)
 
