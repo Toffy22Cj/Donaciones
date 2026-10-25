@@ -56,6 +56,12 @@ crypto:
       warn-after-attempts: ${CRYPTO_ANCHOR_COLLECTING_RECOVERY_WARN_AFTER_ATTEMPTS:5}
 
 traceability:
+  # ADR-050 D2: versiones vigentes de los textos legales, sin valor por defecto fuera de dev; sin alguna, la aplicación
+  # no arranca (LegalVersionsConfig)
+  legal:
+    terms-version: ${TRACEABILITY_LEGAL_TERMS_VERSION}
+    data-policy-version: ${TRACEABILITY_LEGAL_DATA_POLICY_VERSION}
+    organization-terms-version: ${TRACEABILITY_LEGAL_ORGANIZATION_TERMS_VERSION}
   # ADR-049 D1 (DD-61): remitente de los correos y base de los enlaces de la web, sin valor por defecto fuera de dev
   mail:
     from: ${TRACEABILITY_MAIL_FROM}

@@ -2,6 +2,7 @@ package identity.domain.model;
 
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.InactiveAccountException;
+import identity.domain.exception.InvalidProfileFieldException;
 import identity.domain.exception.PlatformAdministratorDeactivationException;
 import identity.domain.exception.PlatformAuthorityAlreadyGrantedException;
 import identity.domain.exception.PlatformAuthorityNotHeldException;
@@ -318,5 +319,67 @@ class AccountTest {
                 new PasswordHash("hash"), AccountStatus.ACTIVE, null, null);
 
         assertNull(account.getCredentialsNotBefore());
+    }
+
+    // ── ADR-050 D1 (perfil) y D2 (aceptaciones); plan R-5 ──
+
+    private static Account freshAccount() {
+        return Account.createAccount(new Email("profile@example.org"), new PasswordHash("hash"));
+    }
+
+    /** Un emoji fuera del plano básico: dos unidades UTF-16, un punto de código. */
+    private static final String EMOJI = "\uD83D\uDE00";
+
+    @Test
+    void updateProfile_trimsAndStores_andReportsTheChangedFields() {
+        Account account = freshAccount();
+
+        java.util.List<String> changed = account.updateProfile("  Ana  ", " Pérez ");
+
+        assertEquals("Ana", account.getGivenName());
+        assertEquals("Pérez", account.getFamilyName());
+        assertEquals(java.util.List.of("givenName", "familyName"), changed);
+        assertEquals(java.util.List.of(), account.updateProfile("Ana", "Pérez"));
+        assertEquals(java.util.List.of("familyName"), account.updateProfile("Ana", null));
+        assertNull(account.getFamilyName());
+    }
+
+    @Test
+    void updateProfile_bordersAreOneAndOneHundredCodePoints_countingEmojisAsOne() {
+        Account account = freshAccount();
+
+        account.updateProfile("A", EMOJI.repeat(100));
+
+        assertEquals("A", account.getGivenName());
+        assertEquals(200, account.getFamilyName().length(), "100 emojis son 200 unidades UTF-16");
+        InvalidProfileFieldException tooLong =
+                assertThrows(InvalidProfileFieldException.class, () -> account.updateProfile("A", EMOJI.repeat(101)));
+        assertEquals("familyName", tooLong.getField());
+        assertThrows(InvalidProfileFieldException.class, () -> account.updateProfile("x".repeat(101), null));
+    }
+
+    @Test
+    void updateProfile_blankAfterTrimming_isInvalid_andNothingChanges() {
+        Account account = freshAccount();
+        account.updateProfile("Ana", "Pérez");
+
+        InvalidProfileFieldException blank =
+                assertThrows(InvalidProfileFieldException.class, () -> account.updateProfile("   ", "Gómez"));
+
+        assertEquals("givenName", blank.getField());
+        assertEquals("Ana", account.getGivenName());
+        assertEquals("Pérez", account.getFamilyName());
+        assertFalse(blank.getMessage().contains("Gómez"));
+    }
+
+    @Test
+    void acceptLegalTerms_storesBothVersionsWithTheDate() {
+        Account account = freshAccount();
+        assertNull(account.getTermsAcceptance());
+
+        account.acceptLegalTerms("v1-2026-10", "v1-2026-10", NOW);
+
+        assertEquals(new LegalAcceptance("v1-2026-10", NOW), account.getTermsAcceptance());
+        assertEquals(new LegalAcceptance("v1-2026-10", NOW), account.getDataPolicyAcceptance());
     }
 }

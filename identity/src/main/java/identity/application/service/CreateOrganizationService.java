@@ -12,6 +12,7 @@ import identity.domain.model.AuditActor;
 import identity.domain.model.AuditLogEntry;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationType;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,15 +26,35 @@ public class CreateOrganizationService {
     private final OrganizationRepositoryPort organizationRepository;
     private final AuditLogPort auditLogPort;
     private final MongoTransactionRetryHelper retryHelper;
+    private final ObjectProvider<identity.domain.model.LegalVersions> legalVersions;
+    private final java.time.Clock clock;
 
     public CreateOrganizationService(AccountRepositoryPort accountRepository, 
                                      OrganizationRepositoryPort organizationRepository, 
                                      AuditLogPort auditLogPort,
-                                     MongoTransactionRetryHelper retryHelper) {
+                                     MongoTransactionRetryHelper retryHelper,
+                                     ObjectProvider<identity.domain.model.LegalVersions> legalVersions,
+                                     ObjectProvider<java.time.Clock> clock) {
         this.accountRepository = accountRepository;
         this.organizationRepository = organizationRepository;
         this.auditLogPort = auditLogPort;
         this.retryHelper = retryHelper;
+        this.legalVersions = legalVersions;
+        this.clock = clock.getIfAvailable(java.time.Clock::systemUTC);
+    }
+
+    /**
+     * Alta por HTTP (ADR-050 D2): exige la versión vigente de los términos de organización. Ausente o distinta →
+     * {@link identity.domain.exception.LegalVersionNotCurrentException} ({@code acceptedOrganizationTermsVersion}), sin
+     * organización. Se guarda con la cuenta que la aceptó (el representante inicial) y la fecha.
+     */
+    public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId,
+                                           String name, String acceptedOrganizationTermsVersion) {
+        if (!legalVersions.getObject().organizationTerms().equals(acceptedOrganizationTermsVersion)) {
+            throw new identity.domain.exception.LegalVersionNotCurrentException("acceptedOrganizationTermsVersion");
+        }
+        return create(actor, type, initialRepresentativeAccountId, name, organization -> organization
+                .acceptOrganizationTerms(acceptedOrganizationTermsVersion, initialRepresentativeAccountId, clock.instant()));
     }
 
     public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId) {
@@ -43,6 +64,11 @@ public class CreateOrganizationService {
     /** Con nombre público opcional (plan B6-a, Q-B6A-1; el nombre lo lee CV-07 por {@code OrganizationPublicNamePort}). */
     public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId,
                                            String name) {
+        return create(actor, type, initialRepresentativeAccountId, name, organization -> {});
+    }
+
+    private Organization create(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId,
+                                String name, java.util.function.Consumer<Organization> beforeSave) {
         Objects.requireNonNull(actor, "actor must not be null");
 
         return retryHelper.executeWithRetry(() -> {
@@ -53,6 +79,7 @@ public class CreateOrganizationService {
             }
 
             Organization organization = Organization.createOrganization(type, initialRepresentativeAccountId, name);
+            beforeSave.accept(organization);
             account.joinOrganization(organization.getOrganizationId());
 
             organizationRepository.save(organization);

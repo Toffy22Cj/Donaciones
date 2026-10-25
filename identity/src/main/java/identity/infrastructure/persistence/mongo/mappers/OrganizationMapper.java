@@ -31,6 +31,11 @@ public class OrganizationMapper {
         doc.setVerificationStatus(org.getVerificationStatus().name());
         doc.setName(org.getName());
         doc.setLogoObjectKey(org.getLogoObjectKey());
+        if (org.getOrganizationTermsAcceptance() != null) {
+            doc.setOrganizationTermsVersion(org.getOrganizationTermsAcceptance().version());
+            doc.setOrganizationTermsAcceptedBy(org.getOrganizationTermsAcceptance().acceptedBy().value());
+            doc.setOrganizationTermsAcceptedAt(org.getOrganizationTermsAcceptance().acceptedAt());
+        }
         doc.setVerificationInformationRequest(
             org.getVerificationInformationRequest() != null
                 ? org.getVerificationInformationRequest().value()
@@ -95,7 +100,10 @@ public class OrganizationMapper {
             status,
             infoMessage,
             doc.getName(),
-            doc.getLogoObjectKey()
+            doc.getLogoObjectKey(),
+            doc.getOrganizationTermsVersion() == null ? null : new identity.domain.model.OrganizationTermsAcceptance(
+                    doc.getOrganizationTermsVersion(), new identity.domain.model.AccountId(doc.getOrganizationTermsAcceptedBy()),
+                    doc.getOrganizationTermsAcceptedAt())
         );
     }
 

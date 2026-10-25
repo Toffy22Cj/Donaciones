@@ -229,6 +229,36 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.41 R-5, primera parte: aceptaciones legales (D2), perfil (D1) y minimización (D10) (2026-10-25, `feat/identity-r5-aceptaciones-perfil`)
+
+- **Norma:** ADR-050 D1, D2 y D10 y los tests 19 a 23 de su definición de hecho. Plan: `plan-r5-d1-aceptaciones-y-perfil.md`, APROBADO por Carlos (nota del 2026-10-25), con P-R5-2: D3 va en su propio PR, después. Versiones `v1-2026-10` en dev y en test (indicación de Carlos); en producción, sin valor por defecto y con *fail-fast*.
+- **Qué hace:**
+  - `identity`:
+    - `Account` con `givenName?` y `familyName?` (de 1 a 100 puntos de código tras recortar; `null` borra) y las aceptaciones de términos y de datos con su fecha;
+    - `Organization` con `organizationTermsAcceptance {version, acceptedBy, acceptedAt}`;
+    - `CreateAccountService` y `CreateOrganizationService` validan contra `LegalVersions`. `createAccount(email, password)` **[Plan]** se conserva para la semilla y los tests;
+    - `AccountProfileService`, con `PROFILE_UPDATED {fields: [...]}` sin valores (P-R5-4);
+    - `ACCOUNT_CREATED` pasa a `{selfRegistration: true}`, sin el correo (D10).
+  - `app`:
+    - `LegalVersionsConfig` (P-R5-3), con las tres `TRACEABILITY_LEGAL_*_VERSION` sin valor por defecto en `application.yml`;
+    - el registro y la organización piden sus versiones: 400 con el campo nombrado y sin crear nada;
+    - `AccountProfileController` (`GET`/`PUT /api/v1/account/profile`, `no-store`);
+    - `DemoScenarioSeeder` manda las versiones; nota en el runbook.
+  - Documentos: nota fechada en `referencia-api-v1.md`.
+- **Evidencia:**
+  - **Rojo primero** (producción de R-5 apartada, sobre `develop` `406f9b2`):
+    - `identity` no compilaba ("cannot find symbol" de `AccountProfileService`, `InvalidProfileFieldException`, `LegalAcceptance`, `LegalVersionNotCurrentException`, `LegalVersions` y `OrganizationTermsAcceptance`);
+    - `app`, con los tests de `identity` apartados, tampoco ("cannot find symbol" de `LegalVersions` y `LegalVersionsConfig`).
+  - **Verde por capas** (`mvn test -pl … -am`, sobre `42e6e37`): identity "Tests run: 344" y app "Tests run: 471", con "Failures: 0, Errors: 0, Skipped: 0". api, sin cambios: 156.
+  - **Mutaciones** en un clon limpio, con un repositorio Maven aislado y la línea base en verde: 7 de 7 muertas en `app` ("Mutaciones vivas: 0", sobre `3002c6e`) y 5 de 5 en `identity` (sobre `52aa433`: la 1, 2, 3, 5 y 6; la 4 y la 7 solo tienen test en `app`). La 4 del plan ("`GET /me` devuelve `givenName`") se adapta a `GET /account`: `MeController` está en `api` y no ve el nombre; `/account` está en el test 23. La 5 sobrevivió en `app` sobre `52aa433` y murió tras `3002c6e`, que añade la comprobación en `identity_audit_log`.
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `3002c6e` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core "Tests run: 340", crypto 50, ai 47, api 156, identity 344, convocatoria 253 y app 471, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-3002c6e-2026-10-25T08-19-21Z.txt`, con la nota del espejo y del repositorio Maven aislado añadida a mano.
+- **Cambios respecto a la wip:**
+  - test 22 con una entrada antigua intacta;
+  - test 23 con `/me/campaigns`: no hay una ruta que liste los responsables;
+  - `PROFILE_UPDATED` comprobado por HTTP sin los valores.
+- **Pendiente:** D3 (Enmienda 1, parte 3) en `feat/identity-d3-aceptaciones-login`, que depende de este PR y de #137.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `a5e56c8` (#140, R-4) con un merge normal en `eed0a29`; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados (ninguna línea de ninguno de los dos padres se pierde). `scripts/ci-local.sh` en un clon limpio de `eed0a29` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 166, identity 364, convocatoria 253 y app 504, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-eed0a29-2026-10-25T16-22-39Z.txt`.
+
 ### 0.40 R-4: recuperación de contraseña con envío diferido (2026-10-25, `feat/identity-r4-recuperacion-contrasena`)
 
 - **Norma:** ADR-050 D8 y Q5 (a), y los tests 11 a 18 de su definición de hecho; ADR-050 Enmienda 1, parte 2 (actor de la confirmación, enmienda de ADR-038 E1), APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25). Plan: `plan-r4-recuperacion-de-contrasena.md`, APROBADO por Manuel (§11), con los tests R4-19 a R4-21 y la mutación 12. **Depende de #137 (P-R3-3):** la rama sale de `fix/identity-p-r3-3-iat-del-login` (`422a1cb`).

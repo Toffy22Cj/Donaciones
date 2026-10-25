@@ -11,6 +11,11 @@ spring:
       max-request-size: 6MB
 
 traceability:
+  # ADR-050 D2: versiones iniciales indicadas por Carlos (2026-10-24)
+  legal:
+    terms-version: v1-2026-10
+    data-policy-version: v1-2026-10
+    organization-terms-version: v1-2026-10
   mail:
     from: no-reply@tests.paxfide.local
   web:

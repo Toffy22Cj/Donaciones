@@ -53,6 +53,20 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
   - *Nota (2026-10-25, plan P-R3-3; ADR-050 Enmienda 1, E1-1 y E1-2):* **corregido.** `POST /api/v1/auth/login` emite ahora con `iat = max(segundo actual truncado, credentialsNotBefore)`, y un inicio de sesión justo después de cambiar la contraseña, de una desactivación o de una recuperación recibe un token que vale. Ya no hace falta repetirlo un segundo después. El párrafo de arriba se conserva.
 - **Riesgo registrado (R-R3-1, pregunta para Carlos):** la ruta no limita los intentos; quien tenga un token robado puede probar contraseñas actuales.
 
+*Nota (2026-10-25, ADR-050 D1, D2 y D10; plan R-5 + D1, primera parte; `feat/identity-r5-aceptaciones-perfil`):* aceptaciones legales, perfil y minimización. Las filas de arriba y la de `POST /organizations` (§3) no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/register` (ampliado) | pública | `{email, password, acceptedTermsVersion, acceptedDataPolicyVersion}` | `201 {accountId, status}`, como antes. La cuenta guarda cada versión con su fecha | Además de los de antes: **400** (`title` `BadRequest`) si falta alguna de las dos versiones o no es la vigente, **sin cuenta creada**. El campo va en el log, nunca el valor del correo |
+| `POST /organizations` (ampliado) | JWT, como antes | `{type, name, acceptedOrganizationTermsVersion}` | `201`, como antes. La organización guarda la versión, la cuenta que la aceptó y la fecha | Además: **400** si falta la versión o no es la vigente, **sin organización** |
+| `GET /account/profile` | JWT; solo la cuenta del JWT | — | `200 {email, givenName?, familyName?}`, `Cache-Control: no-store` | 401 |
+| `PUT /account/profile` | JWT; solo la cuenta del JWT; sin `Command-Id` | `{givenName?, familyName?}`; se recortan los espacios; `null` o ausente **borra** el campo | `200` con el mismo cuerpo que el `GET`, `no-store` | **400** si un campo queda vacío tras recortar o pasa de **100 puntos de código** (un emoji cuenta uno); nada cambia. 401 |
+
+- **Versiones vigentes:** hoy son `v1-2026-10` las tres (términos, autorización de datos y términos de organización). Fuera de `dev`, el servidor no arranca sin `TRACEABILITY_LEGAL_TERMS_VERSION`, `TRACEABILITY_LEGAL_DATA_POLICY_VERSION` y `TRACEABILITY_LEGAL_ORGANIZATION_TERMS_VERSION`. Los textos los publica la web (`paxfide-web/Documentos/legal/`); el backend solo guarda versiones.
+- **El nombre es privado:** no aparece en `GET /me`, `GET /account`, la lista de miembros, `GET /organizations/{id}`, `GET /me/campaigns`, las rutas públicas ni los logs. La auditoría `PROFILE_UPDATED` guarda solo qué campos cambiaron (`{fields: […]}`), nunca los valores.
+- **D10:** la auditoría `ACCOUNT_CREATED` ya no guarda el correo (`{selfRegistration: true}`). Las entradas antiguas no se reescriben.
+- **El login no cambia en esta parte:** exigir las aceptaciones vigentes en el login (D3, `403 AcceptanceRequired`) va en su propio PR.
+
 *Nota (2026-10-25, ADR-050 D8 y Q5 (a); plan R-4, `feat/identity-r4-recuperacion-contrasena`):* recuperación de la contraseña. Dos rutas nuevas, **públicas**, sin `Command-Id` (DH-34). Las filas de arriba no se reescriben.
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
