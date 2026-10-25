@@ -2,6 +2,8 @@
 
 **Estado: PROPUESTO — espera un "plan aprobado" de Manuel, citable** (comentario en el PR de este plan o nota en `decisiones-delegadas-2026-10.md`). Un solo mensaje aprueba las cinco secciones y sus puntos **[Plan]**. T5 necesita además que Manuel apruebe `ADR-021-D-enmienda-1-huella-evidencia.md`.
 
+> **Nota (2026-10-25): APROBADO por Manuel**, por delegación de Carlos (comentario de `buelvasmanuel` en #147, 2026-10-25T22:35:54Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6404356890; registrado en `decisiones-delegadas-2026-10.md`). El estado de arriba se conserva; esta nota lo supera. Respuestas: **P-E2-2**, aceptado como deuda; **P-M21-3**, solo `CONFIRMED`; **P-M21-4**, el conteo por activo se acepta y se presenta como "unidades entregadas en las convocatorias que apoyaste". El resto, como propone el plan.
+
 **Qué entra lo decidió Manuel** el 2026-10-25, por delegación de Carlos (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, "comunicado por Manuel"), en las decisiones 1, 3, 4, 5 y 7. Este plan fija el **cómo**.
 
 **Base verificada:** `develop` `0f71bfc` (merge de #145), 2026-10-25.

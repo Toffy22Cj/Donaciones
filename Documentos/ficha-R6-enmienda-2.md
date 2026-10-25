@@ -1,6 +1,8 @@
 # Ficha R-6 — Enmienda 2: `truncated` en la actividad reciente de la organización (G-8)
 
 **Estado: PROPUESTA.** **Qué** cambia lo decidió Manuel el 2026-10-25, por delegación de Carlos (decisión 3, `decisiones-delegadas-2026-10.md`, nota del 2026-10-25, "comunicado por Manuel"). Los puntos marcados **[Manuel]** son de detalle y se aprueban con el "plan aprobado" de `plan-cierre-backend-2026-10-25.md` (§G-8).
+
+> **Nota (2026-10-25): APROBADA por Manuel**, por delegación de Carlos (comentario de `buelvasmanuel` en #147, 2026-10-25T22:35:54Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6404356890; registrado en `decisiones-delegadas-2026-10.md`). El estado de arriba se conserva; esta nota lo supera. P-E2-1: siempre. P-E2-2: aceptado en este corte, como deuda; no se cambian los puertos de los directorios.
 **Fecha:** 2026-10-25 (UTC).
 **Base verificada:** `develop` en `0f71bfc`.
 **Cambia:** la respuesta de G-8 de la ficha R-6 (CONGELADA), `ficha-R6-datos-estilo-v2.md:144`, ya precisada por la nota de P-R6D-1 (b) (`:154`). El resto de la ficha no cambia.

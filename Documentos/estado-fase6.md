@@ -246,6 +246,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **No se pudo comprobar que estén "todos los datos" (H-CB-5):** la lista de campos del comprobante no está en ningún repositorio que se pueda leer (`Donaciones`, `PaxFide` y `PaxFide_Mv`). La definición de M-22 está en el PDF del 16 de octubre, que no está subido. Queda como pregunta para Manuel.
   - La web prohíbe el `trackingCode` en el comprobante (`PaxFide`, `prompts-agentes-estilo-v2.md:162`, T1-7). El dato llega en la respuesta, y no ponerlo en la imagen es cosa del front.
 - **Pendiente:** el "plan aprobado" de Manuel. Sin él no se escribe código. T5 espera además la aprobación de la enmienda de ADR-021-D.
+- **Nota (2026-10-25), aprobación de Manuel** (comentario de `buelvasmanuel` en #147, 2026-10-25T22:35:54Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6404356890): plan y enmiendas aprobados. **M-22 se cierra en el backend sin cambios.** El PDF del 16 de octubre no lista campos; los define el diseño de Carlos. Si falta un dato, se abre como ítem nuevo. H-CB-5 queda resuelto así.
 
 ### 0.52 ADR-051, Tarea 4: evidencia de entrega — subida, vínculo y formato `sha256:` (2026-10-25, `feat/adr051-t4-evidencia`)
 
