@@ -532,7 +532,7 @@ class SplitSagaIntegrationTest {
 
     private void deliverParent(String parent) {
         onParent(parent, p -> p.dispatch("carrier-1"));
-        assets.deliverAsset(UUID.randomUUID().toString(), parent, "FINAL-CUST", "BENEFICIARY", "LOC-FINAL", "EVIDENCE",
+        assets.deliverAsset(UUID.randomUUID().toString(), parent, "FINAL-CUST", "BENEFICIARY", "LOC-FINAL", "sha256:" + "e1".repeat(32),
                 T0, SYSTEM);
         assertThat(rehydrate(parent).getLifecycleStatus()).isEqualTo(AssetLifecycleStatus.DELIVERED);
     }

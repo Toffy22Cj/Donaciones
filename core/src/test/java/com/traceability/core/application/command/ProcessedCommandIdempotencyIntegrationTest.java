@@ -345,6 +345,9 @@ class ProcessedCommandIdempotencyIntegrationTest {
         return assetId;
     }
 
+    /** ADR-051 F3 (Tarea 4): la entrega exige una huella {@code sha256:}; antes era texto libre ({@code "EVIDENCE-1"}). */
+    private static final String EVIDENCE = "sha256:" + "e1".repeat(32);
+
     private void deliver(String commandId, String assetId, String beneficiaryRef, String evidenceRef) {
         physicalAssetCommandService.deliverAsset(commandId, assetId, "CLINIC-1", beneficiaryRef, "CLINIC-LOC",
                 evidenceRef, DELIVERED_AT, new SystemActor("test"));
@@ -360,8 +363,8 @@ class ProcessedCommandIdempotencyIntegrationTest {
         String assetId = setupDispatchedAsset();
         String commandId = UUID.randomUUID().toString();
 
-        deliver(commandId, assetId, "BENEFICIARY-A", "EVIDENCE-1");
-        deliver(commandId, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+        deliver(commandId, assetId, "BENEFICIARY-A", EVIDENCE);
+        deliver(commandId, assetId, "BENEFICIARY-A", EVIDENCE);
 
         assertEquals(3, eventStorePort.loadStream(assetId).size(), "REGISTERED, DISPATCHED, DELIVERED — no duplicate");
         assertEquals(1, mongoTemplate.findAll(ProcessedCommandDocument.class).stream()
@@ -374,8 +377,8 @@ class ProcessedCommandIdempotencyIntegrationTest {
         String commandId1 = UUID.randomUUID().toString();
         String commandId2 = UUID.randomUUID().toString();
 
-        deliver(commandId1, assetId, "BENEFICIARY-A", "EVIDENCE-1");
-        deliver(commandId2, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+        deliver(commandId1, assetId, "BENEFICIARY-A", EVIDENCE);
+        deliver(commandId2, assetId, "BENEFICIARY-A", EVIDENCE);
 
         assertEquals(3, eventStorePort.loadStream(assetId).size(), "No new event for an exact redundant delivery");
         assertTrue(claimed(commandId1));
@@ -388,10 +391,10 @@ class ProcessedCommandIdempotencyIntegrationTest {
         String commandId1 = UUID.randomUUID().toString();
         String commandId2 = UUID.randomUUID().toString();
 
-        deliver(commandId1, assetId, "BENEFICIARY-A", "EVIDENCE-1");
+        deliver(commandId1, assetId, "BENEFICIARY-A", EVIDENCE);
 
         assertThrows(InvalidAssetTransitionException.class,
-                () -> deliver(commandId2, assetId, "BENEFICIARY-B", "EVIDENCE-1"));
+                () -> deliver(commandId2, assetId, "BENEFICIARY-B", EVIDENCE));
 
         List<DomainEvent> stream = eventStorePort.loadStream(assetId);
         assertEquals(3, stream.size());
@@ -399,14 +402,17 @@ class ProcessedCommandIdempotencyIntegrationTest {
         assertFalse(claimed(commandId2), "A rejected delivery must not be recorded as processed");
     }
 
+    // Nota (2026-10-25, ADR-051 F3, Tarea 4): antes entregaba con evidenceRef nulo; F3 lo rechaza (InvalidEvidenceRef,
+    // DeliveryEvidenceCommandTest). Se conserva la redundancia exacta con otra huella válida de la misma entrega.
     @Test
     void deliverAsset_nullEvidence_exactRedundant_isNoOp() {
         String assetId = setupDispatchedAsset();
         String commandId1 = UUID.randomUUID().toString();
         String commandId2 = UUID.randomUUID().toString();
+        String sameEvidence = "sha256:" + "f2".repeat(32);
 
-        deliver(commandId1, assetId, "BENEFICIARY-A", null);
-        assertDoesNotThrow(() -> deliver(commandId2, assetId, "BENEFICIARY-A", null));
+        deliver(commandId1, assetId, "BENEFICIARY-A", sameEvidence);
+        assertDoesNotThrow(() -> deliver(commandId2, assetId, "BENEFICIARY-A", sameEvidence));
 
         assertEquals(3, eventStorePort.loadStream(assetId).size());
         assertTrue(claimed(commandId2));
@@ -422,7 +428,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
         String commandId = UUID.randomUUID().toString();
 
         assertThrows(InvalidAssetTransitionException.class,
-                () -> deliver(commandId, assetId, "BENEFICIARY-A", "EVIDENCE-1"));
+                () -> deliver(commandId, assetId, "BENEFICIARY-A", EVIDENCE));
 
         assertEquals(1, eventStorePort.loadStream(assetId).size());
         assertFalse(claimed(commandId));

@@ -73,7 +73,8 @@ import static org.assertj.core.api.Assertions.assertThat;
     // Solo para tests; nunca un valor productivo
     "traceability.demo.webhook-secret=test-only-simulated-webhook-secret-0123456789"
 })
-@org.springframework.context.annotation.Import(GoldenPathHttpIntegrationTest.SimulatedLlm.class)
+@org.springframework.context.annotation.Import({GoldenPathHttpIntegrationTest.SimulatedLlm.class,
+        com.traceability.app.infrastructure.media.InMemoryMediaStorageConfig.class})
 class GoldenPathHttpIntegrationTest {
 
     /**
@@ -273,12 +274,31 @@ class GoldenPathHttpIntegrationTest {
                 DonationIntentController.INTENT_TOKEN_HEADER, created.get("statusToken").asText()), 200);
     }
 
-    private void logistics(String employee, String assetRef) throws Exception {
+    /** ADR-051, Tarea 4 (`ADR-051:258`): una foto real por activo (una foto, un activo), generada en memoria. */
+    private int photos;
+
+    private String evidenceRef(String employee, String orgId) throws Exception {
+        String boundary = "golden-path-evidence";
+        java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+        body.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"entrega.png\""
+                + "\r\nContent-Type: image/png\r\n\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        body.writeBytes(com.traceability.app.application.media.TestImages.png(32 + photos++, 24));
+        body.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port
+                        + "/api/v1/organizations/" + orgId + "/delivery-evidence"))
+                .timeout(Duration.ofSeconds(15)).header("Authorization", "Bearer " + tokens.issue(employee))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())).build(), HttpResponse.BodyHandlers.ofString());
+        return ok(r, 201).get("evidenceRef").asText();
+    }
+
+    private void logistics(String employee, String orgId, String assetRef) throws Exception {
         String base = "/api/v1/physical-assets/" + assetRef;
         ok(send("POST", base + "/dispatch", employee, "{\"carrierRef\":\"carrier-1\"}"), 200);
         ok(send("POST", base + "/receive", employee, "{\"facilityLocation\":\"site-1\",\"receiverRef\":\"rec-1\"}"), 200);
         ok(send("POST", base + "/deliver", employee,
-                "{\"finalCustodianRef\":\"cust-f\",\"beneficiaryRef\":\"ben-1\",\"locationRef\":\"site-1\",\"evidenceRef\":\"ev-1\"}"), 200);
+                "{\"finalCustodianRef\":\"cust-f\",\"beneficiaryRef\":\"ben-1\",\"locationRef\":\"site-1\",\"evidenceRef\":\""
+                        + evidenceRef(employee, orgId) + "\"}"), 200);
     }
 
     @Test
@@ -361,8 +381,8 @@ class GoldenPathHttpIntegrationTest {
                 .isEqualTo("6.0000");
 
         // Paso 5 (criterios 8, 9 y 17): padre e hijo hasta DELIVERED, con beneficiaryRef sellado
-        logistics(employee, parentRef);
-        logistics(employee, childRef);
+        logistics(employee, orgId, parentRef);
+        logistics(employee, orgId, childRef);
         for (String ref : List.of(parentRef, childRef)) {
             assertThat(ok(send("GET", "/api/v1/physical-assets/" + ref, employee, null), 200).get("lifecycleStatus")
                     .asText()).isEqualTo("DELIVERED");

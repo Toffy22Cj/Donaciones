@@ -49,7 +49,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
 @ActiveProfiles("demo-seed")
-@Import(DemoScenarioSeederIntegrationTest.ControlledClock.class)
+@Import({DemoScenarioSeederIntegrationTest.ControlledClock.class,
+        com.traceability.app.infrastructure.media.InMemoryMediaStorageConfig.class})
 @TestPropertySource(properties = {
     "crypto.anchor.poll.delay=9999999",
     "crypto.anchor.submit.delay=9999999",

@@ -295,4 +295,30 @@ class IntegrityRecomputationIntegrationTest {
                 e.getString("origin"), mapper.convertPayload(payload, e.getString("eventType"), e.getString("schemaVersion")));
         return hash.canonicalizeAndHash(map, previousHash);
     }
+
+    // ADR-051, Tarea 4 (plan T4, T4-11; criterio 11): no es un rojo, es la guarda. Un activo con un ASSET_DELIVERED
+    // antiguo de texto libre (antes de F3) se sigue reconstruyendo y su verificación no cambia
+    @Test
+    void t4_11_anAssetWithAnOldFreeTextDelivery_isStillRebuilt_andItsVerificationIsUnchanged() {
+        SystemActor actor = new SystemActor("test");
+        String asset = "A-LEGACY";
+        eventStore.append(asset, "PhysicalAsset", 0, List.of(
+                new DomainEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(asset, "BLANKET",
+                        new BigDecimal("10"), "UNITS", "bodega", "custodio", null, asset, "alloc-1", null, "ORG-1", "dnr-1",
+                        null, "CAMP-1"), Instant.now()),
+                new DomainEvent(PhysicalAssetEventType.ASSET_DISPATCHED,
+                        new com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload("carrier", "bodega"), Instant.now()),
+                new DomainEvent(PhysicalAssetEventType.ASSET_DELIVERED,
+                        new com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload("final", "ben-1", "sitio",
+                                "acta-1", Instant.parse("2026-09-01T10:00:00Z")), Instant.now())), actor);
+
+        List<DomainEvent> events = eventStore.loadStream(asset);
+        com.traceability.core.domain.physicalasset.PhysicalAsset rebuilt = com.traceability.core.domain.physicalasset.PhysicalAsset
+                .rehydrate(asset, events.stream().map(DomainEvent::payload).toList(), events.size());
+        assertThat(rebuilt.getLifecycleStatus().name()).isEqualTo("DELIVERED");
+        assertThat(event(asset, 3).get("payload", Document.class).getString("evidenceRef")).isEqualTo("acta-1");
+
+        String batch = anchored(Map.of(asset, new SequenceRange(1, 3)));
+        assertThat(verification.verifyBatch(batch).status()).isEqualTo(VerificationStatus.MATCH);
+    }
 }

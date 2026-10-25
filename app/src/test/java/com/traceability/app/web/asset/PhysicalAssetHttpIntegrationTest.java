@@ -51,6 +51,7 @@ import static org.mockito.Mockito.when;
  * {@code Command-Id}, la respuesta uniforme ante "otra organización" e "inexistente" y el {@code donorRef} del servidor.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
+@org.springframework.context.annotation.Import(com.traceability.app.infrastructure.media.InMemoryMediaStorageConfig.class)
 @Testcontainers
 @TestPropertySource(properties = {
     "crypto.anchor.poll.delay=9999999",
@@ -132,13 +133,33 @@ class PhysicalAssetHttpIntegrationTest {
         return json.readTree(r.body());
     }
 
+    /** ADR-051, Tarea 4: una foto real por entrega (una foto, un activo), subida por la ruta de la evidencia. */
+    private int photos;
+
+    private String evidenceRef() throws Exception {
+        String boundary = "b6c-evidence";
+        java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+        body.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"entrega.png\""
+                + "\r\nContent-Type: image/png\r\n\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        body.writeBytes(com.traceability.app.application.media.TestImages.png(28 + photos++, 20));
+        body.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port
+                        + "/api/v1/organizations/" + ORG + "/delivery-evidence"))
+                .timeout(Duration.ofSeconds(10)).header("Authorization", "Bearer " + tokens.issue(EMPLOYEE))
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())).build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
+        return json.readTree(r.body()).get("evidenceRef").asText();
+    }
+
     private void logistics(String assetRef) throws Exception {
         assertThat(post(BASE + "/" + assetRef + "/dispatch", newId(), "{\"carrierRef\":\"CARRIER-1\"}").body())
                 .isEqualTo("{\"assetRef\":\"" + assetRef + "\",\"status\":\"DISPATCHED\"}");
         assertThat(post(BASE + "/" + assetRef + "/receive", newId(),
                 "{\"facilityLocation\":\"WH-2\",\"receiverRef\":\"REC-1\"}").statusCode()).isEqualTo(200);
         HttpResponse<String> delivered = post(BASE + "/" + assetRef + "/deliver", newId(),
-                "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"evidenceRef\":\"EV-1\"}");
+                "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"evidenceRef\":\""
+                        + evidenceRef() + "\"}");
         assertThat(delivered.statusCode()).isEqualTo(200);
         assertThat(delivered.body()).isEqualTo("{\"assetRef\":\"" + assetRef + "\",\"status\":\"DELIVERED\"}");
     }
@@ -259,7 +280,9 @@ class PhysicalAssetHttpIntegrationTest {
                 new String[]{"POST", "/receive", "{\"facilityLocation\":\"W\",\"receiverRef\":\"R\"}"},
                 new String[]{"POST", "/split", "{\"quantity\":\"1\"}"},
                 new String[]{"POST", "/deliver",
-                        "{\"finalCustodianRef\":\"C\",\"beneficiaryRef\":\"B\",\"locationRef\":\"L\",\"evidenceRef\":\"E\"}"});
+                        // ADR-051 F3: con el formato sha256: (texto libre daría 400 antes de mirar el activo)
+                        "{\"finalCustodianRef\":\"C\",\"beneficiaryRef\":\"B\",\"locationRef\":\"L\",\"evidenceRef\":\"sha256:"
+                                + "e1".repeat(32) + "\"}"});
 
         for (String[] call : calls) {
             String commandId = "POST".equals(call[0]) ? newId() : null;

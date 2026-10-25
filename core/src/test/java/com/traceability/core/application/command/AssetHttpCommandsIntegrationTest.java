@@ -229,7 +229,7 @@ class AssetHttpCommandsIntegrationTest {
                 .isInstanceOf(PhysicalAssetNotFoundException.class);
         assertThatThrownBy(() -> assets.receiveAsset(UUID.randomUUID().toString(), missing, "W", "R", actor(EMPLOYEE)))
                 .isInstanceOf(PhysicalAssetNotFoundException.class);
-        assertThatThrownBy(() -> assets.deliverAsset(UUID.randomUUID().toString(), missing, "C", "B", "L", "E",
+        assertThatThrownBy(() -> assets.deliverAsset(UUID.randomUUID().toString(), missing, "C", "B", "L", "sha256:" + "e1".repeat(32),
                 java.time.Instant.now(), actor(EMPLOYEE))).isInstanceOf(PhysicalAssetNotFoundException.class);
         assertThatThrownBy(() -> assets.splitPhysicalAsset(UUID.randomUUID().toString(), missing, BigDecimal.ONE,
                 actor(EMPLOYEE))).isInstanceOf(PhysicalAssetNotFoundException.class);
