@@ -118,7 +118,10 @@ class PublicRoutesInventoryIntegrationTest {
             // ADR-051, Tarea 2: subir, quitar y leer (autenticado) el logo (F6, F8, Enmienda 1)
             "PUT /api/v1/organizations/{organizationId}/logo",
             "DELETE /api/v1/organizations/{organizationId}/logo",
-            "GET /api/v1/organizations/{organizationId}/logo");
+            "GET /api/v1/organizations/{organizationId}/logo",
+            // Ficha R-6, Bloque D: integridad (G-7) y actividad (G-8) de la organización
+            "GET /api/v1/organizations/{organizationId}/integrity",
+            "GET /api/v1/organizations/{organizationId}/activity");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

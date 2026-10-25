@@ -91,6 +91,12 @@ class MongoIndexesAtStartupIntegrationTest {
                 .append("recordedAt", 1).append("streamId", 1));
         assertThat(fundGenesis.get("partialFilterExpression", Document.class))
                 .isEqualTo(new Document("sequence", 1).append("aggregateType", "Fund"));
+        // ficha R-6, Bloque D (P-R6D-6): el directorio de activos de una organización, por la génesis
+        Document assetGenesis = index("event_store", "idx_asset_genesis_organization");
+        assertThat(assetGenesis.get("key", Document.class)).isEqualTo(new Document("payload.organizationRef", 1)
+                .append("recordedAt", 1).append("streamId", 1));
+        assertThat(assetGenesis.get("partialFilterExpression", Document.class))
+                .isEqualTo(new Document("sequence", 1).append("aggregateType", "PhysicalAsset"));
         // un EMPLOYEE solo puede ser responsable de una convocatoria activa
         uniquePartial(CampaignAssignmentDocument.COLLECTION, CampaignAssignmentDocument.ACTIVE_EMPLOYEE_INDEX,
                 new Document("employeeRef", 1), new Document("status", "ACTIVE").append("actingRole", "EMPLOYEE"));
