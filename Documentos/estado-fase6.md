@@ -229,6 +229,19 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.44 CORS: `PUT` y `DELETE` en los métodos permitidos (DD-57 ampliada) (2026-10-25, `fix/cors-put-delete`)
+
+- **Norma:** DD-57 (RATIFICADA — Carlos, 2026-10-08), ampliada con `PUT` y `DELETE`. Plan: `plan-cors-put-delete.md` (#138), APROBADO por Manuel el 2026-10-25, por la delegación de Carlos, con P-CORS-1 a P-CORS-4. Nota fechada sobre DD-57 en `decisiones-delegadas-2026-10.md`: la nota de Carlos citada (línea 179) no nombra CORS de forma expresa, y la lectura de que la incluye es de Manuel.
+- **Qué hace:** `CorsConfig.ALLOWED_METHODS` = `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`, sin `PATCH`. Nada más de DD-57 cambia. Nota fechada en `referencia-api-v1.md` §0.
+- **Evidencia:**
+  - **Rojo primero:** con un commit solo de tests, `758a8a8`:
+    - `api`: `CorsConfigTest`, "Expecting actual: ["GET", "POST", "OPTIONS"] to contain exactly (and in same order): ["GET", "POST", "PUT", "DELETE", "OPTIONS"]";
+    - `app`: `CorsHttpIntegrationTest`, "Tests run: 7, Failures: 1". El *preflight* `PUT` del logo dio "expected: 200 but was: 403". La negativa de `PATCH` ya pasaba.
+  - **Verde por capas** (`mvn test -pl app -am`, sobre `93a6adc`): api "Tests run: 157" y app "Tests run: 464", con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones** en un clon limpio de `93a6adc`, con un repositorio Maven aislado y la línea base en verde (api 12, app 7): 4 de 4 muertas en `api` y 4 de 4 en `app` (sin `DELETE`, sin `PUT`, con `PATCH` y `"*"`).
+  - **CI:** `scripts/ci-local.sh` en un clon limpio de `93a6adc` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core 340, crypto 50, ai 47, api 157, identity 332, convocatoria 253 y app 464, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-93a6adc-2026-10-25T10-49-50Z.txt`, con nota a mano.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `a910ea6` (#143 bloque D, #146 D6, #144 D3, #142 R-5 y #140 R-4) en `d210a7a`; el único conflicto fue en este archivo, resuelto conservando los dos lados. `scripts/ci-local.sh` en un clon limpio de `d210a7a` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 351", crypto 57, ai 47, api 169, identity 384, convocatoria 255 y app 535, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-d210a7a-2026-10-25T18-11-42Z.txt`.
+
 ### 0.53 Deuda DT-B-1: la precisión de `recordedAt` en el Event Store (2026-10-25, registrada por indicación de Manuel)
 
 - Numerada 0.53, en la serie de la sesión B (0.50 a 0.69). Hallazgo H-D-2 del Bloque D (§0.51).

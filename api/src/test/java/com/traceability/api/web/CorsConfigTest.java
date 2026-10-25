@@ -24,6 +24,12 @@ class CorsConfigTest {
     }
 
     @Test
+    void theAllowedMethods_areExactlyTheFiveOfDd57_withPutAndDelete_andWithoutPatch() {
+        // DD-57, ampliada el 2026-10-25 (plan CORS, #138): PUT y DELETE por el logo (#111); nada más
+        assertThat(CorsConfig.ALLOWED_METHODS).containsExactly("GET", "POST", "PUT", "DELETE", "OPTIONS");
+    }
+
+    @Test
     void withoutTheVariable_noCrossOriginIsAllowed() {
         assertThat(CorsConfig.parseOrigins("")).isEmpty();
         assertThat(CorsConfig.parseOrigins(null)).isEmpty();
