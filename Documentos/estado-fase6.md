@@ -271,6 +271,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Pendiente:**
   - **Antes de fusionar, avisar a Adonis (móvil) y a la web** (B-2): una entrega con `evidenceRef` de texto libre recibirá 400. Primero se sube la foto y después se entrega con su `evidenceRef`. La enmienda de ADR-043 (F5) es de Adonis.
   - T5 (lectura de la evidencia, retirada y huella en el seguimiento) sigue esperando la enmienda de ADR-021-D.
+- **Nota (2026-10-25), respuesta de Manuel:** quedan **aprobados** los nombres de P-T4-6. Los del plan son `InvalidEvidenceRefException`, `bindEvidence`/`BindResult`, `DeliveryEvidenceBinding` y `DeliveryEvidenceController`. Los que elegí yo son `StubDeliveryEvidencePort`, `InMemoryMediaStorageConfig` y `NO_HOOK`.
 
 ### 0.38 Ficha R-6, Enmienda 1, E2: `lastEventAt?` por lote en el listado de la organización (G-9) (2026-10-25, `feat/r6-bloque-b-g9`)
 
