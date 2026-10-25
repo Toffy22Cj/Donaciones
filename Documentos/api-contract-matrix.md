@@ -65,6 +65,8 @@
 | `GET /tracking/{trackingCode}/narrative` | ídem | **YA EXISTE** (Fase 3) |
 | `GET /public/campaigns/{publicCode}/narrative` | pública | CONTRATO DEFINIDO — `CampaignAuditFactsPort` diseñado, implementación pendiente |
 
+*Nota (2026-10-25) a la fila `GET /tracking/{trackingCode}` (ficha R-6, Bloque C, G-4; D-R6-5; plan C, P-R6C-4):* la ruta real es `GET /api/v1/donations/tracking`, con el `trackingCode` en `Authorization: Bearer` (`referencia-api-v1.md` §8). **Enmienda de contrato:** cada ítem de `logistics` gana `parentAssetRef?`, el `assetRef` opaco del lote del que salió, solo si ese lote está en la misma `logistics`. La genealogía se había excluido de las lecturas "para no relajar el perímetro de privacidad"; para el **donante** solo se añade la relación entre lotes que ya ve. La vista del staff no cambia y `rootAssetRef` no se expone. La fila de arriba no se reescribe.
+
 ## 6. Operaciones internas (sin HTTP, decisión ya cerrada)
 
 `MerkleBatch` Producer, `BlockchainAnchorScheduler`, `AnchorConfirmationPoller`, `IntegrityVerificationPort.verifyBatch/verifyAllAnchored` — ninguno expone endpoint en el Golden Path. Son procesos internos (scheduler-driven) o de invocación administrativa futura fuera de este alcance.
