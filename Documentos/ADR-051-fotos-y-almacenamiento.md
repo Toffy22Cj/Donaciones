@@ -300,6 +300,13 @@ Sin permiso, otra organización o recurso inexistente → el mismo 403 (DD-01).
 | 4 | Evidencia de entrega: subida, vínculo y validación del formato | `core`, `app`, `api` | Manuel con Adonis |
 | 5 | Lectura de evidencia, retirada por plataforma y huella en el seguimiento (tras redactar la enmienda de ADR-021-D) | `app`, `api` | Manuel |
 
+*Nota (2026-10-25), decisiones de Manuel por delegación de Carlos (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, "comunicado por Manuel"):*
+- **Tarea 3 (portada):** pasa a ser **de Manuel** y entra en este corte (decisión 4). La fila sugería a Carlos. Se calca la Tarea 2.
+- **Tarea 5:** entra (decisión 5). El **borrador** de la enmienda de ADR-021-D (fila de `:255`) está en `ADR-021-D-enmienda-1-huella-evidencia.md` y espera la aprobación de Manuel. El código no empieza antes.
+- Plan de las dos: `plan-cierre-backend-2026-10-25.md`, secciones T3 y T5.
+
+La tabla de arriba se conserva.
+
 ## Enmienda 1 — Ruta pública del logo sin `organizationId`
 
 **APROBADA — Carlos, 2026-10-18T18:45Z.**

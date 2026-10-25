@@ -229,6 +229,24 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
+
+- Numerada 0.60, en la serie de este trabajo (0.60 a 0.69).
+- **Base:** `develop` `0f71bfc` (merge de #145; ningún PR abierto).
+- **Qué registra (solo documentos, sin código):**
+  - las 8 decisiones de Manuel del 2026-10-25, por delegación de Carlos, en `decisiones-delegadas-2026-10.md`;
+  - las notas "implementada" de las tres partes de `ADR-050-enmienda-1-iat-del-login.md`: #137, #140 y #144 (H-CB-1);
+  - Google pospuesto y D7 dentro, en `ADR-050-cuenta-y-sesiones.md` (nota bajo la tabla de implementación);
+  - DT-B-1 como deuda (§0.53, nota);
+  - la Enmienda 2 de la ficha R-6 (`ficha-R6-enmienda-2.md`, PROPUESTA): `truncated` en G-8;
+  - el borrador de la enmienda de ADR-021-D (`ADR-021-D-enmienda-1-huella-evidencia.md`, BORRADOR);
+  - el plan único `plan-cierre-backend-2026-10-25.md` (PROPUESTO), con D7, G-8, M-21, T3 y T5.
+- **M-22 (decisión 6, (a)):** la imagen del comprobante la generan la web y el móvil; no hay backend nuevo.
+  - Hoy `GET /account/donations` trae `intentId`, `campaignTitle`, `amount`, `currency`, `status`, `trackingCode?`, `createdAt?`, `confirmedAt?`, `organizationName?`, `paymentMethod?` y `publicCode?` (`DonationDtos.java:30-32`).
+  - **No se pudo comprobar que estén "todos los datos" (H-CB-5):** la lista de campos del comprobante no está en ningún repositorio que se pueda leer (`Donaciones`, `PaxFide` y `PaxFide_Mv`). La definición de M-22 está en el PDF del 16 de octubre, que no está subido. Queda como pregunta para Manuel.
+  - La web prohíbe el `trackingCode` en el comprobante (`PaxFide`, `prompts-agentes-estilo-v2.md:162`, T1-7). El dato llega en la respuesta, y no ponerlo en la imagen es cosa del front.
+- **Pendiente:** el "plan aprobado" de Manuel. Sin él no se escribe código. T5 espera además la aprobación de la enmienda de ADR-021-D.
+
 ### 0.52 ADR-051, Tarea 4: evidencia de entrega — subida, vínculo y formato `sha256:` (2026-10-25, `feat/adr051-t4-evidencia`)
 
 - Numerada 0.52, en la serie de la sesión B (0.50 a 0.69).
@@ -293,6 +311,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Qué pasa:** `MongoEventStoreAdapter.java:96` guarda `recordedAt` como texto con `Instant.toString()`. Su precisión varía: escribe la fracción con 3, 6 o 9 dígitos, y ninguna si es cero. Al ordenar como texto, dos eventos del mismo segundo pueden salir en mal orden: `…:05Z`, el segundo exacto, queda detrás de `…:05.100Z` aunque es anterior, porque `.` va antes que `Z`.
 - **Dónde afecta:** los directorios por génesis y G-8 (`OrganizationActivityQuery`) ordenan por `recordedAt` como texto. G-8 compara todos los instantes con ese mismo orden, así que el cursor nunca repite ni salta. El riesgo es que, dentro de un mismo segundo, el orden puede no ser cronológico.
 - **Decisión (Manuel, 2026-10-25):** se registra como deuda. **No se arregla en el PR del Bloque D** (#143). Arreglarlo pide escribir con precisión fija y migrar o tolerar los datos ya guardados.
+- **Nota (2026-10-25), decisión 8 de Manuel** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25): **DT-B-1 se queda como deuda**, sin ninguna acción en este corte.
 
 ### 0.51 Ficha R-6, Bloque D: integridad de la organización (G-7) y actividad reciente (G-8) (2026-10-25, `feat/r6-bloque-d`)
 

@@ -154,6 +154,8 @@
 > - **P-R6D-1 (b):** un ítem `BATCH_ANCHORED` **no lleva `subject`** y lleva **`eventCount`**: el número de eventos propios de la organización que entraron en ese lote. Sin `batchId` ni ningún otro identificador del lote (como G-7). Para los demás tipos, `subject` sigue como dice la respuesta de arriba. La forma de la respuesta queda: `{type, occurredAt, subject?: {kind: "ASSET"|"CAMPAIGN"|"FUND", ref}, eventCount?, quantity?, unitOfMeasure?, locationZone?}`.
 > - **P-R6D-2 (a), limitada a las convocatorias cerradas:** `CAMPAIGN_CLOSED` sale solo de las convocatorias de la organización con estado `CLOSED`, y su fecha es la del cierre que ya usa `CampaignTimelineQuery` (`closedAt`). No se cambia ningún puerto de `convocatoria`.
 
+> **Nota (2026-10-25): `truncated` en G-8, Enmienda 2 (PROPUESTA).** Por la decisión 3 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, delegación de Carlos), la respuesta de G-8 gana `truncated`, con el mismo criterio que G-7. El detalle está en `ficha-R6-enmienda-2.md`. El texto de G-8 de arriba se conserva.
+
 ---
 
 ## 7. Tests previstos (rojos primero)
