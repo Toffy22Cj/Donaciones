@@ -4,6 +4,7 @@
 (`decisiones-delegadas-2026-10.md:98`), así que necesita el sí de Carlos. Y como no hay plan aprobado, **no se escribe
 código** hasta que Manuel lo apruebe por escrito (regla 3.4; encargo de la sesión A del 2026-10-25: "No hay código
 hasta que Manuel lo apruebe por escrito").
+> **Nota (2026-10-25): APROBADO — Manuel, 2026-10-25, por la delegación de Carlos.** Texto de Manuel: "Plan aprobado — CORS (#138), Manuel, 2026-10-25, por la delegación de Carlos. P-CORS-1 y P-CORS-2: Carlos aprobó todo lo pendiente (nota del 2026-10-25 en decisiones-delegadas-2026-10.md), lo que incluye ampliar DD-57 con PUT y DELETE. P-CORS-3 y P-CORS-4: aprobados." La nota citada (`decisiones-delegadas-2026-10.md:179`) no nombra CORS ni DD-57 de forma expresa; la lectura de que los incluye es de Manuel, y queda registrada también en una nota fechada sobre DD-57 en ese archivo. El estado de arriba se conserva; esta nota lo supera. El código va en esta misma rama, en la cola de la sesión A después de D6, y el PR pasa a listo solo con la evidencia.
 **Fecha:** 2026-10-25 (UTC).
 **Base:** `develop` `406f9b2`. Rama: `fix/cors-put-delete`. El PR va **en borrador** hasta los dos síes.
 **Dueño:** Manuel (sesión A).
