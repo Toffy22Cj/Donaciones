@@ -20,7 +20,7 @@ la A usa 0.39–0.49.
 | A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `85dc190` (código en `eb7c6a6`) | #140 (depende de #137) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 antes |
 | A2 R-5 (D1, D2, D10) | **HECHO** (PR listo) | `feat/identity-r5-aceptaciones-perfil` `bfe126f` (código en `3002c6e`) | #142 | ci-local `3002c6e`: core 340, crypto 50, ai 47, api 156, identity 344, convocatoria 253, app 471, BUILD SUCCESS | — |
 | A3 D3 | **HECHO** (PR listo) | `feat/identity-d3-aceptaciones-login` `a477610` (código en `cc5239e`) | #144 (depende de #137 y #142) | ci-local `d0b3d7c`: core 340, crypto 50, ai 47, api 162, identity 359, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 y #142 antes |
-| A4 D6 sin D7 | en curso: rojo y verde hechos; mutaciones + ci corriendo | `feat/identity-d6-desactivacion` `98f366f` (desde develop) | — | ver bitácora | — |
+| A4 D6 sin D7 | **HECHO** (PR listo) | `feat/identity-d6-desactivacion` `ff9b9d7` (código en `8bc0b09`) | #146 | ci-local `98f366f`: core 340, crypto 50, ai 47, api 156, identity 339, convocatoria 253, app 470, BUILD SUCCESS | — |
 | A5 CORS (DD-57) | en curso: rojo hecho; código `93a6adc` | `fix/cors-put-delete` `93a6adc` | #138 (borrador hasta la evidencia) | — | — |
 
 ## Bitácora
@@ -59,6 +59,8 @@ la A usa 0.39–0.49.
 - A4 rojo: identity "cannot find symbol: method deactivateOwnAccount"; app (identity apartado) "Tests run: 8, Failures: 7" (expected 409/400/204 but was 404). Verde (98f366f): identity 339, app 470.
 - A5 rojo (758a8a8, solo tests): api `CorsConfigTest` "Expecting actual: [GET, POST, OPTIONS] to contain exactly ... [GET, POST, PUT, DELETE, OPTIONS]"; app `CorsHttpIntegrationTest` "Tests run: 7, Failures: 1", preflight PUT "expected: 200 but was: 403". Código en 93a6adc.
 
+- A4: mutaciones identity 5/5, app 6/7 (las 6 del plan muertas; la 7 extra viva en app, muerta en identity); ci-local 98f366f verde; §0.43; PR #146 con pie corregido.
+
 ## Siguiente paso exacto
 
-A4 (D6) en `/home/user/a4` (`feat/identity-d6-desactivacion` `98f366f`): rojo literal, verde por capas, mutaciones (`mutaciones/d6/`), ci-local, §0.43 y PR. Después A5 (CORS, código en `fix/cors-put-delete`, #138).
+A5 (CORS): verde app -am corriendo sobre `93a6adc`; luego mutaciones (`mutaciones/cors/`), ci-local, §0.44, nota de DD-57 ya hecha; reescribir el cuerpo de #138 con la evidencia (pie correcto) y pasarlo a listo. Después: pasada final y resumen.
