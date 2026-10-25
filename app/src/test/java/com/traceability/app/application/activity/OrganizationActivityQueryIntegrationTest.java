@@ -254,6 +254,31 @@ class OrganizationActivityQueryIntegrationTest {
         assertThat(second.next()).isNull();
     }
 
+    // 11b (bis): el borde de página cae en un cierre que empata con un evento anterior en el orden: ni ese evento ni el
+    // cierre se repiten en la página siguiente (el cursor de otra fuente solo deja pasar eventos más antiguos)
+    @Test
+    void t11b_aPageThatEndsOnAClosureTiedWithAnEvent_repeatsNeitherOnTheNextPage() {
+        insert("asset-1", 1, "ASSET_REGISTERED", registered("asset-1", ORG), "2026-10-01T00:00:00Z", "e-old", null);
+        for (int i = 1; i <= 18; i++) {
+            insert("asset-1", 1 + i, "ASSET_RECEIVED", new AssetReceivedPayload("site", "r"),
+                    String.format("2026-10-20T00:00:%02dZ", i), String.format("e-new-%02d", i), null);
+        }
+        String t = "2026-10-10T00:00:00Z";
+        // "e-zz" > "camp-a" como texto: si el filtro de eventos usara el id de otra fuente, volvería a salir
+        insert("asset-1", 20, "ASSET_RECEIVED", new AssetReceivedPayload("site-t", "r"), t, "e-zz", null);
+        when(closures.closedCampaigns(ORG)).thenReturn(List.of(new CampaignClosure("camp-a", Instant.parse(t))));
+
+        ActivityPage first = query.page(employee(), ORG, null);
+        ActivityPage second = query.page(employee(), ORG, first.next());
+
+        assertThat(first.items()).hasSize(20);
+        assertThat(signature(first.items().get(18))).isEqualTo("ASSET_RECEIVED|ASSET:asset-1|2026-10-09T23:59:00Z|null");
+        assertThat(signature(first.items().get(19))).isEqualTo("CAMPAIGN_CLOSED|CAMPAIGN:camp-a|2026-10-10T00:00:00Z|null");
+        assertThat(second.items()).extracting(OrganizationActivityQueryIntegrationTest::signature)
+                .containsExactly("ASSET_REGISTERED|ASSET:asset-1|2026-09-30T23:59:00Z|null");
+        assertThat(second.next()).isNull();
+    }
+
     // Ítems: cantidad, unidad y zona salen del payload; un FUNDS_CLEARED no lleva importe
     @Test
     void items_carryQuantityUnitAndZoneFromThePayload_andAClearingCarriesNoAmount() {
