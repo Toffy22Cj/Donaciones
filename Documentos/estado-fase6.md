@@ -271,6 +271,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Nota (2026-10-25), respuestas de Manuel:**
     - **H-C-2, resuelta:** cuando el lote de un `merkleBatchId` no existe (`BlockchainAnchorProducer.java:156` reclama y `:175` guarda), el paso es `PENDING` sin prueba, como ya hace el código;
     - **H-C-1, aprobados** los nombres `StreamEventAnchorDataPort` y `MongoStreamEventAnchorDataAdapter`;
+  - **Nota (2026-10-25), integración de `develop` `aa7a0d2`** (con #137 y #139), por un merge normal (`6c121b1`). El único conflicto fue en esta página, y se conservaron los dos lados (§0.50 y §0.39). `ci-local.sh` se repitió en un clon limpio de `d33a770`: `BUILD SUCCESS`, con core 345, crypto 57, ai 47, api 166, identity 334, convocatoria 253 y app 481, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-d33a770-2026-10-25T15-38-09Z.txt`.
   - avisar a la web y al móvil (F-C2) cuando se fusione, con el commit de `develop`: `anchorStatus` tiene cuatro valores; `eventHash` y `anchorProof` con su algoritmo y sus límites (E1.3, E1.4); los vectores fijos; `parentAssetRef?`.
 
 ### 0.39 P-R3-3: el login emite con `iat = max(segundo truncado, credentialsNotBefore)` (2026-10-25, `fix/identity-p-r3-3-iat-del-login`)
