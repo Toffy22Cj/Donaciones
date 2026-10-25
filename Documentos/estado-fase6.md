@@ -284,6 +284,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Verde por capas** (`mvn test -pl app -am`, sobre `93a6adc`): api "Tests run: 157" y app "Tests run: 464", con "Failures: 0, Errors: 0, Skipped: 0".
   - **Mutaciones** en un clon limpio de `93a6adc`, con un repositorio Maven aislado y la línea base en verde (api 12, app 7): 4 de 4 muertas en `api` y 4 de 4 en `app` (sin `DELETE`, sin `PUT`, con `PATCH` y `"*"`).
   - **CI:** `scripts/ci-local.sh` en un clon limpio de `93a6adc` (`free -g`: 14 GB disponibles): `BUILD SUCCESS`; core 340, crypto 50, ai 47, api 157, identity 332, convocatoria 253 y app 464, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `Documentos/evidencia-ci/ci-local-93a6adc-2026-10-25T10-49-50Z.txt`, con nota a mano.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `a910ea6` (#143 bloque D, #146 D6, #144 D3, #142 R-5 y #140 R-4) en `d210a7a`; el único conflicto fue en este archivo, resuelto conservando los dos lados. `scripts/ci-local.sh` en un clon limpio de `d210a7a` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 351", crypto 57, ai 47, api 169, identity 384, convocatoria 255 y app 535, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-d210a7a-2026-10-25T18-11-42Z.txt`.
 
 ### 0.53 Deuda DT-B-1: la precisión de `recordedAt` en el Event Store (2026-10-25, registrada por indicación de Manuel)
 
@@ -329,6 +330,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **H-D-1, aprobados** los nombres que el plan no fijaba: `BatchEventCount`, `countByBatch`, `ActivityEvent`, `findPage`, `OrganizationCampaignClosuresQuery`, `CampaignClosure`, `ActivityKey`, `ActivityItem`, `Subject`, `ActivityPage`, el propósito del cursor y el índice `idx_asset_genesis_organization`.
   - **H-D-2:** queda como deuda DT-B-1 (§0.53). No se arregla en este PR.
   - **Pregunta abierta para Carlos (no se implementa):** G-8 lee como mucho 10 000 fondos y 10 000 activos (`OrganizationActivityQuery.java:61` y `:126-127`), igual que G-7 (`OrganizationIntegrityQuery.java:37` y `:64-66`). Pero la ficha CONGELADA no le da `truncated` (`ficha-R6-datos-estilo-v2.md:144`, la respuesta de G-8). Añadirlo sería cambiar la ficha. ¿Se le añade `truncated`?
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `f5191c6` (#146 D6, #144 D3, #142 R-5 y #140 R-4) en `1a0a7bf`; el único conflicto fue en este archivo, resuelto conservando los dos lados. `scripts/ci-local.sh` en un clon limpio de `1a0a7bf` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 351", crypto 57, ai 47, api 168, identity 384, convocatoria 255 y app 533, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-1a0a7bf-2026-10-25T17-49-18Z.txt`.
 
 ### 0.43 D6: desactivar la propia cuenta, sin D7 (2026-10-25, `feat/identity-d6-desactivacion`)
 
@@ -357,6 +359,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - D7 (pregunta para Carlos);
   - R-R3-1: sin límite de intentos, como en `/account/password`;
   - con D3 (#144) en `develop`, los tests de este PR crean cuentas con `createAccount(email, password)`, pero no inician sesión por `/auth/login` (usan `tokens.issue`), así que D3 no les afecta.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `69bc88d` (#144 D3, con #142 R-5 y #140 R-4) en `2048827`; conflictos en este archivo, en `referencia-api-v1.md` y en `PublicRoutesInventoryIntegrationTest`, resueltos conservando los dos lados. `scripts/ci-local.sh` sobre `2048827` dio **rojo** en `identity`: "Tests run: 384, Failures: 0, Errors: 13" (`PasswordResetServicesIntegrationTest`, de R-4: el contexto no cargaba porque `DeactivateAccountService` pide ahora `CampaignResponsibilityPort`; evidencia `evidencia-ci/ci-local-2048827-2026-10-25T17-12-12Z.txt`). Corregido en `1297577` con el mismo `StubCampaignResponsibilityPort` que D6 puso en los demás tests del módulo. `scripts/ci-local.sh` en un clon limpio de `1297577` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 168, identity 384, convocatoria 253 y app 517, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-1297577-2026-10-25T17-27-08Z.txt`.
 
 ### 0.42 D3: el login exige las aceptaciones vigentes (2026-10-25, `feat/identity-d3-aceptaciones-login`)
 
@@ -384,6 +387,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - cuando #137 y #142 estén en `develop`, merge de `develop` y CI otra vez;
   - #140 (R-4) usa el login en sus tests (R4-19), y el primero de los dos que llegue a `develop` obliga al otro a mandar las versiones;
   - nota "implementada" en la parte 3 de la Enmienda 1.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` (`a5e56c8`, #140 R-4, y `ccf03f2`, #142 R-5) con merges normales; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados. Con R-4 dentro, `PasswordResetHttpIntegrationTest` dio **rojo** sobre `b2d3b90`: "Tests run: 14, Failures: 4", `403 AcceptanceRequired` donde se esperaba 200 (sus cuentas se crean con `createAccount(email, password)` sin aceptar nada). Corregido en `77903a6`: `login()` y `loginStatus()` del test mandan las dos versiones vigentes, igual que `AccountPasswordHttpIntegrationTest`. `scripts/ci-local.sh` en un clon limpio de `77903a6` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 168, identity 377, convocatoria 253 y app 509, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-77903a6-2026-10-25T16-44-59Z.txt`.
 
 ### 0.41 R-5, primera parte: aceptaciones legales (D2), perfil (D1) y minimización (D10) (2026-10-25, `feat/identity-r5-aceptaciones-perfil`)
 
