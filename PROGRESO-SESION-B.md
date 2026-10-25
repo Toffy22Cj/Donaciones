@@ -6,8 +6,8 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 
 | Ítem | Estado | Rama | Commits | PR |
 |---|---|---|---|---|
-| B1 · R-6 Bloque C + E1 | EN CURSO (falta CI y PR) | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | `c1453ae`, `90316df`, `7a802f0` (último de código) | — |
-| B2 · R-6 Bloque D | PENDIENTE | `feat/r6-bloque-d` (saldrá de `feat/r6-bloque-c`) | — | prerrequisito docs: #139 (`chore/docs-ficha-r6-d-respuestas`, `7ad5da1`) |
+| B1 · R-6 Bloque C + E1 | **HECHO** | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | código hasta `7e411f1`; docs `343c70b` | **#141** (abierto, revisor Toffy22Cj) |
+| B2 · R-6 Bloque D | EN CURSO | `feat/r6-bloque-d` (desde `feat/r6-bloque-c` `661942d`) | tests `51e84be` | depende de #141 y de #139 (docs) |
 | B3 · ADR-051 T4 | PENDIENTE | `feat/adr051-t4-evidencia` | — | — |
 
 ## Arranque (2026-10-25)
@@ -55,7 +55,19 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - Mutaciones (clon limpio `7a802f0`, línea base verde): 15/15 muertas, "Mutaciones vivas: 0" en crypto, api y app (specs en el scratchpad; detalle en estado-fase6 §0.50).
 - Docs: referencia-api-v1 §8 (notas G-4 y G-3/E1), api-contract-matrix §5 (P-R6C-4), ficha §9 (E4), estado-fase6 §0.50 (sin commit todavía).
 
+## Revisión adversaria B1 (antes del PR #141)
+
+1. Afirmaciones sin comando: ninguna; líneas citadas comprobadas con sed/grep (MerkleTree 65-97, producer 50/65/69/70/86-99/102-109, IVU 69-73, BAP 156/175).
+2. Nombres inventados: StreamEventAnchorDataPort y MongoStreamEventAnchorDataAdapter (H-C-1, declarado); clases de test.
+3. Documentación borrada: `git diff origin/develop -- Documentos | grep '^-[^-]'` vacío.
+4. Tests por razón equivocada: t8 pasa sin la función (negativa), la valida la mutación 1. Rojo del golden path era NPE → cambiado a aserción.
+5. Mutación razonable viva: SÍ, la 14 (hojas vacías) → test añadido (`7e411f1`), muerta en clon limpio; CI repetida.
+6. Secretos/rutas locales: no (claves de test ya existentes en otros tests; evidencia sin rutas).
+7. Rama/commit: feat/r6-bloque-c, CI sobre 7e411f1.
+- CI final: `ci-local-7e411f1-2026-10-25T07-39-57Z.txt` BUILD SUCCESS (app 479).
+- Pie de PR: la herramienta lo cambia; editado a mano en #141 y #139.
+
 ## Paso exacto siguiente
 
-- B1: `ci-local.sh` corriendo en `/home/user/ci-c` (clon de `7a802f0`). Al terminar: copiar la evidencia a `Documentos/evidencia-ci/`, rellenar CI_PENDIENTE en estado-fase6 §0.50, commit de docs, revisión adversaria, autoauditoría y PR.
-- B2: rama `feat/r6-bloque-d` desde `feat/r6-bloque-c`; "depende de #<PR de C>" y de #139.
+- B2: en `/home/user/wt-d` hay tests commiteados (`51e84be`) y la implementación SIN commit (copia en el scratchpad `d-main/`). Siguiente: rojo literal con la implementación apartada (core, convocatoria, app), restaurar, verde por capas, índice P-R6D-6 en commit propio (rojo por aserción antes), merge de `feat/r6-bloque-c` (343c70b), mutaciones 1-9 del plan D, docs (referencia §3 org, matriz, estado-fase6 §0.51), CI, PR "depende de #141 y #139".
+- Hallazgos D: H-D-1 nombres no fijados por el plan (métodos/records de puertos, `OrganizationCampaignClosuresQuery`, índice `idx_asset_genesis_organization`); H-D-2 `recordedAt` es `Instant.toString()` de precisión variable → orden de texto (consistente con Mongo).
