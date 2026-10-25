@@ -4,6 +4,8 @@
 
 **PROPUESTA — espera la aprobación de Carlos.** La redactó Manuel, con asistencia de Claude, el 2026-10-24. La decisión de fondo (P-R3-3, opción (a) con (c)) es de Manuel, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). Carlos aprueba o cambia la enmienda en su PR.
 
+> **Nota (2026-10-25): APROBADA por Carlos, partes 1 y 2** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, comunicado por Manuel; texto literal pendiente de registrar). "PROPUESTA" se conserva; esta nota lo supera. La parte 3 (P-R5-1, D3) no existe todavía y no queda cubierta.
+
 **No autoriza código por sí sola.** El código va en su propio PR, con un plan corto aprobado por Manuel (regla 3.4), y solo después de que Carlos apruebe esta enmienda. **Ese PR se fusiona antes que el código de R-4.**
 
 **Por qué es una enmienda.** La regla 3.5 la exige cuando se cambia el contrato de un puerto que ya usa otro módulo. `AuthenticateAccountPort` está en `contracts`: lo implementa `identity` y lo llama `api`.
@@ -87,6 +89,8 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 # Parte 2 — Actor de `CREDENTIALS_CHANGED` en la confirmación de la recuperación (P-R4-1; enmienda de ADR-038 E1)
 
 **Estado: PROPUESTA — espera la aprobación de Carlos.** La decisión de fondo (P-R4-1, opción (a)) es de Manuel, del 2026-10-24, por la delegación de Carlos, al aprobar el plan R-4 (`plan-r4-recuperacion-de-contrasena.md` §11, PR #121). Sin esta aprobación, la confirmación de R-4 no se implementa.
+
+> **Nota (2026-10-25): APROBADA por Carlos** (la misma nota de `decisiones-delegadas-2026-10.md`). "PROPUESTA" se conserva; esta nota lo supera.
 
 ## Context
 

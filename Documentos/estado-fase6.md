@@ -229,6 +229,28 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### Nota (2026-10-25): aprobaciones de Carlos y fusiones del 2026-10-25
+
+- **Carlos aprobó todo lo pendiente** (planes, Enmienda 1 de ADR-050 partes 1 y 2, Enmienda 1 de la ficha R-6) y pidió a Manuel que fusionara él mismo los PR (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25; comunicado por Manuel, texto literal pendiente de registrar).
+- **Fusionados el 2026-10-25, sin Approve en GitHub y por instrucción de Carlos** (H-1 en `informe-sesion-manuel-2026-10-24.md`):
+
+| PR | Fusionado (UTC) | Commit de merge | Qué |
+|---|---|---|---|
+| #121 | 01:37:16 | `4be5c6e` | Plan R-4 |
+| #122 | 01:37:27 | `91ee264` | Plan R-5 + D1 |
+| #123 | 01:37:39 | `a8596a6` | Plan D6 |
+| #127 | 01:40:02 | `818ebf3` | Código de R-3 + R-2 |
+| #125 | 01:40:10 | `dd8033c` | ADR-050, Enmienda 1, parte 2 |
+| #130 | 01:40:17 | `93940e3` | Notas de la ficha R-6 §9 y de ADR-050 |
+| #128 | 01:40:24 | `b119386` | Plan P-R3-3 |
+| #124 | 01:40:32 | `8bfe713` | Adenda G-9 |
+| #126 | 01:40:39 | `b1eae78` | Plan C, versión 2 |
+| #131 | 01:40:46 | `f57611d` | Plan de ADR-051 T4 |
+| #129 | 01:40:53 | `3cab9a9` | Informe de la sesión |
+
+- Con #127 (`818ebf3`), R-3 + R-2 (§0.37) está en `develop`. Pendiente de §0.37: avisar a la web y al móvil (el texto está en §5 del informe).
+- **Siguen bloqueados:** D7 (Carlos no lo nombró), la Tarea 5 de ADR-051 (falta la enmienda de ADR-021-D) y D3 (falta la parte 3 de la Enmienda 1 de ADR-050, P-R5-1).
+
 ### 0.37 R-3 + R-2: revocación de sesiones y cambio de contraseña (2026-10-24, `feat/identity-r3-r2-revocacion-contrasena`)
 
 - Numerada 0.37 porque el Bloque B (#113) ya usa la 0.36.

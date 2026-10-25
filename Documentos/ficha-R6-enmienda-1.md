@@ -1,6 +1,8 @@
 # Ficha R-6 — Enmienda 1: hash con prueba de Merkle por paso (G-3) y fecha del último cambio de cada lote (G-9)
 
 **Estado: PROPUESTA.** **Qué** se construye lo decidió Carlos el 2026-10-24. **Cómo** se construye (los puntos marcados **[Manuel]**) lo decide Manuel por delegación de Carlos, como en §9 de la ficha. Carlos da el visto bueno en el PR.
+
+> **Nota (2026-10-25): APROBADA por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, comunicado por Manuel; texto literal pendiente de registrar). "PROPUESTA" se conserva; esta nota lo supera. Resuelve B-G9-1 (adenda G-9) y B-C-1 (plan C).
 **Fecha:** 2026-10-24 (UTC).
 **Base verificada:** `develop` en `0b3dc3e`.
 **Cambia:** D-R6-6 de la ficha R-6 (CONGELADA). Añade G-9. El resto de la ficha no cambia.

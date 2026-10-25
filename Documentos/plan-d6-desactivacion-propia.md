@@ -1,6 +1,8 @@
 # Plan D6 — Desactivación de la propia cuenta (con D7 como pregunta para Carlos)
 
 **Estado: BORRADOR. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No se escribe código antes (regla 3.4). Carlos aprueba el PR de implementación con Approve en GitHub.
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. **D7 queda fuera** (Carlos no lo nombró; Manuel, 2026-10-25).
 **Fecha:** 2026-10-24 (UTC).
 **Contrato:** ADR-050 (APROBADO — Carlos, 2026-10-18): D6, Q3 (a) y los tests 24 y 25 de su definición de hecho. **D7** (reactivación por el administrador de plataforma, test 26) queda **como pregunta abierta para Carlos (§3)**, sin decidirla, porque Carlos solo nombró D6 en su orden del 2026-10-24 y la tarea 4 de ADR-050 (`ADR-050-cuenta-y-sesiones.md:292`) incluye las dos.
 **Base:** `develop` `19b4e0f`. Rama: `feat/identity-d6-desactivacion`, desde el `develop` del momento, con su hash.

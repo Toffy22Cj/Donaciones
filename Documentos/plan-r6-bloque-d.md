@@ -1,6 +1,8 @@
 # Plan — Ficha R-6, Bloque D: integridad de la organización (G-7) y actividad reciente (G-8)
 
 **Estado: BORRADOR — espera "plan aprobado" (regla 3.4).** No autoriza código. **Tiene dos preguntas abiertas sobre la ficha (P-R6D-1 y P-R6D-2)** que, por estar CONGELADA, solo puede resolver Carlos.
+
+> **Nota (2026-10-25): APROBADO por Carlos** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25: "Carlos aprobó todo lo pendiente …", comunicado por Manuel; texto literal pendiente de registrar). El estado de arriba se conserva; esta nota lo supera. **Respuestas a las dos preguntas abiertas** (Manuel, 2026-10-25): **P-R6D-1 (b)** y **P-R6D-2 (a)**.
 **Fecha:** 2026-10-24. **Autor:** Manuel, con asistencia de Claude. **Base verificada:** `develop` `0b3dc3e`.
 **Norma:** `Documentos/ficha-R6-datos-estilo-v2.md`, CONGELADA: §6 (Bloque D), §7 (tests 10 y 11), §8, §9 (D-R6-7, D-R6-8, D-R6-9, D-R6-10) y §10 (C-5, C-6 y C-7).
 **Rama de implementación prevista:** `feat/r6-bloque-d`, **desde el `develop` posterior a la fusión de los Bloques B (#113) y C**: comparte archivos con los dos (§0.2). Es un PR solo para este bloque (D-R6-10).
