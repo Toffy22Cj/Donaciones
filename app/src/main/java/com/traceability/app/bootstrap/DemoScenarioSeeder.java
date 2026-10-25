@@ -134,7 +134,9 @@ public class DemoScenarioSeeder {
         Map<String, String> token = new LinkedHashMap<>();
         for (String email : List.of(PLATFORM, REPRESENTATIVE, ADMINISTRATOR, EMPLOYEE_1, EMPLOYEE_2, DONOR,
                 PENDING_REPRESENTATIVE)) {
-            token.put(email, api.post("login " + email, "/api/v1/auth/login", Map.of("email", email, "password", password),
+            // ADR-050 D3: el login manda las versiones vigentes (las cuentas ya las aceptaron al registrarse)
+            token.put(email, api.post("login " + email, "/api/v1/auth/login", Map.of("email", email, "password", password,
+                    "acceptedTermsVersion", legalVersions.terms(), "acceptedDataPolicyVersion", legalVersions.dataPolicy()),
                     null, false, 200).get("token").asText());
         }
 

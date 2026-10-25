@@ -135,8 +135,9 @@ class AccountPasswordHttpIntegrationTest {
     }
 
     private String login(String email, String password) throws Exception {
+        // ADR-050 D3: las cuentas del test no aceptaron nada al crearse; el login acepta las vigentes
         HttpResponse<String> r = send("POST", "/api/v1/auth/login", null,
-                "{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}");
+                "{\"email\":\"" + email + "\",\"password\":\"" + password + "\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}");
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
         return json.readTree(r.body()).get("token").asText();
     }

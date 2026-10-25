@@ -1,5 +1,7 @@
 package com.traceability.api.auth;
 
+import com.traceability.contracts.authentication.AcceptanceRequiredException;
+import com.traceability.contracts.authentication.AcceptedLegalVersions;
 import com.traceability.contracts.authentication.AuthenticateAccountPort;
 import com.traceability.contracts.authentication.AuthenticatedAccount;
 import com.traceability.contracts.authentication.AuthenticationFailedException;
@@ -26,7 +28,11 @@ import java.time.temporal.ChronoUnit;
  * {@code POST /api/v1/auth/login} (ficha ID-01; ADR-038 §2.7; ADR-047):
  * <ul>
  *   <li>email o contraseña vacíos → 400, sin llamar a la autenticación (ID01-D2);</li>
- *   <li>cualquier fallo de autenticación → el mismo 401, sin motivo (ID01-D1);</li>
+ *   <li>cualquier fallo de autenticación → el mismo 401, sin motivo (ID01-D1). Se decide antes que las aceptaciones:
+ *       una contraseña incorrecta nunca da 403 (ADR-050 Enmienda 1, parte 3, E3-2);</li>
+ *   <li>contraseña correcta y versiones legales vigentes pendientes que el cuerpo no trae ({@code acceptedTermsVersion?},
+ *       {@code acceptedDataPolicyVersion?}) → {@code 403 AcceptanceRequired} con {@code {pendingTermsVersion?,
+ *       pendingDataPolicyVersion?}} y sin token (ADR-050 D3, Q1 (a); E3-4; P-R5-5);</li>
  *   <li>cualquier fallo al emitir el token → 500, nunca 401 (ID01-D4);</li>
  *   <li>éxito → {@code {"token": "..."}} y nada más (Q2), con {@code iat = max(segundo actual truncado,
  *       credentialsNotBefore)} (ADR-050 Enmienda 1, E1-2): justo después de una revocación, el token del login vale.</li>
@@ -40,7 +46,9 @@ public class LoginController {
     private static final Logger log = LoggerFactory.getLogger(LoginController.class);
     private static final MediaType PROBLEM_JSON = MediaType.APPLICATION_PROBLEM_JSON;
 
-    public record LoginRequest(String email, String password) {}
+    /** Las dos versiones son opcionales: solo hacen falta cuando la cuenta tiene alguna pendiente (ADR-050 D3). */
+    public record LoginRequest(String email, String password, String acceptedTermsVersion,
+                               String acceptedDataPolicyVersion) {}
 
     public record LoginResponse(String token) {}
 
@@ -69,10 +77,14 @@ public class LoginController {
 
         AuthenticatedAccount account;
         try {
-            account = authenticateAccountPort.authenticate(request.email(), request.password());
+            account = authenticateAccountPort.authenticate(request.email(), request.password(),
+                    new AcceptedLegalVersions(request.acceptedTermsVersion(), request.acceptedDataPolicyVersion()));
         } catch (AuthenticationFailedException e) {
             log.debug("Login rejected");
             return problem(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        } catch (AcceptanceRequiredException e) {
+            log.debug("Login requires accepting the current legal versions");
+            return acceptanceRequired(e);
         }
 
         try {
@@ -88,6 +100,20 @@ public class LoginController {
         Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
         Instant credentialsNotBefore = account.credentialsNotBefore();
         return credentialsNotBefore != null && credentialsNotBefore.isAfter(now) ? credentialsNotBefore : now;
+    }
+
+    /** E3-4 (P-R5-5): {@code title = AcceptanceRequired} y solo las versiones pendientes; nunca el texto ni un token. */
+    private static ResponseEntity<ProblemDetail> acceptanceRequired(AcceptanceRequiredException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
+                "The current legal versions must be accepted");
+        problem.setTitle("AcceptanceRequired");
+        if (e.pendingTermsVersion() != null) {
+            problem.setProperty("pendingTermsVersion", e.pendingTermsVersion());
+        }
+        if (e.pendingDataPolicyVersion() != null) {
+            problem.setProperty("pendingDataPolicyVersion", e.pendingDataPolicyVersion());
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(PROBLEM_JSON).body(problem);
     }
 
     private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String detail) {
