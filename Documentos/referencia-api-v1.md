@@ -88,6 +88,8 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 
 *Nota (2026-10-21, ficha R-6, Bloque A; G-4b y G-5):* `GET /organizations/{organizationId}/physical-assets` lleva además **`assetType`** en cada ítem (el registrado; sigue sin `parentAssetRef`, `rootAssetRef` ni `donorRef`). `GET /organizations/{organizationId}/campaigns` lleva además **`startDate`** y **`endDate`** en cada ítem (ISO-8601 UTC, siempre presentes; las del dominio, como en CV-07). Las filas de arriba no se reescriben.
 
+*Nota (2026-10-25, ficha R-6, Enmienda 1, E2; G-9, adenda G-9 del plan B):* cada ítem de `GET /organizations/{organizationId}/physical-assets` lleva además **`lastEventAt?`** (ISO-8601 UTC): el `occurredAt` del último evento del lote **por `sequence`**, nunca por la fecha más reciente. Se omite si no hay fecha. `GET /physical-assets/{assetRef}` no lo lleva. Las filas de arriba no se reescriben.
+
 *Nota (2026-10-21, ADR-051 Tarea 2; ficha S-18, nota del 2026-10-21):* `GET /organizations/{organizationId}` lleva además **`logoUrl?`** (`/api/v1/organizations/{organizationId}/logo`, la ruta autenticada), solo si la organización tiene logo. Los roles de S-18 no cambian. Las filas de arriba no se reescriben.
 
 *Nota (2026-10-23, ficha R-6, Bloque B; G-6; P-R6B-6):* el recaudado por mes lee como mucho **10 000 fondos** de la organización. Si tiene más, la respuesta lleva **`truncated: true`** y el resultado no está completo. Con 10 000 o menos, `truncated` no aparece.

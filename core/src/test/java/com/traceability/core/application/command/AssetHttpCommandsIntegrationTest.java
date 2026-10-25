@@ -250,10 +250,11 @@ class AssetHttpCommandsIntegrationTest {
 
         // ficha R-6, G-4b: assetType es el registrado; sigue sin parentAssetRef, rootAssetRef ni donorRef
         assertThat(view).isEqualTo(new PhysicalAssetOperationalView(assetId, "REGISTERED", "CUST-1", "WH-1",
-                new BigDecimal("10.0000"), "KGS", null, "FOOD"));
+                new BigDecimal("10.0000"), "KGS", null, "FOOD", null));
+        // ficha R-6, Enmienda 1, E2 (G-9): lastEventAt solo lo rellena el listado; la vista individual lo deja nulo
         assertThat(PhysicalAssetOperationalView.class.getRecordComponents()).extracting(c -> c.getName())
                 .containsExactly("assetRef", "lifecycleStatus", "currentCustodianRef", "currentLocation", "quantity",
-                        "unitOfMeasure", "campaignRef", "assetType");
+                        "unitOfMeasure", "campaignRef", "assetType", "lastEventAt");
     }
 
     @Test
