@@ -273,6 +273,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **H-D-1, aprobados** los nombres que el plan no fijaba: `BatchEventCount`, `countByBatch`, `ActivityEvent`, `findPage`, `OrganizationCampaignClosuresQuery`, `CampaignClosure`, `ActivityKey`, `ActivityItem`, `Subject`, `ActivityPage`, el propósito del cursor y el índice `idx_asset_genesis_organization`.
   - **H-D-2:** queda como deuda DT-B-1 (§0.53). No se arregla en este PR.
   - **Pregunta abierta para Carlos (no se implementa):** G-8 lee como mucho 10 000 fondos y 10 000 activos (`OrganizationActivityQuery.java:61` y `:126-127`), igual que G-7 (`OrganizationIntegrityQuery.java:37` y `:64-66`). Pero la ficha CONGELADA no le da `truncated` (`ficha-R6-datos-estilo-v2.md:144`, la respuesta de G-8). Añadirlo sería cambiar la ficha. ¿Se le añade `truncated`?
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `f5191c6` (#146 D6, #144 D3, #142 R-5 y #140 R-4) en `1a0a7bf`; el único conflicto fue en este archivo, resuelto conservando los dos lados. `scripts/ci-local.sh` en un clon limpio de `1a0a7bf` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 351", crypto 57, ai 47, api 168, identity 384, convocatoria 255 y app 533, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-1a0a7bf-2026-10-25T17-49-18Z.txt`.
 
 ### 0.43 D6: desactivar la propia cuenta, sin D7 (2026-10-25, `feat/identity-d6-desactivacion`)
 
