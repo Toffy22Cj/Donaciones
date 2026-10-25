@@ -52,6 +52,25 @@ public class MongoAccountRepositoryAdapter implements AccountRepositoryPort {
     }
 
     @Override
+    public boolean recordLegalAcceptancesIfUnchanged(AccountId accountId, identity.domain.model.PasswordHash validatedHash,
+                                                     identity.domain.model.LegalAcceptance terms,
+                                                     identity.domain.model.LegalAcceptance dataPolicy) {
+        Query query = Query.query(
+                Criteria.where("_id").is(accountId.value())
+                        .and("status").is("ACTIVE")
+                        .and("passwordHash").is(validatedHash.value())
+        );
+        Update update = new Update();
+        if (terms != null) {
+            update.set("termsVersion", terms.version()).set("termsAcceptedAt", terms.acceptedAt());
+        }
+        if (dataPolicy != null) {
+            update.set("dataPolicyVersion", dataPolicy.version()).set("dataPolicyAcceptedAt", dataPolicy.acceptedAt());
+        }
+        return mongoTemplate.updateFirst(query, update, "accounts").getMatchedCount() == 1L;
+    }
+
+    @Override
     public boolean revokePlatformAuthorityIfHeld(AccountId accountId) {
         Query query = Query.query(
                 Criteria.where("_id").is(accountId.value())

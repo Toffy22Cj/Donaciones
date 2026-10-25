@@ -118,4 +118,27 @@ class CorsHttpIntegrationTest {
         assertThat(list(r, "Access-Control-Expose-Headers")).contains("location");
         assertThat(r.headers().firstValue("Access-Control-Allow-Credentials")).isEmpty();
     }
+
+    // ── DD-57 ampliada (plan CORS, #138): PUT y DELETE del logo ──
+
+    @Test
+    void preflightOfPutAndDelete_toTheLogo_isAnsweredWithoutJwt_withTheMethodAllowed() throws Exception {
+        for (String method : new String[]{"PUT", "DELETE"}) {
+            HttpResponse<String> r = preflight(ALLOWED, "/api/v1/organizations/org-1/logo", method, "authorization");
+
+            assertThat(r.statusCode()).as(method).isEqualTo(200);
+            assertThat(r.headers().allValues("Access-Control-Allow-Origin")).as(method).containsExactly(ALLOWED);
+            assertThat(list(r, "Access-Control-Allow-Methods")).as(method).contains(method.toLowerCase());
+            assertThat(r.headers().firstValue("Access-Control-Allow-Credentials")).as(method).isEmpty();
+        }
+    }
+
+    @Test
+    void preflightOfPatch_isStillRejected() throws Exception {
+        HttpResponse<String> r = preflight(ALLOWED, "/api/v1/organizations/org-1/logo", "PATCH", "authorization");
+
+        assertThat(r.statusCode()).isEqualTo(403);
+        assertThat(r.headers().firstValue("Access-Control-Allow-Origin")).isEmpty();
+        assertThat(list(r, "Access-Control-Allow-Methods")).doesNotContain("patch");
+    }
 }

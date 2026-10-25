@@ -138,7 +138,7 @@ class AccountHttpIntegrationTest {
     void theEmailIsTheNormalizedOneOfTheRegistration() throws Exception {
         String local = "Ana.Prueba." + UUID.randomUUID().toString().substring(0, 8);
         HttpResponse<String> registered = send("POST", "/api/v1/auth/register", null,
-                "{\"email\":\"  " + local + "@Ejemplo.ORG \",\"password\":\"" + PASSWORD + "\"}");
+                "{\"email\":\"  " + local + "@Ejemplo.ORG \",\"password\":\"" + PASSWORD + "\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}");
         assertThat(registered.statusCode()).as(registered.body()).isEqualTo(201);
         String accountId = json.readTree(registered.body()).get("accountId").asText();
 

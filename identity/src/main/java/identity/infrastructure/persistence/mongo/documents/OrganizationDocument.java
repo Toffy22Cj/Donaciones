@@ -20,4 +20,8 @@ public class OrganizationDocument {
     private String name;
     /** Referencia del logo, opcional (ADR-051 F9). Los documentos sin el campo se leen sin logo. */
     private String logoObjectKey;
+    // ADR-050 D2: términos de organización aceptados al crearla (nulos en las existentes)
+    private String organizationTermsVersion;
+    private String organizationTermsAcceptedBy;
+    private java.time.Instant organizationTermsAcceptedAt;
 }

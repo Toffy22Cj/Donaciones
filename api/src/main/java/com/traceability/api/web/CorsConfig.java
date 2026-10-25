@@ -22,7 +22,9 @@ import java.util.regex.Pattern;
  *   no cookies;</li>
  *   <li>cabeceras de petición: {@code Authorization}, {@code Command-Id}, {@code Intent-Token} y {@code Content-Type}
  *   (esta última es necesaria para enviar JSON desde el navegador);</li>
- *   <li>cabecera expuesta: {@code Location} (la división responde {@code 202} con ella).</li>
+ *   <li>cabecera expuesta: {@code Location} (la división responde {@code 202} con ella);</li>
+ *   <li>métodos: {@code GET}, {@code POST}, {@code PUT}, {@code DELETE} y {@code OPTIONS}. {@code PUT} y {@code DELETE}
+ *   desde el 2026-10-25, para el logo de la organización (DD-57 ampliada; plan CORS, #138). Sin {@code PATCH}.</li>
  * </ul>
  * El filtro va antes que los de autenticación: un preflight ({@code OPTIONS}) nunca llega a pedir JWT.
  */
@@ -31,7 +33,7 @@ public class CorsConfig {
 
     public static final List<String> ALLOWED_HEADERS = List.of("Authorization", "Command-Id", "Intent-Token", "Content-Type");
     public static final List<String> EXPOSED_HEADERS = List.of("Location");
-    public static final List<String> ALLOWED_METHODS = List.of("GET", "POST", "OPTIONS");
+    public static final List<String> ALLOWED_METHODS = List.of("GET", "POST", "PUT", "DELETE", "OPTIONS");
 
     /** {@code esquema://host[:puerto]}, sin ruta, barra final ni comodines. */
     private static final Pattern ORIGIN = Pattern.compile("^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$");
