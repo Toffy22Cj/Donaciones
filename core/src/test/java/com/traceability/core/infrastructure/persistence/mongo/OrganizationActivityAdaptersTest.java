@@ -185,9 +185,15 @@ class OrganizationActivityAdaptersTest {
 
         assertThat(ids).hasSize(10).allMatch(id -> id.startsWith("asset-7-"));
         List<Document> profiled = new ArrayList<>();
+        // La clave del filtro es literalmente "payload.organizationRef": se filtra en Java, no con una ruta anidada
         mongoTemplate.getDb().getCollection("system.profile")
-                .find(new Document("ns", mongoTemplate.getDb().getName() + ".event_store").append("op", "query")
-                        .append("command.filter.payload.organizationRef", "org-7")).into(profiled);
+                .find(new Document("ns", mongoTemplate.getDb().getName() + ".event_store").append("op", "query"))
+                .forEach(d -> {
+                    Document filter = d.get("command", Document.class).get("filter", Document.class);
+                    if (filter != null && "org-7".equals(filter.get("payload.organizationRef"))) {
+                        profiled.add(d);
+                    }
+                });
         assertThat(profiled).hasSize(1);
         Document q = profiled.get(0);
         System.out.println("[medición plan D, P-R6D-6] directorio de activos: planSummary=" + q.get("planSummary")
