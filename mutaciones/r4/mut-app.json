@@ -1,0 +1,149 @@
+{
+ "module": "identity,app",
+ "tests": "PasswordResetHttpIntegrationTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "1 La petición responde distinto sin cuenta (excepción → 409)",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "if (found.isEmpty() || found.get().getStatus() == AccountStatus.INACTIVE) {\n            return;",
+     "new": "if (found.isEmpty()) {\n            throw new identity.domain.exception.AccountNotFoundException(\"no account\");\n        }\n        if (found.get().getStatus() == AccountStatus.INACTIVE) {\n            return;"
+    }
+   ]
+  },
+  {
+   "name": "2 El correo se envía de forma síncrona",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/infrastructure/mail/SmtpPasswordResetMailAdapter.java",
+     "old": "executor.execute(() -> send(mail));",
+     "new": "send(mail);"
+    }
+   ]
+  },
+  {
+   "name": "3 Sin el enfriamiento",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "pending.isPresent() && pending.get().isInCooldownAt(now)",
+     "new": "false"
+    }
+   ]
+  },
+  {
+   "name": "4 Sin el SUPERSEDED del token anterior",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "                resetTokens.supersedePendingFor(account.getAccountId());\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "5 La confirmación no comprueba expiresAt",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/PasswordResetToken.java",
+     "old": "return status == PasswordResetTokenStatus.PENDING && now.isBefore(expiresAt);",
+     "new": "return status == PasswordResetTokenStatus.PENDING;"
+    }
+   ]
+  },
+  {
+   "name": "6 markUsedIfPending sin la condición status = PENDING",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/infrastructure/persistence/mongo/repositories/MongoPasswordResetTokenRepositoryAdapter.java",
+     "old": "Query query = Query.query(Criteria.where(\"_id\").is(id).and(\"status\").is(PENDING));",
+     "new": "Query query = Query.query(Criteria.where(\"_id\").is(id));"
+    }
+   ]
+  },
+  {
+   "name": "7 La confirmación no fija credentialsNotBefore",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Account.java",
+     "old": "        this.passwordHash = newPasswordHash;\n        revokeTokensIssuedBefore(now);",
+     "new": "        this.passwordHash = newPasswordHash;"
+    }
+   ]
+  },
+  {
+   "name": "8 Se guarda el token en claro",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "account.getAccountId(), secret.hash(), now);",
+     "new": "account.getAccountId(), secret.value(), now);"
+    }
+   ]
+  },
+  {
+   "name": "9 El enlace lleva el token en la query",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/infrastructure/mail/SmtpPasswordResetMailAdapter.java",
+     "old": "return baseUrl + PATH + \"#token=\" + token;",
+     "new": "return baseUrl + PATH + \"?token=\" + token;"
+    }
+   ]
+  },
+  {
+   "name": "10 La confirmación acepta una cuenta INACTIVE",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/ChangeCredentialsService.java",
+     "old": "            if (account.getStatus() != AccountStatus.ACTIVE) {\n                throw new PasswordResetTokenInvalidException();\n            }\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "11 Se envía el secreto de un intento revertido",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "        Optional<Issued> issued;\n",
+     "new": "        java.util.concurrent.atomic.AtomicReference<String> firstSecret = new java.util.concurrent.atomic.AtomicReference<>();\n        Optional<Issued> issued;\n"
+    },
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "                InvitationToken secret = InvitationToken.generate();\n",
+     "new": "                InvitationToken secret = InvitationToken.generate();\n                firstSecret.compareAndSet(null, secret.value());\n"
+    },
+    {
+     "file": "identity/src/main/java/identity/application/service/RequestPasswordResetService.java",
+     "old": "return Optional.of(new Issued(token, secret.value()));",
+     "new": "return Optional.of(new Issued(token, firstSecret.get()));"
+    }
+   ]
+  },
+  {
+   "name": "12 dispatch deja salir la excepción del ejecutor",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/infrastructure/mail/SmtpPasswordResetMailAdapter.java",
+     "old": "        } catch (RuntimeException rejected) {\n            // cola llena (TaskRejectedException) u otro rechazo del ejecutor: la petición ya respondió y no se reintenta\n            log.warn(\"password-reset.mail.rejected tokenId={} cause={}\", mail.tokenId(), rejected.getClass().getSimpleName());\n        }",
+     "new": "        } finally {\n        }"
+    }
+   ]
+  },
+  {
+   "name": "13 El ejecutor propio sustituye al de Spring (sin defaultCandidate = false)",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/config/PasswordResetMailExecutorConfig.java",
+     "old": "@Bean(name = EXECUTOR, defaultCandidate = false)",
+     "new": "@Bean(name = EXECUTOR)"
+    }
+   ]
+  }
+ ]
+}

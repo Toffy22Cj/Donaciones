@@ -45,6 +45,6 @@ la A usa 0.39–0.49.
 
 ## Siguiente paso exacto
 
-A1: con app en verde sobre `eb7c6a6`: mutaciones (specs en el scratchpad: `r4/mut-identity.json`, `r4/mut-app.json`;
+A1: con app en verde sobre `eb7c6a6`: mutaciones (specs en esta rama: `mutaciones/r4/mut-identity.json` y `mutaciones/r4/mut-app.json`;
 1 a 13) en un clon limpio con un repositorio Maven aislado (MAVEN_ARGS=-Dmaven.repo.local=…); estado-fase6 §0.40;
 ci-local en un clon limpio; PR "depende de #137".
