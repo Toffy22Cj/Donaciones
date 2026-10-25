@@ -256,7 +256,10 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Dos fallos de los tests, no del código:** el filtro del profiler buscaba `payload.organizationRef` como ruta anidada, y el cursor "manipulado" cambiaba el último carácter Base64, cuyos bits sobrantes no se decodifican. Se corrigieron los dos tests.
   - **Medición del índice (P-R6D-6),** consulta real del adaptador con el profiler (20 organizaciones con 10 activos): antes, "`IXSCAN { eventType: 1, payload.campaignRef: 1 }` keysExamined=200 docsExamined=200 hasSortStage=true"; después, "`IXSCAN { payload.organizationRef: 1, recordedAt: 1, streamId: 1 }` keysExamined=10 docsExamined=10", sin ordenación.
   - **Verde por capas**, con el módulo completo: `core` "Tests run: 351", `convocatoria` "Tests run: 255", `app` "Tests run: 494" (con #141 integrado), todos con "Failures: 0, Errors: 0, Skipped: 0".
-  - **Mutaciones:** MUT_D.
+  - **12 de 12 mutaciones muertas** ("Mutaciones vivas: 0"), en clones limpios de `67a5f95` y `a5ea0fd`, con la línea base sin mutar en verde y los módulos no mutados instalados con sus tests:
+    - las 9 del plan: 1 (contar todos los eventos del lote) → `countByBatch_countsOnlyTheEventsOfTheGivenStreams…` (`core`); 2 (`ANCHOR_MISMATCH` fuera de `underReviewEvents`) y 3 (`RELEASED` como `inPendingBatches`) → 10b; 4 (sin `truncated`) → 10d; 5 (dejar entrar a un `EMPLOYEE`) → 10e en la consulta y por HTTP; 6 (cursor solo con el instante) → 11a y 11b; 7 (orden ascendente) → 11a, 11b, los campos y 11f; 8 (no rechazar otro propósito) → 11c; 9 (copiar el `donorRef` al ítem) → los campos y 11e;
+    - 8b (no comprobar la organización del cursor) → 11c;
+    - *de la revisión adversaria:* 10 (el filtro de eventos usa el id de un cursor de otra fuente) y 11 (`>=` en el filtro de los cierres) sobrevivían porque ningún borde de página caía en un ítem que no fuera un evento: en un clon limpio de `67a5f95`, con las cuatro clases de D, "VIVA" las dos ("Mutaciones vivas: 2"). Se añadió `t11b_aPageThatEndsOnAClosureTiedWithAnEvent_repeatsNeitherOnTheNextPage` (`a5ea0fd`) y las dos mueren.
   - **`ci-local.sh`:** CI_D.
 - **Pendiente:** avisar a la web y al móvil (F-C3) cuando se fusione, con el commit de `develop`.
 
