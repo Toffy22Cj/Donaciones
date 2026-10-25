@@ -257,6 +257,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - test 23 con `/me/campaigns`: no hay una ruta que liste los responsables;
   - `PROFILE_UPDATED` comprobado por HTTP sin los valores.
 - **Pendiente:** D3 (Enmienda 1, parte 3) en `feat/identity-d3-aceptaciones-login`, que depende de este PR y de #137.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `a5e56c8` (#140, R-4) con un merge normal en `eed0a29`; conflictos solo en este archivo y en `referencia-api-v1.md`, resueltos conservando los dos lados (ninguna línea de ninguno de los dos padres se pierde). `scripts/ci-local.sh` en un clon limpio de `eed0a29` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 345", crypto 57, ai 47, api 166, identity 364, convocatoria 253 y app 504, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-eed0a29-2026-10-25T16-22-39Z.txt`.
 
 ### 0.40 R-4: recuperación de contraseña con envío diferido (2026-10-25, `feat/identity-r4-recuperacion-contrasena`)
 
