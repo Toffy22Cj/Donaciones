@@ -38,7 +38,8 @@ class AssetHistoryMapperTest {
                 "REGISTERED",
                 "cust-1",
                 "LOC-1",
-                Instant.parse("2026-09-06T10:00:00Z")
+                Instant.parse("2026-09-06T10:00:00Z"),
+                1L
         );
 
         AssetHistoryReadModel document = new AssetHistoryReadModel(
@@ -67,7 +68,7 @@ class AssetHistoryMapperTest {
         when(locationReferenceService.resolveZone(Mockito.any())).thenReturn(Optional.empty());
         for (String status : List.of("SPLIT", "SPLIT_COMPENSATED", "CUSTODY_TRANSFERRED")) {
             AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(new AssetHistoryReadModel("asset-002", List.of(
-                    new AssetTransitionReadModel("ASSET_" + status, status, null, null, Instant.parse("2026-10-07T10:00:00Z")))));
+                    new AssetTransitionReadModel("ASSET_" + status, status, null, null, Instant.parse("2026-10-07T10:00:00Z"), 1L))));
 
             assertEquals(PublicCustodianCategory.UNCATEGORIZED, dto.history().get(0).custodianCategory());
         }

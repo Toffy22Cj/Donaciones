@@ -93,7 +93,7 @@ class PublicDonationMapperTest {
         when(locationReferenceService.resolveZone("loc-1")).thenReturn(Optional.of("Zone A"));
 
         LogisticsReadItem item = new LogisticsReadItem(
-                "asset-1", "DISPATCHED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1"
+                "asset-1", "DISPATCHED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1", null
         );
         DonationReadModel model = new DonationReadModel("f1", "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of(item));
 
@@ -112,7 +112,7 @@ class PublicDonationMapperTest {
         when(locationReferenceService.resolveZone("loc-1")).thenReturn(Optional.empty());
 
         LogisticsReadItem item = new LogisticsReadItem(
-                "asset-1", "DISPATCHED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1"
+                "asset-1", "DISPATCHED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1", null
         );
         DonationReadModel model = new DonationReadModel("f1", "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of(item));
 
@@ -127,11 +127,11 @@ class PublicDonationMapperTest {
         when(assetRefService.computeRef(anyString())).thenReturn("ref-any");
         when(locationReferenceService.resolveZone(anyString())).thenReturn(Optional.empty());
 
-        LogisticsReadItem registered = new LogisticsReadItem("a1", "REGISTERED", "t", "u", BigDecimal.ONE, "l", "c");
-        LogisticsReadItem dispatched = new LogisticsReadItem("a2", "DISPATCHED", "t", "u", BigDecimal.ONE, "l", "c");
-        LogisticsReadItem received = new LogisticsReadItem("a3", "RECEIVED", "t", "u", BigDecimal.ONE, "l", "c");
-        LogisticsReadItem delivered = new LogisticsReadItem("a4", "DELIVERED", "t", "u", BigDecimal.ONE, "l", "c");
-        LogisticsReadItem depleted = new LogisticsReadItem("a5", "DEPLETED", "t", "u", BigDecimal.ONE, "l", "c");
+        LogisticsReadItem registered = new LogisticsReadItem("a1", "REGISTERED", "t", "u", BigDecimal.ONE, "l", "c", null);
+        LogisticsReadItem dispatched = new LogisticsReadItem("a2", "DISPATCHED", "t", "u", BigDecimal.ONE, "l", "c", null);
+        LogisticsReadItem received = new LogisticsReadItem("a3", "RECEIVED", "t", "u", BigDecimal.ONE, "l", "c", null);
+        LogisticsReadItem delivered = new LogisticsReadItem("a4", "DELIVERED", "t", "u", BigDecimal.ONE, "l", "c", null);
+        LogisticsReadItem depleted = new LogisticsReadItem("a5", "DEPLETED", "t", "u", BigDecimal.ONE, "l", "c", null);
 
         DonationReadModel model = new DonationReadModel("f1", "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE",
                 List.of(registered, dispatched, received, delivered, depleted));
@@ -147,7 +147,7 @@ class PublicDonationMapperTest {
 
     @Test
     void shouldThrowOnInvalidLifecycleStatus() {
-        LogisticsReadItem invalid = new LogisticsReadItem("a1", "UNKNOWN", "t", "u", BigDecimal.ONE, "l", "c");
+        LogisticsReadItem invalid = new LogisticsReadItem("a1", "UNKNOWN", "t", "u", BigDecimal.ONE, "l", "c", null);
         DonationReadModel model = new DonationReadModel("f1", "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of(invalid));
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> mapper.toPublicDTO(model));
