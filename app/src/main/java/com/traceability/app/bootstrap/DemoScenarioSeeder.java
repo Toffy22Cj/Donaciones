@@ -81,6 +81,7 @@ public class DemoScenarioSeeder {
     private final AssignAdministratorService administrators;
     private final ObjectProvider<SimulatedWebhookSignature> signature;
     private final Clock clock;
+    private final identity.domain.model.LegalVersions legalVersions;
     private final String password;
     private final Instant demoDay;
     private final Path outputFile;
@@ -90,6 +91,7 @@ public class DemoScenarioSeeder {
     public DemoScenarioSeeder(MongoTemplate mongoTemplate, BootstrapPlatformAuthorityService bootstrap,
                               AddEmployeeService employees, AssignAdministratorService administrators,
                               ObjectProvider<SimulatedWebhookSignature> signature, ObjectProvider<Clock> clock,
+                              identity.domain.model.LegalVersions legalVersions,
                               @Value("${traceability.demo.seed.password:}") String password,
                               @Value("${traceability.demo.seed.demo-day:2026-10-21T15:00:00Z}") Instant demoDay,
                               @Value("${traceability.demo.seed.output-file:demo-evidencia/credenciales-locales.md}")
@@ -104,6 +106,7 @@ public class DemoScenarioSeeder {
         this.administrators = administrators;
         this.signature = signature;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.legalVersions = legalVersions;
         this.password = password;
         this.demoDay = demoDay;
         this.outputFile = outputFile;
@@ -121,7 +124,10 @@ public class DemoScenarioSeeder {
         // 1. Cuentas por la API; el administrador de plataforma, por el servicio de arranque (no tiene ruta)
         for (String email : List.of(PLATFORM, REPRESENTATIVE, ADMINISTRATOR, EMPLOYEE_1, EMPLOYEE_2, DONOR,
                 PENDING_REPRESENTATIVE)) {
-            api.post("registro " + email, "/api/v1/auth/register", Map.of("email", email, "password", password), null,
+            api.post("registro " + email, "/api/v1/auth/register", Map.of("email", email, "password", password,
+                    // ADR-050 D2: el registro exige las versiones vigentes
+                    "acceptedTermsVersion", legalVersions.terms(), "acceptedDataPolicyVersion", legalVersions.dataPolicy()),
+                    null,
                     false, 201);
         }
         bootstrap.bootstrap(PLATFORM);
@@ -134,10 +140,12 @@ public class DemoScenarioSeeder {
 
         // 2. Organizaciones: una verificada con su equipo y otra pendiente, en la cola de la plataforma
         String org = api.post("crear organización", "/api/v1/organizations",
-                Map.of("type", "FOUNDATION", "name", "Fundación Demo PaxFide"), token.get(REPRESENTATIVE), false, 201)
+                Map.of("type", "FOUNDATION", "name", "Fundación Demo PaxFide",
+                        "acceptedOrganizationTermsVersion", legalVersions.organizationTerms()), token.get(REPRESENTATIVE), false, 201)
                 .get("organizationId").asText();
         String pendingOrg = api.post("crear organización pendiente", "/api/v1/organizations",
-                Map.of("type", "COMPANY", "name", "Empresa Aliada Demo"), token.get(PENDING_REPRESENTATIVE), false, 201)
+                Map.of("type", "COMPANY", "name", "Empresa Aliada Demo",
+                        "acceptedOrganizationTermsVersion", legalVersions.organizationTerms()), token.get(PENDING_REPRESENTATIVE), false, 201)
                 .get("organizationId").asText();
         OrganizationId organizationId = new OrganizationId(org);
         AccountId administrator = new AccountId(api.get("me", "/api/v1/me", token.get(ADMINISTRATOR)).get("accountId").asText());

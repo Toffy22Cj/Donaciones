@@ -4,6 +4,7 @@ import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AccountStatus;
 import identity.domain.model.Email;
+import identity.domain.model.LegalAcceptance;
 import identity.domain.model.OrganizationId;
 import identity.domain.model.PasswordHash;
 import identity.domain.model.PlatformAuthority;
@@ -27,6 +28,16 @@ public class AccountMapper {
             doc.setPlatformAuthority(account.getPlatformAuthority().name());
         }
         doc.setCredentialsNotBefore(account.getCredentialsNotBefore());
+        doc.setGivenName(account.getGivenName());
+        doc.setFamilyName(account.getFamilyName());
+        if (account.getTermsAcceptance() != null) {
+            doc.setTermsVersion(account.getTermsAcceptance().version());
+            doc.setTermsAcceptedAt(account.getTermsAcceptance().acceptedAt());
+        }
+        if (account.getDataPolicyAcceptance() != null) {
+            doc.setDataPolicyVersion(account.getDataPolicyAcceptance().version());
+            doc.setDataPolicyAcceptedAt(account.getDataPolicyAcceptance().acceptedAt());
+        }
         return doc;
     }
 
@@ -52,7 +63,12 @@ public class AccountMapper {
             AccountStatus.valueOf(doc.getStatus()),
             orgId,
             platformAuthority,
-            doc.getCredentialsNotBefore()
+            doc.getCredentialsNotBefore(),
+            doc.getGivenName(),
+            doc.getFamilyName(),
+            doc.getTermsVersion() == null ? null : new LegalAcceptance(doc.getTermsVersion(), doc.getTermsAcceptedAt()),
+            doc.getDataPolicyVersion() == null ? null
+                    : new LegalAcceptance(doc.getDataPolicyVersion(), doc.getDataPolicyAcceptedAt())
         );
     }
 }

@@ -188,7 +188,7 @@ class P2EndpointsHttpIntegrationTest {
     @Test
     void register_createsAnActiveAccountThatCanLogIn_andRejectsDuplicatesAndInvalidInput() throws Exception {
         String email = UUID.randomUUID() + "@p2.test";
-        String body = "{\"email\":\"" + email + "\",\"password\":\"Secret123!Secret\"}";
+        String body = "{\"email\":\"" + email + "\",\"password\":\"Secret123!Secret\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}";
 
         HttpResponse<String> created = send("POST", "/api/v1/auth/register", null, body, null);
 
@@ -203,14 +203,14 @@ class P2EndpointsHttpIntegrationTest {
         assertThat(duplicate.body()).contains("DuplicateEmail").doesNotContain(email);
 
         HttpResponse<String> badEmail = send("POST", "/api/v1/auth/register", null,
-                "{\"email\":\"not-an-email\",\"password\":\"Secret123!Secret\"}", null);
+                "{\"email\":\"not-an-email\",\"password\":\"Secret123!Secret\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}", null);
         assertThat(badEmail.statusCode()).isEqualTo(400);
         assertThat(badEmail.body()).doesNotContain("not-an-email");
         assertThat(send("POST", "/api/v1/auth/register", null, "{\"email\":\"" + UUID.randomUUID() + "@p2.test\"}", null)
                 .statusCode()).isEqualTo(400);
         assertThat(send("POST", "/api/v1/auth/register", null, "{\"password\":\"x\"}", null).statusCode()).isEqualTo(400);
         HttpResponse<String> shortPassword = send("POST", "/api/v1/auth/register", null,
-                "{\"email\":\"" + UUID.randomUUID() + "@p2.test\",\"password\":\"elevenchars\"}", null);
+                "{\"email\":\"" + UUID.randomUUID() + "@p2.test\",\"password\":\"elevenchars\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}", null);
         assertThat(shortPassword.statusCode()).as("H-P2-1: al menos 12 caracteres").isEqualTo(400);
         assertThat(shortPassword.body()).contains("PasswordTooShort").doesNotContain("elevenchars");
     }

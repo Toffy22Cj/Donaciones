@@ -5,6 +5,7 @@ import com.traceability.api.web.InvalidRequestFieldException;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import identity.application.authorization.AuthorizationAuditActorMapper;
 import identity.application.service.CreateOrganizationService;
+import identity.domain.exception.LegalVersionNotCurrentException;
 import identity.domain.model.AccountId;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationType;
@@ -30,7 +31,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class OrganizationRegistrationController {
 
-    public record CreateOrganizationRequest(String type, String name) {}
+    /** {@code acceptedOrganizationTermsVersion}: la versión vigente de los términos de organización (ADR-050 D2). */
+    public record CreateOrganizationRequest(String type, String name, String acceptedOrganizationTermsVersion) {}
 
     public record CreateOrganizationResponse(String organizationId, String verificationStatus) {}
 
@@ -60,8 +62,14 @@ public class OrganizationRegistrationController {
         if (!StringUtils.hasText(request.name()) || request.name().strip().length() > Organization.NAME_MAX_LENGTH) {
             throw new InvalidRequestFieldException("name");
         }
-        Organization created = organizations.createOrganization(auditActors.toAuditActor(principal), type,
-                new AccountId(principal.accountId()), request.name());
+        // ADR-050 D2: ausente o distinta de la vigente → 400 con el campo nombrado (en el log), sin organización
+        Organization created;
+        try {
+            created = organizations.createOrganization(auditActors.toAuditActor(principal), type,
+                    new AccountId(principal.accountId()), request.name(), request.acceptedOrganizationTermsVersion());
+        } catch (LegalVersionNotCurrentException e) {
+            throw new InvalidRequestFieldException(e.getField());
+        }
         return new CreateOrganizationResponse(created.getOrganizationId().value(),
                 created.getVerificationStatus().name());
     }

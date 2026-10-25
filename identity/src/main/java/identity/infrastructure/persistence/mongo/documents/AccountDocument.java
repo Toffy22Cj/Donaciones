@@ -23,4 +23,11 @@ public class AccountDocument {
     private String organizationId; // nullable
     private String platformAuthority; // nullable
     private Instant credentialsNotBefore; // nullable (ADR-050 D4)
+    // ADR-050 D1 (perfil) y D2 (aceptaciones), nulos en las cuentas existentes
+    private String givenName;
+    private String familyName;
+    private String termsVersion;
+    private Instant termsAcceptedAt;
+    private String dataPolicyVersion;
+    private Instant dataPolicyAcceptedAt;
 }
