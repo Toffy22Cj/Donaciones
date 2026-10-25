@@ -69,6 +69,16 @@ public class MongoConvocatoriaRepositoryAdapter implements ConvocatoriaRepositor
         return mongoTemplate.updateFirst(query, update, ConvocatoriaDocument.class).getMatchedCount() == 1;
     }
 
+    @Override
+    public Optional<String> replaceCoverObjectKey(String campaignRef, String coverObjectKey) {
+        Update update = new Update();
+        setOrUnset(update, "coverObjectKey", coverObjectKey);
+        // devuelve el documento de antes: su coverObjectKey es la portada anterior
+        ConvocatoriaDocument before = mongoTemplate.findAndModify(Query.query(Criteria.where("_id").is(campaignRef)),
+                update, ConvocatoriaDocument.class);
+        return Optional.ofNullable(before).map(d -> d.coverObjectKey);
+    }
+
     private static void setOrUnset(Update update, String field, Object value) {
         if (value == null) {
             update.unset(field);

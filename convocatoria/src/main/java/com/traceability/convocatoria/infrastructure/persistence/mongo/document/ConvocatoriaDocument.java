@@ -34,4 +34,6 @@ public class ConvocatoriaDocument {
     public String targetPolicy;
     public String onTargetReached;
     public long configurationVersion;
+    /** ADR-051, Tarea 3: la {@code objectKey} de la portada; ausente si no hay. */
+    public String coverObjectKey;
 }

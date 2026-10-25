@@ -47,6 +47,8 @@ public final class Convocatoria {
     private ConvocatoriaStatus status;
     private ConvocatoriaConfiguration configuration;
     private long configurationVersion;
+    /** ADR-051 F9, Tarea 3 (P-T3-1): la {@code objectKey} de la portada; nula si no hay. La cambia solo su escritura atómica. */
+    private String coverObjectKey;
 
     private Convocatoria(String campaignRef, String organizationRef, String publicCode, String title,
                          String description, Visibility visibility, Instant startDate, Instant endDate,
@@ -105,6 +107,18 @@ public final class Convocatoria {
                                             ConvocatoriaConfiguration configuration, long configurationVersion) {
         return new Convocatoria(campaignRef, organizationRef, publicCode, title, description, visibility,
                 startDate, endDate, status, configuration, configurationVersion);
+    }
+
+    /** Como {@link #reconstitute(String, String, String, String, String, Visibility, Instant, Instant, ConvocatoriaStatus, ConvocatoriaConfiguration, long)}, con la portada (ADR-051, Tarea 3). */
+    public static Convocatoria reconstitute(String campaignRef, String organizationRef, String publicCode,
+                                            String title, String description, Visibility visibility,
+                                            Instant startDate, Instant endDate, ConvocatoriaStatus status,
+                                            ConvocatoriaConfiguration configuration, long configurationVersion,
+                                            String coverObjectKey) {
+        Convocatoria c = reconstitute(campaignRef, organizationRef, publicCode, title, description, visibility,
+                startDate, endDate, status, configuration, configurationVersion);
+        c.coverObjectKey = coverObjectKey;
+        return c;
     }
 
     /**
@@ -181,6 +195,7 @@ public final class Convocatoria {
     public ConvocatoriaStatus getStatus() { return status; }
     public ConvocatoriaConfiguration getConfiguration() { return configuration; }
     public long getConfigurationVersion() { return configurationVersion; }
+    public String getCoverObjectKey() { return coverObjectKey; }
 
     /** Efecto de una edición sobre {@code MONETARY}, usado para crear o retirar el ledger (N2). */
     public enum MonetaryTransition {

@@ -25,6 +25,12 @@ public interface ConvocatoriaRepositoryPort {
     /** Escritura condicional {@code OPEN → CLOSED} (Enmienda §3.4). Devuelve si se aplicó. */
     boolean closeIfOpen(String campaignRef);
 
+    /**
+     * ADR-051, Tarea 3 (P-T3-1): fija ({@code coverObjectKey} no nulo) o quita (nulo) la portada en una sola escritura
+     * atómica y devuelve la anterior. No toca ningún otro campo.
+     */
+    Optional<String> replaceCoverObjectKey(String campaignRef, String coverObjectKey);
+
     /** Convocatorias de una organización, ordenadas por {@code campaignRef}, como mucho {@code limit} (P2.3). */
     java.util.List<Convocatoria> findByOrganizationRef(String organizationRef, int limit);
 

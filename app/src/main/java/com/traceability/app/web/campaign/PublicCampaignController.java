@@ -1,5 +1,6 @@
 package com.traceability.app.web.campaign;
 
+import com.traceability.app.application.media.CampaignCoverService;
 import com.traceability.app.application.media.OrganizationLogoService;
 import com.traceability.app.web.campaign.CampaignDtos.PublicCampaignResponse;
 import com.traceability.convocatoria.application.query.ConvocatoriaReadPort;
@@ -36,6 +37,7 @@ public class PublicCampaignController {
                 v.acceptedDonationTypes(), v.acceptedPaymentMethods(), v.currency(),
                 v.targetAmount() == null ? null : v.targetAmount().toString(),
                 v.clearedAmount() == null ? null : v.clearedAmount().toString(),
-                o.hasLogo() ? OrganizationLogoService.publicLogoUrl(publicCode) : null);
+                o.hasLogo() ? OrganizationLogoService.publicLogoUrl(publicCode) : null,
+                v.coverObjectKey() == null ? null : CampaignCoverService.coverUrl(publicCode));
     }
 }

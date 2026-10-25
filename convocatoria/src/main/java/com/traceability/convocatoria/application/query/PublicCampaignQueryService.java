@@ -46,7 +46,8 @@ public class PublicCampaignQueryService implements ConvocatoriaReadPort {
         return new PublicCampaignView(c.getOrganizationRef(), c.getTitle(), c.getDescription(), c.getStatus().name(),
                 c.getStartDate(), c.getEndDate(), names(config.acceptedDonationTypes()),
                 monetary ? names(config.acceptedPaymentMethods()) : null,
-                monetary ? config.currency() : null, monetary ? config.targetAmount() : null, cleared);
+                monetary ? config.currency() : null, monetary ? config.targetAmount() : null, cleared,
+                c.getCoverObjectKey());
     }
 
     private static Set<String> names(Set<? extends Enum<?>> values) {

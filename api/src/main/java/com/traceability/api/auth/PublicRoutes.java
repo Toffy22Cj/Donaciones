@@ -40,6 +40,8 @@ public final class PublicRoutes {
             // ADR-051 F6, Enmienda 1: el logo de la organización dueña de la convocatoria. La ruta antigua por
             // organizationId no se registra; la autenticada (/organizations/{organizationId}/logo) exige JWT
             new Route("GET", "/api/v1/public/campaigns/{publicCode}/organization-logo", Access.PUBLIC),
+            // ADR-051 F6, Tarea 3: la portada de la convocatoria, por su código. Subirla y quitarla exige JWT
+            new Route("GET", "/api/v1/public/campaigns/{publicCode}/cover", Access.PUBLIC),
             // Enmienda 3 de ADR-037, D6: el acceso lo da la cabecera Intent-Token, que valida el controlador (plan B6-b)
             new Route("GET", "/api/v1/public/donation-intents/{intentId}", Access.PUBLIC),
             // firma del proveedor (simulado en la demo), nunca JWT

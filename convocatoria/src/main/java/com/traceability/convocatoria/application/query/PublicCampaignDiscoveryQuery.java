@@ -25,7 +25,9 @@ public class PublicCampaignDiscoveryQuery {
 
     public record PublicCampaignSummary(String organizationRef, String publicCode, String title, String status,
                                         Instant startDate, Instant endDate, Set<String> acceptedDonationTypes,
-                                        String currency, Long targetAmount, Long clearedAmount) {}
+                                        String currency, Long targetAmount, Long clearedAmount,
+                                        /** Interna (ADR-051, Tarea 3; P-T3-2): {@code app} da {@code coverImageUrl} si no es nula. */
+                                        String coverObjectKey) {}
 
     /** {@code lastPublicCode} es {@code null} si no hay más páginas. */
     public record Page(List<PublicCampaignSummary> items, String lastPublicCode) {}
@@ -52,6 +54,7 @@ public class PublicCampaignDiscoveryQuery {
                 c.getStartDate(), c.getEndDate(),
                 config.acceptedDonationTypes().stream().map(Enum::name).collect(Collectors.toCollection(TreeSet::new)),
                 monetary ? config.currency() : null, monetary ? config.targetAmount() : null,
-                monetary ? ledgers.findByCampaignRef(c.getCampaignRef()).map(CampaignFundingLedger::clearedAmount).orElse(0L) : null);
+                monetary ? ledgers.findByCampaignRef(c.getCampaignRef()).map(CampaignFundingLedger::clearedAmount).orElse(0L) : null,
+                c.getCoverObjectKey());
     }
 }

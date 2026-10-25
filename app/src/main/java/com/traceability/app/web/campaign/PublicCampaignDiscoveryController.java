@@ -2,6 +2,7 @@ package com.traceability.app.web.campaign;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.traceability.api.web.InvalidRequestFieldException;
+import com.traceability.app.application.media.CampaignCoverService;
 import com.traceability.app.application.media.OrganizationLogoService;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery;
 import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery.Page;
@@ -31,7 +32,8 @@ public class PublicCampaignDiscoveryController {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Item(String publicCode, String title, String organizationName, boolean organizationVerified,
                        String status, String startDate, String endDate, Set<String> acceptedDonationTypes,
-                       String currency, String targetAmount, String clearedAmount, String organizationLogoUrl) {}
+                       String currency, String targetAmount, String clearedAmount, String organizationLogoUrl,
+                       String coverImageUrl) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Response(List<Item> items, String nextCursor) {}
@@ -62,7 +64,8 @@ public class PublicCampaignDiscoveryController {
                 s.endDate().toString(), s.acceptedDonationTypes(), s.currency(),
                 s.targetAmount() == null ? null : s.targetAmount().toString(),
                 s.clearedAmount() == null ? null : s.clearedAmount().toString(),
-                o.hasLogo() ? OrganizationLogoService.publicLogoUrl(s.publicCode()) : null);
+                o.hasLogo() ? OrganizationLogoService.publicLogoUrl(s.publicCode()) : null,
+                s.coverObjectKey() == null ? null : CampaignCoverService.coverUrl(s.publicCode()));
     }
 
     private String encode(String publicCode) {
