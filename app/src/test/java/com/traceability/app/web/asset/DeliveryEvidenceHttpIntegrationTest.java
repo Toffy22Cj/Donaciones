@@ -303,6 +303,7 @@ class DeliveryEvidenceHttpIntegrationTest {
     @Test
     void t4_7_aFootprintOfAnotherOrganizationUnknownOrDeleted_isTheSame400_withoutEvents() throws Exception {
         HttpResponse<String> foreign = upload(OTHER_ORG, OTHER_EMPLOYEE, TestImages.png(41, 17), "f.png");
+        assertThat(foreign.statusCode()).as(foreign.body()).isEqualTo(201);
         String foreignRef = json.readTree(foreign.body()).get("evidenceRef").asText();
         String unknownRef = "sha256:" + "0".repeat(64);
         String deletedRef = photo(2);
