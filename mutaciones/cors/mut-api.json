@@ -1,0 +1,49 @@
+{
+ "module": "api",
+ "tests": "CorsConfigTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "1 Sin DELETE",
+   "edits": [
+    {
+     "file": "api/src/main/java/com/traceability/api/web/CorsConfig.java",
+     "old": "List.of(\"GET\", \"POST\", \"PUT\", \"DELETE\", \"OPTIONS\")",
+     "new": "List.of(\"GET\", \"POST\", \"PUT\", \"OPTIONS\")"
+    }
+   ]
+  },
+  {
+   "name": "2 Sin PUT",
+   "edits": [
+    {
+     "file": "api/src/main/java/com/traceability/api/web/CorsConfig.java",
+     "old": "List.of(\"GET\", \"POST\", \"PUT\", \"DELETE\", \"OPTIONS\")",
+     "new": "List.of(\"GET\", \"POST\", \"DELETE\", \"OPTIONS\")"
+    }
+   ]
+  },
+  {
+   "name": "3 Con PATCH",
+   "edits": [
+    {
+     "file": "api/src/main/java/com/traceability/api/web/CorsConfig.java",
+     "old": "List.of(\"GET\", \"POST\", \"PUT\", \"DELETE\", \"OPTIONS\")",
+     "new": "List.of(\"GET\", \"POST\", \"PUT\", \"DELETE\", \"PATCH\", \"OPTIONS\")"
+    }
+   ]
+  },
+  {
+   "name": "4 Comodín",
+   "edits": [
+    {
+     "file": "api/src/main/java/com/traceability/api/web/CorsConfig.java",
+     "old": "List.of(\"GET\", \"POST\", \"PUT\", \"DELETE\", \"OPTIONS\")",
+     "new": "List.of(\"*\")"
+    }
+   ]
+  }
+ ]
+}

@@ -20,8 +20,8 @@ la A usa 0.39–0.49.
 | A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `85dc190` (código en `eb7c6a6`) | #140 (depende de #137) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 antes |
 | A2 R-5 (D1, D2, D10) | **HECHO** (PR listo) | `feat/identity-r5-aceptaciones-perfil` `bfe126f` (código en `3002c6e`) | #142 | ci-local `3002c6e`: core 340, crypto 50, ai 47, api 156, identity 344, convocatoria 253, app 471, BUILD SUCCESS | — |
 | A3 D3 | **HECHO** (PR listo) | `feat/identity-d3-aceptaciones-login` `a477610` (código en `cc5239e`) | #144 (depende de #137 y #142) | ci-local `d0b3d7c`: core 340, crypto 50, ai 47, api 162, identity 359, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 y #142 antes |
-| A4 D6 sin D7 | pendiente | — | — | — | — |
-| A5 CORS (DD-57) | plan APROBADO (Manuel, 2026-10-25); código pendiente, en la cola después de D6 | `fix/cors-put-delete` `2342b97` | #138 (borrador hasta tener la evidencia) | — | turno en la cola |
+| A4 D6 sin D7 | en curso: rojo y verde hechos; mutaciones + ci corriendo | `feat/identity-d6-desactivacion` `98f366f` (desde develop) | — | ver bitácora | — |
+| A5 CORS (DD-57) | en curso: rojo hecho; código `93a6adc` | `fix/cors-put-delete` `93a6adc` | #138 (borrador hasta la evidencia) | — | — |
 
 ## Bitácora
 
@@ -55,6 +55,9 @@ la A usa 0.39–0.49.
 - A3: D3 escrito (contracts AcceptedLegalVersions/AcceptanceRequiredException; puerto con 3 parámetros; AccountRepositoryPort.recordLegalAcceptancesIfUnchanged [nombre propuesto]; LoginController 403; tests LoginAcceptanceIntegrationTest y LoginAcceptanceHttpIntegrationTest; logins de los tests con versiones; recorrido.py).
 
 - A3: rojo (api/identity compilación; app "Tests run: 5, Failures: 3", expected 403 but was 200); verde identity 359, api 162, app 478; mutaciones identity 6/6, api 1/1, app 4/7 (vivas 2, 5, 6: concurrencia, mueren en identity test 6); ci-local d0b3d7c verde; §0.42; PR #144 con pie corregido.
+
+- A4 rojo: identity "cannot find symbol: method deactivateOwnAccount"; app (identity apartado) "Tests run: 8, Failures: 7" (expected 409/400/204 but was 404). Verde (98f366f): identity 339, app 470.
+- A5 rojo (758a8a8, solo tests): api `CorsConfigTest` "Expecting actual: [GET, POST, OPTIONS] to contain exactly ... [GET, POST, PUT, DELETE, OPTIONS]"; app `CorsHttpIntegrationTest` "Tests run: 7, Failures: 1", preflight PUT "expected: 200 but was: 403". Código en 93a6adc.
 
 ## Siguiente paso exacto
 
