@@ -263,7 +263,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 8 (`indexOf` del hash) → **C-E9** y las dos incoherencias de `coverage`; 9 (sin comparar la hoja) → C-E8 y C-E9;
     - 10 (nodo impar con hash vacío) y 11a (`LEFT`/`RIGHT` invertidos en `proof`) → C-E1, C-E2, C-E3 y la regla del nodo impar; 11b (invertidos al traducir la prueba en `app`) → C-E5 y la medición;
     - 12 (sin sumar los streams anteriores) → C-E5, C-E8 y la medición; 13 (prueba de un lote antiguo con las hojas actuales) → C-E7.
-  - **`ci-local.sh`** en un clon limpio de `7a802f0`: CI_PENDIENTE.
+  - **`ci-local.sh`** en un clon limpio de `7a802f0`, con `free -g` en 14 GB disponibles: `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-7a802f0-2026-10-25T07-17-47Z.txt`. Resumen literal: contracts "No tests to run.", core "Tests run: 345", crypto "Tests run: 57", ai "Tests run: 47", api "Tests run: 162", identity "Tests run: 332", convocatoria "Tests run: 253" y app "Tests run: 478", todos con "Failures: 0, Errors: 0, Skipped: 0". En esa ejecución, la medición dio 38,24 ms (1000 hojas) y 13,79 ms (5 hojas): diferencia de 24,45 ms. `develop` seguía en `406f9b2`, la base de la rama.
 - **Pendiente:**
   - H-C-2 como pregunta para Manuel;
   - avisar a la web y al móvil (F-C2) cuando se fusione, con el commit de `develop`: `anchorStatus` tiene cuatro valores; `eventHash` y `anchorProof` con su algoritmo y sus límites (E1.3, E1.4); los vectores fijos; `parentAssetRef?`.
