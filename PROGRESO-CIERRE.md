@@ -23,3 +23,29 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 ## Bitácora
 
 - 2026-10-25: arranque desde `develop` `0f71bfc`.
+
+## P0 — documentos (2026-10-25)
+
+- Escrito en `chore/docs-cierre-backend`:
+  - las 8 decisiones literales en decisiones-delegadas;
+  - las 3 notas "implementada" de la Enmienda 1 de ADR-050 (#137, #140, #144);
+  - las notas de Google y D7 en ADR-050 y la de DT-B-1 en §0.53;
+  - las notas de T3 y T5 en ADR-051;
+  - `ficha-R6-enmienda-2.md` y su nota en la ficha;
+  - `ADR-021-D-enmienda-1-huella-evidencia.md` (BORRADOR);
+  - `plan-cierre-backend-2026-10-25.md`;
+  - §0.60 con M-22.
+- Hallazgos H-CB-1 a H-CB-6 (en el plan).
+
+### Revisión adversaria antes del commit de P0
+
+1. **Afirmaciones sin comprobar:**
+   - cada ruta:línea del plan y de las enmiendas se volvió a abrir; se corrigieron 6 citas desplazadas (ficha :135→:136; ADR-051 :204→:205 y :37→:38; F6 :121→:123; :116-124→:124/:126; F8 :147);
+   - `PublicCampaignView` solo la usa CV-07, así que se corrigió P-T3-2;
+   - parte 2 en #140: comprobado con `ChangeCredentialsService.java:131`.
+2. **Nombres inventados:** todos los nuevos van marcados [Plan], y los que da el ADR (`REACTIVATE_ACCOUNT`, `READ_DELIVERY_EVIDENCE`, `REMOVE_MEDIA`) están citados.
+3. **Líneas de documentación borradas:** `git diff | grep '^-[^-]'` vacío.
+4. **Tests que pasan por la razón equivocada:** no hay código. En el plan, cada test negativo lleva `never()` o la comprobación de lo que no cambia.
+5. **Mutaciones que sobrevivirían:** cada mutación del plan tiene un test que la mata; G-8 (4) pide un test propio, que es el `never()` sobre el stream 10 001.
+6. **Secretos o rutas locales:** ninguno. Las rutas de PaxFide se citan por repositorio y archivo, sin rutas de la máquina.
+7. **Rama y commit:** `chore/docs-cierre-backend` desde `origin/develop` `0f71bfc`, sin `paxfide-predictor-demo/` ni configuración local.
