@@ -91,3 +91,13 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - Mutaciones: 9/9 muertas (clon `/home/user/mut-t4`, `17fbd24`). `explain()` de bindEvidence: IXSCAN uq_evidence_sha256 1/1.
 - En curso: ci-local en `/home/user/ci-t4` (`17fbd24`). Borrador del PR en scratchpad `pr-t4-body.md`.
 - Siguiente: copiar la evidencia a Documentos/evidencia-ci/, rellenar CI_T4 en §0.52, commit y push, abrir el PR con el aviso B-2 y arreglar el pie, y hacer la pasada final.
+
+## B3 HECHO (2026-10-25) y pasada final
+
+- B3: PR #145 (`feat/adr051-t4-evidencia`, `b79aacc`). CI `ci-local-17fbd24-2026-10-25T09-38-34Z.txt` BUILD SUCCESS (app 485). Mutaciones 9/9. Pie del PR corregido. Aviso B-2 arriba del todo.
+- Pasada final (git + GitHub):
+  - `develop` en `406f9b2` (sin moverse);
+  - #139 (`7ad5da1`), #141 (`343c70b`), #143 (`6472f50`) y #145 (`b79aacc`) abiertos hacia `develop`, con Toffy22Cj de revisor;
+  - las tres evidencias de CI existen en sus ramas con BUILD SUCCESS.
+- Orden de fusión: #139 → #141 → #143 (integrar develop + CI de nuevo) → #145 (avisar antes a Adonis y a la web; choque esperable con #141 en el golden path).
+- Cola de la sesión B: TERMINADA.
