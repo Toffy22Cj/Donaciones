@@ -1,6 +1,7 @@
 package identity.application.service;
 
 import com.traceability.contracts.authentication.AuthenticateAccountPort;
+import com.traceability.contracts.authentication.AuthenticatedAccount;
 import com.traceability.contracts.authentication.AuthenticationFailedException;
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.PasswordHasherPort;
@@ -35,7 +36,7 @@ public class AuthenticateAccountPortImpl implements AuthenticateAccountPort {
     }
 
     @Override
-    public String authenticate(String email, String password) {
+    public AuthenticatedAccount authenticate(String email, String password) {
         Optional<Account> account = findByEmail(email);
 
         boolean passwordMatches = passwordHasherPort.matches(password, account.map(Account::getPasswordHash).orElse(dummyHash));
@@ -43,7 +44,8 @@ public class AuthenticateAccountPortImpl implements AuthenticateAccountPort {
         if (account.isEmpty() || !passwordMatches || account.get().getStatus() == AccountStatus.INACTIVE) {
             throw new AuthenticationFailedException();
         }
-        return account.get().getAccountId().value();
+        // ADR-050 Enmienda 1, E1-1: el credentialsNotBefore sale del mismo documento que validó la contraseña
+        return new AuthenticatedAccount(account.get().getAccountId().value(), account.get().getCredentialsNotBefore());
     }
 
     private Optional<Account> findByEmail(String email) {

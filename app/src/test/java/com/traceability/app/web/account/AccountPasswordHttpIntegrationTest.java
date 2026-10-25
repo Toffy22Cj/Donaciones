@@ -259,10 +259,43 @@ class AccountPasswordHttpIntegrationTest {
         reactivations.reactivateAccount(SETUP, new AccountId(accountId));
 
         assertThat(statusWith(previous)).isEqualTo(401);
-        // Un login en el mismo segundo que la revocación tendría iat < credentialsNotBefore (D4, + 1 s): la persona
-        // inicia sesión después (D7)
-        TestBeans.CLOCK.pinned = t.plusSeconds(1);
+        // ADR-050 Enmienda 1, E1-2 (plan P-R3-3, E-4): el login del mismo segundo emite con iat = credentialsNotBefore
+        // y su token vale; ya no hace falta avanzar el reloj
+        assertThat(TestBeans.CLOCK.instant()).as("el mismo segundo de la revocación").isEqualTo(t);
         assertThat(statusWith(login(email, PASSWORD))).as("tras reactivar, se inicia sesión de nuevo").isEqualTo(200);
+    }
+
+    // --- ADR-050 Enmienda 1 (plan P-R3-3), E-1 y E-2 ---
+
+    @Test
+    void p_r3_3_changeThePasswordAndLogInInTheSameSecond_theTokenWorks() throws Exception {
+        String email = newEmail();
+        account(email);
+        Instant t = pinToTheMiddleOfASecond();
+        String initial = login(email, PASSWORD);
+
+        changed(changePassword(initial, PASSWORD, NEW_PASSWORD));
+        String afterLogin = login(email, NEW_PASSWORD);
+
+        assertThat(TestBeans.CLOCK.instant()).as("todo en el mismo segundo").isEqualTo(t);
+        assertThat(statusWith(afterLogin)).isEqualTo(200);
+        assertThat(statusWith(initial)).as("E-3: el token anterior sigue revocado").isEqualTo(401);
+    }
+
+    @Test
+    void p_r3_3_twoChangesInARowAndAnImmediateLogin_theTokenWorks() throws Exception {
+        String email = newEmail();
+        account(email);
+        pinToTheMiddleOfASecond();
+        String initial = login(email, PASSWORD);
+
+        String first = changed(changePassword(initial, PASSWORD, NEW_PASSWORD));
+        changed(changePassword(first, NEW_PASSWORD, "ThirdPass789!ThirdPass789!"));
+        String afterLogin = login(email, "ThirdPass789!ThirdPass789!");
+
+        assertThat(statusWith(afterLogin)).isEqualTo(200);
+        assertThat(statusWith(initial)).isEqualTo(401);
+        assertThat(statusWith(first)).isEqualTo(401);
     }
 
     // --- 5 ---
