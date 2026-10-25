@@ -72,6 +72,10 @@ El nombre del módulo entre paréntesis lo he añadido yo; en la evidencia va en
 | **Carlos** | Quién es dueño de la rama `claude/focused-goodall-meb6sh` (§6) |
 | **Manuel** | "Plan aprobado" de #122 (R-5 + D1), #123 (D6), #124 (G-9), #126 (plan C) y #128 (P-R3-3) |
 
+> **Nota (2026-10-25): aprobaciones vigentes de Manuel desde este informe.**
+> - **G-9 (#124):** "Plan aprobado — G-9 (#124) con P-G9-1 (b), Manuel, 2026-10-25" (§9 del plan, `7535b66`). B-G9-1 sigue abierto para Carlos.
+> - Siguen pendientes #122, #123, #126, #128 y #131 (plan de ADR-051 T4, abierto después de este informe).
+
 **Dependencias de código:**
 - R-4 necesita tres cosas: #127 fusionado, el PR de código de P-R3-3 fusionado y #125 aprobado.
 - P-R3-3 necesita la confirmación de B-1 y que #127 esté fusionado o, al menos, ser su base.
