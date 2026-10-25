@@ -149,6 +149,7 @@ class PasswordResetHttpIntegrationTest {
     @Autowired private CreateAccountService accounts;
     @Autowired private DeactivateAccountService deactivations;
     @Autowired private MongoTemplate mongoTemplate;
+    @Autowired private org.springframework.context.ApplicationContext context;
     @MockitoSpyBean(name = PasswordResetMailExecutorConfig.EXECUTOR) private ThreadPoolTaskExecutor mailExecutor;
 
     private final HttpClient http = HttpClient.newHttpClient();
@@ -478,6 +479,14 @@ class PasswordResetHttpIntegrationTest {
     }
 
     // --- R4-20: cola llena ---
+
+    @Test
+    void theOwnMailExecutor_doesNotReplaceSpringsApplicationTaskExecutor() {
+        // plan R-4 §4 (app): el ejecutor del correo es propio y con nombre, y no sustituye al de Spring
+        assertThat(context.containsBean("applicationTaskExecutor")).isTrue();
+        assertThat(context.getBean("applicationTaskExecutor")).isNotSameAs(mailExecutor)
+                .isInstanceOf(ThreadPoolTaskExecutor.class);
+    }
 
     @Test
     void r4_20_aFullQueue_is202IdenticalToTheOthers_withALogOfTheTokenIdOnly_andNoMail(CapturedOutput output)

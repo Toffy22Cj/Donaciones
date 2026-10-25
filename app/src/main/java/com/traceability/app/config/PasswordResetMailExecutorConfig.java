@@ -17,7 +17,12 @@ public class PasswordResetMailExecutorConfig {
 
     public static final String EXECUTOR = "passwordResetMailExecutor";
 
-    @Bean(name = EXECUTOR)
+    /**
+     * {@code defaultCandidate = false}: solo lo recibe quien lo pide por nombre ({@code @Qualifier(EXECUTOR)}). Sin ello,
+     * al ser un {@code Executor}, Spring Boot 3.4 dejaría de crear su {@code applicationTaskExecutor}
+     * ({@code @ConditionalOnMissingBean(Executor.class)}), y el plan R-4 pide que no lo sustituya.
+     */
+    @Bean(name = EXECUTOR, defaultCandidate = false)
     public ThreadPoolTaskExecutor passwordResetMailExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setThreadNamePrefix("password-reset-mail-");
