@@ -41,7 +41,9 @@ la A usa 0.39–0.49.
 
 - A1: primera ejecución de `mvn test -pl app -am` sobre `9726be9`: core 340, crypto 50, ai 47, api 160, identity 351 y convocatoria 253 en verde; app "Tests run: 477, Failures: 1" — `twoSimultaneousConfirmations_oneIs204_andTheOther400`: "Expecting actual: [500, 204] to contain exactly in any order: [204, 400]" (IdentityConcurrentModificationException, WriteConflict agotado). Arreglo `eb7c6a6`: BCrypt fuera de la transacción de la confirmación, más el test `markUsedIfPending_onlyMovesAPendingToken_once`.
 - A1: rojo del test del ejecutor (sin defaultCandidate): `theOwnMailExecutor_doesNotReplaceSpringsApplicationTaskExecutor` — "Expecting value to be true but was false" (Tests run: 14, Failures: 1); en esa ejecución el test de concurrencia pasó.
-- A1: segunda ejecución completa de app sobre `eb7c6a6`, en curso.
+- A1: segunda ejecución `mvn test -pl app -am` sobre `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, todos "Failures: 0, Errors: 0, Skipped: 0", BUILD SUCCESS.
+- A1: mutaciones en el clon limpio `/home/user/mut-r4` (`eb7c6a6`, repo Maven aislado; install con tests de .,contracts,core,crypto,ai,api,convocatoria; base identity 18 y app 14 en verde). identity: 9 de 9 muertas. app: 11 de 13 muertas; VIVAS en app la 6 (la mata en identity `markUsedIfPending_onlyMovesAPendingToken_once`; el WriteConflict de Mongo resuelve la carrera, así que el test 15 no la mata en ninguna capa) y la 11 (la mata en identity `afterATransientRetry_…`, que es donde la pone el plan). Resultado literal: `mutaciones/r4/resultado-eb7c6a6.txt`.
+- A1: ci-local en el clon limpio `/home/user/ci-r4` (`eb7c6a6`), en curso; free -g: 15 disponibles.
 
 ## Siguiente paso exacto
 
