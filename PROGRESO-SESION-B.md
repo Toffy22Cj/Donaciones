@@ -7,7 +7,7 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 | Ítem | Estado | Rama | Commits | PR |
 |---|---|---|---|---|
 | B1 · R-6 Bloque C + E1 | **HECHO** | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | código hasta `7e411f1`; docs `343c70b` | **#141** (abierto, revisor Toffy22Cj) |
-| B2 · R-6 Bloque D | EN CURSO | `feat/r6-bloque-d` (desde `feat/r6-bloque-c` `661942d`) | tests `51e84be` | depende de #141 y de #139 (docs) |
+| B2 · R-6 Bloque D | EN CURSO (mutaciones y CI) | `feat/r6-bloque-d` (desde `feat/r6-bloque-c`; merge de C `03d7c83`) | `70a8181`, `9ae6571` (índice), `cf3c18b`, `898977b`, docs `67a5f95` | depende de #141 y #139 |
 | B3 · ADR-051 T4 | PENDIENTE | `feat/adr051-t4-evidencia` | — | — |
 
 ## Arranque (2026-10-25)
@@ -67,7 +67,14 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - CI final: `ci-local-7e411f1-2026-10-25T07-39-57Z.txt` BUILD SUCCESS (app 479).
 - Pie de PR: la herramienta lo cambia; editado a mano en #141 y #139.
 
+## Evidencia B2 (literal)
+
+- Rojo (implementación apartada): core `package ...ActivityEventsPort does not exist`; convocatoria `package ...OrganizationCampaignClosuresQuery does not exist`; app `package ...OrganizationActivityQuery does not exist`.
+- Índice rojo: `Expecting actual: "IXSCAN { eventType: 1, payload.campaignRef: 1 }"` (200 claves/200 docs, sort); verde: `IXSCAN { payload.organizationRef: 1, recordedAt: 1, streamId: 1 }` 10/10.
+- Fallos de test (no de código) corregidos: filtro del profiler (ruta anidada); cursor manipulado en el último carácter Base64.
+- Verde: core 351; convocatoria 255; app 494 (con #141 integrado). Todos `Failures: 0, Errors: 0, Skipped: 0`.
+
 ## Paso exacto siguiente
 
-- B2: en `/home/user/wt-d` hay tests commiteados (`51e84be`) y la implementación SIN commit (copia en el scratchpad `d-main/`). Siguiente: rojo literal con la implementación apartada (core, convocatoria, app), restaurar, verde por capas, índice P-R6D-6 en commit propio (rojo por aserción antes), merge de `feat/r6-bloque-c` (343c70b), mutaciones 1-9 del plan D, docs (referencia §3 org, matriz, estado-fase6 §0.51), CI, PR "depende de #141 y #139".
-- Hallazgos D: H-D-1 nombres no fijados por el plan (métodos/records de puertos, `OrganizationCampaignClosuresQuery`, índice `idx_asset_genesis_organization`); H-D-2 `recordedAt` es `Instant.toString()` de precisión variable → orden de texto (consistente con Mongo).
+- B2: mutaciones corriendo en `/home/user/mut-d` (clon de `67a5f95`; specs `mut-d-core.json`, `mut-d-app.json` en el scratchpad). Después: CI en clon limpio de `67a5f95`, completar MUT_D y CI_D en estado-fase6 §0.51, PR "depende de #141 y #139".
+- B3: rama `feat/adr051-t4-evidencia` desde `develop`.
