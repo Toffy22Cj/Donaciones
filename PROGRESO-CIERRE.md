@@ -12,8 +12,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 
 | Ítem | Estado | Rama | PR | Evidencia | Bloqueado por |
 |---|---|---|---|---|---|
-| P0 documentos + plan | EN CURSO | `chore/docs-cierre-backend` | — | — | — |
-| M-22 verificación | PENDIENTE | — | — | — | — |
+| P0 documentos + plan | HECHO (PR abierto) | `chore/docs-cierre-backend` `17186e0` | #147 | solo documentos; diff sin líneas borradas | "plan aprobado" de Manuel |
+| M-22 verificación | HECHO con hallazgo | (en #147, §0.60) | #147 | 11 campos de `DonationDtos.java:30-32` | lista de campos del comprobante (H-CB-5) |
 | P1 D7 | PENDIENTE | `feat/identity-d7-reactivacion` | — | — | plan aprobado |
 | P2 G-8 truncated | PENDIENTE | `feat/r6-g8-truncated` | — | — | plan aprobado |
 | P3 M-21 | PENDIENTE | `feat/account-impact` | — | — | plan aprobado |
@@ -49,3 +49,5 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 5. **Mutaciones que sobrevivirían:** cada mutación del plan tiene un test que la mata; G-8 (4) pide un test propio, que es el `never()` sobre el stream 10 001.
 6. **Secretos o rutas locales:** ninguno. Las rutas de PaxFide se citan por repositorio y archivo, sin rutas de la máquina.
 7. **Rama y commit:** `chore/docs-cierre-backend` desde `origin/develop` `0f71bfc`, sin `paxfide-predictor-demo/` ni configuración local.
+
+- #147 abierto, con el pie corregido. **DETENIDO en el código** hasta un "plan aprobado" de Manuel, citable. T5 espera además la aprobación de la enmienda de ADR-021-D.
