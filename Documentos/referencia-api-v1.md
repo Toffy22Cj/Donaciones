@@ -67,6 +67,16 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **D10:** la auditoría `ACCOUNT_CREATED` ya no guarda el correo (`{selfRegistration: true}`). Las entradas antiguas no se reescriben.
 - **El login no cambia en esta parte:** exigir las aceptaciones vigentes en el login (D3, `403 AcceptanceRequired`) va en su propio PR.
 
+*Nota (2026-10-25, ADR-050 D3 y Q1 (a); Enmienda 1, parte 3; `feat/identity-d3-aceptaciones-login`):* el login exige las aceptaciones vigentes. La fila de `POST /auth/login` de arriba y la viñeta de esta nota anterior no se reescriben; esta nota las amplía.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/login` (ampliado) | pública | `{email, password, acceptedTermsVersion?, acceptedDataPolicyVersion?}` | `200 {token}`, como antes, si la cuenta está al día o si el cuerpo trae **exactamente** las versiones vigentes que le faltan; en ese caso se guardan con la fecha | **`403`** (`application/problem+json`, `title` `AcceptanceRequired`) con `{pendingTermsVersion?, pendingDataPolicyVersion?}` (solo las pendientes) y **sin token**, si la contraseña es correcta pero falta alguna versión y el cuerpo no la trae o trae otra; no se guarda nada. **El 401 no cambia**: con una contraseña incorrecta, un correo inexistente o una cuenta inactiva, el mismo 401 de siempre, **nunca 403** |
+
+- **Flujo para la web y el móvil:** si el login da 403 `AcceptanceRequired`, mostrar los textos de las versiones pendientes y repetir el login con `acceptedTermsVersion` y `acceptedDataPolicyVersion` en el cuerpo. El 403 llega solo después de comprobar la contraseña.
+- **Al desplegar, todas las cuentas** sin las versiones vigentes (las anteriores a R-5 y las de la semilla) reciben 403 en su siguiente login hasta aceptar. Las que se registraron con las versiones vigentes no notan nada.
+- **Los tokens ya emitidos** siguen valiendo hasta su `exp` (riesgo aceptado 4 de ADR-050). El filtro no cambia.
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
