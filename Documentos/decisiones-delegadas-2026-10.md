@@ -190,3 +190,31 @@ Es la fuente de la delegación que citan `plan-ejecucion-cierre-manuel-2026-10-2
 
 
 **Nota (2026-10-25) sobre DD-57: ampliación con `PUT` y `DELETE` aprobada (plan CORS, PR #138).** Texto de Manuel en la sesión: "Plan aprobado — CORS (#138), Manuel, 2026-10-25, por la delegación de Carlos. P-CORS-1 y P-CORS-2: Carlos aprobó todo lo pendiente (nota del 2026-10-25 en decisiones-delegadas-2026-10.md), lo que incluye ampliar DD-57 con PUT y DELETE. P-CORS-3 y P-CORS-4: aprobados." Con ello, los métodos permitidos de CORS pasan a ser `GET`, `POST`, `PUT`, `DELETE` y `OPTIONS` (sin `PATCH`); el resto de DD-57 no cambia. La aprobación de Carlos que se cita es la nota de la línea 179 de este archivo, cuyo texto no nombra CORS ni DD-57 de forma expresa; la lectura de que la incluye es de Manuel. La fila de DD-57 y su estado (**RATIFICADA — Carlos, 2026-10-08**) no se reescriben: esta nota la amplía.
+
+**Nota (2026-10-25): delegación de Carlos en Manuel para todo lo que queda del backend, y las 8 decisiones de Manuel. Comunicado por Manuel.**
+- **Fuente:** `cierre-backend-2026-10-25.md`, documento de Manuel subido a la sesión de trabajo del 2026-10-25. Su encabezado dice: "Carlos dejó a Manuel todo lo que queda del backend y le pidió que lo decida él. Las decisiones de Manuel de este documento son la aprobación citable. Antes de usarlas hay que registrarlas en `Documentos/decisiones-delegadas-2026-10.md`, como 'comunicado por Manuel'." No hay un texto de Carlos en el repositorio ni en GitHub que lo diga; la delegación consta por Manuel.
+- **Las decisiones, literales** (§4 del documento, "LAS DECISIONES DE MANUEL (2026-10-25, por delegación de Carlos)"):
+
+```
+1. D7 entra en este corte, tal como lo define ADR-050 D7.
+2. El login con Google se pospone, fuera de este corte.
+3. G-8 gana `truncated` (opción b), mediante la enmienda E2 de la ficha R-6, con el mismo criterio que G-7.
+4. T3 (la portada de la convocatoria, M-08) pasa a ser de Manuel y entra; se calca T2.
+5. T5 entra; antes se redacta la enmienda de ADR-021-D (C2 (a)) y la aprueba Manuel.
+6. M-22: la imagen del comprobante la generan la web y el móvil; no hay backend nuevo. Solo se comprueba que GET /account/donations trae todos los datos.
+7. M-21: una ruta de solo lectura con el total donado, el número de donaciones, las convocatorias apoyadas y las unidades entregadas (nombre propuesto GET /api/v1/account/impact, a confirmar en el plan).
+8. DT-B-1 se queda como deuda.
+```
+
+- **Detalle de la §2 del mismo documento**, que precisa algunas de ellas:
+  - **1 (D7):** "Reutiliza `ReactivateAccountService`. Los tokens anteriores siguen rechazados (D4)."
+  - **3 (G-8):** "Hace falta una enmienda a la ficha R-6 (CONGELADA), como E1: la respuesta de G-8 (`ficha-R6-datos-estilo-v2.md:144`) gana `truncated`, igual que G-7 (`:134`) y la de fondos (`:89`)."
+  - **4 (T3):** "Se anota la reasignación frente a `ADR-051:299`, que se la daba a Carlos. Se calca T2 (logo) en el módulo `convocatoria`. Solo `ADMINISTRATOR`."
+  - **5 (T5):** "Primero se redacta la enmienda de ADR-021-D (C2 (a), ya aprobada; `ADR-051:255`) y Manuel la aprueba. Después, el plan y el código."
+  - **6 (M-22):** "Si falta alguno, se anota como hallazgo y se pregunta a Manuel."
+- **Qué autoriza:** son decisiones de **qué** entra. **No** autorizan código. Cada tarea necesita un "plan aprobado" de Manuel, citable, sobre `plan-cierre-backend-2026-10-25.md` (regla 3.4; nota del 2026-10-24 de este archivo). T5 necesita además que Manuel apruebe la enmienda de ADR-021-D.
+- **Nombre "E2":** `ficha-R6-enmienda-1.md:77` ya usa "E2" para G-9. Para no confundirlas, el cambio de G-8 se redacta como **Enmienda 2 de la ficha R-6** (`ficha-R6-enmienda-2.md`).
+- **Sustituye en parte:**
+  - **D7:** la nota del 2026-10-25 de la línea 185 ("Fuera, según Manuel: D7") y la nota del plan D6 (`plan-d6-desactivacion-propia.md:5`) dejaban D7 fuera. La decisión 1 lo mete en el corte. Las dos notas se conservan.
+  - **T5:** la misma línea 185 dejaba la Tarea 5 de ADR-051 fuera por faltar la enmienda de ADR-021-D. La decisión 5 la mete, con esa enmienda antes.
+  - **T3:** `ADR-051:299` sugería a Carlos como responsable. La columna dice "Responsable sugerido", así que no es una contradicción.

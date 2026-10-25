@@ -6,6 +6,8 @@
 
 > **Nota (2026-10-25): APROBADA por Carlos, partes 1 y 2** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, comunicado por Manuel; texto literal pendiente de registrar). "PROPUESTA" se conserva; esta nota lo supera. La parte 3 (P-R5-1, D3) no existe todavía y no queda cubierta.
 
+> **Nota (2026-10-25): parte 1 implementada** en #137 (`fix/identity-p-r3-3-iat-del-login`), fusionado en `develop` como `37827c0`. La parte 2 está en #140 (nota en su sección). *El documento de cierre de Manuel (`cierre-backend-2026-10-25.md` §2) dice "parte 1 en #135", pero #135 (`536ffe6`) solo registró la aprobación de la parte 3; el código de la parte 1 entró con #137.* El estado de arriba se conserva.
+
 **No autoriza código por sí sola.** El código va en su propio PR, con un plan corto aprobado por Manuel (regla 3.4), y solo después de que Carlos apruebe esta enmienda. **Ese PR se fusiona antes que el código de R-4.**
 
 **Por qué es una enmienda.** La regla 3.5 la exige cuando se cambia el contrato de un puerto que ya usa otro módulo. `AuthenticateAccountPort` está en `contracts`: lo implementa `identity` y lo llama `api`.
@@ -92,6 +94,8 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 
 > **Nota (2026-10-25): APROBADA por Carlos** (la misma nota de `decisiones-delegadas-2026-10.md`). "PROPUESTA" se conserva; esta nota lo supera.
 
+> **Nota (2026-10-25): implementada** con R-4 en #140 (`feat/identity-r4-recuperacion-contrasena`), fusionado en `develop` como `a5e56c8`. El estado de arriba se conserva.
+
 ## Context
 
 - **ADR-050 D8** manda que la confirmación (`POST /api/v1/auth/password-reset/confirm`, pública y sin JWT) "audita `CREDENTIALS_CHANGED` con un dato `{via: "PASSWORD_RESET"}`". No dice quién es el actor.
@@ -138,6 +142,8 @@ Lo reproduce `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPrevio
 > **Nota (2026-10-25): Aprobada — Carlos, 2026-10-25, comentario 'todo aprobado' en #134, que fusionó él.** El comentario es de `Toffy22Cj`, a las 01:54:37Z (https://github.com/Toffy22Cj/Donaciones/pull/134#issuecomment-6392174129); la fusión, a las 01:54:41Z. "PROPUESTA" y las dos viñetas de abajo se conservan; esta nota las supera. El código de D3 entra en la cola después de P-R3-3 y de D1, D2 y D10 (R-5, primera parte).
 - **La aprobación de Carlos del 2026-10-25** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25) cubre las partes 1 y 2, **no esta**.
 - **El código de D3 no empieza** hasta que Carlos apruebe este texto (regla 3.5). El resto de R-5 (D1, D2 y D10) no depende de esta parte (P-R5-2).
+
+> **Nota (2026-10-25): implementada** en #144 (`feat/identity-d3-aceptaciones-login`), fusionado en `develop` como `69bc88d`. El estado de arriba se conserva.
 
 **Enmienda a:** ADR-050 (APROBADO — Carlos, 2026-10-18), §"Preguntas", fila Q1, y D3.
 **Origen:** `plan-r5-d1-aceptaciones-y-perfil.md`, §3 (P-R5-1) y §4.

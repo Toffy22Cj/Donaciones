@@ -298,3 +298,9 @@ Nada de esto toca payloads de eventos de `core`, versiones de esquema, canonical
 | 3 | R-5 y D1: aceptaciones, perfil, minimización de la auditoría | `identity`, `app` |
 | 4 | D6 y D7: desactivación propia y reactivación | `identity`, `app` |
 | 5 | R-6: Google (última prioridad) | `identity`, `api`, `app` |
+
+*Nota (2026-10-25), decisiones de Manuel por delegación de Carlos (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, "comunicado por Manuel"):*
+- **Fila 5 (R-6, Google): se pospone, fuera de este corte** (decisión 2). D9 y los tests 27 a 29 no cambian; quedan para cuando se retome.
+- **Fila 4, D7: entra en este corte** (decisión 1), tal como lo define D7. Lo implementa un PR propio, con su sección en `plan-cierre-backend-2026-10-25.md`. D6 ya está en `develop` (#146, `f5191c6`).
+
+La tabla de arriba se conserva.
