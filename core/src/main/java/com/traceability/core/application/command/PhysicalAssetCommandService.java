@@ -17,6 +17,8 @@ import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.contracts.campaign.CampaignInKindEligibilityPort;
 import com.traceability.contracts.campaign.InKindEligibility;
+import com.traceability.contracts.media.DeliveryEvidencePort;
+import com.traceability.core.application.exception.InvalidEvidenceRefException;
 import com.traceability.core.application.exception.InKindCampaignClosedException;
 import com.traceability.core.application.exception.InKindCampaignNotFoundException;
 import com.traceability.core.application.exception.InKindCampaignOfOtherOrganizationException;
@@ -44,7 +46,11 @@ public class PhysicalAssetCommandService {
     private final OrganizationBoundaryPolicy organizationBoundaryPolicy;
     private final IdentityPrincipalPort identityPrincipalPort;
     private final CampaignInKindEligibilityPort campaignInKindEligibility;
+    private final DeliveryEvidencePort deliveryEvidence;
     private java.time.Clock clock = java.time.Clock.systemUTC();
+
+    /** ADR-051 F3: el formato de la huella de la evidencia de las entregas nuevas. */
+    private static final java.util.regex.Pattern EVIDENCE_REF = java.util.regex.Pattern.compile("^sha256:[0-9a-f]{64}$");
 
     public PhysicalAssetCommandService(CommandRetryTemplate retryTemplate,
             ProcessedCommandRepositoryPort processedCommandRepository,
@@ -53,7 +59,8 @@ public class PhysicalAssetCommandService {
             RoleAuthorizationPolicy roleAuthorizationPolicy,
             OrganizationBoundaryPolicy organizationBoundaryPolicy,
             IdentityPrincipalPort identityPrincipalPort,
-            CampaignInKindEligibilityPort campaignInKindEligibility) {
+            CampaignInKindEligibilityPort campaignInKindEligibility,
+            DeliveryEvidencePort deliveryEvidence) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
@@ -62,6 +69,7 @@ public class PhysicalAssetCommandService {
         this.organizationBoundaryPolicy = organizationBoundaryPolicy;
         this.identityPrincipalPort = identityPrincipalPort;
         this.campaignInKindEligibility = campaignInKindEligibility;
+        this.deliveryEvidence = deliveryEvidence;
     }
 
     /** Con reloj inyectable: la fecha de los mensajes de saga es la del coordinador (ADR-007/008 Enmienda 1). */
@@ -74,9 +82,10 @@ public class PhysicalAssetCommandService {
             OrganizationBoundaryPolicy organizationBoundaryPolicy,
             IdentityPrincipalPort identityPrincipalPort,
             CampaignInKindEligibilityPort campaignInKindEligibility,
+            DeliveryEvidencePort deliveryEvidence,
             org.springframework.beans.factory.ObjectProvider<java.time.Clock> clock) {
         this(retryTemplate, processedCommandRepository, eventStore, eventPublisher, roleAuthorizationPolicy,
-                organizationBoundaryPolicy, identityPrincipalPort, campaignInKindEligibility);
+                organizationBoundaryPolicy, identityPrincipalPort, campaignInKindEligibility, deliveryEvidence);
         this.clock = clock.getIfAvailable(java.time.Clock::systemUTC);
     }
 
@@ -96,33 +105,53 @@ public class PhysicalAssetCommandService {
         }
     }
 
+    /**
+     * ADR-051 F3 (Tarea 4): el {@code evidenceRef} tiene que ser {@code sha256:<64 hex>}, y se comprueba antes del
+     * reclamo del comando y del reintento (P-T4-1): un formato inválido no consume el {@code Command-Id} ni lee el
+     * activo. Después, en cada intento, la foto se vincula al activo tras autorizar y aplicar la entrega en memoria, y
+     * antes de {@code appendAndOutbox}, solo si el agregado generó un evento (P-T4-2): una redundancia exacta no
+     * vuelve a vincular. La validación vive aquí y no en el agregado, que sigue reconstruyendo los eventos antiguos con
+     * texto libre.
+     */
     public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef,
             String locationRef, String evidenceRef, Instant deliveredAt,
             com.traceability.core.domain.event.ActorRef actorRef) {
+        if (evidenceRef == null || !EVIDENCE_REF.matcher(evidenceRef).matches()) {
+            throw new InvalidEvidenceRefException("evidenceRef must be sha256:<64 lowercase hex>");
+        }
         transition(commandId, assetId, CommandType.DELIVER_ASSET, actorRef,
-                asset -> asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt));
+                asset -> asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt),
+                asset -> deliveryEvidence.bindToAsset(asset.getOrganizationRef(), evidenceRef, assetId));
     }
 
     /** D-ASSET (plan B6-c §2.1): despacho, con el mismo patrón que {@link #deliverAsset}. */
     public void dispatchAsset(String commandId, String assetId, String carrierRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
-        transition(commandId, assetId, CommandType.DISPATCH_PHYSICAL_ASSET, actorRef, asset -> asset.dispatch(carrierRef));
+        transition(commandId, assetId, CommandType.DISPATCH_PHYSICAL_ASSET, actorRef, asset -> asset.dispatch(carrierRef),
+                NO_HOOK);
     }
 
     /** D-ASSET (plan B6-c §2.1): recepción en una instalación. */
     public void receiveAsset(String commandId, String assetId, String facilityLocation, String receiverRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
         transition(commandId, assetId, CommandType.RECEIVE_PHYSICAL_ASSET, actorRef,
-                asset -> asset.receive(facilityLocation, receiverRef));
+                asset -> asset.receive(facilityLocation, receiverRef), NO_HOOK);
     }
+
+    /** Despachar y recibir no cambian (ADR-051 F3): su gancho no hace nada. */
+    private static final java.util.function.Consumer<PhysicalAsset> NO_HOOK = asset -> { };
 
     /**
      * Transición de un activo existente bajo el reclamo {@code commandId}, que guarda el resultado
      * {@code TIPO:assetId} (DD-11): un reenvío del mismo comando es un no-op; el de otro comando, un
      * {@link com.traceability.core.application.exception.CommandIdReusedException}.
+     * <p>
+     * {@code afterChange} es el paso 4 de ADR-051 F3: se llama después de autorizar y de aplicar el cambio en memoria, y
+     * antes de {@code appendAndOutbox}, solo si el agregado generó eventos (P-T4-2). Solo la entrega lo usa.
      */
     private void transition(String commandId, String assetId, CommandType commandType,
-            com.traceability.core.domain.event.ActorRef actorRef, java.util.function.Consumer<PhysicalAsset> change) {
+            com.traceability.core.domain.event.ActorRef actorRef, java.util.function.Consumer<PhysicalAsset> change,
+            java.util.function.Consumer<PhysicalAsset> afterChange) {
         String outcome = outcome(commandType, assetId);
         if (processedCommandRepository.exists(commandId)) {
             assertSameCommand(commandId, outcome);
@@ -133,6 +162,9 @@ public class PhysicalAssetCommandService {
             long expectedVersion = asset.getVersion();
             authorize(actorRef, asset.getOrganizationRef(), commandType);
             change.accept(asset);
+            if (!asset.getUncommittedEvents().isEmpty()) {
+                afterChange.accept(asset);
+            }
             return eventPublisher.appendAndOutbox(assetId, "PhysicalAsset", expectedVersion,
                     asset.getUncommittedEvents(), actorRef, null, commandId, outcome);
         });

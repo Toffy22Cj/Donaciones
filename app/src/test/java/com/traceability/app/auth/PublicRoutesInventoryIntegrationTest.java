@@ -119,6 +119,8 @@ class PublicRoutesInventoryIntegrationTest {
             "PUT /api/v1/organizations/{organizationId}/logo",
             "DELETE /api/v1/organizations/{organizationId}/logo",
             "GET /api/v1/organizations/{organizationId}/logo",
+            // ADR-051, Tarea 4: subir la evidencia de entrega (F8), autenticada
+            "POST /api/v1/organizations/{organizationId}/delivery-evidence",
             // Ficha R-6, Bloque D: integridad (G-7) y actividad (G-8) de la organización
             "GET /api/v1/organizations/{organizationId}/integrity",
             "GET /api/v1/organizations/{organizationId}/activity");

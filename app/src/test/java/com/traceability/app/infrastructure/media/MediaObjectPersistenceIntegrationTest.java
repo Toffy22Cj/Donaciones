@@ -63,6 +63,7 @@ class MediaObjectPersistenceIntegrationTest {
     static final Instant NOW = Instant.parse("2026-10-20T12:00:00Z");
 
     @Autowired private MediaObjectRepository repository;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     private InMemoryMediaStorageAdapter storage;
     private MediaObjectStore store;
@@ -73,7 +74,7 @@ class MediaObjectPersistenceIntegrationTest {
     void setUp() {
         repository.deleteAll();
         storage = new InMemoryMediaStorageAdapter();
-        store = new MongoMediaObjectStore(repository);
+        store = new MongoMediaObjectStore(repository, mongoTemplate);
         service = new MediaUploadService(new ImageSanitizer(), storage, store, Clock.systemUTC());
     }
 
@@ -211,5 +212,82 @@ class MediaObjectPersistenceIntegrationTest {
     void theApplicationWiresTheMongoStore() {
         assertThat(context.getBeansOfType(MediaObjectStore.class).values())
                 .singleElement().isInstanceOf(MongoMediaObjectStore.class);
+    }
+
+    // ---- ADR-051, Tarea 4 (F3; plan T4 §3, P-T4-5 y §7): el vínculo de una evidencia con un activo ----
+
+    private static MediaObjectDocument evidence(String objectKey, String organizationId, String sha256, String boundAssetId,
+                                                Instant deletedAt) {
+        return new MediaObjectDocument(null, objectKey, sha256, DELIVERY_EVIDENCE, organizationId, null, "image/png", 10,
+                1, 1, "acct-1", NOW, boundAssetId, deletedAt, null, null);
+    }
+
+    private String boundAssetIdOf(String objectKey) {
+        return repository.findByObjectKey(objectKey).orElseThrow().boundAssetId();
+    }
+
+    @Test
+    void bindEvidence_bindsAnUnboundEvidence_andAgainTheSameAssetWithoutError() {
+        repository.insert(evidence("01JB0000000000000000000E01", "org-1", SHA, null, null));
+
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1")).isEqualTo(MediaObjectStore.BindResult.BOUND);
+        assertThat(boundAssetIdOf("01JB0000000000000000000E01")).isEqualTo("asset-1");
+        // F3: reintentar el mismo activo con la misma foto se permite
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1")).isEqualTo(MediaObjectStore.BindResult.BOUND);
+    }
+
+    @Test
+    void bindEvidence_toAnotherAsset_isBoundToOther_andDoesNotChangeTheBinding() {
+        repository.insert(evidence("01JB0000000000000000000E02", "org-1", SHA, "asset-1", null));
+
+        assertThat(store.bindEvidence("org-1", SHA, "asset-2")).isEqualTo(MediaObjectStore.BindResult.BOUND_TO_OTHER);
+        assertThat(boundAssetIdOf("01JB0000000000000000000E02")).isEqualTo("asset-1");
+    }
+
+    // F3: inexistente, de otra organización, que no es evidencia o borrada → NOT_FOUND, el mismo en todos los casos
+    @Test
+    void bindEvidence_unknownOtherOrganizationNotEvidenceOrDeleted_isNotFound_andBindsNothing() {
+        repository.insert(evidence("01JB0000000000000000000E03", "org-2", SHA, null, null));
+        repository.insert(document("01JB0000000000000000000E04", ORGANIZATION_LOGO, "org-1", SHA));
+        repository.insert(evidence("01JB0000000000000000000E05", "org-1", "c".repeat(64), null, NOW));
+
+        assertThat(store.bindEvidence("org-1", "d".repeat(64), "asset-1")).isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1")).isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(store.bindEvidence("org-1", "c".repeat(64), "asset-1")).isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(repository.findAll()).allSatisfy(d -> assertThat(d.boundAssetId()).isNull());
+    }
+
+    // Un borrado ya vinculado a otro activo sigue siendo NOT_FOUND (no se revela el vínculo de una foto retirada)
+    @Test
+    void bindEvidence_onADeletedEvidenceBoundToAnotherAsset_isNotFound() {
+        repository.insert(evidence("01JB0000000000000000000E06", "org-1", SHA, "asset-1", NOW));
+
+        assertThat(store.bindEvidence("org-1", SHA, "asset-2")).isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+    }
+
+    // Plan T4, §7: la escritura condicional usa uq_evidence_sha256 (IXSCAN), no COLLSCAN
+    @Test
+    void bindEvidence_isAConditionalUpdateOnTheEvidenceIndex() {
+        for (int i = 0; i < 50; i++) {
+            repository.insert(evidence(String.format("01JB00000000000000000F%04d", i), "org-" + (i % 5),
+                    String.format("%064x", i), null, null));
+        }
+        org.bson.Document target = new org.bson.Document("profile", 2);
+        mongoTemplate.getDb().runCommand(target);
+        try {
+            assertThat(store.bindEvidence("org-2", String.format("%064x", 7), "asset-x"))
+                    .isEqualTo(MediaObjectStore.BindResult.BOUND);
+        } finally {
+            mongoTemplate.getDb().runCommand(new org.bson.Document("profile", 0));
+        }
+        java.util.List<org.bson.Document> updates = new java.util.ArrayList<>();
+        mongoTemplate.getDb().getCollection("system.profile")
+                .find(new org.bson.Document("ns", mongoTemplate.getDb().getName() + ".media_objects").append("op", "update"))
+                .into(updates);
+        assertThat(updates).hasSize(1);
+        System.out.println("[medición plan T4 §7] bindEvidence: planSummary=" + updates.get(0).get("planSummary")
+                + " keysExamined=" + updates.get(0).get("keysExamined") + " docsExamined=" + updates.get(0).get("docsExamined"));
+        assertThat(updates.get(0).getString("planSummary")).startsWith("IXSCAN").contains("organizationId: 1, purpose: 1, sha256: 1");
+        assertThat(((Number) updates.get(0).get("docsExamined")).intValue()).isEqualTo(1);
     }
 }

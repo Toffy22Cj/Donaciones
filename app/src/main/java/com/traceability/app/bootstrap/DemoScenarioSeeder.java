@@ -221,13 +221,18 @@ public class DemoScenarioSeeder {
                 employee, true, 202).get("childAssetRef").asText();
         until("hijo de la división", () -> "CHILD_CREATED".equals(api.get("estado de la división",
                 "/api/v1/physical-assets/" + parent + "/splits/" + child, employee).path("status").asText()));
+        int photo = 0;
         for (String asset : List.of(parent, child)) {
             String base = "/api/v1/physical-assets/" + asset;
             api.post("despachar", base + "/dispatch", Map.of("carrierRef", "transportista-1"), employee, true, 200);
             api.post("recibir", base + "/receive", Map.of("facilityLocation", "centro-comunitario", "receiverRef",
                     "coordinador-centro"), employee, true, 200);
+            // ADR-051 F3 y F5 (Tarea 4, P-T4-7): primero la foto, después la entrega con su evidenceRef. Una foto por
+            // activo (una foto, un activo): cada una es una imagen PNG distinta, generada en memoria
+            String evidenceRef = api.upload("subir la evidencia de entrega", "/api/v1/organizations/" + org
+                    + "/delivery-evidence", employee, deliveryPhoto(photo++)).get("evidenceRef").asText();
             api.post("entregar", base + "/deliver", Map.of("finalCustodianRef", "coordinador-centro", "beneficiaryRef",
-                    "familia-1", "locationRef", "centro-comunitario", "evidenceRef", "acta-1"), employee, true, 200);
+                    "familia-1", "locationRef", "centro-comunitario", "evidenceRef", evidenceRef), employee, true, 200);
         }
 
         // 7. Camino B: donación en especie a la convocatoria activa, en tránsito
@@ -382,6 +387,29 @@ public class DemoScenarioSeeder {
         throw new IllegalStateException("Semilla de la demo: tiempo agotado esperando " + what);
     }
 
+    /**
+     * Una foto de entrega para la demo (ADR-051, Tarea 4, P-T4-7): un PNG de 64 × 48 generado en memoria, sin ficheros en
+     * el repositorio, con un color distinto por {@code index} para que dos activos nunca compartan foto.
+     */
+    static byte[] deliveryPhoto(int index) {
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(64, 48, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = image.createGraphics();
+        try {
+            g.setColor(new java.awt.Color(40 + (index * 53) % 200, 120, 200 - (index * 37) % 150));
+            g.fillRect(0, 0, 64, 48);
+            g.setColor(java.awt.Color.WHITE);
+            g.fillRect(8 + index % 40, 8, 16, 16);
+        } finally {
+            g.dispose();
+        }
+        try (java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            javax.imageio.ImageIO.write(image, "png", out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     /** Cliente de la propia API; cualquier respuesta inesperada detiene la semilla con el paso y el estado. */
     private final class Api {
         private final String base;
@@ -400,6 +428,33 @@ public class DemoScenarioSeeder {
                         Map.of(), expected);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
+            }
+        }
+
+        /** Subida multipart de una imagen (campo {@code file}), como hará el móvil antes de entregar (ADR-051 F5). */
+        JsonNode upload(String step, String path, String bearer, byte[] png) {
+            String boundary = "demo-seed-" + UUID.randomUUID();
+            java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+            body.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"entrega.png\""
+                    + "\r\nContent-Type: image/png\r\n\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            body.writeBytes(png);
+            body.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            HttpRequest request = HttpRequest.newBuilder(URI.create(base + path)).timeout(Duration.ofSeconds(30))
+                    .header("Authorization", "Bearer " + bearer)
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray())).build();
+            try {
+                HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 201) {
+                    throw new IllegalStateException("Semilla de la demo: el paso '" + step + "' (POST " + path
+                            + ") devolvió " + response.statusCode() + " en lugar de 201: " + response.body());
+                }
+                return json.readTree(response.body());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Semilla de la demo interrumpida en el paso " + step, e);
             }
         }
 

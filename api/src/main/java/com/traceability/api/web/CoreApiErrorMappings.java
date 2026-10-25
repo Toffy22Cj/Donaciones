@@ -50,6 +50,9 @@ public class CoreApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(ConcurrencyConflictException.class, HttpStatus.CONFLICT, CONCURRENT_MODIFICATION),
                 new ApiErrorMapping(ConcurrencyRetryExhaustedException.class, HttpStatus.CONFLICT, CONCURRENT_MODIFICATION),
                 // Plan B6-c, DD-11: el Command-Id ya lo usó otro comando
-                new ApiErrorMapping(CommandIdReusedException.class, HttpStatus.CONFLICT, COMMAND_ID_REUSED));
+                new ApiErrorMapping(CommandIdReusedException.class, HttpStatus.CONFLICT, COMMAND_ID_REUSED),
+                // ADR-051 F3, Tarea 4 (criterio 6): la entrega exige evidenceRef = sha256:<64 hex>
+                new ApiErrorMapping(com.traceability.core.application.exception.InvalidEvidenceRefException.class,
+                        HttpStatus.BAD_REQUEST, null));
     }
 }

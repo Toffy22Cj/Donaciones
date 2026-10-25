@@ -164,6 +164,6 @@ class CampaignDeliveryFactsQueryIntegrationTest {
     private void deliver(String assetId, String beneficiaryRef) {
         dispatch(assetId);
         assets.deliverAsset(UUID.randomUUID().toString(), assetId, "FINAL-CUST", beneficiaryRef, "LOC-FINAL",
-                "EVIDENCE", Instant.parse("2027-01-10T10:00:00Z"), new HumanActor(EMPLOYEE));
+                "sha256:" + "e1".repeat(32), Instant.parse("2027-01-10T10:00:00Z"), new HumanActor(EMPLOYEE));
     }
 }

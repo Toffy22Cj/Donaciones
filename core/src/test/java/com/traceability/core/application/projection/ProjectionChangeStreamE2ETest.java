@@ -186,7 +186,7 @@ class ProjectionChangeStreamE2ETest {
         // TransactionalEventPublisher; cuando D-ASSET añada los métodos del servicio, este test pasará a usarlos.
         appendWithAggregate(assetId, asset -> asset.dispatch("CARRIER-1"));
         appendWithAggregate(assetId, asset -> asset.receive("WH-2", "RECEIVER-1"));
-        assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "EVIDENCE-1", Instant.now(), ACTOR);
+        assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "sha256:" + "e1".repeat(32), Instant.now(), ACTOR);
 
         await(() -> Optional.of(historyStatuses(assetId)).filter(h -> h.size() == 4));
         assertThat(logisticsStatus(fundId, assetId)).isEqualTo("DELIVERED");
@@ -220,7 +220,7 @@ class ProjectionChangeStreamE2ETest {
         for (String assetId : List.of(parentId, childId)) {
             appendWithAggregate(assetId, asset -> asset.dispatch("CARRIER-1"));
             appendWithAggregate(assetId, asset -> asset.receive("WH-2", "RECEIVER-1"));
-            assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "EVIDENCE-1", Instant.now(), ACTOR);
+            assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "sha256:" + "e1".repeat(32), Instant.now(), ACTOR);
         }
 
         await(() -> Optional.of(historyStatuses(childId)).filter(h -> h.contains("DELIVERED")));
