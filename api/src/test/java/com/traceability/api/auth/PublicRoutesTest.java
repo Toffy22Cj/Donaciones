@@ -22,6 +22,8 @@ class PublicRoutesTest {
                         "GET /api/v1/public/campaigns/{publicCode}/narrative PUBLIC",
                         // ADR-051 F6, Enmienda 1: el logo público, por el código de la convocatoria (Tarea 2)
                         "GET /api/v1/public/campaigns/{publicCode}/organization-logo PUBLIC",
+                        // ADR-051 F6, Tarea 3: la portada pública, por el código de la convocatoria
+                        "GET /api/v1/public/campaigns/{publicCode}/cover PUBLIC",
                         // Enmienda 3 de ADR-037, D6 (APROBADA): consulta de la intención con Intent-Token
                         "GET /api/v1/public/donation-intents/{intentId} PUBLIC",
                         "POST /api/v1/webhooks/payments PUBLIC");
@@ -44,5 +46,13 @@ class PublicRoutesTest {
         assertThat(PublicRoutes.accessFor("DELETE", "/api/v1/organizations/org-1/logo")).isEmpty();
         // la ruta antigua de F6 no se registra (Enmienda 1, "Consecuencias")
         assertThat(PublicRoutes.accessFor("GET", "/api/v1/public/organizations/org-1/logo")).isEmpty();
+    }
+
+    /** ADR-051 F6 y F8 (Tarea 3, T3-10): la portada se lee pública por código; subirla y quitarla exige JWT. */
+    @Test
+    void theCampaignCover_isPublicOnlyByCampaignCode() {
+        assertThat(PublicRoutes.accessFor("GET", "/api/v1/public/campaigns/CV-1/cover")).contains(PublicRoutes.Access.PUBLIC);
+        assertThat(PublicRoutes.accessFor("PUT", "/api/v1/organizations/org-1/campaigns/camp-1/cover")).isEmpty();
+        assertThat(PublicRoutes.accessFor("DELETE", "/api/v1/organizations/org-1/campaigns/camp-1/cover")).isEmpty();
     }
 }
