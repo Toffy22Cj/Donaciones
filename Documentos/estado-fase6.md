@@ -229,6 +229,37 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.51 Ficha R-6, Bloque D: integridad de la organización (G-7) y actividad reciente (G-8) (2026-10-25, `feat/r6-bloque-d`)
+
+- **Norma:**
+  - `ficha-R6-datos-estilo-v2.md` (CONGELADA) §6 (Bloque D) y §7 (tests 10 y 11), con la nota del 2026-10-25 de §6 que registra P-R6D-1 (b) y P-R6D-2 (a) (PR propio, #139, como pide el plan D §7).
+  - Plan: `plan-r6-bloque-d.md`, APROBADO (`plan-r6-bloque-d.md:5`), con **P-R6D-1 (b)** y **P-R6D-2 (a)**; P-R6D-3 a P-R6D-7, como los recomienda el plan (dentro de "Carlos aprobó todo lo pendiente", `decisiones-delegadas-2026-10.md`, notas del 2026-10-25).
+  - Depende de #141 (Bloque C: la tabla de G-3 que G-7 reutiliza, P-R6D-5) y de #139 (la nota de la ficha).
+- **Qué hace:**
+  - `core`: `EventBatchCountPort` y `MongoEventBatchCountAdapter` (agregación `$match {streamId $in}` → `$group` por `merkleBatchId`, sin tope; P-R6D-3); `ActivityEventsPort` y `MongoActivityEventsAdapter` (una consulta por página, `recordedAt` descendente y `_id` ascendente, con el filtro del cursor; el payload tipado con `EventCanonicalMapper`, como `loadStream`); índice parcial **`idx_asset_genesis_organization`** para el directorio de activos (P-R6D-6), en un commit propio (`9ae6571`).
+  - `convocatoria`: `OrganizationCampaignClosuresQuery`: las convocatorias de la organización con `findByOrganizationRef`, solo las `CLOSED`, y su fecha de cierre con `CampaignTimelineQuery` (P-R6D-2 (a)). Ningún puerto cambia.
+  - `app`:
+    - `OrganizationIntegrityQuery` y `OrganizationIntegrityController` (`GET /organizations/{id}/integrity`, `no-store`): `ADMINISTRATOR` o `REPRESENTATIVE`; directorios con 10 000 cada uno y `truncated`; cada lote se clasifica con `AssetAnchorStatusProducer.trackingStatusOf` (P-R6D-5); un `findByBatchId` por lote (P-R6D-7).
+    - `OrganizationActivityQuery` y `OrganizationActivityController` (`GET /organizations/{id}/activity?cursor=`, `no-store`): los tres roles; tres fuentes con el orden total `(instante descendente, fuente, id)`; 21 por fuente y página de 20; `BATCH_ANCHORED` sin `subject` y con `eventCount` (P-R6D-1 (b)); nunca se lee `coverage`. Cursor con `DiscoveryCursorCodec`, propósito propio `organization-activity:` y la organización dentro; se autoriza antes de interpretarlo.
+- **Hallazgos:**
+  - **H-D-1 (nombres que el plan no fija):** el plan nombra las clases (P-R6D-7). Los records y métodos de los puertos (`BatchEventCount`, `countByBatch`, `ActivityEvent`, `findPage`), `OrganizationCampaignClosuresQuery`/`CampaignClosure` (P-R6D-2 no la nombra), `ActivityKey`/`ActivityItem`/`Subject`/`ActivityPage`, el propósito del cursor y el nombre del índice (`idx_asset_genesis_organization`, como el de fondos del Bloque B) son de esta implementación.
+  - **H-D-2 (`recordedAt` como texto):** el Event Store guarda `recordedAt` con `Instant.toString()` (`MongoEventStoreAdapter.java:96`), cuya precisión varía (3, 6 o 9 decimales, o ninguno). El orden por texto puede descolocar dos eventos **del mismo segundo**; los directorios de fondos y activos ya ordenan así. G-8 compara todos los instantes (también `closedAt` y `anchoredAt`, pasados por `Instant.toString()`) con el mismo orden de texto que Mongo, para que el cursor nunca repita ni salte.
+  - **Límite (sin pregunta nueva):** como G-7, G-8 lee como mucho 10 000 fondos y 10 000 activos. La ficha no da a G-8 un campo `truncated`; más allá, la actividad de los streams que no entran no aparece. Es el mismo orden de magnitud que R-R6D-2 (P-R6D-4, umbral de unos 50 000 eventos).
+  - **Cursor ligado a la organización:** un cursor emitido para otra organización da 400, como uno de otro propósito. No lo pide el plan; es la misma regla de DD-69 ("un cursor no sirve en otra lista").
+- **Tests:** 10a, 10b y 10c (`OrganizationIntegrityQueryIntegrationTest`, Mongo real); 10d y 10e en la consulta (`OrganizationIntegrityQueryTest`); 11a, 11b, 11d y los campos del ítem (`OrganizationActivityQueryIntegrationTest`, Mongo real); 10e, 11c, 11e y 11f por HTTP (`OrganizationIntegrityAndActivityHttpIntegrationTest`); los adaptadores de `core` y el índice con el profiler (`OrganizationActivityAdaptersTest`); `OrganizationCampaignClosuresQueryIntegrationTest`; las dos rutas en `PublicRoutesInventoryIntegrationTest` y el índice en `MongoIndexesAtStartupIntegrationTest`.
+- **Evidencia:**
+  - **Rojo primero**, con la implementación apartada:
+    - `core`: "`package com.traceability.core.application.port.out.ActivityEventsPort does not exist`";
+    - `convocatoria`: "`package com.traceability.convocatoria.application.query.OrganizationCampaignClosuresQuery does not exist`";
+    - `app`: "`package com.traceability.app.application.activity.OrganizationActivityQuery does not exist`";
+    - índice, con los adaptadores ya en su sitio: "`Expecting actual: "IXSCAN { eventType: 1, payload.campaignRef: 1 }" to contain: "payload.organizationRef: 1, recordedAt: 1, streamId: 1"`".
+  - **Dos fallos de los tests, no del código:** el filtro del profiler buscaba `payload.organizationRef` como ruta anidada, y el cursor "manipulado" cambiaba el último carácter Base64, cuyos bits sobrantes no se decodifican. Se corrigieron los dos tests.
+  - **Medición del índice (P-R6D-6),** consulta real del adaptador con el profiler (20 organizaciones con 10 activos): antes, "`IXSCAN { eventType: 1, payload.campaignRef: 1 }` keysExamined=200 docsExamined=200 hasSortStage=true"; después, "`IXSCAN { payload.organizationRef: 1, recordedAt: 1, streamId: 1 }` keysExamined=10 docsExamined=10", sin ordenación.
+  - **Verde por capas**, con el módulo completo: `core` "Tests run: 351", `convocatoria` "Tests run: 255", `app` "Tests run: 494" (con #141 integrado), todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Mutaciones:** MUT_D.
+  - **`ci-local.sh`:** CI_D.
+- **Pendiente:** avisar a la web y al móvil (F-C3) cuando se fusione, con el commit de `develop`.
+
 ### 0.50 Ficha R-6, Bloque C con la Enmienda 1 (E1): `parentAssetRef?` (G-4), `anchorStatus` por paso (G-3), `eventHash` y `anchorProof` (2026-10-25, `feat/r6-bloque-c`)
 
 - Numerada 0.50: la sesión B usa la numeración 0.50 a 0.69 (la A, 0.39 a 0.49) para no chocar.

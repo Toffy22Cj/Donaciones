@@ -109,6 +109,15 @@ No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide s
 |---|---|---|---|
 | `GET /organizations/{organizationId}/funds/monthly?months=1..12` | JWT + `ADMINISTRATOR` o `EMPLOYEE` de la organización + `OrganizationBoundaryPolicy`, como `/funds` (DD-31) | Sin read model: se calcula al consultar con los `FUNDS_CLEARED` (1.0 y 2.0) del Event Store de los fondos cuya génesis lleva la organización (`FundMonthlyClearingReadPort`, implementado por `FundOperationalQueryService`). `{timezone: "America/Bogota", items: [{month, currency, clearedAmount}], truncated?}`. Tope de 10 000 fondos | IMPLEMENTADO (`feat/r6-bloque-b`) |
 
+## 7c. Organización — integridad y actividad (ficha R-6, Bloque D, G-7 y G-8; 2026-10-25)
+
+*Procedencia:* las filas de la ficha R-6, §8, con P-R6D-1 (b) y P-R6D-2 (a) (`plan-r6-bloque-d.md`). Detalle de la respuesta: `referencia-api-v1.md` §3, nota del 2026-10-25.
+
+| Endpoint | Auth | Read Model | Estado |
+|---|---|---|---|
+| `GET /organizations/{organizationId}/integrity` | JWT + `ADMINISTRATOR` o `REPRESENTATIVE` de la organización + `OrganizationBoundaryPolicy` (como la predicción, DD-43) | Sin read model: directorios de fondos y activos por la génesis (10 000 cada uno, `truncated`), una agregación por `merkleBatchId` sin tope (`EventBatchCountPort`) y un `findByBatchId` por lote, clasificados con la tabla de G-3 (`OrganizationIntegrityQuery`, `app`) | IMPLEMENTADO (`feat/r6-bloque-d`) |
+| `GET /organizations/{organizationId}/activity?cursor=` | JWT + `ADMINISTRATOR`, `REPRESENTATIVE` o `EMPLOYEE` de la organización + `OrganizationBoundaryPolicy` (D-R6-8) | Sin read model: tres fuentes mezcladas con el orden total `(instante descendente, fuente, id)` (`OrganizationActivityQuery`, `app`): eventos del Event Store (`ActivityEventsPort`, una consulta por página), cierres de convocatorias `CLOSED` (`OrganizationCampaignClosuresQuery`, `convocatoria`) y lotes `ANCHORED` con eventos propios. Cursor AES-GCM con la clave de DD-58 y propósito propio (DD-69) | IMPLEMENTADO (`feat/r6-bloque-d`) |
+
 ## Frontend Contract / UX Flow — Golden Path: CERRADO
 
 Mapeo completo de pantallas, rutas UX, estados y dependencias contractuales para las seis capas del recorrido (Platform Admin, Organización, Visitante público, Donante con cuenta, Empleado, Tracking/narrativa). Ningún elemento pendiente listado abajo justifica reabrir el mapa de pantallas — son contratos o implementaciones dentro de pantallas ya identificadas, no pantallas faltantes:
