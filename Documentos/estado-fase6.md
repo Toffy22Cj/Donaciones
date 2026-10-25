@@ -270,6 +270,30 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - H-C-2 como pregunta para Manuel;
   - avisar a la web y al móvil (F-C2) cuando se fusione, con el commit de `develop`: `anchorStatus` tiene cuatro valores; `eventHash` y `anchorProof` con su algoritmo y sus límites (E1.3, E1.4); los vectores fijos; `parentAssetRef?`.
 
+### 0.39 P-R3-3: el login emite con `iat = max(segundo truncado, credentialsNotBefore)` (2026-10-25, `fix/identity-p-r3-3-iat-del-login`)
+
+- **Norma:** `ADR-050-enmienda-1-iat-del-login.md`, parte 1 (E1-1, E1-2), APROBADA por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; "todo aprobado" en #134). Plan: `plan-p-r3-3-iat-del-login.md` (#128), APROBADO por Carlos, con P-PR33-1 a P-PR33-5 como los recomienda. Corrige el defecto conocido de §0.37.
+- **Qué hace:**
+  - `contracts`: `AuthenticatedAccount(accountId, credentialsNotBefore)`. `AuthenticateAccountPort.authenticate` lo devuelve en lugar de `String`: **cambia la firma; no se añade un método**.
+  - `identity`: `AuthenticateAccountPortImpl` lo toma del mismo `Account` que validó la contraseña, en una sola lectura. El hash ficticio y el coste igual (ADR-047 Q5) no cambian.
+  - `api`: `LoginController` emite con `issue(accountId, max(segundo actual truncado, cnb))`, con el reloj de la aplicación (`ObjectProvider<Clock>`, P-PR33-2) y dentro del `try` de la emisión (P-PR33-4).
+  - `referencia-api-v1.md`: nota fechada que da el defecto por corregido. `AccountPasswordHttpIntegrationTest.deactivateReactivate_andAPreviousTokenIs401` ya no avanza el reloj.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `api` e `identity` no compilaban ("cannot find symbol", `AuthenticatedAccount`);
+    - en `app`, con los tests de `api` e `identity` apartados para que compilara el reactor: "Tests run: 13, Failures: 3, Errors: 0, Skipped: 0". `p_r3_3_changeThePasswordAndLogInInTheSameSecond_theTokenWorks`, `p_r3_3_twoChangesInARowAndAnImmediateLogin_theTokenWorks` y `deactivateReactivate_andAPreviousTokenIs401` fallaron con "expected: 200": el login del mismo segundo daba 401.
+  - **`ci-local.sh`** en un clon limpio de `e7019e4`, con el `develop` `406f9b2` integrado: `BUILD SUCCESS` y ningún test fallido. Evidencia: `Documentos/evidencia-ci/ci-local-e7019e4-2026-10-25T02-09-27Z.txt`. Resumen literal: core "Tests run: 340", crypto "Tests run: 50", ai "Tests run: 47", api "Tests run: 160", identity "Tests run: 334", convocatoria "Tests run: 253" y app "Tests run: 464", todos con "Failures: 0, Errors: 0, Skipped: 0". Es el verde por capas: cada módulo completo.
+  - **5 de 5 mutaciones muertas** ("Mutaciones vivas: 0"), en otro clon limpio, con `mvn install` (con tests) de `.,contracts,core,crypto,ai,convocatoria` y la línea base en verde (api 9, identity 9, app 13). El reactor va en el orden api, identity, app, así que la 1, la 3, la 4 y la 5 murieron en `api` antes de llegar a `app`:
+    1. `issue(accountId)` sin `cnb` → L-1 a L-4 y tres tests más de `LoginControllerTest`;
+    2. `cnb` siempre nulo → A-1 (`identity`);
+    3. `iat = cnb` sin `max` → L-2;
+    4. `min` en lugar de `max` → L-1 y L-2;
+    5. sin truncar → L-2 y L-3.
+- **Pendiente:**
+  - nota fechada en la Enmienda 1 ("implementada en …") cuando se fusione;
+  - **R-4** sale del `develop` que ya tenga esto (el trabajo previo está en `wip/identity-r4-recuperacion`);
+  - **D3** (parte 3) cambiará otra vez la firma del puerto, después de R-5 primera parte.
+
 ### 0.38 Ficha R-6, Enmienda 1, E2: `lastEventAt?` por lote en el listado de la organización (G-9) (2026-10-25, `feat/r6-bloque-b-g9`)
 
 - **Norma:**

@@ -6,9 +6,12 @@ package com.traceability.contracts.authentication;
 public interface AuthenticateAccountPort {
 
     /**
-     * @return el {@code accountId} de la cuenta autenticada
+     * Cambia la firma, no añade un método (ADR-050 Enmienda 1, E1-1): así no queda un camino de login que ignore
+     * {@code credentialsNotBefore}.
+     *
+     * @return el {@code accountId} y el {@code credentialsNotBefore} de la cuenta autenticada, de la misma lectura
      * @throws AuthenticationFailedException si el email no existe, la contraseña no coincide o la cuenta está
      *         {@code INACTIVE}. Los tres casos son indistinguibles para el llamador (ID01-D1).
      */
-    String authenticate(String email, String password);
+    AuthenticatedAccount authenticate(String email, String password);
 }
