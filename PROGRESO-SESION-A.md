@@ -17,11 +17,66 @@ la A usa 0.39–0.49.
 
 | Ítem | Estado | Rama | PR | Evidencia | Bloqueado por |
 |---|---|---|---|---|---|
-| A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `85dc190` (código en `eb7c6a6`) | #140 (depende de #137) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 antes |
+| A1 R-4 | **HECHO** (PR listo) | `feat/identity-r4-recuperacion-contrasena` `84c1ad8` (código en `eb7c6a6`; develop `aa7a0d2` ya integrado) | #140 (#137 ya fusionado) | ci-local `eb7c6a6`: core 340, crypto 50, ai 47, api 160, identity 352, convocatoria 253, app 478, BUILD SUCCESS | — |
 | A2 R-5 (D1, D2, D10) | **HECHO** (PR listo) | `feat/identity-r5-aceptaciones-perfil` `bfe126f` (código en `3002c6e`) | #142 | ci-local `3002c6e`: core 340, crypto 50, ai 47, api 156, identity 344, convocatoria 253, app 471, BUILD SUCCESS | — |
 | A3 D3 | **HECHO** (PR listo) | `feat/identity-d3-aceptaciones-login` `a477610` (código en `cc5239e`) | #144 (depende de #137 y #142) | ci-local `d0b3d7c`: core 340, crypto 50, ai 47, api 162, identity 359, convocatoria 253, app 478, BUILD SUCCESS | fusionar #137 y #142 antes |
 | A4 D6 sin D7 | **HECHO** (PR listo) | `feat/identity-d6-desactivacion` `ff9b9d7` (código en `8bc0b09`) | #146 | ci-local `98f366f`: core 340, crypto 50, ai 47, api 156, identity 339, convocatoria 253, app 470, BUILD SUCCESS | — |
 | A5 CORS (DD-57) | **HECHO** (PR listo, ya no es borrador) | `fix/cors-put-delete` `517502c` (código en `93a6adc`) | #138 | ci-local `93a6adc`: core 340, crypto 50, ai 47, api 157, identity 332, convocatoria 253, app 464, BUILD SUCCESS | — |
+
+## RELEVO A LA SESIÓN B (2026-10-25, Manuel: "La sesión B toma el relevo de todo el tren de fusiones, incluidos tus PR")
+
+La sesión A **se detiene aquí**: no hace más push a ninguna rama (este archivo es la única excepción, a petición de Manuel). No hay tareas programadas (`list_triggers` vacío) ni procesos en marcha. Fusiona solo Manuel.
+
+### Estado de cada PR de la sesión A (comprobado con git y gh el 2026-10-25)
+
+| PR | Rama | Cabeza | Base integrada | Última CI (`ci-local.sh`, clon limpio) | ¿Código nuevo desde esa CI? |
+|---|---|---|---|---|---|
+| #140 R-4 | `feat/identity-r4-recuperacion-contrasena` | `84c1ad8` | develop `aa7a0d2` (#137 y #139) | `eb7c6a6`, verde: `Documentos/evidencia-ci/ci-local-eb7c6a6-2026-10-25T07-23-51Z.txt` | No: fuera de `Documentos`, el árbol es idéntico al de `eb7c6a6` |
+| #142 R-5 (D1, D2, D10) | `feat/identity-r5-aceptaciones-perfil` | `bfe126f` | develop `406f9b2` (**sin** #137 ni #139) | `3002c6e`, verde: `ci-local-3002c6e-2026-10-25T08-19-21Z.txt` | No en la rama; sí en develop (#137, y lo que entre después) |
+| #144 D3 | `feat/identity-d3-aceptaciones-login` | `a477610` | rama de #142 + `fix/identity-p-r3-3-iat-del-login` (merge `89a1e26`) | `d0b3d7c`, verde: `ci-local-d0b3d7c-2026-10-25T09-15-59Z.txt` | No |
+| #146 D6 | `feat/identity-d6-desactivacion` | `ff9b9d7` | develop `406f9b2` | `98f366f`, verde: `ci-local-98f366f-2026-10-25T10-08-45Z.txt` | No en la rama; sí en develop |
+| #138 CORS | `fix/cors-put-delete` | `517502c` | develop `406f9b2` | `93a6adc`, verde: `ci-local-93a6adc-2026-10-25T10-49-50Z.txt` | No en la rama. **Manuel: no se fusiona hasta que Carlos confirme; no hacer nada más con él** |
+
+Dependencias: #140 ya no depende de nada (#137 fusionado). #144 depende de #142 (contiene sus commits). #142, #146 y #138 son independientes.
+
+### Lo imprescindible: R-4 y D3 juntos
+
+Con D3 (#144), **una cuenta sin las aceptaciones vigentes recibe `403 AcceptanceRequired` al iniciar sesión** si el cuerpo no trae `acceptedTermsVersion` y `acceptedDataPolicyVersion`. Los tests crean cuentas con `createAccount(email, password)`, que no acepta nada. Por eso, **cuando R-4 (#140) y D3 (#144) coincidan en una rama** (el merge de develop en #144 después de fusionar #140, o al revés), hay que cambiar en `app/src/test/java/com/traceability/app/web/account/PasswordResetHttpIntegrationTest.java` los dos helpers que inician sesión (líneas 193 y 200 en `84c1ad8`):
+
+- `login(email, password)` y `loginStatus(email, password)`: añadir al cuerpo `,"acceptedTermsVersion":"v1-2026-10","acceptedDataPolicyVersion":"v1-2026-10"`, como se hizo en #144 con `AccountPasswordHttpIntegrationTest` (comentario "ADR-050 D3: las cuentas del test no aceptaron nada al crearse; el login acepta las vigentes").
+- Los usa: `confirmingAnUnknownExpiredUsed…` (348), `confirming_revokesThePreviousJwt_andTheNewPasswordWorks` (379, 388, 389), `r4_19_confirmAndLogInInTheSameSecond_theTokenWorks` (402) y `theToken_neverAppears…` (429). Con las versiones en el cuerpo, los 401 esperados siguen siendo 401 (la contraseña va antes que las aceptaciones) y los 200 vuelven a ser 200.
+- Repasar también **cualquier login nuevo** que hayan traído los PR de la B: `git grep -n "/api/v1/auth/login" -- app/src/test` tras el merge. Ya mandan las versiones en #144: `AuthenticationEndToEndIntegrationTest`, `PathEvasionRealServerIntegrationTest`, `AccountPasswordHttpIntegrationTest`, `DemoSeedRunnerIntegrationTest` y `P2EndpointsHttpIntegrationTest`. `DemoScenarioSeeder` y `scripts/demo/recorrido.py` también.
+- Después: `ci-local.sh` completo en un clon limpio. App debe dar 478 (D3) + 14 (R-4) + lo que traiga develop.
+
+### Conflictos que se esperan al integrar develop (todos de "añadir", conservar los dos lados)
+
+- `app/src/test/java/com/traceability/app/auth/PublicRoutesInventoryIntegrationTest.java`: R-4 añade las dos rutas públicas de recuperación; R-5, las dos del perfil (protegidas); D6, `POST /api/v1/account/deactivate` (protegida).
+- `app/src/main/java/com/traceability/app/web/IdentityApiErrorMappings.java`: R-4 añade `PasswordResetTokenInvalidException` → 400; D6 añade `PlatformAdministratorDeactivationException` → 409 al final de la lista (cuidado con la coma y el `);` final).
+- `identity/src/test/java/identity/application/service/AccountApplicationServiceIntegrationTest.java`, en `@Import`: R-4 añade `MongoPasswordResetTokenRepositoryAdapter`; D6 añade `StubCampaignResponsibilityPort`.
+- `Documentos/referencia-api-v1.md`: las notas de R-4, R-5, D3 y D6 van todas justo después de la viñeta "Riesgo registrado (R-R3-1…)" de §1; conservar todas. La de CORS va en §0.
+- `Documentos/estado-fase6.md`: secciones de la A, de la 0.40 a la 0.44 (0.40 R-4, 0.41 R-5, 0.42 D3, 0.43 D6, 0.44 CORS), encima de la 0.39. Orden descendente; la B usa de la 0.50 a la 0.69.
+- `api/src/test/java/com/traceability/api/auth/PublicRoutesTest.java` (R-4) y `AuthenticateAccountPortImplTest` / `LoginControllerTest` (D3 sobre P-R3-3): ya integrados en sus ramas.
+
+### Notas y aprobaciones ya registradas
+
+- #144: comentario con la aprobación de Manuel del nombre `recordLegalAcceptancesIfUnchanged` y de guardar solo la versión pendiente.
+- #142: comentario con la aprobación de una sola clase de test HTTP y de la mutación 4 sobre `GET /account`.
+- Plan R-4: nota fechada (`84c1ad8`): la mutación 6 la mata el test del adaptador, no el 15.
+- Plan CORS y DD-57: notas fechadas de la aprobación de Manuel (`2342b97`), con la salvedad de que `decisiones-delegadas-2026-10.md:179` no nombra CORS.
+
+### Pendiente tras las fusiones (no hecho por la A)
+
+- Notas "implementada en #N" en la Enmienda 1 de ADR-050 (partes 1, 2 y 3) y en los planes, cuando se fusionen #137 (ya está), #140 y #144.
+- Preguntas para Carlos: D7 (`plan-d6-desactivacion-propia.md:42`), R-R3-1 (`:138`) y la confirmación de CORS (#138).
+- Bloqueados: D7, Google, T3 y T5.
+- Las ramas `wip/identity-r4-recuperacion`, `wip/identity-r5-d1`, `wip/identity-d6-desactivacion` y esta `wip/progreso-sesion-a` **no se borran**.
+
+### Cómo se hizo la evidencia (por si la B la repite)
+
+- Docker con `/etc/docker/daemon.json` `{"registry-mirrors":["https://mirror.gcr.io"]}` (Docker Hub da 429); nunca en un commit.
+- Clones limpios con `git clone --branch <rama>` y repositorio Maven aislado: `MAVEN_ARGS=-Dmaven.repo.local=<copia de ~/.m2 sin com/traceability>`. `free -g` ≥ 4 antes de cada `ci-local.sh`.
+- Mutaciones: `scripts/mutaciones.py` con las especificaciones de `mutaciones/<ítem>/` de esta rama, tras `mvn install` (con tests) de las dependencias y la línea base en verde.
+- Nota a mano al final de cada evidencia: el espejo de Docker, el repositorio aislado y el `free -g`.
 
 ## Bitácora
 
@@ -69,4 +124,4 @@ la A usa 0.39–0.49.
 
 ## Siguiente paso exacto
 
-Orden de Manuel: #137 ✓, #139 ✓, #141 (B), #140, #142, #144, #146, #143 (B), #138 (espera a Carlos), #145 (B). Al aviso de cada fusión: coger el siguiente PR propio, merge de develop (conservar los dos lados), CI si entró código desde la última, avisar "#N listo" con Surefire literal. En #144: los logins de los tests de R-4 con versiones.
+Ninguno para la sesión A: **detenida** (Manuel, 2026-10-25). Ver "RELEVO A LA SESIÓN B" arriba.
