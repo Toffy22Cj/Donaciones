@@ -6,8 +6,8 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 
 | Ítem | Estado | Rama | Commits | PR |
 |---|---|---|---|---|
-| B1 · R-6 Bloque C + E1 | EN CURSO | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | `c1453ae` | — |
-| B2 · R-6 Bloque D | PENDIENTE | `feat/r6-bloque-d` | — | — |
+| B1 · R-6 Bloque C + E1 | EN CURSO (falta CI y PR) | `feat/r6-bloque-c` (desde `develop` `406f9b2`) | `c1453ae`, `90316df`, `7a802f0` (último de código) | — |
+| B2 · R-6 Bloque D | PENDIENTE | `feat/r6-bloque-d` (saldrá de `feat/r6-bloque-c`) | — | prerrequisito docs: #139 (`chore/docs-ficha-r6-d-respuestas`, `7ad5da1`) |
 | B3 · ADR-051 T4 | PENDIENTE | `feat/adr051-t4-evidencia` | — | — |
 
 ## Arranque (2026-10-25)
@@ -46,6 +46,16 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - app rojo: `AssetAnchorStatusProducerTest.java:[36,24] cannot find symbol`.
 - app (clases nuevas): `Tests run: 14, Failures: 0, Errors: 0, Skipped: 0` (módulo completo pendiente).
 
+## Evidencia B1 (continuación)
+
+- api verde (`mvn -o install -pl api`): `Tests run: 162, Failures: 0, Errors: 0, Skipped: 0`.
+- Reactor `mvn -o install -fae` sobre `7a802f0`: contracts No tests; core 345; crypto 57; ai 47; api 162; identity 332; convocatoria 253; app 478; todos `Failures: 0, Errors: 0, Skipped: 0` (falló después el repackage offline del plugin, no un test).
+- HTTP rojo (api/src/main desactivado temporalmente): `expected: "ANCHORED" but was: "null"`; golden path `[exactamente un lote viene de una división] Expected size: 1 but was: 0`.
+- Medición §6: 1000 hojas 49,47 ms / 5 hojas 27,00 ms / dif. 22,46 ms (otra: 47,52 / 22,39 / 25,13). event_store `IXSCAN { streamId: 1, sequence: 1 }` 5/5; merkle_batches `IXSCAN { batchId: 1 }` 1/1. < 50 ms → sin caché.
+- Mutaciones (clon limpio `7a802f0`, línea base verde): 15/15 muertas, "Mutaciones vivas: 0" en crypto, api y app (specs en el scratchpad; detalle en estado-fase6 §0.50).
+- Docs: referencia-api-v1 §8 (notas G-4 y G-3/E1), api-contract-matrix §5 (P-R6C-4), ficha §9 (E4), estado-fase6 §0.50 (sin commit todavía).
+
 ## Paso exacto siguiente
 
-- B1: capa `api` (DTO, `AssetHistoryMapper`, `PublicDonationMapper` G-4; tests 7a, 8, 9d, C-E10 en api; dobles del puerto en los IT de api), después `app` HTTP (C-E11, 7a, 8, 9d) y medición de tiempo 1000 vs 5 hojas.
+- B1: `ci-local.sh` corriendo en `/home/user/ci-c` (clon de `7a802f0`). Al terminar: copiar la evidencia a `Documentos/evidencia-ci/`, rellenar CI_PENDIENTE en estado-fase6 §0.50, commit de docs, revisión adversaria, autoauditoría y PR.
+- B2: rama `feat/r6-bloque-d` desde `feat/r6-bloque-c`; "depende de #<PR de C>" y de #139.
