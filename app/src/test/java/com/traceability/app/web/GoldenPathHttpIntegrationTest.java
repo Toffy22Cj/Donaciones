@@ -451,5 +451,58 @@ class GoldenPathHttpIntegrationTest {
                     .mapToLong(com.traceability.contracts.SequenceRange::toSequence).max().orElse(0))
                     .as("el último evento de %s (DELIVERED) está anclado", stream).isEqualTo(last);
         }
+
+        // Ficha R-6, Bloque C (plan C, versión 2: tests 7a, 9d y C-E11 por HTTP), con la división y los lotes ANCHORED
+        // reales del recorrido. 7a: el hijo trae parentAssetRef igual al assetRef del padre de la misma respuesta
+        JsonNode lots = ok(send("GET", "/api/v1/donations/tracking", null, null, "Authorization", "Bearer " + trackingCode), 200)
+                .get("logistics");
+        assertThat(lots).hasSize(2);
+        assertThat(lots).as("exactamente un lote viene de una división").filteredOn(l -> l.has("parentAssetRef")).hasSize(1);
+        JsonNode rootLot = lots.get(0).has("parentAssetRef") ? lots.get(1) : lots.get(0);
+        JsonNode childLot = lots.get(0).has("parentAssetRef") ? lots.get(0) : lots.get(1);
+        assertThat(rootLot.has("parentAssetRef")).isFalse();
+        assertThat(childLot.get("parentAssetRef").asText()).isEqualTo(rootLot.get("assetRef").asText());
+        assertThat(lots.toString()).doesNotContain("rootAssetRef").doesNotContain(parentRef).doesNotContain(childRef);
+        java.util.Map<String, String> txByRoot = new java.util.HashMap<>();
+        for (JsonNode id : anchored) {
+            com.traceability.crypto.domain.MerkleBatch batch = batches.findByBatchId(id.asText()).orElseThrow();
+            txByRoot.put(batch.merkleRoot(), batch.transactionHash());
+        }
+        for (JsonNode lot : List.of(rootLot, childLot)) {
+            String assetId = lot == rootLot ? parentRef : childRef;
+            java.util.Set<String> storedHashes = new java.util.HashSet<>();
+            mongoTemplate.getCollection("event_store").find(new Document("streamId", assetId))
+                    .forEach(e -> storedHashes.add(e.getString("eventHash")));
+            HttpResponse<String> historyResponse = send("GET", "/api/v1/donations/tracking/assets/"
+                    + lot.get("assetRef").asText() + "/history", null, null, "Authorization", "Bearer " + trackingCode);
+            JsonNode steps = ok(historyResponse, 200).get("history");
+            assertThat(steps).isNotEmpty();
+            for (JsonNode step : steps) {
+                // C-E11: todo el recorrido está anclado; el hash es el del Event Store y la prueba verifica con el
+                // pseudocódigo de E1.3, escrito aquí sin usar MerkleTree
+                assertThat(step.get("anchorStatus").asText()).isEqualTo("ANCHORED");
+                String eventHash = step.get("eventHash").asText();
+                assertThat(eventHash).matches("^[0-9a-f]{64}$").isIn(storedHashes);
+                JsonNode proof = step.get("anchorProof");
+                String node = eventHash;
+                for (JsonNode s : proof.get("path")) {
+                    String sibling = s.get("hash").asText();
+                    node = sha256Hex(s.get("side").asText().equals("LEFT") ? sibling + node : node + sibling);
+                }
+                assertThat(node).isEqualTo(proof.get("merkleRoot").asText());
+                assertThat(txByRoot).containsEntry(proof.get("merkleRoot").asText(), proof.get("transactionHash").asText());
+                assertThat(proof.get("leafIndex").asInt()).isNotNegative();
+                assertThat(proof.has("network") && proof.has("anchoredAt")).isTrue();
+            }
+            // 9d (ampliado) por HTTP: nada interno en la respuesta
+            assertThat(historyResponse.body()).doesNotContain("\"sequence\"").doesNotContain("streamId")
+                    .doesNotContain("merkleBatchId").doesNotContain("previousHash").doesNotContain("leafHashes")
+                    .doesNotContain("leafCount").doesNotContain(assetId);
+        }
+    }
+
+    private static String sha256Hex(String text) throws Exception {
+        return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
 }

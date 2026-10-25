@@ -203,6 +203,8 @@
 
 > **Nota (2026-10-25, sesión de Manuel, con asistencia de Claude): D-R6-6 y la Enmienda 1.** La tabla de arriba se conserva. `ficha-R6-enmienda-1.md` (E1) **reabre D-R6-6**: cada paso de G-3 llevaría `eventHash` y, con el lote `ANCHORED`, `anchorProof` (decisión de Carlos del 2026-10-24). E2 añade G-9 (`lastEventAt?` por lote). La enmienda está en `develop` (#117), pero su estado sigue siendo **PROPUESTA** (`ficha-R6-enmienda-1.md:3`) y #117 se fusionó sin review. **Hasta que Carlos la confirme, rige D-R6-6 tal como está** (también `[D-R6-6]` en §5) y no se escribe código de E1 ni de G-9. Planes: C, versión 2 (#126), y adenda G-9 del plan B (#124), los dos en BORRADOR.
 
+> **Nota (2026-10-25, más tarde; ficha R-6, Enmienda 1, E4): la Enmienda 1 está APROBADA** por Carlos (`decisiones-delegadas-2026-10.md`, notas del 2026-10-25; confirmación escrita "todo aprobado" en #134), y el plan C, versión 2, también. La nota anterior se conserva; esta la supera en lo que dice de "hasta que Carlos la confirme". **D-R6-6 queda reabierto por E1:** cada paso del historial lleva `eventHash` y, con el lote `ANCHORED` y sus hojas, `anchorProof` sin `leafCount` (`ficha-R6-enmienda-1.md` §E1; `plan-r6-bloque-c.md`). El `[D-R6-6]` de §5 ("No se expone el hash del evento") se lee con esta enmienda. Implementación: rama `feat/r6-bloque-c` (`estado-fase6.md` §0.50).
+
 ## 10. Correcciones sobre el borrador (Manuel, 2026-10-21)
 
 | # | Dónde | Qué decía el borrador | Por qué se corrige |

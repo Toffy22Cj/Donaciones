@@ -9,6 +9,8 @@ public record LogisticsReadItem(
     String unitOfMeasure,
     BigDecimal quantity,
     String currentLocation,
-    String currentCustodian
+    String currentCustodian,
+    /** Ficha R-6, G-4: {@code assetId} del lote del que salió (interno; nulo si no viene de una división). */
+    String parentAssetId
 ) {
 }

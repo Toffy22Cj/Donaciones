@@ -7,6 +7,8 @@ public record AssetTransitionReadModel(
         String status,
         String custodian,
         String location,
-        Instant timestamp
+        Instant timestamp,
+        /** Ficha R-6, G-3 (P-R6C-2): {@code sequence} del evento en el Event Store, para cruzarlo en el servidor. Nunca sale por HTTP (DD-76). */
+        long sequence
 ) {
 }

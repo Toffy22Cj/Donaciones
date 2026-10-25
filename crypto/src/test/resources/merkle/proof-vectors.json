@@ -1,0 +1,113 @@
+[
+  {
+    "description": "1 hojas, indice 0",
+    "leaves": [
+      "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188"
+    ],
+    "index": 0,
+    "path": [],
+    "root": "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188"
+  },
+  {
+    "description": "2 hojas, indice 0",
+    "leaves": [
+      "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188",
+      "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855"
+    ],
+    "index": 0,
+    "path": [
+      {
+        "side": "RIGHT",
+        "hash": "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855"
+      }
+    ],
+    "root": "980cf4c37f098c84759e9e66592cd515f70dc326e907370ff2f0715bb763e3cc"
+  },
+  {
+    "description": "2 hojas, indice 1",
+    "leaves": [
+      "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188",
+      "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855"
+    ],
+    "index": 1,
+    "path": [
+      {
+        "side": "LEFT",
+        "hash": "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188"
+      }
+    ],
+    "root": "980cf4c37f098c84759e9e66592cd515f70dc326e907370ff2f0715bb763e3cc"
+  },
+  {
+    "description": "3 hojas, indice 2",
+    "leaves": [
+      "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188",
+      "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855",
+      "649837ddcb7e1967086d7d35aaef7b975c513815d96fc6e70015e93a2bfe0f9a"
+    ],
+    "index": 2,
+    "path": [
+      {
+        "side": "RIGHT",
+        "hash": "649837ddcb7e1967086d7d35aaef7b975c513815d96fc6e70015e93a2bfe0f9a"
+      },
+      {
+        "side": "LEFT",
+        "hash": "980cf4c37f098c84759e9e66592cd515f70dc326e907370ff2f0715bb763e3cc"
+      }
+    ],
+    "root": "265ff079294e0d2784c62727e50fa04e8ca20518b21f66b6502f53f54983f42e"
+  },
+  {
+    "description": "5 hojas, indice 4",
+    "leaves": [
+      "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188",
+      "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855",
+      "649837ddcb7e1967086d7d35aaef7b975c513815d96fc6e70015e93a2bfe0f9a",
+      "9fde56c376760bd399b82eb8569229a2dff19219411ac71154dfeab2cf502454",
+      "697f943b9ec5f90eddda8ae7473f5eb688187e3467f312fefa8677dde255042c"
+    ],
+    "index": 4,
+    "path": [
+      {
+        "side": "RIGHT",
+        "hash": "697f943b9ec5f90eddda8ae7473f5eb688187e3467f312fefa8677dde255042c"
+      },
+      {
+        "side": "RIGHT",
+        "hash": "1a4b7eec099b3a68b6eaa65c84a2a0549e95d09c1c7745ef834ce4b791c9935b"
+      },
+      {
+        "side": "LEFT",
+        "hash": "a1f8a519d07b6d53d24b4b4d3e61d60bbc52f3360ad15e0ec858c82b5a01ec95"
+      }
+    ],
+    "root": "fa57cc22cac0962c44e370f83bcc1637a3b93a62bfe42498a67c1fd49690ceba"
+  },
+  {
+    "description": "5 hojas, indice 2",
+    "leaves": [
+      "d2dbf006f96dd05044a8f63d8f118f23925ba4cc5750f8b6c8e287fd506c8188",
+      "4140bf0e8569ed03ec838871ff2f190e9b3ea86bc083d7e9901049f75f00e855",
+      "649837ddcb7e1967086d7d35aaef7b975c513815d96fc6e70015e93a2bfe0f9a",
+      "9fde56c376760bd399b82eb8569229a2dff19219411ac71154dfeab2cf502454",
+      "697f943b9ec5f90eddda8ae7473f5eb688187e3467f312fefa8677dde255042c"
+    ],
+    "index": 2,
+    "path": [
+      {
+        "side": "RIGHT",
+        "hash": "9fde56c376760bd399b82eb8569229a2dff19219411ac71154dfeab2cf502454"
+      },
+      {
+        "side": "LEFT",
+        "hash": "980cf4c37f098c84759e9e66592cd515f70dc326e907370ff2f0715bb763e3cc"
+      },
+      {
+        "side": "RIGHT",
+        "hash": "7e443e7ce4ca4de649f5b3c62db247f1fabb209db409b5cb45d7cc82841d69a1"
+      }
+    ],
+    "root": "fa57cc22cac0962c44e370f83bcc1637a3b93a62bfe42498a67c1fd49690ceba"
+  }
+]
