@@ -109,3 +109,11 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - #141 LISTO: develop aa7a0d2 integrado (`6c121b1`), CI `ci-local-d33a770-2026-10-25T15-38-09Z.txt` BUILD SUCCESS (app 481), `611c35f`.
 - Siguiente mío: #143 (tras #140, #142, #144 y #146), luego #145.
 - Tras reiniciar el contenedor, Docker no arranca solo: `nohup dockerd &` (daemon.json local con el mirror; no va en Git).
+
+## Tren completo a mi cargo (2026-10-25; la sesión A paró)
+
+- Orden: #140 → #142 → #144 → #146 → #143 → #138 → #145. Nunca fusiono yo. En #144: los logins de los tests de R-4 llevarán versiones legales (pista de la A).
+- Herramientas en /home/user/tools: ambos.py (conserva los dos lados), sin-perdidas.sh, ci.sh <wt> <n>, evidencia.py <wt> <ci> <sección> <texto>.
+- Pies de los 7 PRs comprobados: correctos.
+- #140 LISTO: merge develop 0a54994 (`1ec8be3`), CI BUILD SUCCESS (identity 352, app 495), evidencia `8c3134d`. Worktree /home/user/tr-140.
+- #142: merge adelantado de develop 0a54994 (`f4917ae`, worktree /home/user/tr-142). Falta merge de #140 y CI.
