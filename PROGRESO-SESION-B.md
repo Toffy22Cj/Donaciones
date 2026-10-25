@@ -83,3 +83,11 @@ Rama de memoria. **No se fusiona ni se borra.** Base: `develop` `406f9b2` (2026-
 - B2: HECHO (#143, CI `ci-local-a5ea0fd-2026-10-25T08-42-12Z.txt`, app 495). Revisión adversaria: limpia tras 11b bis.
 - B3: en `/home/user/wt-t4` la implementación está escrita sin commit. Siguiente: apartar `src/main` nuevos y modificados para el rojo (usar `-Dmaven.repo.local=/home/user/m2-t4`, repositorio aislado), restaurar, verde por capas, mutaciones 1-9 del plan T4, `explain()` de `bindEvidence`, docs (referencia §6 ya escrita; estado-fase6 §0.52), CI, PR con el aviso a Adonis y a la web ANTES de fusionar.
 - Ojo B3: el semillero y el golden path entregan dos activos → dos fotos distintas; los tests de app usan `InMemoryMediaStorageConfig`.
+
+## B3 — estado (2026-10-25)
+
+- Commits en `feat/adr051-t4-evidencia` (empujados): tests `986e047`, implementación `bd0b963`, T4-7 `17fbd24`, docs `adf4d4b` (§0.52 sin CI todavía).
+- Verde: core 358, crypto 50, ai 47, api 156, identity 332, convocatoria 253, app 485.
+- Mutaciones: 9/9 muertas (clon `/home/user/mut-t4`, `17fbd24`). `explain()` de bindEvidence: IXSCAN uq_evidence_sha256 1/1.
+- En curso: ci-local en `/home/user/ci-t4` (`17fbd24`). Borrador del PR en scratchpad `pr-t4-body.md`.
+- Siguiente: copiar la evidencia a Documentos/evidencia-ci/, rellenar CI_T4 en §0.52, commit y push, abrir el PR con el aviso B-2 y arreglar el pie, y hacer la pasada final.
