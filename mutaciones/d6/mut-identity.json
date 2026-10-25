@@ -1,0 +1,59 @@
+{
+ "module": "identity",
+ "tests": "DeactivateOwnAccountIntegrationTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "1 No comprueba la contraseña actual",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/DeactivateAccountService.java",
+     "old": "if (currentPlainPassword == null || !passwordHasher.matches(currentPlainPassword, account.getPasswordHash())) {",
+     "new": "if (false) {"
+    }
+   ]
+  },
+  {
+   "name": "2 Sin la comprobación del representante",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/DeactivateAccountService.java",
+     "old": "                if (representative) {",
+     "new": "                if (false) {"
+    }
+   ]
+  },
+  {
+   "name": "3 Sin la consulta de responsables",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/DeactivateAccountService.java",
+     "old": "if (!responsibilities.activeActingRoles(account.getOrganizationId().value(), accountId.value()).isEmpty()) {",
+     "new": "if (false) {"
+    }
+   ]
+  },
+  {
+   "name": "4 Desactivar quita la membresía",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/DeactivateAccountService.java",
+     "old": "            if (account.deactivate(now)) {\n                accountRepository.save(account);\n                auditLogPort.record(AuditLogEntry.record(UlidCreator.getUlid().toString(), now, self,",
+     "new": "            if (account.deactivate(now)) {\n                account.leaveOrganization();\n                accountRepository.save(account);\n                auditLogPort.record(AuditLogEntry.record(UlidCreator.getUlid().toString(), now, self,"
+    }
+   ]
+  },
+  {
+   "name": "7 Sin la comprobación explícita del administrador (orden P-D6-2)",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/DeactivateAccountService.java",
+     "old": "            if (account.getPlatformAuthority() != null) {\n                throw new PlatformAdministratorDeactivationException(\n                        \"Cannot deactivate account with platform authority: \" + accountId.value());\n            }\n",
+     "new": ""
+    }
+   ]
+  }
+ ]
+}
