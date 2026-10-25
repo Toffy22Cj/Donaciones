@@ -112,6 +112,7 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 | `GET /platform/administrators` (§3.2) | ídem | — | `200 {items: [{accountId, status}]}`, una página de 100, sin email, `no-store` | 403 |
 | `POST /platform/administrators` (§3.2) | ídem | `{accountId}` | `201 {accountId, platformAuthority: "ADMINISTRATOR"}` | 400; 403 (antes de validar); 404 cuenta inexistente; 409 `PlatformAuthorityAlreadyGranted`, `PlatformAuthorityTargetInactive` |
 | `POST /platform/administrators/{accountId}/revoke` (§3.2, DD-70) | ídem | — | `200 {accountId}` | 403; 404; 409 `PlatformAuthorityNotHeld`, `LastPlatformAdministrator` (nunca sin administradores) |
+| `POST /platform/accounts/{accountId}/reactivate` (ADR-050 D7; nota del 2026-10-25) | ídem | — | `200 {accountId, status: "ACTIVE"}`, `no-store`; ya activa → `200` igual, sin auditoría | 401 sin JWT; 403 uniforme (antes de leer la cuenta); 404 `NotFound` cuenta inexistente (solo la ve la plataforma). Los tokens anteriores a la desactivación siguen dando 401: la persona vuelve a iniciar sesión |
 
 ## 3. Organización (panel)
 

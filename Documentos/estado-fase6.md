@@ -229,6 +229,34 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
+
+- Numerada 0.61, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:**
+  - ADR-050 D7 y test 26 (`ADR-050-cuenta-y-sesiones.md:133-137` y `:282`);
+  - `plan-cierre-backend-2026-10-25.md` §D7, APROBADO por Manuel (#147, comentario 6404356890; nota en `decisiones-delegadas-2026-10.md`), con P-D7-1 a 4 como los propone.
+- **Qué hace:**
+  - `identity`: `PlatformCommandType.REACTIVATE_ACCOUNT` y su caso en `PlatformAuthorizationPolicy`. `ReactivateAccountService.reactivateAccount(AuthorizationPrincipal, AccountId)` autoriza **antes de leer la cuenta**, construye el actor con `AuthorizationAuditActorMapper` y delega en el método que ya existía, que no cambia (P-D7-1).
+  - `app`: `POST /api/v1/platform/accounts/{accountId}/reactivate` (`PlatformAccountsController`) → `200 {accountId, status: "ACTIVE"}`, `no-store`. Cuenta inexistente → 404 con `PlatformAccountNotFoundException` (P-D7-2). Ya activa → 200 igual, sin auditoría (P-D7-3).
+  - Reactivar no toca `credentialsNotBefore`, así que los tokens anteriores a la desactivación siguen dando 401 (D4).
+- **Test existente adaptado (solo cableado):** `AccountApplicationServiceIntegrationTest` importa `PlatformAuthorizationPolicy`, porque el constructor del servicio lo pide.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `identity` no compilaba: "`ReactivateAccountByPlatformIntegrationTest.java:[90,41] incompatible types: AuthorizationPrincipal cannot be converted to AuditActor`" y cinco más;
+    - `app`, con ese test apartado: `PlatformAccountReactivationHttpIntegrationTest` "Tests run: 8, Failures: 6" (404 donde se esperaba 200 o 403);
+    - d7_7 (404) y d7_8 (401) pasaban ya sin la ruta: el 404 genérico tiene el mismo cuerpo y el 401 lo da el filtro.
+  - **Un fallo del test, no del código:** d7_2 metía en el bucle del 403 a la propia cuenta desactivada, y su token da 401. Ahora se comprueba aparte, como 401.
+  - **Verde por capas** (módulo completo): `core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 392, `convocatoria` 255 y `app` "Tests run: 566", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **8 de 8 mutaciones muertas,** en un clon limpio de `36a224c`, con la línea base en verde (la "mutación 0", sin cambios, sale VIVA en las dos especificaciones):
+    - 1 (sin `policy.authorize`) y 2 (autorizar después de leer) → d7_2 y d7_3;
+    - 3 (auditar aunque no cambie) → d7_6;
+    - 4 (`reactivate()` sin cambiar el estado) → d7_1 y d7_6;
+    - 5 (`reactivate()` borra `credentialsNotBefore`) → d7_4;
+    - 6 (el 404 traducido como 403) → d7_7;
+    - 7 (el cuerpo con otro estado) → d7_1 y d7_6 por HTTP;
+    - 8 (sin `no-store`) → d7_1 por HTTP.
+  - **`ci-local.sh`** en un clon limpio de `36a224c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 392, `convocatoria` 255, `app` 566). Evidencia: `Documentos/evidencia-ci/ci-local-36a224c-2026-10-25T23-36-43Z.txt`. `develop` sigue en `6b54630`, la base de la rama.
+
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
 - Numerada 0.60, en la serie de este trabajo (0.60 a 0.69).
