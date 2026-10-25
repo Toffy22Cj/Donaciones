@@ -113,6 +113,27 @@ El nombre del módulo entre paréntesis lo he añadido yo; en la evidencia va en
 - **Hallazgo nuevo, solo registrado:** del **#87 al #103** (2026-10-08, de 00:08Z a 08:18Z) tampoco hay ninguna review. Del #92 al #103 los fusionó Manuel, según sus commits de merge en `develop`. Del #87 al #91 no hay commit "Merge pull request" en `develop`: no se ha comprobado en qué rama ni quién los fusionó. La auditoría acotó H-1 al #104 en adelante. Este informe no cambia ese alcance y deja a Carlos decidir si la lista se amplía.
 - **#127:** abierto y sin fusionar. Si se fusiona sin Approve, entra en esta lista con una nota fechada.
 
+> **Nota (2026-10-25): fusiones posteriores a este informe, también sin review.** Las 11 se hicieron el 2026-10-25, entre las 01:37:16Z y las 01:40:53Z, desde la cuenta `buelvasmanuel` (los commits de merge tienen como autor a "Manuel Gonzalez"). La búsqueda `is:merged merged:>=2026-10-25 -review:none` da 0, así que ninguna tuvo review ni Approve de Carlos:
+>
+> | PR | Fusionado (UTC) | Commit de merge | Qué |
+> |---|---|---|---|
+> | #121 | 01:37:16 | `4be5c6e` | Plan R-4 |
+> | #122 | 01:37:27 | `91ee264` | Plan R-5 + D1 (BORRADOR) |
+> | #123 | 01:37:39 | `a8596a6` | Plan D6 (BORRADOR) |
+> | **#127** | 01:40:02 | `818ebf3` | **Código de R-3 + R-2** |
+> | #125 | 01:40:10 | `dd8033c` | ADR-050, Enmienda 1, parte 2 (PROPUESTA) |
+> | #130 | 01:40:17 | `93940e3` | Notas de la ficha R-6 §9 y de ADR-050 |
+> | #128 | 01:40:24 | `b119386` | Plan P-R3-3 (BORRADOR) |
+> | #124 | 01:40:32 | `8bfe713` | Adenda G-9 (APROBADA por Manuel) |
+> | #126 | 01:40:39 | `b1eae78` | Plan C, versión 2 (BORRADOR) |
+> | #131 | 01:40:46 | `f57611d` | Plan de ADR-051 T4 (BORRADOR) |
+> | #129 | 01:40:53 | `3cab9a9` | Este informe |
+>
+> - Que un plan esté en `develop` **no lo aprueba**. #122, #123, #126, #128 y #131 siguen en BORRADOR, y no se escribe su código sin el "plan aprobado" de Manuel (regla 3.4).
+> - Que #125 y #127 estén en `develop` **no los aprueba Carlos** (regla 2). La parte 2 de la Enmienda 1 sigue diciendo PROPUESTA.
+> - Esta sesión no fusionó nada (regla 1).
+> - Con #127 en `develop` queda pendiente el aviso 2 de §5 (commit `818ebf3`).
+
 ### Consecuencias de las fusiones sin review
 
 - El commit `4a99fe8` (plan R-3 + R-2, §10) llegó a la rama de #118 después de la fusión y se movió a #119.
@@ -138,6 +159,8 @@ Hasta que alguien confirme la correspondencia, los textos van por PR, con el F-C
 > - **G-9 (`lastEventAt?` por lote) no está incluido:** va en la adenda del plan B (#124), que espera aprobación.
 
 **Aviso 2 — R-3 + R-2 (#127). Se envía cuando se fusione, con el commit de merge:**
+
+*Nota (2026-10-25): #127 se fusionó en `818ebf3` (01:40:02Z). En el texto de abajo, `<commit>` es `818ebf3`. Listo para enviar.*
 
 > Ya está en `develop` (`<commit>`, PR #127) el cambio de contraseña y la revocación de sesiones (ADR-050 D4 y D5) [¿F-C…?]:
 > - `POST /api/v1/account/password`, con JWT y `{currentPassword, newPassword}`, responde `200 {token}`. **El token devuelto sustituye al anterior**: todas las demás sesiones quedan revocadas.
