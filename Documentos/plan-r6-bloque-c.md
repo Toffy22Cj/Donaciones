@@ -1,3 +1,273 @@
+# Plan — Ficha R-6, Bloque C (versión 2): parentAssetRef (G-4), anchorStatus por paso (G-3) y hash con prueba de Merkle (E1)
+
+**Estado: BORRADOR, versión 2. Espera el "plan aprobado" de Manuel**, por la delegación de Carlos del 2026-10-24 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-24). No autoriza código (regla 3.4).
+**Fecha:** 2026-10-24 (UTC). **Autor:** Manuel, con asistencia de Claude.
+**Base verificada:** `develop` `8e37667` (posterior a la fusión del #113, el Bloque B).
+**Norma:**
+- `ficha-R6-datos-estilo-v2.md`, CONGELADA: §5 (Bloque C), §7 (tests 7, 8 y 9), §8, §9 (D-R6-5, D-R6-6, D-R6-10) y §10 (C-4);
+- `ficha-R6-enmienda-1.md` **§E1**, que reabre D-R6-6 (estado PROPUESTA; ver B-C-1);
+- las decisiones de Manuel sobre los puntos [Manuel] de E1: `plan-ejecucion-cierre-manuel-2026-10-24.md` §0.4.
+
+**Qué cambia respecto a la versión 1:**
+- G-3 deja de dar solo `anchorStatus`: cada paso lleva también `eventHash` y, si su lote está `ANCHORED`, `anchorProof` (E1).
+- El puerto de P-R6C-1 crece para llevar esos datos.
+- G-4, la tabla de los cuatro estados (C-4) y P-R6C-2 a P-R6C-5 no cambian.
+- La versión 1 se conserva entera en el **Anexo A**. Sus verificaciones C-V1 a C-V7 siguen valiendo en `8e37667`: los archivos citados no han cambiado, salvo los del seguimiento que tocó el Bloque B (§0.1 de la versión 1).
+
+**Rama de implementación:** `feat/r6-bloque-c`, desde el `develop` del momento, con su hash. Un PR para este bloque (D-R6-10).
+
+---
+
+## 0. Bloqueo de estado (anotado, no se resuelve aquí)
+
+**B-C-1.** `ficha-R6-enmienda-1.md:3` dice "**Estado: PROPUESTA.** … Carlos da el visto bueno en el PR". El PR que la trajo (#117) lo fusionó Carlos el 2026-10-24 (21:07:55Z) **sin Approve ni ninguna review** en GitHub (H-1). Es la misma pregunta que B-G9-1 en #124: ¿la Enmienda 1 queda aprobada?
+
+Mientras no conste:
+- la parte de E1 (§2.3 a §2.5) no se implementa;
+- G-4 y G-3 sin E1 sí pueden implementarse, porque vienen de la ficha CONGELADA.
+
+**Pregunta para Manuel (P-C-0):** si B-C-1 tarda, ¿se implementan G-4 y G-3 primero y E1 en un segundo PR? Eso rompe "un PR por bloque" (D-R6-10), así que también necesita el sí de Carlos. **Recomendación:** esperar y hacer un solo PR.
+
+## 1. Verificación de E1 contra el código (`develop` `8e37667`)
+
+| # | Afirmación de E1 o de §0.4 | Resultado | Evidencia |
+|---|---|---|---|
+| E1-V1 | **Regla del nodo impar:** el último nodo de un nivel impar se combina consigo mismo | **CONFIRMADA** | `crypto/src/main/java/com/traceability/crypto/domain/MerkleTree.java:38`: `String right = (i + 1 < currentLevel.size()) ? currentLevel.get(i + 1) : left;` (comentario en `:23` y `:37`) |
+| E1-V2 | Nodo padre = `SHA-256(UTF-8(izquierdo_hex + derecho_hex))` en hexadecimal minúscula | **CONFIRMADA** | `MerkleTree.java:52-61` (`hashPair`: `left + right`, `getBytes(UTF_8)`) y `:63-73` (`bytesToHex`, minúscula y con ceros a la izquierda). `hashPair` es `private static`, así que `proof` tiene que vivir en la misma clase para reutilizarlo |
+| E1-V3 | Hojas en el orden de `getEventHashesByCoverage`: `streamId` y después `sequence` | **CONFIRMADA** | `MongoUnanchoredEventAdapter.java:96-113`: consulta por los rangos de `coverage`, `Sort.by(ASC, "streamId", "sequence")` (`:108`). La usa `BlockchainAnchorProducer` para construir el árbol (`:132` y `:186`) y guarda esas hojas con `transitionCollectingToPending(batchId, merkleRoot, leafHashes)` |
+| E1-V4 | `leafIndex` se calcula desde `coverage` con ese orden | **Ya existe el cálculo**, no es nuevo | `IntegrityVerificationUseCase.java:69-73` construye `expectedIdentities`: `coverage` ordenado por clave (`Map.Entry.comparingByKey()`) y, en cada stream, `rangeClosed(fromSequence, toSequence)`. La posición de `(streamId, sequence)` en esa lista es su `leafIndex`. El plan reutiliza **ese mismo criterio**, no inventa otro |
+| E1-V5 | Lote antiguo sin `leafHashes` | **CONFIRMADA** | `IntegrityVerificationUseCase.java:61-65` lanza `LegacyBatchLeafHashesUnavailableException` si `leafHashes` es nulo o vacío (`crypto/.../domain/exception/`) |
+| E1-V6 | Datos de `anchorProof` en el lote | **CONFIRMADA** | `MerkleBatch` (`crypto/.../domain/MerkleBatch.java:8-24`): `merkleRoot`, `leafHashes`, `network`, `transactionHash`, `anchoredAt`, `coverage` y `status` |
+| E1-V7 | `eventHash`: 64 caracteres hexadecimales en minúscula | **CONFIRMADA** | `JcsHashAdapter.java:42-59` (SHA-256, "lowercase hex"); el Event Store lo guarda en `TraceabilityEventDocument.java:46` (`MongoEventStoreAdapter.java:82`, `:101`) |
+| E1-V8 | Tamaño máximo de un lote | **1000 hojas** por defecto | `BlockchainAnchorProducer.java:42`: `traceability.anchor.producer.max-events-per-batch:1000`. Es el caso que se mide (§6) |
+| E1-V9 | Hay un puerto que dé el `eventHash` de cada evento de un stream | **NO.** `EventBatchMembershipPort.EventMembership` es `(streamId, sequence, merkleBatchId)`, sin hash (`core/.../port/out/EventBatchMembershipPort.java:12`) | Añadirle el hash sería **cambiar un puerto existente**, y eso es la regla 3.5. **No se toca:** se usa un puerto nuevo de solo lectura (§2.3, P-C-2) |
+| E1-V10 | `app` ya usa `MerkleTree` directamente | **CONFIRMADA** | `IntegrityVerificationUseCase.java:90` (`MerkleTree.build(currentLeaves)`) y `BlockchainAnchorProducer.java` (Fase 2). Ver P-C-1 |
+| E1-V11 | Hoy el DTO no tiene `anchorStatus` | **CONFIRMADA** | `PublicTransitionDTO` (`api/.../dto/PublicTransitionDTO.java`): `eventType`, `timestamp`, `locationZone`, `custodianCategory`, `status`. G-3 no está implementado |
+
+**Ninguna contradicción** con E1 ni con ADR vigentes. E1-V9 obliga a un puerto nuevo, que es lo que §0.4 permite.
+
+## 2. Diseño
+
+### 2.1 G-4 · `parentAssetRef?` en `logistics`
+
+Sin cambios respecto a la versión 1 (Anexo A, §2.1).
+
+### 2.2 G-3 · `anchorStatus` por paso
+
+La tabla de los cuatro valores (C-4) **no cambia**. La versión 1, §2.2, sigue valiendo: el enum `TrackingAnchorStatus` de `contracts`, el `switch` exhaustivo sin `default`, `PENDING` sin lote o con lote `RELEASED`, y P-R6C-3. Con una sola excepción, que añade E1:
+
+- **Un evento alterado pasa a `UNDER_REVIEW` aunque su lote esté `ANCHORED`** (E1.2). La regla está en §2.4, paso 4.
+
+### 2.3 Puertos (P-R6C-1 ampliado y uno nuevo en `core`)
+
+**(1) El puerto de P-R6C-1, en `contracts`, con su resultado ampliado.** Los nombres van marcados **[Plan]**:
+
+```java
+/** Estado de anclaje, hash y, si el lote está ANCHORED, prueba de Merkle de cada evento de un stream (ficha R-6, G-3 y Enmienda 1, E1). */
+Map<Long, StepAnchor> anchorBySequence(String streamId);
+
+record StepAnchor(TrackingAnchorStatus status, String eventHash, AnchorProof proof /* nulo si no hay prueba */) {}
+record AnchorProof(String merkleRoot, int leafIndex, List<ProofStep> path,
+                   String transactionHash, String network, Instant anchoredAt) {}
+record ProofStep(Side side, String hash) {}
+enum Side { LEFT, RIGHT }
+```
+
+- `AnchorProof` es el `anchorProof` de E1.2, **sin `leafCount`** (§0.4).
+- La versión 1 proponía `Map<Long, TrackingAnchorStatus> anchorStatusBySequence(String)`. El puerto aún no existe en `develop`, así que cambiar su forma **no** toca un puerto existente.
+
+**(2) Un puerto nuevo de solo lectura en `core`**, porque ninguno da el hash (E1-V9). Nombres **[Plan]**:
+
+```java
+/** Hash y lote de cada evento de un stream, en orden de sequence. Solo lectura. */
+List<StreamEventAnchorData> findByStream(String streamId);
+record StreamEventAnchorData(long sequence, String eventHash, String merkleBatchId) {}
+```
+
+- Su adaptador Mongo hace **una** consulta: `{streamId}`, ordenada por `sequence`, proyectando `sequence`, `eventHash` y `merkleBatchId`. La cubre `idx_stream_sequence`.
+- Sustituye a `findMembership` **solo en G-3**. `EventBatchMembershipPort` no cambia, y `TrackingIntegrityService` lo sigue usando.
+
+**(3) `MerkleTree.proof`, en `crypto`** (§0.4):
+
+```java
+public static List<ProofStep> proof(List<String> leafHashes, int index)
+public record ProofStep(Side side, String hash) {}   // anidado en MerkleTree [Plan]
+```
+
+- Es una función pura que reutiliza `hashPair` (privado, E1-V2), con la misma regla del nodo impar que `build` (`:38`).
+- El último nodo de un nivel impar da `{RIGHT, el mismo nodo}`.
+- Lanza `IllegalArgumentException` si las hojas están vacías o el índice está fuera de rango, como `build` (`:26-28`).
+- **P-C-1:** §0.4 dice que `MerkleTree.proof` se expone "con un puerto nuevo de solo lectura". `app` ya llama a `MerkleTree` directamente (E1-V10), y el puerto de solo lectura que ve `api` es el de (1). **Recomendación:** que el puerto nuevo sea el de (1), y no añadir otro en `crypto` que solo envuelva una función estática. Si Manuel prefiere un puerto en `crypto`, sería `crypto/application/port/in/MerkleProofPort` **[Plan]**, implementado por un servicio de `crypto`.
+
+### 2.4 Implementación del puerto (1), en `app` (`application/integrity/`, junto a `TrackingIntegrityService`)
+
+Para un `streamId`:
+
+1. `findByStream(streamId)` (puerto (2)): una consulta.
+2. Para cada `merkleBatchId` distinto, `MerkleBatchRepositoryPort.findByBatchId`. Un activo tiene pocos eventos (de 4 a 6) y, por tanto, pocos lotes.
+3. **`anchorStatus`:** el `switch` exhaustivo de C-4 (versión 1, §2.2).
+4. **Si el lote está `ANCHORED` y tiene `leafHashes`:**
+   1. **`leafIndex` se calcula desde `coverage`**, con el criterio de `IntegrityVerificationUseCase.java:69-73`: se suman los tamaños `toSequence − fromSequence + 1` de los streams de `coverage` cuya clave es menor que `streamId` (por `String.compareTo`, como `comparingByKey`), y después se suma `sequence − fromSequence` del propio stream.
+      - Si `streamId` no está en `coverage`, o su `sequence` cae fuera del rango, o el índice no es menor que `leafHashes.size()`: `UNDER_REVIEW`, sin `anchorProof`. Es una incoherencia entre el evento y el lote, y nunca se devuelve una prueba en ese caso.
+   2. **Se compara `leafHashes[leafIndex]` con el `eventHash` actual. Nunca se busca el hash en la lista (§0.4).**
+      - Si son distintos: `UNDER_REVIEW`, sin `anchorProof` (E1.2).
+      - Si son iguales: `anchorProof = {merkleRoot, leafIndex, MerkleTree.proof(leafHashes, leafIndex), transactionHash, network, anchoredAt}`.
+   3. **Un lote, una vez:** si varios pasos del activo caen en el mismo lote, sus pruebas se calculan con la misma lista de hojas leída en el paso 2. No se repite la lectura **[Plan]**.
+5. **Lote `ANCHORED` sin `leafHashes`** (antiguo, E1-V5): `ANCHORED`, con `eventHash` y sin `anchorProof`. No se reconstruye nada con las hojas actuales (E1.2).
+6. **Cualquier otro estado:** `eventHash` y sin `anchorProof`.
+
+**P-C-3:** en un lote `IN_BATCH` con `leafHashes` (de `PENDING` a `SUBMITTED`), ¿también se compara el hash, y un evento alterado da `UNDER_REVIEW`? E1.2 lo dice para "el paso" sin restringirlo, pero la prueba solo existe con `ANCHORED`. **Recomendación:** comparar solo con `ANCHORED`. En los demás estados no hay prueba que proteger, y `UNDER_REVIEW` ya tiene sus estados en C-4.
+
+### 2.5 `api`
+
+- `PublicTransitionDTO` gana:
+  - `String anchorStatus` (G-3), siempre presente;
+  - `String eventHash` (E1), siempre presente;
+  - `@JsonInclude(NON_NULL) PublicAnchorProofDTO anchorProof` **[Plan: nombre]**, con `merkleRoot`, `leafIndex`, `path: [{side, hash}]`, `transactionHash`, `network` y `anchoredAt` (ISO-8601 UTC).
+- `AssetHistoryMapper` cruza cada paso con el mapa **por su `sequence`** (versión 1, §2.2). Si un paso no está en el mapa:
+  - `anchorStatus = PENDING` (P-R6C-3);
+  - sin `anchorProof`;
+  - **sin `eventHash`, porque no hay evento del que leerlo.** E1.2 dice "Siempre", así que se pregunta (**P-C-4**). **Recomendación:** omitirlo antes que inventarlo (regla 2.2). Pasa solo con las proyecciones antiguas de R-R6C-4.
+- **Aserción negativa:** ni `sequence`, ni `streamId`, ni `merkleBatchId`, ni `previousHash`, ni `leafCount`, ni `leafHashes` (DD-76, §0.4).
+
+### 2.6 Vectores fijos (E1.5)
+
+- Archivo de recursos `crypto/src/test/resources/merkle/proof-vectors.json` **[Plan: ruta]**: lista de `{leaves, index, path, root}`.
+- Hojas = SHA-256 en hexadecimal de textos fijos (`"leaf-0"`, `"leaf-1"`…), para que la web pueda regenerarlas.
+- Casos:
+  - 1 hoja (camino vacío);
+  - 2 hojas;
+  - 3 hojas (impar en el primer nivel);
+  - **5 hojas, con el índice 4** (el último, que se combina consigo mismo en dos niveles);
+  - 5 hojas con el índice 2.
+- El test comprueba que `MerkleTree.build` da esa raíz y `MerkleTree.proof` da ese camino.
+- Además, un verificador independiente en el test, el pseudocódigo de E1.3, recalcula la raíz desde el camino.
+- La web copia el archivo para su test de F-C2. El aviso cita el commit (§7).
+
+### 2.7 Clases nuevas y por qué (regla 2.1)
+
+| Clase o cambio | Módulo | Fuente |
+|---|---|---|
+| Puerto de P-R6C-1 con `StepAnchor`, `AnchorProof`, `ProofStep` y `Side` | `contracts` | Ficha §5 (G-3), E1.2; C-V7 (`api` no ve `crypto`) |
+| `TrackingAnchorStatus` (cuatro valores) | `contracts` | C-4; corrección de Manuel del 2026-10-24 |
+| Puerto nuevo `findByStream` con `StreamEventAnchorData` | `core` | E1-V9; regla 3.5 (no tocar `EventBatchMembershipPort`) |
+| Su adaptador Mongo | `core` | Idem |
+| `MerkleTree.proof` y `MerkleTree.ProofStep` | `crypto` | E1.3; §0.4 |
+| Implementación del puerto de P-R6C-1 | `app` | Compone `core` y `crypto`, como `TrackingIntegrityService` |
+| `PublicAnchorProofDTO` y campos de `PublicTransitionDTO` | `api` | E1.2 |
+| `LogisticsReadItem.parentAssetId`, `AssetTransitionReadModel.sequence` | `core` | Versión 1 (C-V2, C-V7) |
+
+No hay excepciones nuevas.
+
+## 3. Tests (rojos primero)
+
+Los tests 7a, 8, 9a, 9b y 9c de la versión 1 (Anexo A, §3) siguen. El 9d se amplía. Se añaden:
+
+| # | Test | Dónde |
+|---|---|---|
+| C-E1 | `MerkleTreeTest`: para listas de 1 a 33 hojas, la prueba de **cada** índice reconstruye `getRoot()` con el verificador de E1.3 | `crypto` |
+| C-E2 | Cambiar un carácter de un paso, de la hoja o el `side` de un paso invalida la prueba (negativa) | `crypto` |
+| C-E3 | Vectores fijos de §2.6, entre ellos el de 5 hojas | `crypto` |
+| C-E4 | `proof` con hojas vacías o con un índice fuera de rango → `IllegalArgumentException` | `crypto` |
+| C-E5 | Integración: lote `ANCHORED` con varios streams y varios eventos por stream (el activo **no** es el primer stream de `coverage`) → `eventHash` igual al del Event Store, `leafIndex` igual a la posición por `coverage`, y la prueba reconstruye `merkleRoot` | `app` (Mongo real) |
+| C-E6 | Lote `PENDING` → `IN_BATCH`, con `eventHash` y **sin** `anchorProof` | `app` |
+| C-E7 | Lote `ANCHORED` sin `leafHashes` → `ANCHORED`, con `eventHash` y **sin** `anchorProof` | `app` |
+| C-E8 | **Evento alterado** (se cambia su `eventHash` en `event_store` a otro valor) → `UNDER_REVIEW`, sin `anchorProof` | `app` |
+| **C-E9** | **Evento alterado con el hash de otra hoja del mismo lote:** su `eventHash` se cambia por el de **otro** evento del lote → `UNDER_REVIEW`, sin `anchorProof`. Es el test que distingue calcular el índice de buscar el hash: si se busca, se encuentra la otra hoja y sale una prueba válida para un hecho que no es el mostrado | `app` |
+| C-E10 | Paso sin evento en el mapa → `PENDING`, sin `eventHash` ni `anchorProof` (P-C-4) | `api` |
+| 9d (ampliado) | La respuesta no contiene `sequence`, `streamId`, `merkleBatchId`, `previousHash`, `leafHashes` ni `leafCount` | `api` y `app` (HTTP) |
+| C-E11 | Por HTTP, con un lote `ANCHORED` real del recorrido: el JSON de `anchorProof` verifica con el pseudocódigo de E1.3, escrito en el test sin usar `MerkleTree` | `app` |
+
+Cada caso de integración lleva las aserciones negativas de las otras ramas (E1.5).
+
+## 4. Mutaciones (`scripts/mutaciones.py`)
+
+Las 1 a 7 de la versión 1 (Anexo A, §4) siguen. La 7 se amplía a "copiar `sequence` o `leafCount` al DTO". Se añaden:
+
+| # | Mutación | La mata |
+|---|---|---|
+| 8 | **Buscar el hash en `leafHashes` (`indexOf(eventHash)`) en lugar de calcular el índice desde `coverage`** (§0.4) | C-E9 |
+| 9 | No comparar `leafHashes[leafIndex]` con el `eventHash` actual | C-E8 |
+| 10 | El nodo impar se combina con un hash vacío en lugar de consigo mismo, en `proof` | C-E1, C-E3 (5 hojas) |
+| 11 | Invertir `LEFT` y `RIGHT` | C-E1, C-E11 |
+| 12 | Calcular el índice sin sumar los streams anteriores de `coverage` | C-E5 |
+| 13 | Dar `anchorProof` con un lote antiguo, reconstruyendo con las hojas actuales | C-E7 |
+
+## 5. Orden de trabajo (tras "plan aprobado" y B-C-1)
+
+1. Rama `feat/r6-bloque-c` desde el `develop` del momento, con su hash.
+2. Tests rojos, con su salida literal.
+3. Verde por capas, con el módulo completo en cada una:
+   1. `crypto` (`MerkleTree.proof` y los vectores);
+   2. `core` (G-4, `sequence` del historial y el puerto nuevo);
+   3. `contracts` (el puerto de P-R6C-1);
+   4. `app` (su implementación);
+   5. `api`;
+   6. `app` (HTTP).
+4. Medición (§6), mutaciones, documentos (§7).
+5. `free -g` con al menos 4 GB y `ci-local.sh` en un clon limpio.
+6. Autoauditoría contra la ficha §5, E1 y §0.4. PR con Carlos.
+
+## 6. Medición (§0.4)
+
+**Con `explain()`:**
+- la consulta del puerto nuevo (`findByStream`). Se espera `IXSCAN` sobre `idx_stream_sequence`, con unas pocas claves examinadas;
+- `findByBatchId`, por el índice único de `batchId` (`MerkleBatchDocument.java:21-22`).
+
+**Con el tiempo:** el historial HTTP de un activo cuyo lote `ANCHORED` tiene **1000 hojas** (el máximo, E1-V8), contra el mismo historial con un lote de 5 hojas. Mediana de 20 llamadas tras 5 de calentamiento.
+
+**Estimación sin medir:**
+- un lote de 1000 hojas pesa unos 66 kB, por `leafHashes`;
+- construir una prueba son unos 1000 SHA-256.
+
+Si el tiempo con 1000 hojas supera en más de 50 ms al de 5 hojas, se anota y se pregunta a Manuel antes de seguir. Se podría guardar en caché la lista de hojas por lote `ANCHORED`, porque ya no cambia (como `MAX_CACHED_BATCHES` en `TrackingIntegrityService.java:48`). No se añade esa caché sin medir.
+
+## 7. Documentos y aviso a la web
+
+- **`referencia-api-v1.md`** §8, notas fechadas:
+  - G-4 (`parentAssetRef?`);
+  - G-3 (`anchorStatus`, cuatro valores);
+  - E1 (`eventHash`, `anchorProof` sin `leafCount`), con el algoritmo de E1.3 y el límite de E1.4: sin separación de dominio entre hojas y nodos, y el nodo impar duplicado.
+- **`api-contract-matrix.md`:** P-R6C-4.
+- **`ficha-R6-datos-estilo-v2.md` §9:** nota junto a D-R6-6 que remite a la Enmienda 1 (E4).
+- **`estado-fase6.md`**, con la evidencia y la medición.
+- **Aviso a la web y al móvil (F-C2)**, con el commit de `develop`:
+  - `anchorStatus` tiene cuatro valores;
+  - `eventHash` y `anchorProof`, con su algoritmo;
+  - los vectores de §2.6;
+  - qué prueba y qué no (E1.4).
+
+## 8. Riesgos
+
+- **R-R6C-1 a R-R6C-4:** los de la versión 1 (Anexo A, §6.1).
+- **R-C-5, orden de los `streamId`.**
+  - El índice usa el orden de `String.compareTo`, el mismo que `comparingByKey` (`IntegrityVerificationUseCase.java:70`) y `Collections.sort` en la reclamación (`MongoUnanchoredEventAdapter.java:36`).
+  - Las hojas siguen el orden de Mongo (`:108`).
+  - Coinciden para texto ASCII, como los identificadores actuales.
+  - Si un día no coincidieran, la verificación existente ya fallaría igual. El efecto aquí sería `UNDER_REVIEW` sin prueba, nunca una prueba falsa, gracias al paso 4.2.
+- **R-C-6, rangos contiguos.**
+  - El cálculo supone que cada rango de `coverage` está completo en el lote. Es la misma suposición que `getEventHashesByCoverage` (consulta por rango, sin filtrar por `merkleBatchId`) y que `IntegrityVerificationUseCase.java:71-75`.
+  - Si no se cumpliera, el paso 4.2 da `UNDER_REVIEW`, nunca una prueba falsa.
+- **R-C-7, segundas preimágenes (E1.4).** No se cambia el algoritmo, porque invalidaría las raíces ancladas. Se documenta.
+- **R-C-8, el hash prueba inclusión, no contenido (E1.4).** Un evento con el payload alterado y el `eventHash` intacto da una prueba válida. Lo detecta `…/integrity`, en el servidor, no esta prueba. La web lo dice (F-C2).
+
+## 9. Puntos para la aprobación de Manuel
+
+| # | Qué | Recomendación |
+|---|---|---|
+| **P-C-0** | Si B-C-1 tarda, ¿G-4 y G-3 primero y E1 después? | No: un solo PR, y se espera |
+| **P-C-1** | El "puerto nuevo de solo lectura" de §0.4: el de P-R6C-1 ampliado, o además uno en `crypto` | El de P-R6C-1, sin un segundo puerto |
+| **P-C-2** | Puerto nuevo en `core` para el hash (E1-V9), sin tocar `EventBatchMembershipPort` | Sí |
+| **P-C-3** | Comparar el hash solo con `ANCHORED` | Sí |
+| **P-C-4** | Paso sin evento → sin `eventHash` (E1.2 dice "Siempre") | Omitirlo, no inventarlo |
+| **P-C-5** | Nombres y rutas marcados **[Plan]** | Aprobar o renombrar |
+| **P-R6C-1 a P-R6C-5** | Los de la versión 1 | Siguen como estaban, con P-R6C-1 ampliado por §2.3 |
+| **B-C-1** | Estado de la Enmienda 1 de la ficha | Pregunta para Carlos (igual que B-G9-1, #124) |
+
+---
+
+## Anexo A — Versión 1 (2026-10-24), íntegra
+
 # Plan — Ficha R-6, Bloque C: relación padre-hijo de los lotes en el seguimiento (G-4) y estado de anclaje por paso (G-3)
 
 **Estado: BORRADOR — espera "plan aprobado" (regla 3.4).** No autoriza código.
