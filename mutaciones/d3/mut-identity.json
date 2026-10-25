@@ -1,0 +1,69 @@
+{
+ "module": "identity",
+ "tests": "AuthenticateAccountPortImplTest,LoginAcceptanceIntegrationTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "1 Comprueba las aceptaciones antes que la contraseña",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AuthenticateAccountPortImpl.java",
+     "old": "        boolean passwordMatches = passwordHasherPort",
+     "new": "        if (account.isPresent()) {\n            requireCurrentAcceptances(account.get(), accepted == null ? AcceptedLegalVersions.NONE : accepted);\n        }\n        boolean passwordMatches = passwordHasherPort"
+    }
+   ]
+  },
+  {
+   "name": "2 Guarda con save(Account) en vez de la escritura parcial",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AuthenticateAccountPortImpl.java",
+     "old": "        boolean written = accountRepositoryPort.recordLegalAcceptancesIfUnchanged(account.getAccountId(),\n                account.getPasswordHash(),\n                pendingTerms == null ? null : new LegalAcceptance(pendingTerms, now),\n                pendingDataPolicy == null ? null : new LegalAcceptance(pendingDataPolicy, now));",
+     "new": "        account.acceptLegalTerms(current.terms(), current.dataPolicy(), now);\n        accountRepositoryPort.save(account);\n        boolean written = true;"
+    }
+   ]
+  },
+  {
+   "name": "3 Acepta cualquier versión",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AuthenticateAccountPortImpl.java",
+     "old": "        boolean acceptsThem = (pendingTerms == null || pendingTerms.equals(accepted.termsVersion()))\n                && (pendingDataPolicy == null || pendingDataPolicy.equals(accepted.dataPolicyVersion()));",
+     "new": "        boolean acceptsThem = accepted.termsVersion() != null && accepted.dataPolicyVersion() != null;"
+    }
+   ]
+  },
+  {
+   "name": "4 No las exige",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/AuthenticateAccountPortImpl.java",
+     "old": "        if (pendingTerms == null && pendingDataPolicy == null) {",
+     "new": "        if (true) {"
+    }
+   ]
+  },
+  {
+   "name": "5 La escritura parcial no exige el mismo passwordHash",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/infrastructure/persistence/mongo/repositories/MongoAccountRepositoryAdapter.java",
+     "old": "                        .and(\"status\").is(\"ACTIVE\")\n                        .and(\"passwordHash\").is(validatedHash.value())",
+     "new": "                        .and(\"status\").is(\"ACTIVE\")"
+    }
+   ]
+  },
+  {
+   "name": "6 La escritura parcial no exige ACTIVE",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/infrastructure/persistence/mongo/repositories/MongoAccountRepositoryAdapter.java",
+     "old": "                Criteria.where(\"_id\").is(accountId.value())\n                        .and(\"status\").is(\"ACTIVE\")\n                        .and(\"passwordHash\").is(validatedHash.value())",
+     "new": "                Criteria.where(\"_id\").is(accountId.value())\n                        .and(\"passwordHash\").is(validatedHash.value())"
+    }
+   ]
+  }
+ ]
+}

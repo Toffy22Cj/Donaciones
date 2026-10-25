@@ -1,0 +1,19 @@
+{
+ "module": "api",
+ "tests": "LoginControllerTest",
+ "args": [
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "7 El login responde 401 en vez de 403 con las pendientes",
+   "edits": [
+    {
+     "file": "api/src/main/java/com/traceability/api/auth/LoginController.java",
+     "old": "            return acceptanceRequired(e);",
+     "new": "            return problem(HttpStatus.UNAUTHORIZED, \"Invalid credentials\");"
+    }
+   ]
+  }
+ ]
+}
