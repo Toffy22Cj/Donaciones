@@ -36,6 +36,9 @@ public class MediaApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(UnsupportedImageFormatException.class, HttpStatus.UNSUPPORTED_MEDIA_TYPE, null),
                 new ApiErrorMapping(MediaStorageUnavailableException.class, HttpStatus.SERVICE_UNAVAILABLE, null),
                 // D-T2-1: la única causa de 404 de las dos rutas del logo
-                new ApiErrorMapping(OrganizationLogoNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND));
+                new ApiErrorMapping(OrganizationLogoNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                // ADR-051 F3 (Tarea 4): una foto, un activo; y el mismo 400 para inexistente, ajena, no evidencia o borrada
+                new ApiErrorMapping(com.traceability.contracts.media.EvidenceAlreadyBoundException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(com.traceability.contracts.media.EvidenceNotFoundException.class, HttpStatus.BAD_REQUEST, null));
     }
 }

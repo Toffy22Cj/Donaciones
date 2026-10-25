@@ -27,4 +27,16 @@ public interface MediaObjectStore {
      * rastro de lo que se hizo. Sin metadato con esa clave, no hace nada.
      */
     void markDeleted(String objectKey, String deletedBy, Instant deletedAt, String reason);
+
+    /** Resultado de {@link #bindEvidence}. */
+    enum BindResult { BOUND, NOT_FOUND, BOUND_TO_OTHER }
+
+    /**
+     * ADR-051 F3 (Tarea 4; P-T4-5): vincula la evidencia {@code (organizationId, DELIVERY_EVIDENCE, sha256)} sin borrar al
+     * activo, en una sola escritura condicional ({@code boundAssetId} nulo o ya ese mismo activo). Si no se aplicó, una
+     * lectura distingue {@link BindResult#BOUND_TO_OTHER} (viva y vinculada a otro activo) de
+     * {@link BindResult#NOT_FOUND} (inexistente, de otra organización, que no es evidencia o borrada); la decisión ya la
+     * tomó la escritura.
+     */
+    BindResult bindEvidence(String organizationId, String sha256, String assetId);
 }

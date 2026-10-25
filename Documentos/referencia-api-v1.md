@@ -144,6 +144,12 @@ Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras 
 
 *Nota (2026-10-21, ficha R-6, Bloque A; G-4b):* `GET /physical-assets/{assetRef}` lleva además **`assetType`** (el registrado). Las filas de arriba no se reescriben.
 
+*Nota (2026-10-25, ADR-051, Tarea 4; F2, F3, F4, F5 y F8): evidencia de entrega.* Las filas de arriba no se reescriben.
+- **Ruta nueva:** `POST /organizations/{organizationId}/delivery-evidence`, `multipart/form-data` con el campo `file` (JPEG o PNG por contenido, como mucho 5 MB). Quién: los roles que pueden entregar (`EMPLOYEE`) de esa organización; el resto, el mismo 403 (DD-01), comprobado antes de leer el archivo. Respuesta: `201 {evidenceRef}`, con `evidenceRef = "sha256:" + SHA-256 de los bytes guardados` (la imagen se guarda limpia, sin EXIF, GPS, XMP ni comentarios; F4). Los mismos bytes de la misma organización devuelven el mismo `evidenceRef` sin duplicar (F9). Errores: 401 sin JWT; 403; 413 `ImageTooLarge`; 415 `UnsupportedImageFormat`; 503 `MediaStorageUnavailable`. **No lleva `Command-Id`.**
+- **Cambio en `POST /physical-assets/{assetRef}/deliver`:** `evidenceRef` tiene que ser `sha256:<64 hexadecimales en minúscula>`, el devuelto por la subida. Si no, **400 `InvalidEvidenceRef`**, sin consumir el `Command-Id` ni mirar el activo. La foto tiene que ser de la organización del activo, de evidencia y no borrada; si no, **400 `EvidenceNotFound`**, el mismo cuerpo en todos esos casos. Una foto solo sirve para **un** activo: usarla en otro da **409 `EvidenceAlreadyBound`** y el activo no cambia. Reintentar la entrega del mismo activo con la misma foto (el mismo `Command-Id`) es un éxito sin evento duplicado. Una entrega rechazada por permisos o por el estado del activo no vincula la foto.
+- **Orden para el cliente (F5):** primero subir la foto, con conexión, y después entregar con su `evidenceRef`. Despachar y recibir no cambian.
+- **Eventos antiguos:** los `ASSET_DELIVERED` con `evidenceRef` en texto libre se siguen leyendo igual; no se reescriben ni cambia la verificación de su cadena.
+
 ## 7. Fondos (Camino A)
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |

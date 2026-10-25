@@ -5,6 +5,10 @@ import com.traceability.app.application.media.MediaObject;
 import com.traceability.app.application.media.MediaObjectStore;
 import com.traceability.app.application.media.MediaPurpose;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -19,9 +23,11 @@ import java.util.Optional;
 public class MongoMediaObjectStore implements MediaObjectStore {
 
     private final MediaObjectRepository repository;
+    private final MongoTemplate mongoTemplate;
 
-    public MongoMediaObjectStore(MediaObjectRepository repository) {
+    public MongoMediaObjectStore(MediaObjectRepository repository, MongoTemplate mongoTemplate) {
         this.repository = repository;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -57,6 +63,27 @@ public class MongoMediaObjectStore implements MediaObjectStore {
         repository.findByObjectKey(objectKey).ifPresent(d -> repository.save(new MediaObjectDocument(d.id(),
                 d.objectKey(), d.sha256(), d.purpose(), d.organizationId(), d.ownerRef(), d.contentType(), d.sizeBytes(),
                 d.width(), d.height(), d.uploadedBy(), d.uploadedAt(), d.boundAssetId(), deletedAt, deletedBy, reason)));
+    }
+
+    /**
+     * Un {@code updateFirst} con el filtro dentro del índice único parcial {@value MediaObjectDocument#EVIDENCE_SHA256_INDEX}
+     * ({@code purpose} incluido): {@code deletedAt} nulo y {@code boundAssetId} nulo o ese mismo activo. Dos entregas
+     * simultáneas de activos distintos: solo una escritura coincide (ADR-051 F3, criterio 10).
+     */
+    @Override
+    public BindResult bindEvidence(String organizationId, String sha256, String assetId) {
+        Criteria evidence = Criteria.where("organizationId").is(organizationId)
+                .and("purpose").is(MediaPurpose.DELIVERY_EVIDENCE)
+                .and("sha256").is(sha256);
+        Query conditional = new Query(new Criteria().andOperator(evidence, Criteria.where("deletedAt").is(null),
+                Criteria.where("boundAssetId").in(null, assetId)));
+        if (mongoTemplate.updateFirst(conditional, new Update().set("boundAssetId", assetId), MediaObjectDocument.class)
+                .getMatchedCount() == 1) {
+            return BindResult.BOUND;
+        }
+        MediaObjectDocument found = mongoTemplate.findOne(new Query(evidence), MediaObjectDocument.class);
+        return found != null && found.deletedAt() == null && found.boundAssetId() != null
+                && !found.boundAssetId().equals(assetId) ? BindResult.BOUND_TO_OTHER : BindResult.NOT_FOUND;
     }
 
     private static MediaObject toMediaObject(MediaObjectDocument document) {
