@@ -14,5 +14,7 @@ public enum PlatformCommandType {
     /** Lista de administradores de plataforma (autorización (3) de Carlos, §3.2). */
     READ_PLATFORM_ADMINISTRATORS,
     /** Logo de una organización por la ruta autenticada (ADR-051 F6, Enmienda 1; plan de la Tarea 2, P-T2-2). */
-    READ_ORGANIZATION_LOGO
+    READ_ORGANIZATION_LOGO,
+    /** Reactivar una cuenta desactivada (ADR-050 D7; plan de cierre, §D7). */
+    REACTIVATE_ACCOUNT
 }

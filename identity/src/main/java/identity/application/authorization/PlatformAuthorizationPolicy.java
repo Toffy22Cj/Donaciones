@@ -25,7 +25,8 @@ public class PlatformAuthorizationPolicy {
                  REVOKE_PLATFORM_AUTHORITY,
                  READ_VERIFICATION_QUEUE,
                  READ_PLATFORM_ADMINISTRATORS,
-                 READ_ORGANIZATION_LOGO ->
+                 READ_ORGANIZATION_LOGO,
+                 REACTIVATE_ACCOUNT ->
                     principal.platformAuthority() == PlatformAuthority.ADMINISTRATOR;
         };
 

@@ -148,11 +148,13 @@ class PlatformAccountReactivationHttpIntegrationTest {
         String outsider = account();
         String reference = send("GET", "/api/v1/platform/administrators", tokens.issue(outsider), null).body();
 
-        for (String by : new String[]{representative, outsider, target}) {
+        for (String by : new String[]{representative, outsider}) {
             HttpResponse<String> r = reactivate(by, target);
             assertThat(r.statusCode()).as(r.body()).isEqualTo(403);
             assertThat(withoutCorrelation(r.body())).isEqualTo(withoutCorrelation(reference));
         }
+        // la propia cuenta desactivada ni siquiera se autentica: su token da 401 (ADR-047 D5), no puede pedirlo
+        assertThat(reactivate(target, target).statusCode()).isEqualTo(401);
 
         assertThat(status(target)).isEqualTo("INACTIVE");
         assertThat(reactivationAudits(target)).isZero();
