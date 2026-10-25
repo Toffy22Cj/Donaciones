@@ -39,8 +39,12 @@ la A usa 0.39–0.49.
 - CORS: Manuel aprobó el plan (#138) el 2026-10-25; notas fechadas en el plan y sobre DD-57 (`2342b97`). La nota de Carlos citada (decisiones-delegadas:179) no nombra CORS expresamente: registrado. Código: ciclo completo después de D6; el PR pasa a listo solo con la evidencia.
 - R-4: `3071605` (defaultCandidate + documentos); R-5: rama `feat/identity-r5-aceptaciones-perfil` `42e6e37` (cherry-pick + tests 22 y 23 ampliados, sin Maven); D6: `feat/identity-d6-desactivacion` `8bc0b09` (sin Maven).
 
+- A1: primera ejecución de `mvn test -pl app -am` sobre `9726be9`: core 340, crypto 50, ai 47, api 160, identity 351 y convocatoria 253 en verde; app "Tests run: 477, Failures: 1" — `twoSimultaneousConfirmations_oneIs204_andTheOther400`: "Expecting actual: [500, 204] to contain exactly in any order: [204, 400]" (IdentityConcurrentModificationException, WriteConflict agotado). Arreglo `eb7c6a6`: BCrypt fuera de la transacción de la confirmación, más el test `markUsedIfPending_onlyMovesAPendingToken_once`.
+- A1: rojo del test del ejecutor (sin defaultCandidate): `theOwnMailExecutor_doesNotReplaceSpringsApplicationTaskExecutor` — "Expecting value to be true but was false" (Tests run: 14, Failures: 1); en esa ejecución el test de concurrencia pasó.
+- A1: segunda ejecución completa de app sobre `eb7c6a6`, en curso.
+
 ## Siguiente paso exacto
 
-A1: cuando acabe `mvn test -pl app -am`, aplicar `defaultCandidate = false` y su test, volver a pasar app, y después
-documentos (referencia-api, ya escrita sin commit; nota en el plan R-3 + R-2, escrita sin commit; estado-fase6 §0.40),
-commit, push, mutaciones 1 a 12 en un clon limpio, ci-local y PR "depende de #137".
+A1: con app en verde sobre `eb7c6a6`: mutaciones (specs en el scratchpad: `r4/mut-identity.json`, `r4/mut-app.json`;
+1 a 13) en un clon limpio con un repositorio Maven aislado (MAVEN_ARGS=-Dmaven.repo.local=…); estado-fase6 §0.40;
+ci-local en un clon limpio; PR "depende de #137".
