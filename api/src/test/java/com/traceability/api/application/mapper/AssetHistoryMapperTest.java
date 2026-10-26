@@ -187,11 +187,11 @@ class AssetHistoryMapperTest {
     void t5_aDeliveryWithAValidFootprint_carriesEvidenceRegisteredAndTheRef() throws Exception {
         com.fasterxml.jackson.databind.JsonNode dto = deliveredStepWith(HUELLA);
 
-        com.fasterxml.jackson.databind.JsonNode delivered = dto.get("transitions").get(1);
+        com.fasterxml.jackson.databind.JsonNode delivered = dto.get("history").get(1);
         assertTrue(delivered.get("evidenceRegistered").asBoolean());
         assertEquals(HUELLA, delivered.get("evidenceRef").asText());
         // E1: los demás pasos no llevan ninguno de los dos campos
-        com.fasterxml.jackson.databind.JsonNode registered = dto.get("transitions").get(0);
+        com.fasterxml.jackson.databind.JsonNode registered = dto.get("history").get(0);
         assertFalse(registered.has("evidenceRegistered"));
         assertFalse(registered.has("evidenceRef"));
     }
@@ -200,7 +200,7 @@ class AssetHistoryMapperTest {
     void t5_aLegacyFreeTextEvidence_isRegisteredWithoutTheRef_andTheTextAppearsNowhere() throws Exception {
         com.fasterxml.jackson.databind.JsonNode dto = deliveredStepWith("acta-1 Juan Pérez");
 
-        com.fasterxml.jackson.databind.JsonNode delivered = dto.get("transitions").get(1);
+        com.fasterxml.jackson.databind.JsonNode delivered = dto.get("history").get(1);
         assertTrue(delivered.get("evidenceRegistered").asBoolean());
         assertFalse(delivered.has("evidenceRef"));
         assertFalse(dto.toString().contains("acta-1"));
@@ -209,7 +209,7 @@ class AssetHistoryMapperTest {
 
     @Test
     void t5_aNullEvidence_isNotRegistered() throws Exception {
-        com.fasterxml.jackson.databind.JsonNode delivered = deliveredStepWith(null).get("transitions").get(1);
+        com.fasterxml.jackson.databind.JsonNode delivered = deliveredStepWith(null).get("history").get(1);
 
         assertFalse(delivered.get("evidenceRegistered").asBoolean());
         assertFalse(delivered.has("evidenceRef"));
@@ -219,7 +219,7 @@ class AssetHistoryMapperTest {
     void t5_almostValidFootprints_neverCarryTheRef() throws Exception {
         for (String almost : List.of("SHA256:" + HUELLA.substring(7), HUELLA.substring(0, HUELLA.length() - 1),
                 HUELLA + "0", "sha256:" + HUELLA.substring(7).toUpperCase(), " " + HUELLA, HUELLA + " ")) {
-            com.fasterxml.jackson.databind.JsonNode delivered = deliveredStepWith(almost).get("transitions").get(1);
+            com.fasterxml.jackson.databind.JsonNode delivered = deliveredStepWith(almost).get("history").get(1);
             assertTrue(delivered.get("evidenceRegistered").asBoolean(), almost);
             assertFalse(delivered.has("evidenceRef"), almost);
         }
