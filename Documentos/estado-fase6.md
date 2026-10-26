@@ -317,6 +317,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
       - 6 (servir una portada retirada) → T3-6.
     - La primera pasada de `app` tuvo la línea base en rojo, porque `convocatoria` no estaba instalada con la portada. Se repitió con ella instalada.
   - **`ci-local.sh`** en un clon limpio de `3ec967a` (último commit de código), con `free -g` en 14 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 170, `identity` 384, `convocatoria` 259, `app` 568). Evidencia: `Documentos/evidencia-ci/ci-local-3ec967a-2026-10-26T00-30-25Z.txt`. `develop` sigue en `6b54630`.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `5732fa3` (#148 D7 y #149 G-8) en `0f0f4f6`; conflictos en este archivo (§0.61 y §0.62 frente a esta §0.63) y en `PublicRoutesInventoryIntegrationTest` (la ruta de D7 y las dos de la portada), resueltos conservando los dos lados, con lo de `develop` delante; en el test solo cambia qué línea cierra la lista; ninguna línea de documentación borrada. `scripts/ci-local.sh` en un clon limpio de `0f0f4f6` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 369", crypto 57, ai 47, api 170, identity 392, convocatoria 259 y app 582, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-0f0f4f6-2026-10-26T02-34-38Z.txt`.
 
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
