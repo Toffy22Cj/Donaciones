@@ -275,6 +275,8 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - **mutaciones** (`scripts/mutaciones.py`, clon limpio con la base instalada con tests): `core` 1 de 1 muerta, `api` 3 de 3 y `app` 9 de 9 (incluida la 12, "el productor no pasa el evidenceRef"); cada spec dice "Mutaciones vivas: 1", que es su línea base 0;
     - **`ci-local.sh`** en un clon limpio de `136c4ca`, salida 0: `evidencia-ci/ci-local-136c4ca-2026-10-26T03-44-59Z.txt`, con la app en "Tests run: 592, Failures: 0, Errors: 0, Skipped: 0".
   - **Nota (2026-10-26): la deuda de la deduplicación, pagada en este corte (pendiente).** D-1 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26): volver a subir los bytes de una evidencia retirada por F7 se rechaza. El cómo está en `plan-deudas-1-a-3-2026-10-26.md` §1 (recomienda el 410 `EvidenceRemoved` que ya existe), que espera la aprobación de Manuel.
+  - **Nota (2026-10-26): deuda nueva P-DB1-3, el logo y la portada.** Volver a subir los mismos bytes de un logo o una portada retirados por F7 crea un objeto nuevo y vivo: no deduplican (`MediaUploadService.java:65`; índice parcial, `MediaObjectDocument.java:18-20` y `:24-25`). Manuel lo acepta así en este corte (comentario de `buelvasmanuel` en #153, 2026-10-26T05:48:54Z, https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078): los sube el administrador de la organización, que de todos modos puede subir otra imagen, y arreglarlo pide un índice nuevo. Queda como deuda registrada, sin acción.
+  - **Nota (2026-10-26): la deuda de la deduplicación, pagada** en `fix/media-evidencia-retirada` (§0.66). Volver a subir los bytes de una evidencia retirada responde 410 `EvidenceRemoved` y no guarda nada.
 
 ### 0.65 M-21 "Mi impacto": `GET /api/v1/account/impact` (2026-10-26, `feat/account-impact`)
 
@@ -308,6 +310,32 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - cada spec dice "Mutaciones vivas: 1", que es su línea base 0.
   - **`ci-local.sh`** en un clon limpio de `b84fed3`, salida 0: `evidencia-ci/ci-local-b84fed3-2026-10-26T04-09-22Z.txt`, con la app en "Tests run: 589, Failures: 0, Errors: 0, Skipped: 0".
 - *Nota (2026-10-26, tren de fusiones, agente local de Manuel):* integrado `develop` `6cb9a95` (#151 T5) en `45b6370`; conflictos en este archivo (§0.64 frente a esta §0.65) y en `PublicRoutesInventoryIntegrationTest` (las dos rutas de T5 y la de M-21), resueltos conservando los dos lados, con lo de `develop` delante; en el test solo cambia qué línea cierra la lista; ninguna línea de documentación borrada. `scripts/ci-local.sh` en un clon limpio de `45b6370` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 370", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 599, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-45b6370-2026-10-26T04-40-46Z.txt`.
+
+### 0.66 Deuda 1: los bytes de una evidencia retirada se rechazan (2026-10-26, `fix/media-evidencia-retirada`)
+
+- Numerada 0.66, en la serie de las deudas 1 a 3 (0.66 a 0.69).
+- **Norma:**
+  - `plan-deudas-1-a-3-2026-10-26.md` §1, APROBADO por Manuel (https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078), con P-DB1-1 (el 410 `EvidenceRemoved` que ya existe) y P-DB1-2 (también en la carrera);
+  - D-1 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26);
+  - ADR-051 F6 (`ADR-051-fotos-y-almacenamiento.md:126`) y F7 (`:138-140`).
+- **Qué hace:** `MediaUploadService.store`, para `DELIVERY_EVIDENCE`, lanza `EvidenceRemovedException` si el metadato con esa huella tiene `deletedAt`.
+  - En el camino normal, lo hace antes de guardar bytes.
+  - En el de la carrera, lo hace al leer al ganador.
+  - No hay nombres nuevos y ningún puerto cambia.
+  - El logo y la portada no cambian (P-DB1-3, deuda registrada en §0.64).
+- **Evidencia:**
+  - **Rojo primero** (commit solo de tests):
+    - `MediaUploadServiceTest`: dos fallos "Expecting code to raise a throwable." (`db1_theBytesOfARemovedEvidence_areRejected_withoutPutNorInsert:279` y `db1_aRaceWhoseWinnerIsRemoved_isRejectedToo:298`);
+    - `DeliveryEvidenceReadAndRemovalHttpIntegrationTest.db1_reuploadingTheBytesOfARemovedEvidence_is410_andStoresNothing:361`: "expected: 410 but was: 201";
+    - en total, "Tests run: 29, Failures: 3".
+  - **Verde por capas** (`mvn test -pl app -am`, módulo entero): core "Tests run: 370", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 602", todos con "Failures: 0, Errors: 0, Skipped: 0" y BUILD SUCCESS.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `80dce43` con la base instalada con tests): 5 de 5 muertas, y la línea base 0 sale VIVA ("Mutaciones vivas: 1"):
+    - 1, no mirar `deletedAt` en el camino normal → `db1_theBytesOfARemovedEvidence_…` y `db1_reuploading…_is410_…`;
+    - 2, no mirarlo en la carrera → `db1_aRaceWhoseWinnerIsRemoved_isRejectedToo`;
+    - 3, `put` antes de la comprobación → los dos `db1` y tres tests de siempre;
+    - 4, lanzar también con un metadato vivo → `sameEvidenceBytesTwice_…` y `concurrentDuplicateEvidence_…`;
+    - 5, deduplicar también el logo → `deduplication_isOnlyForEvidence_…`.
+  - **`ci-local.sh`** en un clon limpio de `732c2c1`, salida 0: `evidencia-ci/ci-local-732c2c1-2026-10-26T06-29-52Z.txt`. Resumen: core "Tests run: 370", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 602", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
 
 ### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
 
@@ -368,6 +396,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 6, G-8 con `anchoredAt.toString()` → `dtb1_aNewEvent100msAfter…` y `t11b_aTieBetweenSources…`;
     - 7, el mapa canónico del hash con el texto fijo → `dtb1_theHashFormOfRecordedAt_staysInstantToString`.
   - **`ci-local.sh`** en un clon limpio de `006bac5`, salida 0: `evidencia-ci/ci-local-006bac5-2026-10-26T06-55-28Z.txt`. Resumen: core "Tests run: 377" (con el test de protección del hash), crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 601", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+- *Nota (2026-10-26, tren de fusiones, agente local de Manuel):* integrado `develop` `fdc62fd` (#154, deuda 1) en `d26db18`, sin conflictos. `scripts/ci-local.sh` en un clon limpio de `d26db18` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 377", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 604, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-d26db18-2026-10-26T11-35-52Z.txt`.
 - **Riesgo que queda (P-DT1-1):**
   - dos eventos viejos del mismo segundo, o uno viejo y uno nuevo en el segundo del despliegue, pueden seguir fuera de orden cronológico;
   - entre eventos nuevos, el orden es siempre el cronológico.

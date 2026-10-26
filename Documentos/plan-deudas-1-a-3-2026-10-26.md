@@ -2,6 +2,8 @@
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. Un solo mensaje aprueba las tres secciones, sus nombres **[Plan]** y la Enmienda 3 de la ficha R-6 (`ficha-R6-enmienda-3.md`). Si Manuel responde a un punto P-…, su respuesta sustituye a la recomendación.
 
+> **Nota (2026-10-26): APROBADO por Manuel**, por delegación de Carlos (comentario de `buelvasmanuel` en #153, 2026-10-26T05:48:54Z, https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078; registrado en `decisiones-delegadas-2026-10.md`). El estado de arriba se conserva; esta nota lo supera. Se aprueban P-DB1-1, P-DB1-2, P-DT1-1 a 4 y P-PE2-1 a 3 como se proponen. **P-DB1-3:** el logo y la portada quedan fuera de este corte, como deuda registrada (`estado-fase6.md` §0.64, nota del 2026-10-26).
+
 **Qué entra lo decidió Manuel** el 2026-10-26, por delegación de Carlos (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26, "comunicado por Manuel"), en D-1, D-2 y D-3. Este plan fija el **cómo**. Google (R-6 de ADR-050) no entra.
 
 **Base verificada:** `develop` `269e047` (merge de #152), 2026-10-26. Cada ruta:línea de este plan se abrió sobre esa base.

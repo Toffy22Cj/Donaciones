@@ -2,6 +2,8 @@
 
 **Estado: PROPUESTA.** **Qué** cambia lo decidió Manuel el 2026-10-26, por delegación de Carlos (D-3, `decisiones-delegadas-2026-10.md`, nota del 2026-10-26, "comunicado por Manuel"). Los puntos de detalle (P-PE2-1 a 3) se aprueban con el "plan aprobado" de `plan-deudas-1-a-3-2026-10-26.md` (§3).
 
+> **Nota (2026-10-26): APROBADA por Manuel**, por delegación de Carlos (comentario de `buelvasmanuel` en #153, 2026-10-26T05:48:54Z, https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078; registrado en `decisiones-delegadas-2026-10.md`). El estado de arriba se conserva; esta nota lo supera. P-PE2-1, P-PE2-2 y P-PE2-3, como se proponen. Se autorizan (§3.5) `findLatestFundIdsByOrganization` y `findLatestAssetIdsByOrganization`.
+
 **Fecha:** 2026-10-26 (UTC).
 **Base verificada:** `develop` en `269e047`.
 **Cambia:** la respuesta de G-8 de la ficha R-6 (CONGELADA, `ficha-R6-datos-estilo-v2.md:4`), en `ficha-R6-datos-estilo-v2.md:141-154`, ya precisada por P-R6D-1 (b) (`:153-155`) y por la Enmienda 2 (`ficha-R6-enmienda-2.md`). El resto de la ficha no cambia.
