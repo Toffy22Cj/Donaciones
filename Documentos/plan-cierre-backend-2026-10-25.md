@@ -411,3 +411,10 @@ Los de la enmienda: **P-E2-1** (siempre) y **P-E2-2** (aceptar los más antiguos
 | H-CB-4 | ADR-021-D excluye `parentAssetRef`; G-4 expone uno opaco con ese nombre | `documento-maestro-proyecto.md:172`; `PublicLogisticsItemDTO.java:16` |
 | H-CB-5 (M-22) | La lista de campos del comprobante no está en ningún repositorio legible (`Donaciones`, `PaxFide` y `PaxFide_Mv`; el PDF del 16 de octubre no está subido). Sin ella no se puede comprobar que no falta ninguno. Hoy `/account/donations` trae `intentId`, `campaignTitle`, `amount`, `currency`, `status`, `trackingCode?`, `createdAt?`, `confirmedAt?`, `organizationName?`, `paymentMethod?` y `publicCode?`. La web prohíbe el `trackingCode` en el comprobante (`PaxFide`, `prompts-agentes-estilo-v2.md:162`, T1-7) | `DonationDtos.java:30-32` |
 | H-CB-6 | `auditoria-pendientes-manuel-2026-10-24.md:187` usa "M-21" para otra cosa (E1 en el historial), no para "Mi impacto" | Ese archivo |
+
+---
+
+> **Nota (2026-10-26): decisiones de Manuel sobre los dos bloqueos** (comentario de `buelvasmanuel` en #147, 2026-10-26T02:06:07Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6406618994; registradas en `decisiones-delegadas-2026-10.md`). Lo de arriba se conserva; esta nota lo precisa.
+> - **M-21, opción (a):** `DonationIntentReadPort.DonationView` (`convocatoria`) gana `campaignRef`. Es un cambio aditivo, autorizado por la regla 3.5. `campaignsSupported` cuenta los `campaignRef` distintos de las donaciones `CONFIRMED`; se descarta sacarlo del fondo.
+> - **T5, opción (a) a H-T5-1:** `AssetAnchorStatusPort.StepAnchor` (`contracts`) gana `evidenceRef`. `app` lo rellena con la misma consulta al Event Store que ya hace para el anclaje (`StreamEventAnchorDataPort.findByStream`), y `api` lo lee de ahí. Es un cambio aditivo, autorizado por la regla 3.5. P-T5-1 queda así: el puerto de `core` aporta el dato y `contracts` lo lleva a `api`. **La medición del Bloque C no se toca:** una sola consulta al Event Store por historial.
+> - **Deuda:** la deduplicación de `MediaUploadService.java:67` no mira `deletedAt`. Queda fuera de este trabajo.

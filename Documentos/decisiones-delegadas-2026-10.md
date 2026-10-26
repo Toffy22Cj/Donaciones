@@ -239,3 +239,23 @@ Es la fuente de la delegación que citan `plan-ejecucion-cierre-manuel-2026-10-2
   - el código de D7, G-8, M-21, T3 y T5, en ese orden y con un PR por tarea;
   - para T5, también la enmienda de ADR-021-D.
 - **Deuda nueva:** G-8 por encima de 10 000 (P-E2-2), sin cambiar los puertos de los directorios.
+
+**Nota (2026-10-26): decisiones de Manuel sobre M-21 y T5, y autorización de la regla 3.5 para dos puertos.** Fuente citable: comentario de `buelvasmanuel` en #147, 2026-10-26T02:06:07Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6406618994. Texto literal:
+
+```
+1. **M-21 "Mi impacto" (bloqueo por `DonationIntentReadPort.DonationView` sin `campaignRef`, `convocatoria/.../DonationIntentReadPort.java:28-30`): opción (a) APROBADA.**
+   - Se añade `campaignRef` a `DonationView`. Es un cambio aditivo del puerto, que también usa `app`.
+   - Esta nota es la autorización de reglas-equipo §3.5 para ese puerto.
+   - Se descarta (b), sacarlo del fondo, porque dejaría sin contar las donaciones `CONFIRMED` sin fondos aplicados.
+
+2. **T5 evidencia, H-T5-1 (`TrackingLineageAndAnchorHttpIntegrationTest.java:246`: una sola consulta al Event Store por historial): opción (a) APROBADA.**
+   - `StepAnchor` (contracts) gana `evidenceRef`. Se rellena en la misma consulta que ya hace `app`.
+   - Es un cambio aditivo de un puerto de `contracts`. Esta nota es su autorización §3.5.
+   - La medición del Bloque C **no se relaja**: se descartan (b), la caché por petición, y (c), aceptar dos consultas.
+
+Antes del código, hay que registrar estas dos decisiones con una nota fechada en `Documentos/decisiones-delegadas-2026-10.md` y en `plan-cierre-backend-2026-10-25.md`.
+
+El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `deletedAt`) queda fuera de este trabajo. Se anota como deuda, pendiente de decisión aparte.
+```
+
+- **Deuda nueva:** la deduplicación de `MediaUploadService.java:67` no mira `deletedAt`, así que volver a subir los mismos bytes de una foto retirada devolvería el metadato retirado. Queda fuera de este trabajo, pendiente de decisión aparte.
