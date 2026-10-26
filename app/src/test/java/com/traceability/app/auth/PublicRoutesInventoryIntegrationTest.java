@@ -128,7 +128,9 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/platform/accounts/{accountId}/reactivate",
             // ADR-051, Tarea 3: subir y quitar la portada (F8), solo ADMINISTRATOR; la lectura pública está en PublicRoutes
             "PUT /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
-            "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover");
+            "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
+            // M-21 (plan de cierre): "Mi impacto" de la cuenta, autenticada
+            "GET /api/v1/account/impact");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");

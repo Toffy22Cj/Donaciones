@@ -351,6 +351,13 @@ class GoldenPathHttpIntegrationTest {
         assertThat(history).hasSize(1);
         assertThat(history.get(0).get("intentId").asText()).isEqualTo(withAccount.get("intentId").asText());
         assertThat(history.get(0).has("trackingCode")).isTrue();
+        // M-21 (plan de cierre): "Mi impacto" de esa cuenta, con su única donación; su fondo no compra activos
+        JsonNode impact = ok(send("GET", "/api/v1/account/impact", donor, null), 200);
+        assertThat(impact.get("donationsCount").asInt()).isEqualTo(1);
+        assertThat(impact.get("totals").toString()).isEqualTo("[{\"currency\":\"COP\",\"amount\":\"40000\"}]");
+        assertThat(impact.get("campaignsSupported").asInt()).isEqualTo(1);
+        assertThat(impact.get("deliveredUnits")).isEmpty();
+        assertThat(impact.get("truncated").asBoolean()).isFalse();
 
         // Paso 4, Camino A (criterio 7), solo por HTTP (plan P1.1): el administrador ve los fondos de la organización y
         // pide una asignación sobre el de la donación anónima; el empleado registra el activo comprado con ella
