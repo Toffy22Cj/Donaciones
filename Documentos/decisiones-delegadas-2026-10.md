@@ -275,3 +275,15 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
   - Los métodos existentes y G-7 no cambian, y `truncated` se mantiene.
   - Hace falta una Enmienda 3 de la ficha R-6, que está CONGELADA: `ficha-R6-enmienda-3.md`.
 - **Anotado al registrarlo, sin resolver:** D-2 cita ADR-025 para "el Event Store es de solo escritura", pero ADR-025 habla del Audit Log de `identity` (`ADR-025-persistencia-identidad.md:19-20`). La inmutabilidad del Event Store está en `documento-maestro-proyecto.md:18` y `:499`. La restricción vale igual.
+
+**Nota (2026-10-26): plan de las deudas 1 a 3 APROBADO por Manuel**, por delegación de Carlos. Fuente citable: comentario de `buelvasmanuel` en #153, 2026-10-26T05:48:54Z, https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078.
+- **Qué aprueba:** `plan-deudas-1-a-3-2026-10-26.md` y la Enmienda 3 de la ficha R-6 (`ficha-R6-enmienda-3.md`).
+- **Deuda 1:**
+  - P-DB1-1: el rechazo usa el 410 `EvidenceRemoved` que ya existe;
+  - P-DB1-2: la comprobación se hace también en el camino de la carrera;
+  - **P-DB1-3:** el logo y la portada quedan **fuera de este corte, como deuda registrada**. Hoy, volver a subir los mismos bytes de un logo o una portada retirados crea un objeto nuevo. Se acepta así porque los sube el administrador de la organización, que de todos modos puede subir otra imagen, y arreglarlo pide un índice nuevo. La nota fechada está en `estado-fase6.md` §0.64.
+- **DT-B-1:** P-DT1-1 a 4, como se proponen. Los eventos viejos se toleran al leer y los nuevos se escriben con 9 decimales fijos.
+- **P-E2-2:** P-PE2-1 a 3, como se proponen.
+  - Se autorizan (§3.5) `findLatestFundIdsByOrganization` y `findLatestAssetIdsByOrganization`.
+  - Los métodos existentes y G-7 no cambian.
+- **La contradicción anotada:** la cita de ADR-025 era errónea, porque ADR-025 trata del Audit Log de `identity`. La inmutabilidad del Event Store se apoya en `documento-maestro-proyecto.md:18` y `:499`. La restricción no cambia: los eventos guardados no se reescriben.
