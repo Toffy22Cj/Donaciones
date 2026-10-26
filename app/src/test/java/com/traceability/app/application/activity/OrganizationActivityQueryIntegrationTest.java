@@ -12,6 +12,7 @@ import com.traceability.convocatoria.application.query.OrganizationCampaignClosu
 import com.traceability.core.application.authorization.OrganizationBoundaryPolicy;
 import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.application.event.EventPayloadRegistry;
+import com.traceability.core.application.event.RecordedAtText;
 import com.traceability.core.application.port.out.ActivityEventsPort;
 import com.traceability.core.application.port.out.AssetDirectoryPort;
 import com.traceability.core.application.port.out.EventBatchCountPort;
@@ -298,6 +299,54 @@ class OrganizationActivityQueryIntegrationTest {
 
         assertThat(query.page(employee(), ORG, null).items()).extracting(ActivityItem::type)
                 .startsWith("ASSET_RECEIVED", "BATCH_ANCHORED");
+    }
+
+    // P-E2-2 (Enmienda 3 de la ficha R-6; plan de las deudas 1 a 3 §3): con 10 001 activos o fondos, G-8 lee los 10 000
+    // más recientes por su génesis. La primera página empieza por el más nuevo, que antes quedaba fuera; truncated sigue
+    @Test
+    void pe2_with10001Assets_theNewestAssetLeadsTheFirstPage_andItIsTruncated() {
+        manyGeneses("asset-", OrganizationActivityQuery.DIRECTORY_LIMIT + 1);
+
+        ActivityPage page = query.page(employee(), ORG, null);
+
+        assertThat(page.truncated()).isTrue();
+        assertThat(signature(page.items().get(0))).startsWith("ASSET_REGISTERED|ASSET:asset-10000|");
+        assertThat(page.items()).extracting(OrganizationActivityQueryIntegrationTest::signature)
+                .noneMatch(s -> s.contains("ASSET:asset-0|"));
+    }
+
+    @Test
+    void pe2_with10001Funds_theNewestFundLeadsTheFirstPage_andItIsTruncated() {
+        manyGeneses("fund-", OrganizationActivityQuery.DIRECTORY_LIMIT + 1);
+
+        ActivityPage page = query.page(employee(), ORG, null);
+
+        assertThat(page.truncated()).isTrue();
+        assertThat(signature(page.items().get(0))).startsWith("FUNDS_CLEARED|FUND:fund-10000|");
+    }
+
+    /** {@code n} génesis de la organización, una por segundo: la {@code prefix + (n - 1)} es la más reciente. */
+    private void manyGeneses(String prefix, int n) {
+        Instant base = Instant.parse("2026-09-01T00:00:00Z");
+        List<TraceabilityEventDocument> docs = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            String stream = prefix + i;
+            boolean fund = prefix.startsWith("fund");
+            DomainEventPayload payload = fund
+                    ? new FundsClearedV2Payload(ORG, 1000L, "tx-" + stream, "COP", "camp-1", "anon:x")
+                    : registered(stream, ORG);
+            String type = fund ? "FUNDS_CLEARED" : "ASSET_REGISTERED";
+            String schema = EventPayloadRegistry.getSchemaVersionForClass(payload.getClass());
+            Instant at = base.plusSeconds(i);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = (Map<String, Object>) MAPPER.toCanonicalMap("e-" + stream, stream,
+                    fund ? "Fund" : "PhysicalAsset", 1, type, schema, at, at, "TEST", payload).get("payload");
+            docs.add(TraceabilityEventDocument.builder().eventId("e-" + stream).streamId(stream)
+                    .aggregateType(fund ? "Fund" : "PhysicalAsset").sequence(1).eventType(type).schemaVersion(schema)
+                    .occurredAt(at.toString()).recordedAt(RecordedAtText.of(at)).payload(map).eventHash("h")
+                    .previousHash("p").build());
+        }
+        mongoTemplate.insertAll(docs);
     }
 
     // Ítems: cantidad, unidad y zona salen del payload; un FUNDS_CLEARED no lleva importe

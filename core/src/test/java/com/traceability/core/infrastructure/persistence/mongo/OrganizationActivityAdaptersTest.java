@@ -71,6 +71,7 @@ class OrganizationActivityAdaptersTest {
     @Autowired private MongoEventBatchCountAdapter batchCounts;
     @Autowired private MongoActivityEventsAdapter activity;
     @Autowired private MongoAssetDirectoryAdapter assetDirectory;
+    @Autowired private MongoFundDirectoryAdapter fundDirectory;
 
     private static final EventCanonicalMapper MAPPER = new EventCanonicalMapper();
     private static final Set<String> TYPES = Set.of("ASSET_REGISTERED", "ASSET_DISPATCHED", "ASSET_RECEIVED",
@@ -217,6 +218,77 @@ class OrganizationActivityAdaptersTest {
                         RecordedAtText.of(Instant.parse("2026-10-20T10:00:05.1Z")), UUID.randomUUID().toString())));
 
         assertThat(assetDirectory.findAssetIdsByOrganization("org-dtb1", 10)).containsExactly("asset-z", "asset-a");
+    }
+
+    // ---- P-E2-2 (Enmienda 3 de la ficha R-6; plan de las deudas 1 a 3 §3): los directorios, de lo más reciente ----
+
+    @Test
+    void pe2_latestDirectories_newestGenesisFirst_tiesByStreamIdDescending_withTheLimit() {
+        mongoTemplate.insertAll(List.of(
+                event("asset-9", 1, "ASSET_REGISTERED", registeredFor("asset-9", "org-x"), "2026-10-20T10:00:00.000000000Z", "e-a9"),
+                event("asset-1", 1, "ASSET_REGISTERED", registeredFor("asset-1", "org-x"), "2026-10-20T10:00:01.000000000Z", "e-a1"),
+                event("asset-2", 1, "ASSET_REGISTERED", registeredFor("asset-2", "org-x"), "2026-10-20T10:00:02.000000000Z", "e-a2"),
+                event("asset-3", 1, "ASSET_REGISTERED", registeredFor("asset-3", "org-x"), "2026-10-20T10:00:02.000000000Z", "e-a3"),
+                event("asset-1", 2, "ASSET_DISPATCHED", new AssetDispatchedPayload("c", "l"), "2026-10-21T10:00:00.000000000Z", "e-a1b"),
+                event("asset-0", 1, "ASSET_REGISTERED", registeredFor("asset-0", "org-other"), "2026-10-22T10:00:00.000000000Z", "e-a0"),
+                event("fund-9", 1, "FUNDS_CLEARED", cleared("fund-9"), "2026-10-20T10:00:00.000000000Z", "e-f9"),
+                event("fund-1", 1, "FUNDS_CLEARED", cleared("fund-1"), "2026-10-20T10:00:02.000000000Z", "e-f1"),
+                event("fund-2", 1, "FUNDS_CLEARED", cleared("fund-2"), "2026-10-20T10:00:02.000000000Z", "e-f2")));
+
+        assertThat(assetDirectory.findLatestAssetIdsByOrganization("org-x", 10))
+                .containsExactly("asset-3", "asset-2", "asset-1", "asset-9");
+        assertThat(assetDirectory.findLatestAssetIdsByOrganization("org-x", 2)).containsExactly("asset-3", "asset-2");
+        assertThat(fundDirectory.findLatestFundIdsByOrganization("org-1", 10)).containsExactly("fund-2", "fund-1", "fund-9");
+        assertThat(fundDirectory.findLatestFundIdsByOrganization("org-1", 1)).containsExactly("fund-2");
+        // los métodos de antes no cambian: de lo más antiguo
+        assertThat(assetDirectory.findAssetIdsByOrganization("org-x", 10))
+                .containsExactly("asset-9", "asset-1", "asset-2", "asset-3");
+        assertThat(fundDirectory.findFundIdsByOrganization("org-1", 10)).containsExactly("fund-9", "fund-1", "fund-2");
+    }
+
+    // P-PE2-2: el orden descendente recorre el índice de génesis de hoy, sin etapa de ordenación
+    @Test
+    void pe2_latestDirectories_useTheGenesisIndexes_withoutASortStage() {
+        List<TraceabilityEventDocument> docs = new ArrayList<>();
+        for (int org = 0; org < 5; org++) {
+            for (int a = 0; a < 10; a++) {
+                String asset = "asset-" + org + "-" + a;
+                docs.add(event(asset, 1, "ASSET_REGISTERED", registeredFor(asset, "org-" + org),
+                        "2026-10-20T10:00:0" + a + ".000000000Z", UUID.randomUUID().toString()));
+                String fund = "fund-" + org + "-" + a;
+                docs.add(event(fund, 1, "FUNDS_CLEARED", new FundsClearedV2Payload("org-" + org, 1000L, "tx-" + fund,
+                        "COP", "camp-1", "anon:x"), "2026-10-20T10:00:0" + a + ".000000000Z", UUID.randomUUID().toString()));
+            }
+        }
+        mongoTemplate.insertAll(docs);
+
+        for (String directory : List.of("asset", "fund")) {
+            mongoTemplate.getDb().getCollection("system.profile").drop();
+            mongoTemplate.getDb().runCommand(new Document("profile", 2));
+            List<String> ids = directory.equals("asset") ? assetDirectory.findLatestAssetIdsByOrganization("org-3", 100)
+                    : fundDirectory.findLatestFundIdsByOrganization("org-3", 100);
+            mongoTemplate.getDb().runCommand(new Document("profile", 0));
+
+            assertThat(ids).hasSize(10).allMatch(id -> id.startsWith(directory + "-3-"));
+            List<Document> profiled = new ArrayList<>();
+            mongoTemplate.getDb().getCollection("system.profile")
+                    .find(new Document("ns", mongoTemplate.getDb().getName() + ".event_store").append("op", "query"))
+                    .forEach(d -> {
+                        Document filter = d.get("command", Document.class).get("filter", Document.class);
+                        if (filter != null && "org-3".equals(filter.get("payload.organizationRef"))) {
+                            profiled.add(d);
+                        }
+                    });
+            assertThat(profiled).as(directory).hasSize(1);
+            Document q = profiled.get(0);
+            System.out.println("[medición P-PE2-2] directorio " + directory + " descendente: planSummary="
+                    + q.get("planSummary") + " keysExamined=" + q.get("keysExamined") + " docsExamined="
+                    + q.get("docsExamined") + " hasSortStage=" + q.get("hasSortStage"));
+            assertThat(q.getString("planSummary")).as(directory)
+                    .contains("payload.organizationRef: 1, recordedAt: 1, streamId: 1");
+            assertThat(((Number) q.get("docsExamined")).intValue()).as(directory).isEqualTo(10);
+            assertThat(q.get("hasSortStage")).as(directory).isNotEqualTo(Boolean.TRUE);
+        }
     }
 
     // ---- Utilidades ----
