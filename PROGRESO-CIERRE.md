@@ -71,3 +71,14 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - **T5: #151.** Notas de decisión en `a0cf7f5`, antes del código; merge de develop `a94e9c9`; código `136c4ca`. App 592; mutaciones 13 de 13 muertas; ci-local exit 0 (`ci-local-136c4ca-…`).
 - **M-21:** rama `feat/account-impact` desde `ab19717`. `DonationView.campaignRef`; `GET /api/v1/account/impact`. App 589; mutaciones 9 de 9 muertas; ci-local en curso.
 - Orden de fusión: #151 (lleva las notas de decisión) → M-21. Si develop se mueve, integrar develop y repetir la CI.
+
+## Deudas 1 a 3 (2026-10-26)
+
+- Base: develop `269e047` (#147 a #152 fusionados). Google (R-6 de ADR-050) no entra.
+- **P0: #153** (`chore/docs-deudas-1-a-3`, `0926c77`), solo documentos: nota de D-1, D-2 y D-3, `plan-deudas-1-a-3-2026-10-26.md`, `ficha-R6-enmienda-3.md` y las notas "pendiente" en §0.53, §0.64 y la Enmienda 2. **DETENIDO** hasta el comentario de aprobación de buelvasmanuel en #153.
+- Hechos clave:
+  - D-1: dedup en `MediaUploadService.java:65-71`; el índice parcial cubre también las retiradas; el 410 `EvidenceRemoved` ya existe.
+  - D-2: `recordedAt` entra en el hash, pero el verificador parsea y rehace `toString()`, así que guardar 9 decimales no cambia el hash. No entra en el Merkle.
+  - D-3: métodos nuevos `findLatest…`, solo para G-8.
+- Contradicción anotada: ADR-025 es el Audit Log de identity, no el Event Store.
+- Siguiente: tras la aprobación, P1 → P2 → P3 (P3 sale de P2 si P2 no está fusionado).
