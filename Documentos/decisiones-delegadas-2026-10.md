@@ -218,3 +218,24 @@ Es la fuente de la delegación que citan `plan-ejecucion-cierre-manuel-2026-10-2
   - **D7:** la nota del 2026-10-25 de la línea 185 ("Fuera, según Manuel: D7") y la nota del plan D6 (`plan-d6-desactivacion-propia.md:5`) dejaban D7 fuera. La decisión 1 lo mete en el corte. Las dos notas se conservan.
   - **T5:** la misma línea 185 dejaba la Tarea 5 de ADR-051 fuera por faltar la enmienda de ADR-021-D. La decisión 5 la mete, con esa enmienda antes.
   - **T3:** `ADR-051:299` sugería a Carlos como responsable. La columna dice "Responsable sugerido", así que no es una contradicción.
+
+**Nota (2026-10-25, más tarde): "plan aprobado" de Manuel sobre el cierre del backend.** Fuente citable: comentario de `buelvasmanuel` en #147, 2026-10-25T22:35:54Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6404356890. El comentario dice que lo publicó el agente local de Manuel a petición suya. #147 se fusionó en `develop` como `6b54630`. Texto literal:
+
+```
+**Plan aprobado:** `plan-cierre-backend-2026-10-25.md`, con estas respuestas:
+- **P-E2-2:** se acepta en este corte que, por encima de 10 000, G-8 muestre los fondos y activos más antiguos; `truncated` lo avisa. Queda como deuda; no se cambian los puertos de los directorios.
+- **P-M21-3:** "donado" cuenta solo las donaciones `CONFIRMED` (DD-46).
+- **P-M21-4:** se acepta el conteo por activo. La métrica se presenta como "unidades entregadas en las convocatorias que apoyaste", no como unidades atribuidas al donante.
+- **Resto de puntos** (P-D7-1 a 4, P-E2-1, P-M21-1, 2 y 5, P-T3-1 a 5, P-T5-1 a 4): aprobados como propone el plan.
+
+**Aprobadas:**
+- la **Enmienda 2 de la ficha R-6** (`ficha-R6-enmienda-2.md`: `truncated` en G-8, con el criterio de G-7);
+- la **enmienda de ADR-021-D** (`ADR-021-D-enmienda-1-huella-evidencia.md`, P-21D-1 a 4): la huella va en el paso `ASSET_DELIVERED` del historial. En P-21D-4 se permite el `parentAssetRef` opaco, porque así lo aprobó la ficha R-6 (G-4); la enmienda tiene que decirlo de forma explícita.
+
+**M-22:** se cierra en el backend sin cambios. El PDF del 16 de octubre ("Funciones de la app móvil y pantallas del empleado") no lista campos; los define el diseño de Carlos. Si ese diseño necesita un dato que no esté en los 11 campos de `GET /account/donations`, se abre como ítem nuevo.
+```
+
+- **Autoriza:**
+  - el código de D7, G-8, M-21, T3 y T5, en ese orden y con un PR por tarea;
+  - para T5, también la enmienda de ADR-021-D.
+- **Deuda nueva:** G-8 por encima de 10 000 (P-E2-2), sin cambiar los puertos de los directorios.

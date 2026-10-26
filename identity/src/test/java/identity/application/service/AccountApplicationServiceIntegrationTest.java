@@ -63,6 +63,8 @@ import static org.mockito.Mockito.times;
         ReactivateAccountService.class,
         AddEmployeeService.class,
         identity.application.authorization.AuthorizationAuditActorMapper.class,
+        // ADR-050 D7: ReactivateAccountService autoriza con la política de plataforma
+        identity.application.authorization.PlatformAuthorizationPolicy.class,
         StubCampaignResponsibilityPort.class
 })
 class AccountApplicationServiceIntegrationTest extends BaseMongoIntegrationTest {
