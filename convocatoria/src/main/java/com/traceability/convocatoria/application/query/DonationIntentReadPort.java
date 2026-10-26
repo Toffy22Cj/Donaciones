@@ -24,8 +24,10 @@ public interface DonationIntentReadPort {
      * confirmadas o {@code FUNDING_REJECTED}), {@code organizationRef} (interno: {@code app} lo convierte en el nombre
      * y nunca lo devuelve), {@code paymentMethod} y {@code publicCode}, que es nulo salvo si la convocatoria es
      * {@code PUBLIC} al leer: el código de una {@code PRIVATE_LINK} nunca cruza este puerto (ADR-041 §2.7).
+     * {@code campaignRef}: interno, como {@code organizationRef}; {@code app} lo usa para contar las convocatorias
+     * apoyadas (M-21) y nunca lo devuelve (decisión (a) de Manuel, autorización 3.5 en #147, comentario 6406618994).
      */
     record DonationView(String intentId, String campaignTitle, long amount, String currency, String status,
                         String fundId, Instant fundsAppliedAt, Instant createdAt, Instant confirmedAt,
-                        String organizationRef, String paymentMethod, String publicCode) {}
+                        String organizationRef, String paymentMethod, String publicCode, String campaignRef) {}
 }

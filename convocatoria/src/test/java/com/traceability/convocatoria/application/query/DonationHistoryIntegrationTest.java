@@ -159,6 +159,23 @@ class DonationHistoryIntegrationTest extends AbstractConvocatoriaServiceIntegrat
         assertThat(h.get(toOpen).paymentMethod()).isEqualTo("GATEWAY");
     }
 
+    // M-21 (plan de cierre; decisión (a) de Manuel, autorización 3.5 en #147): campaignRef interno en cada vista, también
+    // de las PRIVATE_LINK, que no dan publicCode; app lo usa para contar las convocatorias apoyadas y nunca lo devuelve
+    @Test
+    void m21_campaignRef_isInEveryView_alsoForPrivateLinkCampaigns() {
+        Convocatoria open = campaign(Visibility.PUBLIC);
+        Convocatoria privateLink = campaign(Visibility.PRIVATE_LINK);
+        String toOpen = donate(open, PaymentMethod.GATEWAY);
+        String toPrivate = donate(privateLink, PaymentMethod.GATEWAY);
+        String again = donate(open, PaymentMethod.GATEWAY);
+
+        Map<String, DonationView> h = history();
+        assertThat(h.get(toOpen).campaignRef()).isEqualTo(open.getCampaignRef());
+        assertThat(h.get(again).campaignRef()).isEqualTo(open.getCampaignRef());
+        assertThat(h.get(toPrivate).campaignRef()).isEqualTo(privateLink.getCampaignRef());
+        assertThat(h.get(toPrivate).publicCode()).isNull();
+    }
+
     private void setVisibility(Convocatoria c, Visibility visibility) {
         mongoTemplate.getCollection("convocatorias").updateOne(new Document("_id", c.getCampaignRef()),
                 new Document("$set", new Document("visibility", visibility.name())));

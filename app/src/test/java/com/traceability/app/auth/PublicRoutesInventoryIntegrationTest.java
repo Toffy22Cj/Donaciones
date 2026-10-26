@@ -131,7 +131,9 @@ class PublicRoutesInventoryIntegrationTest {
             "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
             // ADR-051, Tarea 5: leer la evidencia (F6) y retirar fotos (F7), autenticadas
             "GET /api/v1/physical-assets/{assetRef}/evidence",
-            "POST /api/v1/platform/organizations/{organizationId}/media/remove");
+            "POST /api/v1/platform/organizations/{organizationId}/media/remove",
+            // M-21 (plan de cierre): "Mi impacto" de la cuenta, autenticada
+            "GET /api/v1/account/impact");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
