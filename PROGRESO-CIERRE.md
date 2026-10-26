@@ -18,7 +18,7 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 | P2 G-8 truncated | HECHO (PR abierto) | `feat/r6-g8-truncated` `bc969db` | #149 | ci-local fef7e6c BUILD SUCCESS (app 564); 5/5 mutaciones | — |
 | P3 M-21 | BLOQUEADO | — | — | — | `DonationIntentReadPort.DonationView` sin campaignRef (`convocatoria/.../DonationIntentReadPort.java:28-30`); cambiarlo es cambiar un puerto que usa `app` (regla 3.5), no autorizado |
 | P4 T3 portada | HECHO (PR abierto) | `feat/adr051-t3-portada` `77e7136` | #150 | ci-local 3ec967a BUILD SUCCESS (app 568); 8/8 mutaciones | — |
-| P5 T5 | EN CURSO | `feat/adr051-t5-evidencia-lectura` `a7ec3c9` (sale de T3) | — | rojo hecho; verde en curso | depende de #150 |
+| P5 T5 | BLOQUEADO (rama subida, sin PR) | `feat/adr051-t5-evidencia-lectura` `2fcbaa5` (sale de T3) | — | rojo hecho; verde: app 577, 1 fallo (medición del Bloque C) | H-T5-1: dos consultas al event store por historial; decisión de Manuel (a)/(b)/(c); además depende de #150 |
 
 ## Bitácora
 
@@ -61,3 +61,6 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 
 - G-8: #149. T3: #150. T5: en curso, sale de `feat/adr051-t3-portada` porque retirar una portada necesita `ConvocatoriaCoverReferenceService` (depende de #150).
 - Las cinco ramas añaden secciones junto a §0.60 en estado-fase6: cuando se fusione una, las demás integran develop (merge normal, conservar los dos lados) y repiten la CI.
+
+- **T5 bloqueado (H-T5-1):** `TrackingLineageAndAnchorHttpIntegrationTest.java:246` exige una consulta al event store por historial (plan C §6); el mapper de T5 añade una segunda. Opciones en §0.64 de la rama. Recomendada (a): `StepAnchor` (contracts) gana `evidenceRef` — cambio de puerto, necesita aprobación.
+- Siguiente: respuestas de Manuel para M-21 (campaignRef) y T5 (H-T5-1). Al fusionarse cualquier PR: integrar develop en los demás y repetir CI.
