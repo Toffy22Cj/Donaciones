@@ -279,6 +279,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 4 (usar los `DIRECTORY_LIMIT + 1`) → e2_1 y e2_2;
     - 5 (la respuesta con `false` fijo) → e2_6.
   - **`ci-local.sh`** en un clon limpio de `fef7e6c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 384, `convocatoria` 255, `app` 564, con el test del controlador dentro). Evidencia: `Documentos/evidencia-ci/ci-local-fef7e6c-2026-10-26T00-02-55Z.txt`. `develop` sigue en `6b54630`.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `7f2e99f` (#148 D7) en `5319263`; conflictos en este archivo (§0.61 de D7 frente a esta §0.62) y en `ficha-R6-enmienda-2.md` (nota "APROBADA" frente a nota "implementada"), resueltos conservando los dos lados, con lo de `develop` delante; ninguna línea borrada. La aprobación de Manuel ya está registrada en `develop` por #148. `scripts/ci-local.sh` en un clon limpio de `5319263` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 369", crypto 57, ai 47, api 169, identity 392, convocatoria 255 y app 572, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-5319263-2026-10-26T02-07-46Z.txt`.
 
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
