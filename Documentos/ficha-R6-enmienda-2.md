@@ -44,6 +44,7 @@
 - Por eso, con más de 10 000, G-8 se queda con los 10 000 fondos y activos **más antiguos**. La actividad de los más **nuevos** no sale, aunque G-8 se lee de lo más reciente a lo más antiguo.
 - `truncated: true` lo avisa, pero no lo arregla. Leer los más recientes exigiría un orden descendente en los directorios, es decir, **cambiar puertos que ya usa G-7** (regla 3.5). Esta enmienda no lo hace (**P-E2-2**).
 - **Nota (2026-10-26): P-E2-2, pagada en este corte (pendiente).** D-3 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26) manda que G-8 muestre lo más reciente con más de 10 000, con un método nuevo de lectura descendente en los directorios (autorización §3.5). Los métodos de hoy y G-7 no cambian. El contrato está en `ficha-R6-enmienda-3.md`, y el plan en `plan-deudas-1-a-3-2026-10-26.md` §3; los dos esperan la aprobación de Manuel. El texto de arriba se conserva.
+- **Nota (2026-10-26): P-E2-2, pagada** en `feat/r6-g8-descendente` (Enmienda 3; `estado-fase6.md` §0.68).
 
 ## 5. Puntos para Manuel
 

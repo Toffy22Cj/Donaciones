@@ -9,4 +9,11 @@ import java.util.List;
 public interface AssetDirectoryPort {
 
     List<String> findAssetIdsByOrganization(String organizationRef, int limit);
+
+    /**
+     * Enmienda 3 de la ficha R-6 (P-E2-2; autorizado por Manuel, reglas-equipo §3.5): los mismos activos, de la génesis
+     * más reciente a la más antigua (en un empate, {@code streamId} descendente), como mucho {@code limit}. Solo lo usa
+     * G-8; el método de arriba no cambia.
+     */
+    List<String> findLatestAssetIdsByOrganization(String organizationRef, int limit);
 }

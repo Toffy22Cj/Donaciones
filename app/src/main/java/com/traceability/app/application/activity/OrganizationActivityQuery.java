@@ -130,9 +130,10 @@ public class OrganizationActivityQuery {
     /** @param after la clave del último ítem de la página anterior; {@code null} para la primera */
     public ActivityPage page(AuthorizationPrincipal principal, String organizationId, ActivityKey after) {
         authorize(principal, organizationId);
-        // Enmienda 2 de la ficha R-6: el criterio de G-7 (OrganizationIntegrityQuery), uno más para saber si hay más
-        List<String> fundIds = funds.findFundIdsByOrganization(organizationId, DIRECTORY_LIMIT + 1);
-        List<String> assetIds = assets.findAssetIdsByOrganization(organizationId, DIRECTORY_LIMIT + 1);
+        // Enmienda 2 de la ficha R-6: el criterio de G-7 (OrganizationIntegrityQuery), uno más para saber si hay más.
+        // Enmienda 3 (P-E2-2): de lo más reciente, por su génesis; G-7 sigue con los de siempre
+        List<String> fundIds = funds.findLatestFundIdsByOrganization(organizationId, DIRECTORY_LIMIT + 1);
+        List<String> assetIds = assets.findLatestAssetIdsByOrganization(organizationId, DIRECTORY_LIMIT + 1);
         boolean truncated = fundIds.size() > DIRECTORY_LIMIT || assetIds.size() > DIRECTORY_LIMIT;
         List<String> streams = new ArrayList<>(fundIds.subList(0, Math.min(fundIds.size(), DIRECTORY_LIMIT)));
         streams.addAll(assetIds.subList(0, Math.min(assetIds.size(), DIRECTORY_LIMIT)));

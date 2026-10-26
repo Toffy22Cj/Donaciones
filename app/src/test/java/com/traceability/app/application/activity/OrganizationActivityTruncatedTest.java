@@ -62,11 +62,14 @@ class OrganizationActivityTruncatedTest {
         return IntStream.range(0, n).mapToObj(i -> prefix + i).toList();
     }
 
-    /** Los directorios devuelven como mucho lo que se les pide, como los adaptadores Mongo. */
+    /**
+     * Los directorios devuelven como mucho lo que se les pide, como los adaptadores Mongo. Desde la Enmienda 3 (P-E2-2),
+     * G-8 lee los de lo más reciente: los dobles son esos métodos; el criterio de {@code truncated} no cambia.
+     */
     private void directories(int fundCount, int assetCount) {
-        when(funds.findFundIdsByOrganization(eq(ORG), anyInt()))
+        when(funds.findLatestFundIdsByOrganization(eq(ORG), anyInt()))
                 .thenAnswer(i -> ids("fund-", Math.min(fundCount, i.<Integer>getArgument(1))));
-        when(assets.findAssetIdsByOrganization(eq(ORG), anyInt()))
+        when(assets.findLatestAssetIdsByOrganization(eq(ORG), anyInt()))
                 .thenAnswer(i -> ids("asset-", Math.min(assetCount, i.<Integer>getArgument(1))));
     }
 
@@ -88,7 +91,7 @@ class OrganizationActivityTruncatedTest {
         OrganizationActivityQuery.ActivityPage page = query.page(employee(), ORG, null);
 
         assertThat(page.truncated()).isTrue();
-        verify(assets).findAssetIdsByOrganization(ORG, LIMIT + 1);
+        verify(assets).findLatestAssetIdsByOrganization(ORG, LIMIT + 1);
         assertThat(streamsRead()).hasSize(3 + LIMIT).doesNotContain("asset-" + LIMIT).contains("asset-" + (LIMIT - 1));
     }
 
@@ -99,7 +102,7 @@ class OrganizationActivityTruncatedTest {
         OrganizationActivityQuery.ActivityPage page = query.page(employee(), ORG, null);
 
         assertThat(page.truncated()).isTrue();
-        verify(funds).findFundIdsByOrganization(ORG, LIMIT + 1);
+        verify(funds).findLatestFundIdsByOrganization(ORG, LIMIT + 1);
         assertThat(streamsRead()).hasSize(LIMIT + 2).doesNotContain("fund-" + LIMIT);
     }
 

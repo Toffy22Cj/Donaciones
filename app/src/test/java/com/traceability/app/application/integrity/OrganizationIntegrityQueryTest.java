@@ -59,6 +59,22 @@ class OrganizationIntegrityQueryTest {
         return IntStream.range(0, n).mapToObj(i -> prefix + i).toList();
     }
 
+    // P-E2-2 (Enmienda 3 de la ficha R-6): G-7 no cambia; sigue con los directorios de siempre, nunca con los nuevos
+    @Test
+    void pe2_g7_keepsReadingTheDirectoriesOfAlways_neverTheLatest() {
+        int limit = OrganizationIntegrityQuery.DIRECTORY_LIMIT;
+        when(funds.findFundIdsByOrganization("org-1", limit + 1)).thenReturn(ids("f", 2));
+        when(assets.findAssetIdsByOrganization("org-1", limit + 1)).thenReturn(ids("a", 3));
+        when(counts.countByBatch(any())).thenReturn(List.of());
+
+        query.integrityOf(principal("org-1", AuthorizationRole.ADMINISTRATOR), "org-1");
+
+        verify(funds).findFundIdsByOrganization("org-1", limit + 1);
+        verify(assets).findAssetIdsByOrganization("org-1", limit + 1);
+        verify(funds, org.mockito.Mockito.never()).findLatestFundIdsByOrganization(anyString(), anyInt());
+        verify(assets, org.mockito.Mockito.never()).findLatestAssetIdsByOrganization(anyString(), anyInt());
+    }
+
     // 10d: con más fondos que el límite, truncated; solo se cuentan los del límite
     @Test
     void t10d_moreFundsThanTheLimit_isTruncated_andCountsOnlyTheLimit() {
