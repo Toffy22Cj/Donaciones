@@ -4,6 +4,8 @@
 
 **BORRADOR — espera la aprobación de Manuel** (decisión 5 de Manuel del 2026-10-25, por delegación de Carlos: "T5 entra; antes se redacta la enmienda de ADR-021-D (C2 (a)) y la aprueba Manuel"; `decisiones-delegadas-2026-10.md`, nota del 2026-10-25, "comunicado por Manuel").
 
+> **Nota (2026-10-25): implementada** en `feat/adr051-t5-evidencia-lectura` (`estado-fase6.md` §0.64). La aprobación de Manuel (#147, comentario 6404356890), con la aclaración de P-21D-4, se registra en #148.
+
 - **Qué** se enmienda ya está decidido: C2 (a) de ADR-051, aprobada por Carlos el 2026-10-18 (`ADR-051-fotos-y-almacenamiento.md:205`), y su F6 (`:131-133`).
 - Este borrador fija el **cómo**: los puntos **P-21D-1 a P-21D-4**. Con la aprobación de Manuel deja de ser borrador.
 - No autoriza código. El código de la Tarea 5 va con su sección de `plan-cierre-backend-2026-10-25.md`, aprobada aparte.

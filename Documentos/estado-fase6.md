@@ -229,6 +229,42 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.64 ADR-051, Tarea 5: leer la evidencia, retirarla por la plataforma y la huella en el seguimiento (2026-10-25, `feat/adr051-t5-evidencia-lectura`)
+
+- Numerada 0.64, en la serie del cierre del backend (0.60 a 0.69).
+- **Depende de la Tarea 3** (rama `feat/adr051-t3-portada`): retirar una portada necesita `ConvocatoriaCoverReferenceService`.
+- **Norma:**
+  - `ADR-051-fotos-y-almacenamiento.md` F6 y F7, criterios 12 a 14;
+  - `ADR-021-D-enmienda-1-huella-evidencia.md`, APROBADA por Manuel con la aclaración de P-21D-4;
+  - `plan-cierre-backend-2026-10-25.md` §T5, APROBADO (#147, comentario 6404356890; la nota se registra en #148), con P-T5-1 a 4.
+- **Qué hace:**
+  - `core`: `StreamEventAnchorDataPort.StreamEventAnchorData` gana `evidenceRef`, solo de `ASSET_DELIVERED` y tal cual (P-T5-1). Un constructor de tres argumentos conserva los usos de antes.
+  - `api`: el paso `DELIVERED` del historial público gana `evidenceRegistered` y `evidenceRef?` (solo con el formato `sha256:`), según la enmienda de ADR-021-D, E1 a E3. `AssetHistoryMapper` lee el puerto de `core` (ADR-020: `api` ve los puertos de `core`), sin cambiar `contracts`. Hay un texto fijo para el 410 en `ApiExceptionHandler`.
+  - `identity`: `READ_DELIVERY_EVIDENCE` y `REMOVE_MEDIA` (los nombres son de ADR-051), y `OrganizationLogoReferenceService.removeAsPlatform`.
+  - `convocatoria`: `ConvocatoriaAuthorizationPolicy.requirePlatformAdministrator` y `ConvocatoriaCoverReferenceService.removeAsPlatform`.
+  - `app`:
+    - `DeliveryEvidenceReadController`: `GET /api/v1/physical-assets/{assetRef}/evidence`. Responde 404 uniforme con `DeliveryEvidenceUnavailableException` y 410 con `EvidenceRemovedException`;
+    - `PlatformMediaRemovalController`: `POST /api/v1/platform/organizations/{organizationId}/media/remove`. Responde 204, también si ya estaba retirada (P-T5-3), y 404 con `MediaRemovalTargetNotFoundException`.
+- **Nombres que el plan no fijaba:** `removeAsPlatform` (en `identity` y en `convocatoria`), `requirePlatformAdministrator`, `DeliveryEvidenceUnavailableException`, `EvidenceRemovedException` (el título `EvidenceRemoved` es de F6) y `MediaRemovalTargetNotFoundException`.
+- **Límite conocido:** al retirar un logo o una portada, primero se quita la referencia y después se borran los bytes. Si el proveedor falla, responde 503: la referencia ya no está y los bytes quedan huérfanos, registrados con `media.removal.failed objectKey=…`.
+- **Hallazgo (previo, fuera de T5):** `MediaUploadService` deduplica por `(organizationId, purpose, sha256)` sin mirar `deletedAt` (`MediaUploadService.java:67`). Volver a subir los mismos bytes de una foto retirada devolvería el metadato retirado.
+- **Evidencia:**
+  - **Rojo primero,** con la producción apartada:
+    - `core` no compilaba: "`MongoStreamEventAnchorDataAdapterTest.java:[112,17] constructor StreamEventAnchorData … cannot be applied to given types`" e "`invalid method reference`" (`evidenceRef`);
+    - `api` no compilaba: "`AssetHistoryMapperTest.java:[179,37] constructor AssetHistoryMapper … cannot be applied to given types`";
+    - `app`, con `core`, `api`, `identity` y `convocatoria` en su sitio: `DeliveryEvidenceReadAndRemovalHttpIntegrationTest` "Tests run: 7, Failures: 6" (404 en lugar de 200, 403, 204 o 400), y los T5-6 del logo y de la portada "Tests run: 1, Failures: 1" cada uno;
+    - T5-3 (404) pasaba ya sin la ruta: el 404 genérico tiene el mismo cuerpo.
+  - **Cableado de tests:** tres tests de `api` con contexto de Spring (`PublicDonationControllerIntegrationTest`, `PublicAssetHistoryControllerIntegrationTest` y `PublicNarrativeControllerIntegrationTest`) reciben un doble de `StreamEventAnchorDataPort`, como ya recibían el de `AssetAnchorStatusPort`.
+  - **Verde por capas: BLOQUEADO.** `core` 370, `crypto` 57, `ai` 47, `api` 174, `identity` 388 y `convocatoria` 259, todos con "Failures: 0, Errors: 0, Skipped: 0". `app` daba "Tests run: 577, Failures: 1":
+    - el fallo es `TrackingLineageAndAnchorHttpIntegrationTest.measurement_historyWithA1000LeafBatch_versusA5LeafBatch` (`:246`): "`[una consulta al event store] Expected size: 1 but was: 2`";
+    - es la medición del Bloque C (`plan-r6-bloque-c.md` §6, aprobado), que fija **una** consulta al Event Store por historial;
+    - el `AssetHistoryMapper` de T5 añade una segunda (`StreamEventAnchorDataPort.findByStream`), porque `api` no puede reutilizar la que ya hace `app` para el anclaje sin pasar por `contracts`.
+  - **Pregunta para Manuel (H-T5-1),** que no se resuelve aquí:
+    - (a) `AssetAnchorStatusPort.StepAnchor` (`contracts`) gana `evidenceRef`, y `app` lo rellena con la misma consulta. Es un cambio aditivo de un puerto que usan `api` y `app` (regla 3.5), y el plan no lo autoriza (P-T5-1 solo amplía el puerto de `core`). **Recomendada:** una sola consulta, como pide el Bloque C;
+    - (b) una caché por petición de `findByStream` en `app`, con clases nuevas sin nombre en el plan;
+    - (c) aceptar dos consultas y enmendar la medición del Bloque C.
+  - **Mutaciones y `ci-local.sh`:** pendientes de la respuesta.
+
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
 - Numerada 0.60, en la serie de este trabajo (0.60 a 0.69).
