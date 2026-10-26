@@ -414,8 +414,14 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
       - lo mismo con fondos (`:325`), y los cuatro e2 de la Enmienda 2, porque sus dobles ya son los métodos nuevos (e2_1 y e2_2: "Expecting value to be true but was false");
       - el test de G-7 (`pe2_g7_keepsReadingTheDirectoriesOfAlways_neverTheLatest`) pasaba: es una protección.
   - **Medición (P-PE2-2),** con el profiler: los dos directorios descendentes dan "planSummary=IXSCAN { payload.organizationRef: 1, recordedAt: 1, streamId: 1 } keysExamined=10 docsExamined=10 hasSortStage=null".
-  - **Verde por capas:** VERDE_P3.
-  - **Mutaciones:** MUT_P3.
+  - **Verde por capas** (`mvn test -pl app -am`, módulo entero, sobre `a60e0a2`): core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 604", todos con "Failures: 0, Errors: 0, Skipped: 0" y BUILD SUCCESS.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `9e1d9a9` con la base instalada con tests): 9 de 9 muertas, y en cada spec la línea base 0 sale VIVA ("Mutaciones vivas: 1"):
+    - 1 y 1b, el método nuevo ordena ascendente → `pe2_latestDirectories_newestGenesisFirst_…`;
+    - 2, desempate ascendente → ese mismo test y `pe2_latestDirectories_useTheGenesisIndexes_withoutASortStage`;
+    - 3, sin `limit` → `pe2_latestDirectories_newestGenesisFirst_…`;
+    - 4 y 4b, G-8 vuelve a los métodos de siempre → los e2 y los dos `pe2_with10001…`;
+    - 5, G-7 pasa a los nuevos → `pe2_g7_keepsReadingTheDirectoriesOfAlways_neverTheLatest` y `t10d_…`;
+    - 6, `truncated` con `>=` → `e2_3_exactlyTheLimitOfEach_isNotTruncated`.
   - **`ci-local.sh`:** CI_P3.
 
 ### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
