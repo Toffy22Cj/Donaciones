@@ -267,6 +267,38 @@ class MediaUploadServiceTest {
         assertThat(output.getAll()).contains("media.orphan objectKey=" + orphan + " purpose=DELIVERY_EVIDENCE");
     }
 
+    // ── Deuda 1 (plan de las deudas 1 a 3 §1, P-DB1-1): los bytes de una evidencia retirada por F7 se rechazan ──
+
+    @Test
+    void db1_theBytesOfARemovedEvidence_areRejected_withoutPutNorInsert() {
+        byte[] photo = TestImages.jpeg(32, 32);
+        String sha = new ImageSanitizer().sanitize(DELIVERY_EVIDENCE, photo).sha256();
+        inserted.add(new MediaObject("01JB00000000000000000000RM", sha, DELIVERY_EVIDENCE, ORG, null, "image/jpeg", 100,
+                32, 32, "acct-other", NOW, NOW.plusSeconds(60)));
+
+        assertThatThrownBy(() -> service.store(DELIVERY_EVIDENCE, ORG, null, UPLOADER, photo))
+                .isInstanceOf(EvidenceRemovedException.class);
+
+        verify(storage, never()).put(any(), any(), any());
+        verify(metadata, never()).insert(any(MediaObject.class));
+        assertThat(storage.keys()).isEmpty();
+    }
+
+    // P-DB1-2: la carrera, cuando el ganador que se lee ya está retirado
+    @Test
+    void db1_aRaceWhoseWinnerIsRemoved_isRejectedToo() {
+        byte[] photo = TestImages.jpeg(32, 32);
+        String sha = new ImageSanitizer().sanitize(DELIVERY_EVIDENCE, photo).sha256();
+        MediaObject removedWinner = new MediaObject("01JB00000000000000000000RW", sha, DELIVERY_EVIDENCE, ORG, null,
+                "image/jpeg", 100, 32, 32, "acct-other", NOW, NOW.plusSeconds(60));
+        when(metadata.findByOrganizationIdAndPurposeAndSha256(ORG, DELIVERY_EVIDENCE, sha))
+                .thenReturn(Optional.empty(), Optional.of(removedWinner));
+        doThrow(new DuplicateEvidenceException("uq_evidence_sha256")).when(metadata).insert(any(MediaObject.class));
+
+        assertThatThrownBy(() -> service.store(DELIVERY_EVIDENCE, ORG, null, UPLOADER, photo))
+                .isInstanceOf(EvidenceRemovedException.class);
+    }
+
     // ADR-051 F9: ownerRef es el campaignRef de la portada y nulo en los demás (P-5: IllegalArgumentException)
     @Test
     void ownerRef_isRequiredForTheCover_andForbiddenOtherwise() {
