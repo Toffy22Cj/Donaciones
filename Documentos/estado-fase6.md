@@ -229,6 +229,43 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
+
+- Numerada 0.63, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:**
+  - `ADR-051-fotos-y-almacenamiento.md`: F6, F8 (solo `ADMINISTRATOR`, C1 (a)), F9 y F10. La Tarea 3 pasa a ser de Manuel por la decisión 4 (nota bajo la tabla de implementación);
+  - `plan-cierre-backend-2026-10-25.md` §T3, APROBADO por Manuel (#147, comentario 6404356890; la nota se registra en #148), con P-T3-1 a 5.
+- **Qué hace (calca la Tarea 2):**
+  - `convocatoria`:
+    - `Convocatoria`, `ConvocatoriaDocument` y `ConvocatoriaMapper` ganan `coverObjectKey` (P-T3-1);
+    - `ConvocatoriaRepositoryPort.replaceCoverObjectKey`: una escritura atómica (`findAndModify`) que devuelve la anterior y no toca nada más. El puerto es interno de `convocatoria`;
+    - `ConvocatoriaCoverReferenceService` autoriza con `requireAdministratorOf`. Una convocatoria ajena a la organización de la ruta, o inexistente, da `CampaignNotFoundException`, el mismo 403;
+    - `PublicCampaignView` y `PublicCampaignSummary` llevan la referencia, interna, para `app` (P-T3-2).
+  - `app`:
+    - `CampaignCoverService`: permiso → 2 MB en el controlador → `MediaUploadService` → la referencia nueva → solo entonces el borrado de la anterior (F10), con `media.orphan` si falla;
+    - `CampaignCoverController` (`PUT` y `DELETE`) y `PublicCampaignCoverController` (`GET` público con `public, max-age=3600` y `ETag`);
+    - 404 con `CampaignCoverNotFoundException`;
+    - `coverImageUrl?` en CV-07 y en el descubrimiento.
+  - `api`: la ruta pública en `PublicRoutes`.
+  - Sin auditoría propia (P-T3-5). La portada se cambia también en una convocatoria `CLOSED` (P-T3-3).
+- **Evidencia:**
+  - **Rojo primero,** con la producción apartada:
+    - `convocatoria` no compilaba: "`ConvocatoriaCoverReferenceIntegrationTest.java:[31,24] cannot find symbol`" (el servicio), `[55,83]` (`coverObjectKey()`) y `[91,82]` (`getCoverObjectKey()`);
+    - `api`: `PublicRoutesTest` "Tests run: 4, Failures: 2";
+    - `app`, con `convocatoria` y `api` en su sitio: `CampaignCoverHttpIntegrationTest` "Tests run: 10, Failures: 10" (404 en lugar de 200, 403, 413 o 204).
+  - **Revisión adversaria:** sin comprobar que el servicio de subida no se llama, quitar el límite de 2 MB del controlador sobrevivía, porque `MediaUploadService` vuelve a dar 413. Se añadió a T3-3 (`3ec967a`).
+  - **Verde por capas** (módulo completo): `core` 369, `crypto` 57, `ai` 47, `api` 170, `identity` 384, `convocatoria` 259 y `app` "Tests run: 568", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **8 de 8 mutaciones muertas,** en clones limpios de `3ec967a`, con la línea base en verde (la "mutación 0", sin cambios, sale VIVA):
+    - en `convocatoria`: 1 (permitir al `REPRESENTATIVE`) y 1b (no comprobar que la convocatoria es de la organización de la ruta) → `onlyTheAdministratorOfTheOrganization_changesIt`;
+    - en `app`:
+      - 2 (autorizar después de leer y subir) → T3-2 y T3-9;
+      - 3 (borrar la anterior antes de confirmar) y 7 (no borrarla) → T3-4;
+      - 4 (sin el límite de 2 MB del controlador) → T3-3;
+      - 5 (`coverImageUrl` siempre) → T3-7;
+      - 6 (servir una portada retirada) → T3-6.
+    - La primera pasada de `app` tuvo la línea base en rojo, porque `convocatoria` no estaba instalada con la portada. Se repitió con ella instalada.
+  - **`ci-local.sh`** en un clon limpio de `3ec967a` (último commit de código), con `free -g` en 14 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 170, `identity` 384, `convocatoria` 259, `app` 568). Evidencia: `Documentos/evidencia-ci/ci-local-3ec967a-2026-10-26T00-30-25Z.txt`. `develop` sigue en `6b54630`.
+
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
 - Numerada 0.60, en la serie de este trabajo (0.60 a 0.69).

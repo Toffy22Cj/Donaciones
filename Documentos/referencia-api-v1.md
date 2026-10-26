@@ -167,6 +167,13 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 | `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/approve` | — (otro `ADMINISTRATOR` o el `REPRESENTATIVE`) | `200 {requestId, status: "APPROVED", configurationVersion}` | 403 (`SelfApprovalNotAllowed`); 409 `ConfigurationChangeRequestNotPending`, `ConfigurationVersionConflict`, cerrada, `MonetaryRemovalNotAllowed` |
 | `POST /campaigns/{campaignRef}/configuration-change-requests/{requestId}/reject` | — (los mismos o el solicitante) | `200 {requestId, status: "REJECTED", configurationVersion: null}` | 403; 409 `ConfigurationChangeRequestNotPending` |
 
+*Nota (2026-10-25, ADR-051 Tarea 3; plan de cierre §T3, aprobado en #147):* la portada de la convocatoria. Estas dos rutas **no** llevan `Command-Id` (como el logo). La tabla de arriba se conserva.
+
+| Método y ruta | Quién | Respuestas | Errores |
+|---|---|---|---|
+| `PUT /organizations/{organizationId}/campaigns/{campaignRef}/cover` (F8) | `ADMINISTRATOR` de la organización de la convocatoria, nunca el `REPRESENTATIVE` (C1 (a)); `multipart/form-data`, campo `file`, JPEG o PNG de hasta 2 MB | `200 {coverImageUrl}` (`/api/v1/public/campaigns/{publicCode}/cover`); reemplaza la anterior y la borra después (F10). También en una convocatoria `CLOSED` (P-T3-3) | 401; 403 uniforme, antes de leer los bytes (otro rol, otra organización, `campaignRef` ajeno o inexistente); 413 `ImageTooLarge`; 415 `UnsupportedImageFormat`; 503 `MediaStorageUnavailable` |
+| `DELETE /organizations/{organizationId}/campaigns/{campaignRef}/cover` (F8) | ídem | `204`, también sin portada | 401; 403 |
+
 ## 5. Convocatoria y donación (público)
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
@@ -178,10 +185,13 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 | `GET /public/donation-intents/{intentId}` | header `Intent-Token` | — | `200 {status, trackingCode?}` (el código, solo con fondos aplicados) | 404 (token inválido o caducado, igual que inexistente) |
 | `POST /webhooks/payments` | firma `X-Simulated-Signature`; **solo** con `traceability.demo.simulated-payments=true` (perfil `dev`) | `{type: "payment.confirmed"\|"payment.failed", paymentSessionId, providerEventId, amount, currency}` | `200` sin cuerpo | 401 firma; 400 campos; 404 sesión; 409 evento incoherente |
 | `GET /public/campaigns/{publicCode}/organization-logo` (ADR-051 F6, Enmienda 1; Tarea 2) | pública | — | `200` con los bytes guardados del logo de la organización dueña de la convocatoria, `Content-Type` de la imagen, `Cache-Control: public, max-age=3600`, `ETag: "<sha256>"` (sin `If-None-Match`, P-T2-9). Nunca el `organizationId` | 404 `NotFound` (convocatoria no visible por su código, organización sin logo, logo borrado o sin bytes; siempre el mismo, nunca 410) |
+| `GET /public/campaigns/{publicCode}/cover` (ADR-051 F6; Tarea 3; nota del 2026-10-25) | pública | — | `200` con los bytes guardados de la portada, `Cache-Control: public, max-age=3600`, `ETag` con la huella y el `Content-Type` del metadato | 404 `NotFound`, el mismo si el código no es visible, si no hay portada, si se retiró o si faltan los bytes |
 
 *Nota (2026-10-18, ficha L-FRONTS, A1; M-07; Q-A1-3):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`organizationVerified`** (booleano, **siempre presente**), calculado al leer con el estado actual de la organización (`OrganizationVerificationPort.isVerified`): `true` solo si está `VERIFIED`; una organización inexistente da `false`. Las filas de arriba no se reescriben.
 
 *Nota (2026-10-21, ADR-051 Tarea 2; enmiendas de contrato del plan de la Tarea 2 §2):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`organizationLogoUrl?`** (`/api/v1/public/campaigns/{publicCode}/organization-logo`), solo si la organización tiene logo. Ninguna respuesta pública lleva el `organizationId` (Enmienda 1). Nombre, verificación y logo salen de una sola lectura de la organización (P-T2-7). Tras reemplazar un logo, el anterior puede seguir en cachés hasta 1 h (R-T2-5, aceptado). `coverImageUrl?` llega con la Tarea 3. Las filas de arriba no se reescriben.
+
+*Nota (2026-10-25, ADR-051 Tarea 3):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`coverImageUrl?`** (`/api/v1/public/campaigns/{publicCode}/cover`), solo si la convocatoria tiene portada. Ninguna respuesta pública lleva el `campaignRef`, el `organizationId` ni la `objectKey`.
 
 ## 6. Activos físicos
 
