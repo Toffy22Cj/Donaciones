@@ -32,4 +32,19 @@ public class MongoFundDirectoryAdapter implements FundDirectoryPort {
         return mongoTemplate.find(query, TraceabilityEventDocument.class).stream()
                 .map(TraceabilityEventDocument::getStreamId).toList();
     }
+
+    /**
+     * Enmienda 3 de la ficha R-6 (P-E2-2): el mismo filtro que el método de arriba, de la génesis más reciente a la más
+     * antigua. Recorre el mismo índice al revés, sin ordenar en memoria.
+     */
+    @Override
+    public List<String> findLatestFundIdsByOrganization(String organizationRef, int limit) {
+        Query query = new Query(Criteria.where("aggregateType").is("Fund").and("sequence").is(1L)
+                .and("eventType").in("FUND_REGISTERED", "FUNDS_CLEARED")
+                .and("payload.organizationRef").is(organizationRef))
+                .with(Sort.by(Sort.Direction.DESC, "recordedAt", "streamId")).limit(limit);
+        query.fields().include("streamId");
+        return mongoTemplate.find(query, TraceabilityEventDocument.class).stream()
+                .map(TraceabilityEventDocument::getStreamId).toList();
+    }
 }

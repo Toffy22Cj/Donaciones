@@ -29,4 +29,19 @@ public class MongoAssetDirectoryAdapter implements AssetDirectoryPort {
         return mongoTemplate.find(query, TraceabilityEventDocument.class).stream()
                 .map(TraceabilityEventDocument::getStreamId).toList();
     }
+
+    /**
+     * Enmienda 3 de la ficha R-6 (P-E2-2): el mismo filtro que el método de arriba, de la génesis más reciente a la más
+     * antigua. Recorre el mismo índice al revés, sin ordenar en memoria.
+     */
+    @Override
+    public List<String> findLatestAssetIdsByOrganization(String organizationRef, int limit) {
+        Query query = new Query(Criteria.where("aggregateType").is("PhysicalAsset").and("sequence").is(1L)
+                .and("eventType").is("ASSET_REGISTERED")
+                .and("payload.organizationRef").is(organizationRef))
+                .with(Sort.by(Sort.Direction.DESC, "recordedAt", "streamId")).limit(limit);
+        query.fields().include("streamId");
+        return mongoTemplate.find(query, TraceabilityEventDocument.class).stream()
+                .map(TraceabilityEventDocument::getStreamId).toList();
+    }
 }
