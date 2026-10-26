@@ -306,6 +306,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - `app`: 8 de 8 muertas en `AccountImpactQuery` (todos los estados, sin agrupar por moneda, activos no entregados, sumar unidades distintas, crear el seudónimo, sin `truncated`, un activo contado dos veces, convocatorias = donaciones);
     - cada spec dice "Mutaciones vivas: 1", que es su línea base 0.
   - **`ci-local.sh`** en un clon limpio de `b84fed3`, salida 0: `evidencia-ci/ci-local-b84fed3-2026-10-26T04-09-22Z.txt`, con la app en "Tests run: 589, Failures: 0, Errors: 0, Skipped: 0".
+- *Nota (2026-10-26, tren de fusiones, agente local de Manuel):* integrado `develop` `6cb9a95` (#151 T5) en `45b6370`; conflictos en este archivo (§0.64 frente a esta §0.65) y en `PublicRoutesInventoryIntegrationTest` (las dos rutas de T5 y la de M-21), resueltos conservando los dos lados, con lo de `develop` delante; en el test solo cambia qué línea cierra la lista; ninguna línea de documentación borrada. `scripts/ci-local.sh` en un clon limpio de `45b6370` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 370", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 599, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-45b6370-2026-10-26T04-40-46Z.txt`.
 
 ### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
 
