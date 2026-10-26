@@ -95,6 +95,36 @@ class MongoStreamEventAnchorDataAdapterTest {
                 new StreamEventAnchorData(3, hash('a', 3), null));
     }
 
+    // ADR-051, Tarea 5 (plan de cierre §T5, P-T5-1): el evidenceRef del payload, solo de ASSET_DELIVERED y tal cual
+    // (huella o texto libre heredado); quién lo expone y cómo lo decide api (enmienda de ADR-021-D)
+    @Test
+    void t5_findByStream_carriesTheEvidenceRef_onlyOfAssetDelivered_asStored() {
+        String huella = "sha256:" + "a".repeat(64);
+        mongoTemplate.insert(event("asset-A", 1, hash('a', 1), null));
+        TraceabilityEventDocument withEvidenceLikeField = event("asset-A", 2, hash('a', 2), null);
+        withEvidenceLikeField.setPayload(new java.util.HashMap<>(java.util.Map.of("evidenceRef", "no-es-entrega")));
+        mongoTemplate.insert(withEvidenceLikeField);
+        mongoTemplate.insert(delivered("asset-A", 3, hash('a', 3), huella));
+        mongoTemplate.insert(delivered("asset-B", 1, hash('b', 1), "acta-1"));
+        mongoTemplate.insert(delivered("asset-C", 1, hash('c', 1), null));
+
+        assertThat(adapter.findByStream("asset-A")).containsExactly(
+                new StreamEventAnchorData(1, hash('a', 1), null, null),
+                new StreamEventAnchorData(2, hash('a', 2), null, null),
+                new StreamEventAnchorData(3, hash('a', 3), null, huella));
+        assertThat(adapter.findByStream("asset-B")).extracting(StreamEventAnchorData::evidenceRef).containsExactly("acta-1");
+        assertThat(adapter.findByStream("asset-C")).extracting(StreamEventAnchorData::evidenceRef).containsOnlyNulls();
+    }
+
+    private static TraceabilityEventDocument delivered(String streamId, long sequence, String eventHash, String evidenceRef) {
+        TraceabilityEventDocument d = event(streamId, sequence, eventHash, null);
+        d.setEventType("ASSET_DELIVERED");
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("evidenceRef", evidenceRef);
+        d.setPayload(payload);
+        return d;
+    }
+
     @Test
     void findByStream_unknownStream_isEmpty() {
         mongoTemplate.insert(event("asset-A", 1, hash('a', 1), "batch-1"));
