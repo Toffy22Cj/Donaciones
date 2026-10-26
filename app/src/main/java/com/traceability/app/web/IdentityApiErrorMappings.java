@@ -3,6 +3,7 @@ package com.traceability.app.web;
 import com.traceability.api.web.ApiErrorMapping;
 import com.traceability.api.web.ApiErrorMappings;
 import com.traceability.api.web.ApiExceptionHandler;
+import com.traceability.app.web.platform.PlatformAccountNotFoundException;
 import com.traceability.app.web.platform.PlatformAuthorityTargetInactiveException;
 import com.traceability.app.web.platform.PlatformAuthorityTargetNotFoundException;
 import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
@@ -86,6 +87,8 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(LastPlatformAdministratorException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(PlatformAuthorityTargetInactiveException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(PlatformAuthorityTargetNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                // ADR-050 D7 (plan de cierre, P-D7-2): reactivar una cuenta inexistente
+                new ApiErrorMapping(PlatformAccountNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 // §3.3 (ADR-049): invitaciones y miembros
                 new ApiErrorMapping(InvalidMemberRoleException.class, HttpStatus.BAD_REQUEST, null),
                 new ApiErrorMapping(InvitationNotAcceptableException.class, HttpStatus.FORBIDDEN, null),

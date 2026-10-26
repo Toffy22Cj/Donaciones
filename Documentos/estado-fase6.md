@@ -265,6 +265,96 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - (c) aceptar dos consultas y enmendar la medición del Bloque C.
   - **Mutaciones y `ci-local.sh`:** pendientes de la respuesta.
 
+### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
+
+- Numerada 0.61, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:**
+  - ADR-050 D7 y test 26 (`ADR-050-cuenta-y-sesiones.md:133-137` y `:282`);
+  - `plan-cierre-backend-2026-10-25.md` §D7, APROBADO por Manuel (#147, comentario 6404356890; nota en `decisiones-delegadas-2026-10.md`), con P-D7-1 a 4 como los propone.
+- **Qué hace:**
+  - `identity`: `PlatformCommandType.REACTIVATE_ACCOUNT` y su caso en `PlatformAuthorizationPolicy`. `ReactivateAccountService.reactivateAccount(AuthorizationPrincipal, AccountId)` autoriza **antes de leer la cuenta**, construye el actor con `AuthorizationAuditActorMapper` y delega en el método que ya existía, que no cambia (P-D7-1).
+  - `app`: `POST /api/v1/platform/accounts/{accountId}/reactivate` (`PlatformAccountsController`) → `200 {accountId, status: "ACTIVE"}`, `no-store`. Cuenta inexistente → 404 con `PlatformAccountNotFoundException` (P-D7-2). Ya activa → 200 igual, sin auditoría (P-D7-3).
+  - Reactivar no toca `credentialsNotBefore`, así que los tokens anteriores a la desactivación siguen dando 401 (D4).
+- **Test existente adaptado (solo cableado):** `AccountApplicationServiceIntegrationTest` importa `PlatformAuthorizationPolicy`, porque el constructor del servicio lo pide.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `identity` no compilaba: "`ReactivateAccountByPlatformIntegrationTest.java:[90,41] incompatible types: AuthorizationPrincipal cannot be converted to AuditActor`" y cinco más;
+    - `app`, con ese test apartado: `PlatformAccountReactivationHttpIntegrationTest` "Tests run: 8, Failures: 6" (404 donde se esperaba 200 o 403);
+    - d7_7 (404) y d7_8 (401) pasaban ya sin la ruta: el 404 genérico tiene el mismo cuerpo y el 401 lo da el filtro.
+  - **Un fallo del test, no del código:** d7_2 metía en el bucle del 403 a la propia cuenta desactivada, y su token da 401. Ahora se comprueba aparte, como 401.
+  - **Verde por capas** (módulo completo): `core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 392, `convocatoria` 255 y `app` "Tests run: 566", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **8 de 8 mutaciones muertas,** en un clon limpio de `36a224c`, con la línea base en verde (la "mutación 0", sin cambios, sale VIVA en las dos especificaciones):
+    - 1 (sin `policy.authorize`) y 2 (autorizar después de leer) → d7_2 y d7_3;
+    - 3 (auditar aunque no cambie) → d7_6;
+    - 4 (`reactivate()` sin cambiar el estado) → d7_1 y d7_6;
+    - 5 (`reactivate()` borra `credentialsNotBefore`) → d7_4;
+    - 6 (el 404 traducido como 403) → d7_7;
+    - 7 (el cuerpo con otro estado) → d7_1 y d7_6 por HTTP;
+    - 8 (sin `no-store`) → d7_1 por HTTP.
+  - **`ci-local.sh`** en un clon limpio de `36a224c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 392, `convocatoria` 255, `app` 566). Evidencia: `Documentos/evidencia-ci/ci-local-36a224c-2026-10-25T23-36-43Z.txt`. `develop` sigue en `6b54630`, la base de la rama.
+
+### 0.62 Ficha R-6, Enmienda 2: `truncated` en la actividad reciente (G-8) (2026-10-25, `feat/r6-g8-truncated`)
+
+- Numerada 0.62, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:** `ficha-R6-enmienda-2.md`, APROBADA por Manuel (#147, comentario 6404356890; la nota se registra en #148), con P-E2-1 (siempre) y P-E2-2 (en este corte, los más antiguos, como deuda); `plan-cierre-backend-2026-10-25.md` §G-8.
+- **Qué hace:**
+  - `OrganizationActivityQuery` lee `DIRECTORY_LIMIT + 1` de cada directorio, calcula `truncated` con el criterio de G-7 (`OrganizationIntegrityQuery`) y usa solo los primeros `DIRECTORY_LIMIT`. `ActivityPage` gana `truncated`.
+  - `OrganizationActivityController.PageResponse` gana `truncated`, un `boolean` que llega siempre.
+  - Sin puertos nuevos ni cambiados.
+- **Deuda (P-E2-2):** con más de 10 000, G-8 muestra la actividad de los fondos y activos **más antiguos**, porque los directorios ordenan ascendente. `truncated` lo avisa.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `OrganizationActivityTruncatedTest` no compilaba: "`[90,24] cannot find symbol`" (`ActivityPage.truncated()`);
+    - con ese test apartado, `OrganizationIntegrityAndActivityHttpIntegrationTest` daba "Tests run: 4, Failures: 1": e2_5, "`Expecting value to be true but was false`" (la respuesta sin `truncated`).
+  - **Verde por capas** (módulo completo): `core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 384, `convocatoria` 255 y `app` "Tests run: 563", todos con "Failures: 0, Errors: 0, Skipped: 0". El test del controlador, añadido después, dio aparte "Tests run: 1, Failures: 0, Errors: 0, Skipped: 0".
+  - **Revisión adversaria:** sin `OrganizationActivityControllerTruncatedTest`, una respuesta con `false` fijo sobrevivía, porque el test HTTP solo ve organizaciones pequeñas. Se añadió.
+  - **5 de 5 mutaciones muertas,** en un clon limpio de `fef7e6c`, con la línea base en verde (la "mutación 0" sale VIVA):
+    - 1 (`truncated` siempre `false`) → e2_1 y e2_2;
+    - 2 (`>=`) → e2_3;
+    - 3 (solo los activos) → e2_2;
+    - 4 (usar los `DIRECTORY_LIMIT + 1`) → e2_1 y e2_2;
+    - 5 (la respuesta con `false` fijo) → e2_6.
+  - **`ci-local.sh`** en un clon limpio de `fef7e6c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 384, `convocatoria` 255, `app` 564, con el test del controlador dentro). Evidencia: `Documentos/evidencia-ci/ci-local-fef7e6c-2026-10-26T00-02-55Z.txt`. `develop` sigue en `6b54630`.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `7f2e99f` (#148 D7) en `5319263`; conflictos en este archivo (§0.61 de D7 frente a esta §0.62) y en `ficha-R6-enmienda-2.md` (nota "APROBADA" frente a nota "implementada"), resueltos conservando los dos lados, con lo de `develop` delante; ninguna línea borrada. La aprobación de Manuel ya está registrada en `develop` por #148. `scripts/ci-local.sh` en un clon limpio de `5319263` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 369", crypto 57, ai 47, api 169, identity 392, convocatoria 255 y app 572, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-5319263-2026-10-26T02-07-46Z.txt`.
+
+### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
+
+- Numerada 0.63, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:**
+  - `ADR-051-fotos-y-almacenamiento.md`: F6, F8 (solo `ADMINISTRATOR`, C1 (a)), F9 y F10. La Tarea 3 pasa a ser de Manuel por la decisión 4 (nota bajo la tabla de implementación);
+  - `plan-cierre-backend-2026-10-25.md` §T3, APROBADO por Manuel (#147, comentario 6404356890; la nota se registra en #148), con P-T3-1 a 5.
+- **Qué hace (calca la Tarea 2):**
+  - `convocatoria`:
+    - `Convocatoria`, `ConvocatoriaDocument` y `ConvocatoriaMapper` ganan `coverObjectKey` (P-T3-1);
+    - `ConvocatoriaRepositoryPort.replaceCoverObjectKey`: una escritura atómica (`findAndModify`) que devuelve la anterior y no toca nada más. El puerto es interno de `convocatoria`;
+    - `ConvocatoriaCoverReferenceService` autoriza con `requireAdministratorOf`. Una convocatoria ajena a la organización de la ruta, o inexistente, da `CampaignNotFoundException`, el mismo 403;
+    - `PublicCampaignView` y `PublicCampaignSummary` llevan la referencia, interna, para `app` (P-T3-2).
+  - `app`:
+    - `CampaignCoverService`: permiso → 2 MB en el controlador → `MediaUploadService` → la referencia nueva → solo entonces el borrado de la anterior (F10), con `media.orphan` si falla;
+    - `CampaignCoverController` (`PUT` y `DELETE`) y `PublicCampaignCoverController` (`GET` público con `public, max-age=3600` y `ETag`);
+    - 404 con `CampaignCoverNotFoundException`;
+    - `coverImageUrl?` en CV-07 y en el descubrimiento.
+  - `api`: la ruta pública en `PublicRoutes`.
+  - Sin auditoría propia (P-T3-5). La portada se cambia también en una convocatoria `CLOSED` (P-T3-3).
+- **Evidencia:**
+  - **Rojo primero,** con la producción apartada:
+    - `convocatoria` no compilaba: "`ConvocatoriaCoverReferenceIntegrationTest.java:[31,24] cannot find symbol`" (el servicio), `[55,83]` (`coverObjectKey()`) y `[91,82]` (`getCoverObjectKey()`);
+    - `api`: `PublicRoutesTest` "Tests run: 4, Failures: 2";
+    - `app`, con `convocatoria` y `api` en su sitio: `CampaignCoverHttpIntegrationTest` "Tests run: 10, Failures: 10" (404 en lugar de 200, 403, 413 o 204).
+  - **Revisión adversaria:** sin comprobar que el servicio de subida no se llama, quitar el límite de 2 MB del controlador sobrevivía, porque `MediaUploadService` vuelve a dar 413. Se añadió a T3-3 (`3ec967a`).
+  - **Verde por capas** (módulo completo): `core` 369, `crypto` 57, `ai` 47, `api` 170, `identity` 384, `convocatoria` 259 y `app` "Tests run: 568", todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **8 de 8 mutaciones muertas,** en clones limpios de `3ec967a`, con la línea base en verde (la "mutación 0", sin cambios, sale VIVA):
+    - en `convocatoria`: 1 (permitir al `REPRESENTATIVE`) y 1b (no comprobar que la convocatoria es de la organización de la ruta) → `onlyTheAdministratorOfTheOrganization_changesIt`;
+    - en `app`:
+      - 2 (autorizar después de leer y subir) → T3-2 y T3-9;
+      - 3 (borrar la anterior antes de confirmar) y 7 (no borrarla) → T3-4;
+      - 4 (sin el límite de 2 MB del controlador) → T3-3;
+      - 5 (`coverImageUrl` siempre) → T3-7;
+      - 6 (servir una portada retirada) → T3-6.
+    - La primera pasada de `app` tuvo la línea base en rojo, porque `convocatoria` no estaba instalada con la portada. Se repitió con ella instalada.
+  - **`ci-local.sh`** en un clon limpio de `3ec967a` (último commit de código), con `free -g` en 14 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 170, `identity` 384, `convocatoria` 259, `app` 568). Evidencia: `Documentos/evidencia-ci/ci-local-3ec967a-2026-10-26T00-30-25Z.txt`. `develop` sigue en `6b54630`.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `5732fa3` (#148 D7 y #149 G-8) en `0f0f4f6`; conflictos en este archivo (§0.61 y §0.62 frente a esta §0.63) y en `PublicRoutesInventoryIntegrationTest` (la ruta de D7 y las dos de la portada), resueltos conservando los dos lados, con lo de `develop` delante; en el test solo cambia qué línea cierra la lista; ninguna línea de documentación borrada. `scripts/ci-local.sh` en un clon limpio de `0f0f4f6` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 369", crypto 57, ai 47, api 170, identity 392, convocatoria 259 y app 582, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-0f0f4f6-2026-10-26T02-34-38Z.txt`.
+
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
 - Numerada 0.60, en la serie de este trabajo (0.60 a 0.69).
@@ -282,6 +372,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **No se pudo comprobar que estén "todos los datos" (H-CB-5):** la lista de campos del comprobante no está en ningún repositorio que se pueda leer (`Donaciones`, `PaxFide` y `PaxFide_Mv`). La definición de M-22 está en el PDF del 16 de octubre, que no está subido. Queda como pregunta para Manuel.
   - La web prohíbe el `trackingCode` en el comprobante (`PaxFide`, `prompts-agentes-estilo-v2.md:162`, T1-7). El dato llega en la respuesta, y no ponerlo en la imagen es cosa del front.
 - **Pendiente:** el "plan aprobado" de Manuel. Sin él no se escribe código. T5 espera además la aprobación de la enmienda de ADR-021-D.
+- **Nota (2026-10-25), aprobación de Manuel** (comentario de `buelvasmanuel` en #147, 2026-10-25T22:35:54Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6404356890): plan y enmiendas aprobados. **M-22 se cierra en el backend sin cambios.** El PDF del 16 de octubre no lista campos; los define el diseño de Carlos. Si falta un dato, se abre como ítem nuevo. H-CB-5 queda resuelto así.
 
 ### 0.52 ADR-051, Tarea 4: evidencia de entrega — subida, vínculo y formato `sha256:` (2026-10-25, `feat/adr051-t4-evidencia`)
 

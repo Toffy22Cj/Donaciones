@@ -6,6 +6,8 @@
 
 > **Nota (2026-10-25): implementada** en `feat/adr051-t5-evidencia-lectura` (`estado-fase6.md` §0.64). La aprobación de Manuel (#147, comentario 6404356890), con la aclaración de P-21D-4, se registra en #148.
 
+> **Nota (2026-10-25): APROBADA por Manuel**, por delegación de Carlos (comentario de `buelvasmanuel` en #147, 2026-10-25T22:35:54Z, https://github.com/Toffy22Cj/Donaciones/pull/147#issuecomment-6404356890; registrado en `decisiones-delegadas-2026-10.md`). El estado de arriba se conserva; esta nota lo supera. P-21D-1 a P-21D-3, como se proponen. P-21D-4, con la aclaración de §E4.
+
 - **Qué** se enmienda ya está decidido: C2 (a) de ADR-051, aprobada por Carlos el 2026-10-18 (`ADR-051-fotos-y-almacenamiento.md:205`), y su F6 (`:131-133`).
 - Este borrador fija el **cómo**: los puntos **P-21D-1 a P-21D-4**. Con la aprobación de Manuel deja de ser borrador.
 - No autoriza código. El código de la Tarea 5 va con su sección de `plan-cierre-backend-2026-10-25.md`, aprobada aparte.
@@ -66,6 +68,8 @@ En el **paso `ASSET_DELIVERED` del historial** (`GET /donations/tracking/assets/
 - Desde la ficha R-6 (CONGELADA), G-4, implementado en #141, `logistics[]` de `GET /donations/tracking` lleva `parentAssetRef?`, que es el `assetRef` **opaco** (HMAC) del lote del que salió y solo si ese lote está en la misma `logistics` (`PublicLogisticsItemDTO.java:16`).
 - Lo excluido en ADR-021-D es el identificador interno. Lo que expone G-4 es una referencia opaca con el mismo nombre. No parece una fuga, pero el texto de ADR-021-D no lo recoge.
 - Esta enmienda **no lo resuelve**. Propone registrarlo con una nota fechada en el documento maestro.
+
+> **Nota (2026-10-25): aclaración de Manuel al aprobar P-21D-4.** **Se permite el `parentAssetRef` opaco de G-4 en el perímetro público**, porque así lo aprobó la ficha R-6 (G-4). La exclusión de `parentAssetRef` de ADR-021-D (`documento-maestro-proyecto.md:172`) se refiere al identificador **interno** del lote padre, que sigue sin salir. La referencia **opaca** (HMAC), solo cuando el lote padre está en la misma `logistics` (`PublicLogisticsItemDTO.java:16`), sí sale. Lo de arriba se conserva; esta nota lo resuelve.
 
 ## Alternatives
 

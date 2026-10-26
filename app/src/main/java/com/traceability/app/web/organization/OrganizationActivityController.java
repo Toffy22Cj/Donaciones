@@ -26,7 +26,7 @@ import java.util.List;
  * Actividad reciente de la organización (ficha R-6, §6, G-8):
  * {@code GET /api/v1/organizations/{organizationId}/activity?cursor=}, {@code no-store}.
  * {@code 200 {items: [{type, occurredAt, subject?: {kind, ref}, eventCount?, quantity?, unitOfMeasure?, locationZone?}],
- * nextCursor?}}, {@value OrganizationActivityQuery#PAGE_SIZE} por página.
+ * nextCursor?, truncated}}, {@value OrganizationActivityQuery#PAGE_SIZE} por página ({@code truncated}: Enmienda 2 de la ficha R-6).
  * <p>
  * El cursor es opaco (DD-58): la clave completa del último ítem, {@code (instante, tipo de fuente, id)}, y la
  * organización, cifrados con la clave del descubrimiento y con un propósito propio, como DD-69. Un cursor alterado,
@@ -47,7 +47,8 @@ public class OrganizationActivityController {
                                String locationZone) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record PageResponse(List<ItemResponse> items, String nextCursor) {}
+    /** {@code truncated} siempre llega (Enmienda 2 de la ficha R-6, P-E2-1): es un {@code boolean}, que NON_NULL no quita. */
+    public record PageResponse(List<ItemResponse> items, String nextCursor, boolean truncated) {}
 
     private final OrganizationActivityQuery activity;
     private final DiscoveryCursorCodec cursors;
@@ -67,7 +68,7 @@ public class OrganizationActivityController {
         List<ItemResponse> items = page.items().stream().map(OrganizationActivityController::toResponse).toList();
         String next = page.next() == null ? null : cursors.encode(CURSOR_PURPOSE + organizationId + "|"
                 + page.next().instant() + "|" + page.next().source() + "|" + page.next().id());
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new PageResponse(items, next));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new PageResponse(items, next, page.truncated()));
     }
 
     private static ItemResponse toResponse(ActivityItem i) {

@@ -124,6 +124,8 @@ class PublicRoutesInventoryIntegrationTest {
             // Ficha R-6, Bloque D: integridad (G-7) y actividad (G-8) de la organización
             "GET /api/v1/organizations/{organizationId}/integrity",
             "GET /api/v1/organizations/{organizationId}/activity",
+            // ADR-050 D7: reactivar una cuenta, solo el administrador de plataforma (plan de cierre, §D7)
+            "POST /api/v1/platform/accounts/{accountId}/reactivate",
             // ADR-051, Tarea 3: subir y quitar la portada (F8), solo ADMINISTRATOR; la lectura pública está en PublicRoutes
             "PUT /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
             "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",

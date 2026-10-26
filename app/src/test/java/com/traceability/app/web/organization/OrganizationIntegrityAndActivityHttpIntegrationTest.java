@@ -242,6 +242,35 @@ class OrganizationIntegrityAndActivityHttpIntegrationTest {
         assertThat(get("/api/v1/organizations/" + orgId + "/activity", null).statusCode()).isEqualTo(401);
     }
 
+    // Enmienda 2 de la ficha R-6 (plan de cierre, §G-8; P-E2-1): truncated llega siempre, en las tres formas de la
+    // respuesta (con nextCursor, sin él y sin ítems); aquí la organización es pequeña, así que es false
+    @Test
+    void e2_5_truncatedIsAlwaysPresent_withAndWithoutNextCursorAndWithoutItems() throws Exception {
+        for (int i = 0; i < 25; i++) {
+            insert("asset-e2-" + i, 1, "ASSET_REGISTERED", new AssetRegisteredV3Payload("asset-e2-" + i, "BLANKET",
+                    BigDecimal.ONE, "UNITS", "w", "c", null, "asset-e2-" + i, "a", null, orgId, "anon:x", "d", "c"),
+                    String.format("2026-10-21T00:00:%02dZ", i), null);
+        }
+        JsonNode first = json.readTree(get("/api/v1/organizations/" + orgId + "/activity", admin).body());
+        assertThat(first.has("nextCursor")).isTrue();
+        assertThat(first.has("truncated")).as(first.toString()).isTrue();
+        assertThat(first.get("truncated").isBoolean()).isTrue();
+        assertThat(first.get("truncated").asBoolean()).isFalse();
+
+        HttpResponse<String> second = get("/api/v1/organizations/" + orgId + "/activity?cursor="
+                + enc(first.get("nextCursor").asText()), admin);
+        JsonNode last = json.readTree(second.body());
+        assertThat(last.has("nextCursor")).isFalse();
+        assertThat(last.has("truncated")).as(last.toString()).isTrue();
+        assertThat(last.get("truncated").asBoolean()).isFalse();
+
+        JsonNode empty = json.readTree(get("/api/v1/organizations/" + otherOrgId + "/activity", otherAdmin).body());
+        assertThat(empty.get("items")).isEmpty();
+        assertThat(empty.has("truncated")).as(empty.toString()).isTrue();
+        assertThat(empty.get("truncated").isBoolean()).isTrue();
+        assertThat(empty.get("truncated").asBoolean()).isFalse();
+    }
+
     // 11c: un cursor inválido, manipulado, de otro propósito o de otra organización → 400
     @Test
     void t11c_anInvalidTamperedForeignPurposeOrOtherOrganizationCursor_is400() throws Exception {
