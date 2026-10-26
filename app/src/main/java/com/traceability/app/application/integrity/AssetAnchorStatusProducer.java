@@ -48,7 +48,9 @@ public class AssetAnchorStatusProducer implements AssetAnchorStatusPort {
             Optional<MerkleBatch> batch = event.merkleBatchId() == null
                     ? Optional.empty()
                     : batchById.computeIfAbsent(event.merkleBatchId(), batches::findByBatchId);
-            result.put(event.sequence(), stepOf(streamId, event, batch));
+            StepAnchor step = stepOf(streamId, event, batch);
+            // ADR-051, Tarea 5 (H-T5-1, (a)): la huella de la entrega, de esta misma consulta
+            result.put(event.sequence(), new StepAnchor(step.status(), step.eventHash(), step.proof(), event.evidenceRef()));
         }
         return result;
     }
