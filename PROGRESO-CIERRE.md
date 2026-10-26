@@ -96,3 +96,7 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - **#155** (P2, DT-B-1): core 377 y app 601; 7 de 7 mutaciones muertas; CI de `006bac5` con salida 0.
   - **#156** (P3, P-E2-2, depende de #155): core 379 y app 604; 9 de 9 mutaciones muertas; CI de `9bffd83` con salida 0.
 - Deuda nueva registrada: P-DB1-3 (logo y portada), en §0.64.
+- 11:35Z #154 fusionado; 12:03Z #155 fusionado (develop 76eb4f0).
+  - #156 integra develop (982cdfe): CI salida 0, app 607. El merge paralelo de otro agente (10fa18e) tenía el mismo árbol y lo integré en 01a83b8, sin forzar.
+  - Hallazgo: CampaignFundingLedgerIntegrationTest.java:551 tiene una carrera (DonationIntentNotConfirmedException no aceptada). Falló una vez en la CI de b536e02. Arreglo propuesto, sin aplicar.
+- Queda #156, listo para fusionar.
