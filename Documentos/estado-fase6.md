@@ -452,6 +452,12 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 5, G-7 pasa a los nuevos → `pe2_g7_keepsReadingTheDirectoriesOfAlways_neverTheLatest` y `t10d_…`;
     - 6, `truncated` con `>=` → `e2_3_exactlyTheLimitOfEach_isNotTruncated`.
   - **`ci-local.sh`** en un clon limpio de `9bffd83` (con DT-B-1 integrada), salida 0: `evidencia-ci/ci-local-9bffd83-2026-10-26T07-11-17Z.txt`. Resumen: core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 604", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Después solo se integró el commit de documentos de DT-B-1 (`facb21f`).
+- **Nota (2026-10-26, tras la fusión de #154 y #155):** se integró `develop` `76eb4f0` con un merge normal (`982cdfe`), sin conflictos.
+  - `ci-local.sh` en un clon limpio de `982cdfe`: salida 0, con core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 607", todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-982cdfe-2026-10-26T12-03-33Z.txt`.
+  - **Hallazgo, fuera de este PR:** en la CI de `b536e02` (#155 con `develop` integrado), `CampaignFundingLedgerIntegrationTest.applicationAndRejectionRacingNeverLeaveAnAppliedRejectedIntent` (`convocatoria`, `:551`) falló una vez. El mensaje fue "expected: <…CampaignFundingLimitExceededException> but was: <…DonationIntentNotConfirmedException>".
+    - Es una carrera del test: si el rechazo gana, `apply` lanza `DonationIntentNotConfirmedException` (`CampaignFundingLedgerService.java:90`), una salida legítima que el test no acepta.
+    - Ninguno de estos PR toca `convocatoria`, y el mismo código pasó en `f2a4609` y `982cdfe`.
+    - Arreglo propuesto, sin aplicar: que el `catch` de `:551` acepte también `DonationIntentNotConfirmedException`. El test no se desactiva.
 
 ### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
 
