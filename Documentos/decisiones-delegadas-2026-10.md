@@ -259,3 +259,19 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 ```
 
 - **Deuda nueva:** la deduplicación de `MediaUploadService.java:67` no mira `deletedAt`, así que volver a subir los mismos bytes de una foto retirada devolvería el metadato retirado. Queda fuera de este trabajo, pendiente de decisión aparte.
+
+**Nota (2026-10-26): decisiones de Manuel sobre tres deudas, "comunicado por Manuel".** Las tomó Manuel por delegación de Carlos. Google (R-6 de ADR-050) no entra: se hará aparte. El "cómo" va en `plan-deudas-1-a-3-2026-10-26.md`, que espera un "plan aprobado" citable de Manuel, y no hay código antes de esa aprobación.
+
+- **D-1. Fotos retiradas y la deduplicación** (hallazgo de T5, `estado-fase6.md` §0.64; `MediaUploadService.java:65-70`):
+  - si alguien vuelve a subir exactamente los mismos bytes de una evidencia de entrega que la plataforma retiró por F7 (con `deletedAt`), la subida se **rechaza** con un error claro;
+  - ni se reutiliza el metadato retirado ni se guarda como foto nueva: F7 no se puede saltar subiendo la misma imagen;
+  - el plan propone el código HTTP y el nombre del error, y comprueba primero si sirve el 410 `EvidenceRemoved` que ya existe. Comprueba también si el logo y la portada tienen el mismo problema; hoy solo `DELIVERY_EVIDENCE` deduplica.
+- **D-2. DT-B-1** (`estado-fase6.md` §0.53; `MongoEventStoreAdapter.java:96`): **se arregla**. `recordedAt` se escribe con precisión fija para que el orden como texto sea cronológico.
+  - **Restricción dura:** el Event Store es de solo escritura y los eventos ya guardados **no se reescriben**.
+  - Antes de proponer nada, el plan comprueba con ruta:línea si `recordedAt` entra en el hash del evento, en el lote Merkle o en el ancla. Si entra, el formato de los eventos ya guardados no puede cambiar y el plan debe tolerarlos.
+  - El plan elige cómo convivir con los datos viejos y lo justifica.
+- **D-3. P-E2-2** (`ficha-R6-enmienda-2.md:45`): G-8 pasa a mostrar **lo más reciente** cuando hay más de 10 000.
+  - **Se autoriza (reglas-equipo §3.5)** añadir a los puertos de los directorios un método **nuevo** de lectura descendente.
+  - Los métodos existentes y G-7 no cambian, y `truncated` se mantiene.
+  - Hace falta una Enmienda 3 de la ficha R-6, que está CONGELADA: `ficha-R6-enmienda-3.md`.
+- **Anotado al registrarlo, sin resolver:** D-2 cita ADR-025 para "el Event Store es de solo escritura", pero ADR-025 habla del Audit Log de `identity` (`ADR-025-persistencia-identidad.md:19-20`). La inmutabilidad del Event Store está en `documento-maestro-proyecto.md:18` y `:499`. La restricción vale igual.
