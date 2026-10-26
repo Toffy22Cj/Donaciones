@@ -78,8 +78,12 @@ public class OrganizationActivityQuery {
     public record ActivityItem(String type, Instant occurredAt, Subject subject, Long eventCount, BigDecimal quantity,
                                String unitOfMeasure, String locationZone) {}
 
-    /** {@code next} es nulo en la última página. */
-    public record ActivityPage(List<ActivityItem> items, ActivityKey next) {}
+    /**
+     * {@code next} es nulo en la última página. {@code truncated}: la organización tiene más de
+     * {@value #DIRECTORY_LIMIT} fondos o activos y solo se leyeron los primeros de cada directorio (Enmienda 2 de la
+     * ficha R-6, con el criterio de G-7).
+     */
+    public record ActivityPage(List<ActivityItem> items, ActivityKey next, boolean truncated) {}
 
     private record Keyed(ActivityKey key, ActivityItem item) {}
 
@@ -123,8 +127,12 @@ public class OrganizationActivityQuery {
     /** @param after la clave del último ítem de la página anterior; {@code null} para la primera */
     public ActivityPage page(AuthorizationPrincipal principal, String organizationId, ActivityKey after) {
         authorize(principal, organizationId);
-        List<String> streams = new ArrayList<>(funds.findFundIdsByOrganization(organizationId, DIRECTORY_LIMIT));
-        streams.addAll(assets.findAssetIdsByOrganization(organizationId, DIRECTORY_LIMIT));
+        // Enmienda 2 de la ficha R-6: el criterio de G-7 (OrganizationIntegrityQuery), uno más para saber si hay más
+        List<String> fundIds = funds.findFundIdsByOrganization(organizationId, DIRECTORY_LIMIT + 1);
+        List<String> assetIds = assets.findAssetIdsByOrganization(organizationId, DIRECTORY_LIMIT + 1);
+        boolean truncated = fundIds.size() > DIRECTORY_LIMIT || assetIds.size() > DIRECTORY_LIMIT;
+        List<String> streams = new ArrayList<>(fundIds.subList(0, Math.min(fundIds.size(), DIRECTORY_LIMIT)));
+        streams.addAll(assetIds.subList(0, Math.min(assetIds.size(), DIRECTORY_LIMIT)));
         int wanted = PAGE_SIZE + 1;
 
         List<Keyed> merged = new ArrayList<>();
@@ -135,7 +143,7 @@ public class OrganizationActivityQuery {
 
         List<Keyed> page = merged.subList(0, Math.min(PAGE_SIZE, merged.size()));
         ActivityKey next = merged.size() > PAGE_SIZE ? page.get(PAGE_SIZE - 1).key() : null;
-        return new ActivityPage(page.stream().map(Keyed::item).toList(), next);
+        return new ActivityPage(page.stream().map(Keyed::item).toList(), next, truncated);
     }
 
     private List<Keyed> eventItems(List<String> streams, ActivityKey after, int wanted) {

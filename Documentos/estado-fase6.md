@@ -257,6 +257,30 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 8 (sin `no-store`) → d7_1 por HTTP.
   - **`ci-local.sh`** en un clon limpio de `36a224c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 392, `convocatoria` 255, `app` 566). Evidencia: `Documentos/evidencia-ci/ci-local-36a224c-2026-10-25T23-36-43Z.txt`. `develop` sigue en `6b54630`, la base de la rama.
 
+### 0.62 Ficha R-6, Enmienda 2: `truncated` en la actividad reciente (G-8) (2026-10-25, `feat/r6-g8-truncated`)
+
+- Numerada 0.62, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:** `ficha-R6-enmienda-2.md`, APROBADA por Manuel (#147, comentario 6404356890; la nota se registra en #148), con P-E2-1 (siempre) y P-E2-2 (en este corte, los más antiguos, como deuda); `plan-cierre-backend-2026-10-25.md` §G-8.
+- **Qué hace:**
+  - `OrganizationActivityQuery` lee `DIRECTORY_LIMIT + 1` de cada directorio, calcula `truncated` con el criterio de G-7 (`OrganizationIntegrityQuery`) y usa solo los primeros `DIRECTORY_LIMIT`. `ActivityPage` gana `truncated`.
+  - `OrganizationActivityController.PageResponse` gana `truncated`, un `boolean` que llega siempre.
+  - Sin puertos nuevos ni cambiados.
+- **Deuda (P-E2-2):** con más de 10 000, G-8 muestra la actividad de los fondos y activos **más antiguos**, porque los directorios ordenan ascendente. `truncated` lo avisa.
+- **Evidencia:**
+  - **Rojo primero:**
+    - `OrganizationActivityTruncatedTest` no compilaba: "`[90,24] cannot find symbol`" (`ActivityPage.truncated()`);
+    - con ese test apartado, `OrganizationIntegrityAndActivityHttpIntegrationTest` daba "Tests run: 4, Failures: 1": e2_5, "`Expecting value to be true but was false`" (la respuesta sin `truncated`).
+  - **Verde por capas** (módulo completo): `core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 384, `convocatoria` 255 y `app` "Tests run: 563", todos con "Failures: 0, Errors: 0, Skipped: 0". El test del controlador, añadido después, dio aparte "Tests run: 1, Failures: 0, Errors: 0, Skipped: 0".
+  - **Revisión adversaria:** sin `OrganizationActivityControllerTruncatedTest`, una respuesta con `false` fijo sobrevivía, porque el test HTTP solo ve organizaciones pequeñas. Se añadió.
+  - **5 de 5 mutaciones muertas,** en un clon limpio de `fef7e6c`, con la línea base en verde (la "mutación 0" sale VIVA):
+    - 1 (`truncated` siempre `false`) → e2_1 y e2_2;
+    - 2 (`>=`) → e2_3;
+    - 3 (solo los activos) → e2_2;
+    - 4 (usar los `DIRECTORY_LIMIT + 1`) → e2_1 y e2_2;
+    - 5 (la respuesta con `false` fijo) → e2_6.
+  - **`ci-local.sh`** en un clon limpio de `fef7e6c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 384, `convocatoria` 255, `app` 564, con el test del controlador dentro). Evidencia: `Documentos/evidencia-ci/ci-local-fef7e6c-2026-10-26T00-02-55Z.txt`. `develop` sigue en `6b54630`.
+- *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `7f2e99f` (#148 D7) en `5319263`; conflictos en este archivo (§0.61 de D7 frente a esta §0.62) y en `ficha-R6-enmienda-2.md` (nota "APROBADA" frente a nota "implementada"), resueltos conservando los dos lados, con lo de `develop` delante; ninguna línea borrada. La aprobación de Manuel ya está registrada en `develop` por #148. `scripts/ci-local.sh` en un clon limpio de `5319263` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 369", crypto 57, ai 47, api 169, identity 392, convocatoria 255 y app 572, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-5319263-2026-10-26T02-07-46Z.txt`.
+
 ### 0.60 Cierre del backend: las 8 decisiones de Manuel, las enmiendas y el plan único (2026-10-25, `chore/docs-cierre-backend`)
 
 - Numerada 0.60, en la serie de este trabajo (0.60 a 0.69).
