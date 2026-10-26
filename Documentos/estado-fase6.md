@@ -264,6 +264,16 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - (b) una caché por petición de `findByStream` en `app`, con clases nuevas sin nombre en el plan;
     - (c) aceptar dos consultas y enmendar la medición del Bloque C.
   - **Mutaciones y `ci-local.sh`:** pendientes de la respuesta.
+  - **Nota (2026-10-26): H-T5-1 resuelto con la opción (a)** (decisión de Manuel, #147, comentario 6406618994; autorización 3.5):
+    - `contracts`: `AssetAnchorStatusPort.StepAnchor` gana `evidenceRef`, con un constructor de tres argumentos para los usos de antes;
+    - `app`: `AssetAnchorStatusProducer` lo rellena con el `evidenceRef` del `StreamEventAnchorData` que ya lee;
+    - `api`: `AssetHistoryMapper` lo toma del `StepAnchor`, vuelve a su constructor de `develop` y ya no usa `StreamEventAnchorDataPort`. Los tres tests de `api` vuelven a su cableado de `develop`;
+    - **la medición del Bloque C no se toca:** una sola consulta al Event Store por historial;
+    - `develop` `ab19717` (con #148, #149 y #150) se integró antes por un merge normal (`a94e9c9`). Los conflictos de `PlatformCommandType` y `PlatformAuthorizationPolicy` conservan los tres valores nuevos (`REACTIVATE_ACCOUNT`, `READ_DELIVERY_EVIDENCE` y `REMOVE_MEDIA`), y los de los documentos, los dos lados;
+    - **rojo:** `api` no compilaba ("`AssetHistoryMapperTest.java:[176,21] constructor StepAnchor … cannot be applied to given types`"); `app`, sobre el código anterior, daba el fallo de la medición de arriba;
+    - **verde por capas** (módulo completo): `core` 370, `crypto` 57, `ai` 47, `api` 174, `identity` 396, `convocatoria` 259 y `app` "Tests run: 592", todos con "Failures: 0, Errors: 0, Skipped: 0", con la medición del Bloque C en verde;
+    - **mutaciones** (`scripts/mutaciones.py`, clon limpio con la base instalada con tests): `core` 1 de 1 muerta, `api` 3 de 3 y `app` 9 de 9 (incluida la 12, "el productor no pasa el evidenceRef"); cada spec dice "Mutaciones vivas: 1", que es su línea base 0;
+    - **`ci-local.sh`** en un clon limpio de `136c4ca`, salida 0: `evidencia-ci/ci-local-136c4ca-2026-10-26T03-44-59Z.txt`, con la app en "Tests run: 592, Failures: 0, Errors: 0, Skipped: 0".
 
 ### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
 
