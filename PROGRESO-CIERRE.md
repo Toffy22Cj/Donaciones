@@ -91,3 +91,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - **P3** `feat/r6-g8-descendente` (/home/user/p3), desde P2: tests `b22bcc9`; código `a60e0a2`; docs `9e1d9a9` §0.68.
   - Desvío: los dobles de los tests e2 pasan a los métodos nuevos.
 - Specs de mutaciones en /home/user/tools/mut-p1, mut-p2 y mut-p3. Van de una en una, porque `m2-mut` es compartido.
+- 07:40Z: **PR abiertos.** Orden de fusión: #154 → #155 → #156. Probé a fusionarlos en ese orden sobre develop 9295634 y no hay conflictos.
+  - **#154** (P1, deuda 1): app 602; 5 de 5 mutaciones muertas; CI de `732c2c1` con salida 0.
+  - **#155** (P2, DT-B-1): core 377 y app 601; 7 de 7 mutaciones muertas; CI de `006bac5` con salida 0.
+  - **#156** (P3, P-E2-2, depende de #155): core 379 y app 604; 9 de 9 mutaciones muertas; CI de `9bffd83` con salida 0.
+- Deuda nueva registrada: P-DB1-3 (logo y portada), en §0.64.
