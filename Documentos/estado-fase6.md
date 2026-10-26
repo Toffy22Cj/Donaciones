@@ -329,8 +329,13 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - `DeliveryEvidenceReadAndRemovalHttpIntegrationTest.db1_reuploadingTheBytesOfARemovedEvidence_is410_andStoresNothing:361`: "expected: 410 but was: 201";
     - en total, "Tests run: 29, Failures: 3".
   - **Verde por capas** (`mvn test -pl app -am`, módulo entero): core "Tests run: 370", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 602", todos con "Failures: 0, Errors: 0, Skipped: 0" y BUILD SUCCESS.
-  - **Mutaciones:** MUT_P1.
-  - **`ci-local.sh`:** CI_P1.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `80dce43` con la base instalada con tests): 5 de 5 muertas, y la línea base 0 sale VIVA ("Mutaciones vivas: 1"):
+    - 1, no mirar `deletedAt` en el camino normal → `db1_theBytesOfARemovedEvidence_…` y `db1_reuploading…_is410_…`;
+    - 2, no mirarlo en la carrera → `db1_aRaceWhoseWinnerIsRemoved_isRejectedToo`;
+    - 3, `put` antes de la comprobación → los dos `db1` y tres tests de siempre;
+    - 4, lanzar también con un metadato vivo → `sameEvidenceBytesTwice_…` y `concurrentDuplicateEvidence_…`;
+    - 5, deduplicar también el logo → `deduplication_isOnlyForEvidence_…`.
+  - **`ci-local.sh`** en un clon limpio de `732c2c1`, salida 0: `evidencia-ci/ci-local-732c2c1-2026-10-26T06-29-52Z.txt`. Resumen: core "Tests run: 370", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 602", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
 
 ### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
 
