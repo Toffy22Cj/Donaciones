@@ -139,6 +139,12 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
     }
 
     private String photo(int seed) throws Exception {
+        HttpResponse<String> r = upload(seed);
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
+        return json.readTree(r.body()).get("evidenceRef").asText();
+    }
+
+    private HttpResponse<String> upload(int seed) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.writeBytes(("--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"e.png\""
                 + "\r\nContent-Type: image/png\r\n\r\n").getBytes(StandardCharsets.UTF_8));
@@ -149,8 +155,7 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
                 .POST(HttpRequest.BodyPublishers.ofByteArray(out.toByteArray()))
                 .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                 .header("Authorization", "Bearer " + tokens.issue(EMPLOYEE)).build(), HttpResponse.BodyHandlers.ofString());
-        assertThat(r.statusCode()).as(r.body()).isEqualTo(201);
-        return json.readTree(r.body()).get("evidenceRef").asText();
+        return r;
     }
 
     private static final String IN_KIND = """
@@ -339,5 +344,27 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
         assertThat(text(removed)).doesNotContain("motivo-secreto-t5");
         assertThat(text(read)).doesNotContain("motivo-secreto-t5");
         assertThat(output.getAll()).doesNotContain("motivo-secreto-t5");
+    }
+
+    // ── Deuda 1 (plan de las deudas 1 a 3 §1; P-DB1-1): volver a subir los bytes de una evidencia retirada → 410 ──
+
+    @Test
+    void db1_reuploadingTheBytesOfARemovedEvidence_is410_andStoresNothing() throws Exception {
+        Delivered d = deliveredAsset(8);
+        assertThat(remove(PLATFORM, ORG, removal("DELIVERY_EVIDENCE", d.evidenceRef(), REASON)).statusCode()).isEqualTo(204);
+        long mediaBefore = mongoTemplate.getCollection("media_objects").countDocuments();
+        Set<String> keysBefore = Set.copyOf(storage.keys());
+        Mockito.reset(storage);
+
+        HttpResponse<String> again = upload(8);
+
+        assertThat(again.statusCode()).as(again.body()).isEqualTo(410);
+        assertThat(json.readValue(again.body(), Map.class)).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "type", "about:blank", "title", "EvidenceRemoved", "status", 410, "detail", "The resource was removed."));
+        assertThat(mongoTemplate.getCollection("media_objects").countDocuments()).isEqualTo(mediaBefore);
+        assertThat(storage.keys()).containsExactlyInAnyOrderElementsOf(keysBefore);
+        verify(storage, never()).put(anyString(), any(), anyString());
+        // control: otra foto de la misma organización sigue siendo un 201
+        assertThat(upload(9).statusCode()).isEqualTo(201);
     }
 }
