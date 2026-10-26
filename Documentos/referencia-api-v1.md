@@ -232,6 +232,8 @@ Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras 
 - **Orden para el cliente (F5):** primero subir la foto, con conexión, y después entregar con su `evidenceRef`. Despachar y recibir no cambian.
 - **Eventos antiguos:** los `ASSET_DELIVERED` con `evidenceRef` en texto libre se siguen leyendo igual; no se reescriben ni cambia la verificación de su cadena.
 
+*Nota (2026-10-26, deuda 1; `plan-deudas-1-a-3-2026-10-26.md` §1, P-DB1-1 y P-DB1-2): subir una evidencia retirada.* `POST /organizations/{organizationId}/delivery-evidence` gana **410 `EvidenceRemoved`**: los bytes limpios coinciden con una evidencia de la misma organización que la plataforma retiró (F7). No se guarda nada: ni bytes ni metadato. El cuerpo es fijo: `{type: "about:blank", title: "EvidenceRemoved", status: 410, detail: "The resource was removed."}`. Antes, esa subida daba 201 con un `evidenceRef` que la entrega rechazaba con 400. Las filas y notas de arriba no se reescriben.
+
 *Nota (2026-10-25, ADR-051, Tarea 5; F6 y F7): leer la evidencia.* `GET /physical-assets/{assetRef}/evidence`, con JWT. La leen los miembros de la organización del activo, con cualquier rol, y el administrador de plataforma. Responde `200` con los bytes guardados, `Cache-Control: private, no-store` y el `Content-Type` del metadato. Errores: 401; el 403 uniforme para otra organización, para una cuenta sin organización o para un activo inexistente (DD-12); 404 `NotFound`, el mismo si no hay entrega, si el `evidenceRef` es texto libre heredado o si faltan el metadato o los bytes; **410 `EvidenceRemoved`** si la plataforma la retiró. Las filas de arriba no se reescriben.
 
 ## 7. Fondos (Camino A)
