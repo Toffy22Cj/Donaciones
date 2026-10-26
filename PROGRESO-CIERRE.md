@@ -64,3 +64,10 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 
 - **T5 bloqueado (H-T5-1):** `TrackingLineageAndAnchorHttpIntegrationTest.java:246` exige una consulta al event store por historial (plan C §6); el mapper de T5 añade una segunda. Opciones en §0.64 de la rama. Recomendada (a): `StepAnchor` (contracts) gana `evidenceRef` — cambio de puerto, necesita aprobación.
 - Siguiente: respuestas de Manuel para M-21 (campaignRef) y T5 (H-T5-1). Al fusionarse cualquier PR: integrar develop en los demás y repetir CI.
+
+## 2026-10-26: M-21 (a) y T5 (a)
+
+- #148, #149 y #150 fusionados; `develop` en `ab19717`. Decisiones de Manuel: #147, comentario 6406618994 (M-21 (a), T5 (a), autorización 3.5 de los dos puertos).
+- **T5: #151.** Notas de decisión en `a0cf7f5`, antes del código; merge de develop `a94e9c9`; código `136c4ca`. App 592; mutaciones 13 de 13 muertas; ci-local exit 0 (`ci-local-136c4ca-…`).
+- **M-21:** rama `feat/account-impact` desde `ab19717`. `DonationView.campaignRef`; `GET /api/v1/account/impact`. App 589; mutaciones 9 de 9 muertas; ci-local en curso.
+- Orden de fusión: #151 (lleva las notas de decisión) → M-21. Si develop se mueve, integrar develop y repetir la CI.
