@@ -172,6 +172,45 @@ class IntegrityRecomputationIntegrationTest {
         assertThat(r.inconclusiveReason()).isNull();
     }
 
+    // DT-B-1 (plan de las deudas 1 a 3 §2; P-DT1-1): un evento viejo, con el texto de Instant.toString(), y uno nuevo,
+    // con 9 decimales fijos, en el mismo stream. El hash no cambia: los dos se verifican y la cadena sigue entera
+    @Test
+    void dtb1_anOldTextAndANewFixedText_inOneStream_bothMatch() {
+        SystemActor actor = new SystemActor("test");
+        Instant firstSecond = Instant.parse("2026-10-20T10:00:04Z");
+        try (org.mockito.MockedStatic<Instant> clock = org.mockito.Mockito.mockStatic(Instant.class,
+                org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            clock.when(Instant::now).thenReturn(firstSecond);
+            eventStore.append("F-dtb1", "Fund", 0, List.of(new DomainEvent(FundEventType.FUND_REGISTERED,
+                    new FundRegisteredV2Payload("ORG-1", 500_000L, "COP", "CAMP-1", "dnr-1"), firstSecond)), actor);
+        }
+        // el evento 1 como lo guardaba el código anterior: el mismo instante, con el texto de Instant.toString()
+        Document first = event("F-dtb1", 1);
+        String oldText = firstSecond.toString();
+        assertThat(oldText).isEqualTo("2026-10-20T10:00:04Z");
+        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(first.get("_id"))),
+                Update.update("recordedAt", oldText), "event_store");
+        String previous = first.getString("eventHash");
+        // el evento 2, escrito en un segundo exacto: el caso en que los dos textos difieren
+        Instant exactSecond = Instant.parse("2026-10-20T10:00:05Z");
+        try (org.mockito.MockedStatic<Instant> clock = org.mockito.Mockito.mockStatic(Instant.class,
+                org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            clock.when(Instant::now).thenReturn(exactSecond);
+            eventStore.append("F-dtb1", "Fund", 1, List.of(new DomainEvent(FundEventType.FUNDS_CLEARED,
+                    new FundsClearedV2Payload("ORG-1", 100_000L, "pay-dtb1", "COP", "CAMP-1", "dnr-1"), exactSecond)),
+                    actor);
+        }
+        Document fresh = event("F-dtb1", 2);
+        assertThat(fresh.getString("previousHash")).isEqualTo(previous);
+        assertThat(fresh.getString("recordedAt")).isEqualTo("2026-10-20T10:00:05.000000000Z");
+        assertThat(event("F-dtb1", 1).getString("recordedAt")).isEqualTo(oldText);
+        String batch = anchored(Map.of("F-dtb1", new SequenceRange(1, 2)));
+
+        VerificationResult r = verification.verifyBatch(batch);
+
+        assertThat(r.status()).as(r.toString()).isEqualTo(VerificationStatus.MATCH);
+    }
+
     // DoD 1
     @Test
     void aPayloadAlteredWithoutTouchingTheEventHash_isAMismatch_attributedToThatEvent() {
