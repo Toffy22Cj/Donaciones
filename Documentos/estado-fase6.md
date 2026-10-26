@@ -358,8 +358,15 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - `app`, con los tests de `core` apartados:
       - `IntegrityRecomputationIntegrationTest.dtb1_anOldTextAndANewFixedText_inOneStream_bothMatch:205`: 'expected: "2026-10-20T10:00:05.000000000Z" but was: "2026-10-20T10:00:05Z"';
       - `OrganizationActivityQueryIntegrationTest.dtb1_aNewEvent100msAfterAClosureOrAnAnchoringOfTheExactSecond_comesFirst:294`: 'Expecting actual: ["CAMPAIGN_CLOSED", "ASSET_RECEIVED", "ASSET_REGISTERED"] to start with: ["ASSET_RECEIVED", "CAMPAIGN_CLOSED"]'.
-  - **Verde por capas:** VERDE_P2.
-  - **Mutaciones:** MUT_P2.
+  - **Verde por capas** (`mvn test -pl app -am`, módulo entero, sobre `045cd47`): core "Tests run: 376", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 601", todos con "Failures: 0, Errors: 0, Skipped: 0" y BUILD SUCCESS. El test de protección del hash (`7210254`) llegó después y lo cubre la CI.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `635c23f` con la base instalada con tests): 7 de 7 muertas, y en cada spec la línea base 0 sale VIVA ("Mutaciones vivas: 1"):
+    - 1, el adaptador sigue con `toString()` → `dtb1_append_atAnExactSecond_…`;
+    - 2, 6 decimales → `dtb1_alwaysNineDecimals_inUtc` y otros tres;
+    - 3, el adaptador hashea el texto fijo → `dtb1_anOldTextAndANewFixedText_inOneStream_bothMatch`;
+    - 4, zona `America/Bogota` → `dtb1_alwaysNineDecimals_inUtc` y otros dos;
+    - 5, G-8 con `closedAt.toString()` → `dtb1_aNewEvent100msAfter…`;
+    - 6, G-8 con `anchoredAt.toString()` → `dtb1_aNewEvent100msAfter…` y `t11b_aTieBetweenSources…`;
+    - 7, el mapa canónico del hash con el texto fijo → `dtb1_theHashFormOfRecordedAt_staysInstantToString`.
   - **`ci-local.sh`:** CI_P2.
 - **Riesgo que queda (P-DT1-1):**
   - dos eventos viejos del mismo segundo, o uno viejo y uno nuevo en el segundo del despliegue, pueden seguir fuera de orden cronológico;
