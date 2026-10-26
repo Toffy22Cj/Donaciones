@@ -14,10 +14,10 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 |---|---|---|---|---|---|
 | P0 documentos + plan | HECHO (PR abierto) | `chore/docs-cierre-backend` `17186e0` | #147 | solo documentos; diff sin líneas borradas | "plan aprobado" de Manuel |
 | M-22 verificación | HECHO con hallazgo | (en #147, §0.60) | #147 | 11 campos de `DonationDtos.java:30-32` | lista de campos del comprobante (H-CB-5) |
-| P1 D7 | PENDIENTE | `feat/identity-d7-reactivacion` | — | — | plan aprobado |
-| P2 G-8 truncated | PENDIENTE | `feat/r6-g8-truncated` | — | — | plan aprobado |
-| P3 M-21 | PENDIENTE | `feat/account-impact` | — | — | plan aprobado |
-| P4 T3 portada | PENDIENTE | `feat/adr051-t3-portada` | — | — | plan aprobado |
+| P1 D7 | HECHO (PR abierto) | `feat/identity-d7-reactivacion` `2174928` | #148 | ci-local 36a224c BUILD SUCCESS (app 566); 8/8 mutaciones | — |
+| P2 G-8 truncated | EN CURSO | `feat/r6-g8-truncated` `fef7e6c` | — | verde app 563 (+1 test aparte) | — |
+| P3 M-21 | BLOQUEADO | — | — | — | `DonationIntentReadPort.DonationView` sin campaignRef (`convocatoria/.../DonationIntentReadPort.java:28-30`); cambiarlo es cambiar un puerto que usa `app` (regla 3.5), no autorizado |
+| P4 T3 portada | EN CURSO | `feat/adr051-t3-portada` `3ec967a` | — | rojo hecho; verde en curso | — |
 | P5 T5 | PENDIENTE | `feat/adr051-t5-evidencia-lectura` | — | — | enmienda ADR-021-D aprobada |
 
 ## Bitácora
@@ -51,3 +51,10 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 7. **Rama y commit:** `chore/docs-cierre-backend` desde `origin/develop` `0f71bfc`, sin `paxfide-predictor-demo/` ni configuración local.
 
 - #147 abierto, con el pie corregido. **DETENIDO en el código** hasta un "plan aprobado" de Manuel, citable. T5 espera además la aprobación de la enmienda de ADR-021-D.
+
+## Código (2026-10-25/26)
+
+- Plan aprobado por Manuel: #147, comentario 6404356890; registrado en el primer PR de código (#148, `e15c764`).
+- D7: #148. G-8 y T3, en curso.
+- **M-21 bloqueado (regla 3 del prompt):** "convocatorias apoyadas" necesita el `campaignRef` de cada intención, y `DonationView` no lo lleva. Alternativas para Manuel: (a) añadir `campaignRef` a `DonationView` (cambio aditivo de un puerto de `convocatoria` que usa `app`); (b) sacarlo del fondo (`DonationReadModel.campaignRef`), pero solo existe para las donaciones con fondos aplicados, así que una `CONFIRMED` sin fondos aún no contaría.
+- Herramientas en /home/user/tools: ci.sh, mut.sh (con "mutación 0" de línea base), evidencia.py, ambos.py.
