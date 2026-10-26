@@ -458,6 +458,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - Es una carrera del test: si el rechazo gana, `apply` lanza `DonationIntentNotConfirmedException` (`CampaignFundingLedgerService.java:90`), una salida legítima que el test no acepta.
     - Ninguno de estos PR toca `convocatoria`, y el mismo código pasó en `f2a4609` y `982cdfe`.
     - Arreglo propuesto, sin aplicar: que el `catch` de `:551` acepte también `DonationIntentNotConfirmedException`. El test no se desactiva.
+- *Nota (2026-10-26, tren de fusiones, agente local de Manuel):* en paralelo con la integración de arriba, el agente local integró el mismo `develop` `76eb4f0` en `10fa18e`, sin conflictos; `01a83b8` une las dos y el código es idéntico (solo difieren documentos). `scripts/ci-local.sh` en un clon limpio de `10fa18e` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 607, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-10fa18e-2026-10-26T12-03-37Z.txt`.
 
 ### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
 
