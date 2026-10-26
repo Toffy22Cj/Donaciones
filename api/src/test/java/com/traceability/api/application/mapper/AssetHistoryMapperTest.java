@@ -171,16 +171,14 @@ class AssetHistoryMapperTest {
     private static final String HUELLA = "sha256:" + "0123456789abcdef".repeat(4);
 
     private com.fasterxml.jackson.databind.JsonNode deliveredStepWith(String evidenceRef) throws Exception {
-        com.traceability.core.application.port.out.StreamEventAnchorDataPort events =
-                Mockito.mock(com.traceability.core.application.port.out.StreamEventAnchorDataPort.class);
-        when(events.findByStream("asset-ev")).thenReturn(List.of(
-                new com.traceability.core.application.port.out.StreamEventAnchorDataPort.StreamEventAnchorData(1, "h1", null, null),
-                new com.traceability.core.application.port.out.StreamEventAnchorDataPort.StreamEventAnchorData(2, "h2", null, evidenceRef)));
-        AssetHistoryMapper mapper = new AssetHistoryMapper(locationReferenceService, publicDonationMapper, anchors, events);
+        // H-T5-1, opción (a): la huella llega en el StepAnchor del puerto de contracts, sin otra consulta
+        when(anchors.anchorBySequence("asset-ev")).thenReturn(Map.of(
+                1L, new AssetAnchorStatusPort.StepAnchor(com.traceability.contracts.TrackingAnchorStatus.PENDING, "h1", null, null),
+                2L, new AssetAnchorStatusPort.StepAnchor(com.traceability.contracts.TrackingAnchorStatus.PENDING, "h2", null, evidenceRef)));
         AssetHistoryReadModel history = new AssetHistoryReadModel("asset-ev", List.of(
                 new AssetTransitionReadModel("ASSET_REGISTERED", "REGISTERED", "cust-1", "LOC-1", Instant.parse("2026-09-06T10:00:00Z"), 1L),
                 new AssetTransitionReadModel("ASSET_DELIVERED", "DELIVERED", "cust-f", "LOC-2", Instant.parse("2026-09-07T10:00:00Z"), 2L)));
-        return new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(mapper.toDto(history));
+        return new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(assetHistoryMapper.toDto(history));
     }
 
     @Test

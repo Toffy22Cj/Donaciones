@@ -66,4 +66,26 @@ class AssetAnchorStatusProducerTest {
         assertThat(result.values()).allSatisfy(s -> assertThat(s.proof()).isNotNull());
         verify(batches, times(1)).findByBatchId("b");
     }
+
+    // ADR-051, Tarea 5 (H-T5-1, opción (a)): el evidenceRef de la entrega viaja en el StepAnchor, de la misma consulta
+    // que el anclaje; findByStream se llama una sola vez
+    @Test
+    void t5_theEvidenceRefOfTheDelivery_travelsInTheStepAnchor_fromTheSameQuery() {
+        StreamEventAnchorDataPort events = mock(StreamEventAnchorDataPort.class);
+        MerkleBatchRepositoryPort batches = mock(MerkleBatchRepositoryPort.class);
+        String huella = "sha256:" + "ab".repeat(32);
+        when(events.findByStream("a")).thenReturn(List.of(
+                new StreamEventAnchorData(1, "h1", null, null),
+                new StreamEventAnchorData(2, "h2", null, huella),
+                new StreamEventAnchorData(3, "h3", null, "acta-1")));
+
+        Map<Long, StepAnchor> result = new AssetAnchorStatusProducer(events, batches).anchorBySequence("a");
+
+        assertThat(result.get(1L).evidenceRef()).isNull();
+        assertThat(result.get(2L).evidenceRef()).isEqualTo(huella);
+        // el texto libre heredado se pasa tal cual: qué se expone lo decide api (enmienda de ADR-021-D)
+        assertThat(result.get(3L).evidenceRef()).isEqualTo("acta-1");
+        assertThat(result.get(2L).status()).isEqualTo(TrackingAnchorStatus.PENDING);
+        verify(events, times(1)).findByStream("a");
+    }
 }

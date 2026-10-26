@@ -105,9 +105,6 @@ class PublicNarrativeControllerIntegrationTest {
     // AssetHistoryMapper lo necesita (ficha R-6, G-3 y Enmienda 1, E1); lo implementa app, que este test no levanta
     @MockitoBean
     private com.traceability.contracts.AssetAnchorStatusPort assetAnchors;
-    // AssetHistoryMapper lo necesita (ADR-051, Tarea 5: la huella de la entrega); lo implementa core, que este test no levanta
-    @MockitoBean
-    private com.traceability.core.application.port.out.StreamEventAnchorDataPort streamEvents;
 
 
     @Test
