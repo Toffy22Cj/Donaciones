@@ -48,6 +48,18 @@ public class ConvocatoriaAuthorizationPolicy {
     }
 
     /**
+     * ADR-051 F7 (Tarea 5): retirar una portada es del administrador de plataforma, no de la organización. El rechazo
+     * es {@link ActorRoleNotAllowedException}, el mismo 403 de siempre.
+     */
+    public void requirePlatformAdministrator(String actorAccountId) {
+        Objects.requireNonNull(actorAccountId, "actorAccountId");
+        AuthorizationPrincipal principal = identityPrincipalPort.resolvePrincipal(actorAccountId);
+        if (principal == null || principal.platformAuthority() != com.traceability.contracts.authorization.PlatformAuthority.ADMINISTRATOR) {
+            throw new ActorRoleNotAllowedException("Actor " + actorAccountId + " is not a platform administrator");
+        }
+    }
+
+    /**
      * Aprobar, rechazar o listar solicitudes de cambio de configuración (Enmienda 1 de ADR-037, §3.2; Enmienda 4, D2):
      * {@code ADMINISTRATOR} o {@code REPRESENTATIVE} de la organización de la convocatoria. Que sea distinto del
      * solicitante lo comprueba el servicio.

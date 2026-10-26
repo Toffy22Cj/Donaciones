@@ -26,9 +26,20 @@ public class MongoStreamEventAnchorDataAdapter implements StreamEventAnchorDataP
     @Override
     public List<StreamEventAnchorData> findByStream(String streamId) {
         Query query = new Query(Criteria.where("streamId").is(streamId)).with(Sort.by("sequence"));
-        query.fields().include("sequence").include("eventHash").include("merkleBatchId");
+        query.fields().include("sequence").include("eventHash").include("merkleBatchId").include("eventType")
+                .include("payload.evidenceRef");
         return mongoTemplate.find(query, TraceabilityEventDocument.class).stream()
-                .map(e -> new StreamEventAnchorData(e.getSequence(), e.getEventHash(), e.getMerkleBatchId()))
+                .map(e -> new StreamEventAnchorData(e.getSequence(), e.getEventHash(), e.getMerkleBatchId(),
+                        evidenceRefOf(e)))
                 .toList();
+    }
+
+    /** ADR-051, Tarea 5 (P-T5-1): solo la entrega lleva huella; en cualquier otro evento, nulo aunque el payload la tenga. */
+    private static String evidenceRefOf(TraceabilityEventDocument e) {
+        if (!"ASSET_DELIVERED".equals(e.getEventType()) || e.getPayload() == null) {
+            return null;
+        }
+        Object evidenceRef = e.getPayload().get("evidenceRef");
+        return evidenceRef instanceof String s ? s : null;
     }
 }
