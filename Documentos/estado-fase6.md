@@ -255,8 +255,11 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - convocatoria 260;
     - app "Tests run: 589, Failures: 0, Errors: 0, Skipped: 0".
     - Todos con 0 fallos y BUILD SUCCESS.
-  - **Mutaciones:** MUT_M21.
-  - **`ci-local.sh`:** CI_M21.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio con la base instalada con tests):
+    - `convocatoria`: 1 de 1 muerta (`campaignRef` nulo en la vista);
+    - `app`: 8 de 8 muertas en `AccountImpactQuery` (todos los estados, sin agrupar por moneda, activos no entregados, sumar unidades distintas, crear el seudónimo, sin `truncated`, un activo contado dos veces, convocatorias = donaciones);
+    - cada spec dice "Mutaciones vivas: 1", que es su línea base 0.
+  - **`ci-local.sh`** en un clon limpio de `b84fed3`, salida 0: `evidencia-ci/ci-local-b84fed3-2026-10-26T04-09-22Z.txt`, con la app en "Tests run: 589, Failures: 0, Errors: 0, Skipped: 0".
 
 ### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
 
