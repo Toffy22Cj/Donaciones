@@ -165,4 +165,61 @@ class AssetHistoryMapperTest {
             assertFalse(json.contains(forbidden), forbidden + " en " + json);
         }
     }
+
+    // ── ADR-051, Tarea 5; enmienda de ADR-021-D (E1 a E3, tests 1 a 5): la huella en el paso de la entrega ──
+
+    private static final String HUELLA = "sha256:" + "0123456789abcdef".repeat(4);
+
+    private com.fasterxml.jackson.databind.JsonNode deliveredStepWith(String evidenceRef) throws Exception {
+        // H-T5-1, opción (a): la huella llega en el StepAnchor del puerto de contracts, sin otra consulta
+        when(anchors.anchorBySequence("asset-ev")).thenReturn(Map.of(
+                1L, new AssetAnchorStatusPort.StepAnchor(com.traceability.contracts.TrackingAnchorStatus.PENDING, "h1", null, null),
+                2L, new AssetAnchorStatusPort.StepAnchor(com.traceability.contracts.TrackingAnchorStatus.PENDING, "h2", null, evidenceRef)));
+        AssetHistoryReadModel history = new AssetHistoryReadModel("asset-ev", List.of(
+                new AssetTransitionReadModel("ASSET_REGISTERED", "REGISTERED", "cust-1", "LOC-1", Instant.parse("2026-09-06T10:00:00Z"), 1L),
+                new AssetTransitionReadModel("ASSET_DELIVERED", "DELIVERED", "cust-f", "LOC-2", Instant.parse("2026-09-07T10:00:00Z"), 2L)));
+        return new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(assetHistoryMapper.toDto(history));
+    }
+
+    @Test
+    void t5_aDeliveryWithAValidFootprint_carriesEvidenceRegisteredAndTheRef() throws Exception {
+        com.fasterxml.jackson.databind.JsonNode dto = deliveredStepWith(HUELLA);
+
+        com.fasterxml.jackson.databind.JsonNode delivered = dto.get("history").get(1);
+        assertTrue(delivered.get("evidenceRegistered").asBoolean());
+        assertEquals(HUELLA, delivered.get("evidenceRef").asText());
+        // E1: los demás pasos no llevan ninguno de los dos campos
+        com.fasterxml.jackson.databind.JsonNode registered = dto.get("history").get(0);
+        assertFalse(registered.has("evidenceRegistered"));
+        assertFalse(registered.has("evidenceRef"));
+    }
+
+    @Test
+    void t5_aLegacyFreeTextEvidence_isRegisteredWithoutTheRef_andTheTextAppearsNowhere() throws Exception {
+        com.fasterxml.jackson.databind.JsonNode dto = deliveredStepWith("acta-1 Juan Pérez");
+
+        com.fasterxml.jackson.databind.JsonNode delivered = dto.get("history").get(1);
+        assertTrue(delivered.get("evidenceRegistered").asBoolean());
+        assertFalse(delivered.has("evidenceRef"));
+        assertFalse(dto.toString().contains("acta-1"));
+        assertFalse(dto.toString().contains("Juan"));
+    }
+
+    @Test
+    void t5_aNullEvidence_isNotRegistered() throws Exception {
+        com.fasterxml.jackson.databind.JsonNode delivered = deliveredStepWith(null).get("history").get(1);
+
+        assertFalse(delivered.get("evidenceRegistered").asBoolean());
+        assertFalse(delivered.has("evidenceRef"));
+    }
+
+    @Test
+    void t5_almostValidFootprints_neverCarryTheRef() throws Exception {
+        for (String almost : List.of("SHA256:" + HUELLA.substring(7), HUELLA.substring(0, HUELLA.length() - 1),
+                HUELLA + "0", "sha256:" + HUELLA.substring(7).toUpperCase(), " " + HUELLA, HUELLA + " ")) {
+            com.fasterxml.jackson.databind.JsonNode delivered = deliveredStepWith(almost).get("history").get(1);
+            assertTrue(delivered.get("evidenceRegistered").asBoolean(), almost);
+            assertFalse(delivered.has("evidenceRef"), almost);
+        }
+    }
 }

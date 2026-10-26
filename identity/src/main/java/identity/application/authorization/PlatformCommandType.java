@@ -16,5 +16,9 @@ public enum PlatformCommandType {
     /** Logo de una organización por la ruta autenticada (ADR-051 F6, Enmienda 1; plan de la Tarea 2, P-T2-2). */
     READ_ORGANIZATION_LOGO,
     /** Reactivar una cuenta desactivada (ADR-050 D7; plan de cierre, §D7). */
-    REACTIVATE_ACCOUNT
+    REACTIVATE_ACCOUNT,
+    /** Leer la evidencia de entrega de cualquier organización (ADR-051 F6; plan de cierre §T5). */
+    READ_DELIVERY_EVIDENCE,
+    /** Retirar una foto que incumple F7: evidencia, logo o portada (ADR-051 F7; plan de cierre §T5). */
+    REMOVE_MEDIA
 }

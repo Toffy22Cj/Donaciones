@@ -129,6 +129,9 @@ class PublicRoutesInventoryIntegrationTest {
             // ADR-051, Tarea 3: subir y quitar la portada (F8), solo ADMINISTRATOR; la lectura pública está en PublicRoutes
             "PUT /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
             "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
+            // ADR-051, Tarea 5: leer la evidencia (F6) y retirar fotos (F7), autenticadas
+            "GET /api/v1/physical-assets/{assetRef}/evidence",
+            "POST /api/v1/platform/organizations/{organizationId}/media/remove",
             // M-21 (plan de cierre): "Mi impacto" de la cuenta, autenticada
             "GET /api/v1/account/impact");
 

@@ -449,6 +449,38 @@ class CampaignCoverHttpIntegrationTest {
         }
     }
 
+    // ── ADR-051, Tarea 5 (T5-6; F7): la plataforma retira una portada ──
+
+    private HttpResponse<byte[]> platformRemove(String account, String org, String campaignRef) throws Exception {
+        String body = "{\"purpose\":\"CAMPAIGN_COVER\",\"ref\":\"" + campaignRef + "\",\"reason\":\"portada con personas\"}";
+        return send("POST", "/api/v1/platform/organizations/" + org + "/media/remove", account,
+                HttpRequest.BodyPublishers.ofString(body), "application/json");
+    }
+
+    @Test
+    void t5_6_thePlatformRemovesACover_theViewsLoseTheUrl_andThePublicReadIs404() throws Exception {
+        World w = world();
+        String key = uploadCover(w);
+
+        HttpResponse<byte[]> asAdministrator = platformRemove(w.admin(), w.org(), w.campaignRef());
+        assertThat(asAdministrator.statusCode()).isEqualTo(403);
+        assertThat(coverKeyOf(w.campaignRef())).isEqualTo(key);
+
+        HttpResponse<byte[]> r = platformRemove(platformAdmin, w.org(), w.campaignRef());
+
+        assertThat(r.statusCode()).as(text(r)).isEqualTo(204);
+        assertThat(coverKeyOf(w.campaignRef())).isNull();
+        assertThat(storage.get(key)).isEmpty();
+        Document meta = mediaByKey(key);
+        assertThat(meta.get("deletedAt")).isNotNull();
+        assertThat(meta.getString("deletedBy")).isEqualTo(platformAdmin);
+        assertThat(meta.getString("reason")).isEqualTo("portada con personas");
+        assertThat(publicCover(w.publicCode()).statusCode()).isEqualTo(404);
+        assertThat(body(send("GET", "/api/v1/public/campaigns/" + w.publicCode(), null, null, null)).has("coverImageUrl")).isFalse();
+        // P-T5-3: otra vez → 204
+        assertThat(platformRemove(platformAdmin, w.org(), w.campaignRef()).statusCode()).isEqualTo(204);
+    }
+
     private JsonNode discoveryItem(String publicCode) throws Exception {
         String cursor = null;
         for (int page = 0; page < 50; page++) {

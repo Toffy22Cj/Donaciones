@@ -257,6 +257,8 @@ Sin permiso, otra organización o recurso inexistente → el mismo 403 (DD-01).
 | `referencia-api-v1.md` | Rutas de subida, lectura y retirada | Quien implemente cada una |
 | `DemoScenarioSeeder`, `GoldenPathHttpIntegrationTest` | `evidenceRef` con formato `sha256:` de una foto real | Quien implemente F3 |
 
+*Nota (2026-10-25):* la enmienda de ADR-021-D está redactada en `ADR-021-D-enmienda-1-huella-evidencia.md`, la aprobó Manuel (#147, por delegación de Carlos) y la implementa la Tarea 5. La tabla de arriba se conserva.
+
 ## Definición de hecho (tests, rojos primero)
 
 **Limpieza y huella (F4)**

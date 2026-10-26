@@ -57,6 +57,8 @@ public class ApiExceptionHandler {
             // ADR-051 (Tarea 2, P-T2-6): imágenes
             413, "The image is too large.",
             415, "The image format is not supported.",
+            // ADR-051 (Tarea 5): la evidencia retirada por la plataforma (F7)
+            410, "The resource was removed.",
             503, "The service is temporarily unavailable. Try again later.",
             500, "An unexpected error occurred. Quote the correlationId when contacting support.");
     private static final String DEFAULT_DETAIL = "The request could not be processed.";
