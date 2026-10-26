@@ -361,6 +361,28 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **`ci-local.sh`** en un clon limpio de `fef7e6c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 384, `convocatoria` 255, `app` 564, con el test del controlador dentro). Evidencia: `Documentos/evidencia-ci/ci-local-fef7e6c-2026-10-26T00-02-55Z.txt`. `develop` sigue en `6b54630`.
 - *Nota (2026-10-25, tren de fusiones, agente local de Manuel):* integrado `develop` `7f2e99f` (#148 D7) en `5319263`; conflictos en este archivo (§0.61 de D7 frente a esta §0.62) y en `ficha-R6-enmienda-2.md` (nota "APROBADA" frente a nota "implementada"), resueltos conservando los dos lados, con lo de `develop` delante; ninguna línea borrada. La aprobación de Manuel ya está registrada en `develop` por #148. `scripts/ci-local.sh` en un clon limpio de `5319263` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 369", crypto 57, ai 47, api 169, identity 392, convocatoria 255 y app 572, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-5319263-2026-10-26T02-07-46Z.txt`.
 
+### 0.68 P-E2-2: con más de 10 000, G-8 muestra lo más reciente (2026-10-26, `feat/r6-g8-descendente`)
+
+- Numerada 0.68, en la serie de las deudas 1 a 3 (0.66 a 0.69). **Depende de DT-B-1** (`fix/event-store-recorded-at`, §0.67): sale de su rama porque comparte el orden por `recordedAt`.
+- **Norma:**
+  - `plan-deudas-1-a-3-2026-10-26.md` §3 y `ficha-R6-enmienda-3.md`, APROBADOS por Manuel (https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078), con P-PE2-1 a 3 como se proponen;
+  - D-3 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26), con la autorización §3.5 de los dos métodos nuevos.
+- **Qué hace:**
+  - `core`: `FundDirectoryPort.findLatestFundIdsByOrganization` y `AssetDirectoryPort.findLatestAssetIdsByOrganization` [Plan], con el mismo filtro que los de siempre y `recordedAt` y `streamId` descendentes. Recorren al revés los índices de génesis de hoy, sin `SORT`. **Los métodos de siempre no cambian:** su texto queda igual.
+  - `app`: solo G-8 (`OrganizationActivityQuery`) pasa a los métodos nuevos. G-7, `GET /funds`, el recaudado por mes y `GET /physical-assets` siguen con los de siempre. `truncated` no cambia.
+- **Desvío del plan, en los tests:** los tests de la Enmienda 2 (`OrganizationActivityTruncatedTest`, e2_1 a e2_4) simulan los directorios por el nombre del método. Sus dobles y sus `verify` pasan a los métodos nuevos; lo que comprueban (`truncated`, `DIRECTORY_LIMIT + 1`, los streams leídos) no cambia. El plan decía "sin cambios" (§3.3, test 6).
+- **Evidencia:**
+  - **Rojo primero:**
+    - `core` no compilaba (commit solo de tests): "`OrganizationActivityAdaptersTest.java:[238,34] cannot find symbol`", "symbol: method findLatestAssetIdsByOrganization(java.lang.String,int)" y "findLatestFundIdsByOrganization";
+    - `app`, con `core` ya verde y G-8 aún con los métodos de siempre:
+      - `OrganizationActivityQueryIntegrationTest.pe2_with10001Assets_theNewestAssetLeadsTheFirstPage_andItIsTruncated:313`: 'Expecting actual: "ASSET_REGISTERED|ASSET:asset-9999|2026-09-01T02:46:39Z|null" to start with: "ASSET_REGISTERED|ASSET:asset-10000|"';
+      - lo mismo con fondos (`:325`), y los cuatro e2 de la Enmienda 2, porque sus dobles ya son los métodos nuevos (e2_1 y e2_2: "Expecting value to be true but was false");
+      - el test de G-7 (`pe2_g7_keepsReadingTheDirectoriesOfAlways_neverTheLatest`) pasaba: es una protección.
+  - **Medición (P-PE2-2),** con el profiler: los dos directorios descendentes dan "planSummary=IXSCAN { payload.organizationRef: 1, recordedAt: 1, streamId: 1 } keysExamined=10 docsExamined=10 hasSortStage=null".
+  - **Verde por capas:** VERDE_P3.
+  - **Mutaciones:** MUT_P3.
+  - **`ci-local.sh`:** CI_P3.
+
 ### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
 
 - Numerada 0.63, en la serie del cierre del backend (0.60 a 0.69).

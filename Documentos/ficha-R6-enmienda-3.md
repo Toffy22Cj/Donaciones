@@ -56,3 +56,5 @@
 - `ficha-R6-datos-estilo-v2.md`: una nota fechada en G-8 que remite a esta enmienda.
 - `referencia-api-v1.md`: una nota fechada en la ruta de G-8.
 - `estado-fase6.md`: la sección del PR, en la serie 0.66 a 0.69.
+
+> **Nota (2026-10-26): implementada** en `feat/r6-g8-descendente` (`estado-fase6.md` §0.68), tras la aprobación de Manuel (https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078).

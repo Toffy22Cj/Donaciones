@@ -164,6 +164,8 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 
 *Nota (2026-10-25, Enmienda 2 de la ficha R-6; plan de cierre §G-8, aprobado en #147):* la respuesta de G-8 gana **`truncated`**, que llega siempre, en todas las páginas: `200 {items, nextCursor?, truncated}`. Es `true` si la organización tiene más de 10 000 fondos o más de 10 000 activos; en ese caso solo se leen los primeros 10 000 de cada directorio, que son los **más antiguos** (deuda P-E2-2). La fila de arriba se conserva.
 
+*Nota (2026-10-26, Enmienda 3 de la ficha R-6; `plan-deudas-1-a-3-2026-10-26.md` §3):* con más de 10 000 fondos o activos (`truncated: true`), G-8 lee los 10 000 **más recientes** de cada directorio, por su génesis; ya no los más antiguos (P-E2-2 pagada). La forma de la respuesta, el orden de los ítems y el cursor no cambian. Con 10 000 o menos, nada cambia. Un stream antiguo con actividad nueva, que quede detrás de 10 000 más nuevos, no sale (P-PE2-1). G-7 (`/integrity`) no cambia. Las notas de arriba se conservan.
+
 ## 4. Convocatoria (administración)
 
 Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Command-Id`.

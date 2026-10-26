@@ -156,6 +156,8 @@
 
 > **Nota (2026-10-25): `truncated` en G-8, Enmienda 2 (PROPUESTA).** Por la decisión 3 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, delegación de Carlos), la respuesta de G-8 gana `truncated`, con el mismo criterio que G-7. El detalle está en `ficha-R6-enmienda-2.md`. El texto de G-8 de arriba se conserva.
 
+> **Nota (2026-10-26): G-8 muestra lo más reciente con más de 10 000, Enmienda 3** (`ficha-R6-enmienda-3.md`, APROBADA por Manuel, https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078). Con `truncated: true`, G-8 lee los 10 000 fondos y activos más recientes por su génesis. La respuesta, el orden y el cursor no cambian, y G-7 tampoco. El texto de G-8 de arriba se conserva; esta nota lo precisa.
+
 ---
 
 ## 7. Tests previstos (rojos primero)
