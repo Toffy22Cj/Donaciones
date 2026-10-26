@@ -29,7 +29,7 @@ import java.io.UncheckedIOException;
  * esa organización ({@link OrganizationBoundaryPolicy}) con un rol que pueda entregar ({@link RoleAuthorizationPolicy},
  * {@code DELIVER_ASSET}). El resto, el mismo 403 (DD-01). La ruta no tiene activo: la entrega vuelve a comprobar que la
  * foto es de la organización del activo (F3). Los mismos bytes de la misma organización dan el mismo {@code evidenceRef}
- * sin duplicar (F9). Solo traduce (ADR-041 §2.1).
+ * sin duplicar (F9); si esa evidencia se retiró por F7, 410 {@code EvidenceRemoved} (deuda 1). Solo traduce (ADR-041 §2.1).
  */
 @RestController
 public class DeliveryEvidenceController {
