@@ -3,6 +3,7 @@ package com.traceability.core.infrastructure.persistence.mongo;
 import com.traceability.contracts.HashPort;
 import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.application.event.EventPayloadRegistry;
+import com.traceability.core.application.event.RecordedAtText;
 import com.traceability.core.application.port.out.ActivityEventsPort.ActivityEvent;
 import com.traceability.core.application.port.out.EventBatchCountPort.BatchEventCount;
 import com.traceability.core.domain.event.DomainEventPayload;
@@ -202,6 +203,20 @@ class OrganizationActivityAdaptersTest {
         assertThat(q.getString("planSummary")).contains("payload.organizationRef: 1, recordedAt: 1, streamId: 1");
         assertThat(((Number) q.get("docsExamined")).intValue()).isEqualTo(10);
         assertThat(q.get("hasSortStage")).isNotEqualTo(Boolean.TRUE);
+    }
+
+    // ---- DT-B-1 (plan de las deudas 1 a 3 §2): con el texto fijo, el directorio ordena por tiempo dentro del segundo ----
+
+    @Test
+    void dtb1_assetDirectory_withTheFixedText_ordersTwoGenesesOfTheSameSecondChronologically() {
+        // el streamId va al revés que el tiempo, para que el desempate no disimule el orden de recordedAt
+        mongoTemplate.insertAll(List.of(
+                event("asset-z", 1, "ASSET_REGISTERED", registeredFor("asset-z", "org-dtb1"),
+                        RecordedAtText.of(Instant.parse("2026-10-20T10:00:05Z")), UUID.randomUUID().toString()),
+                event("asset-a", 1, "ASSET_REGISTERED", registeredFor("asset-a", "org-dtb1"),
+                        RecordedAtText.of(Instant.parse("2026-10-20T10:00:05.1Z")), UUID.randomUUID().toString())));
+
+        assertThat(assetDirectory.findAssetIdsByOrganization("org-dtb1", 10)).containsExactly("asset-z", "asset-a");
     }
 
     // ---- Utilidades ----

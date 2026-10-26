@@ -365,6 +365,42 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 8 (sin `no-store`) → d7_1 por HTTP.
   - **`ci-local.sh`** en un clon limpio de `36a224c` (último commit de código), con `free -g` en 13 GB disponibles: `BUILD SUCCESS`, ningún test fallido (`core` 369, `crypto` 57, `ai` 47, `api` 169, `identity` 392, `convocatoria` 255, `app` 566). Evidencia: `Documentos/evidencia-ci/ci-local-36a224c-2026-10-25T23-36-43Z.txt`. `develop` sigue en `6b54630`, la base de la rama.
 
+### 0.67 DT-B-1: `recordedAt` con 9 decimales fijos (2026-10-26, `fix/event-store-recorded-at`)
+
+- Numerada 0.67, en la serie de las deudas 1 a 3 (0.66 a 0.69).
+- **Norma:**
+  - `plan-deudas-1-a-3-2026-10-26.md` §2, APROBADO por Manuel (https://github.com/Toffy22Cj/Donaciones/pull/153#issuecomment-6409194078), con P-DT1-1 a 4 como se proponen;
+  - D-2 (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26): los eventos guardados no se reescriben (`documento-maestro-proyecto.md:18` y `:499`).
+- **Qué hace:**
+  - `core`: `RecordedAtText.of(Instant)` [Plan], con formato `uuuu-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'` en UTC, sin pérdida. `MongoEventStoreAdapter` guarda `recordedAt` con ese texto.
+  - **El hash no cambia:** `EventCanonicalMapper.java:53` sigue con `Instant.toString()`, y el verificador parsea el texto guardado (`RecomputingEventIntegrityChecker.java:105-107`).
+  - `app`: G-8 forma con `RecordedAtText` las claves de `CAMPAIGN_CLOSED` y `BATCH_ANCHORED` (P-DT1-3).
+  - Los eventos ya guardados conservan su texto y se toleran al leer (P-DT1-1).
+- **Desvío del plan, en los tests:**
+  - con la JDK 21 de este entorno, `Instant.now()` suele traer 9 cifras. El test 2 del plan (§2.3), que solo miraba el patrón, no daba un rojo seguro;
+  - el adaptador y el test de integridad fijan el reloj en un segundo exacto con `Mockito.mockStatic(Instant.class, CALLS_REAL_METHODS)`, solo en el hilo del test. Así se prueba el caso que `Instant.toString()` escribe sin decimales, sin cambiar el constructor del adaptador (P-DT1-4);
+  - la revisión adversaria añadió `EventCanonicalMapperTest.dtb1_theHashFormOfRecordedAt_staysInstantToString`: fija que el mapa canónico del hash no cambia (mutación 7).
+- **Evidencia:**
+  - **Rojo primero** (commit solo de tests):
+    - `core` no compilaba: "`OrganizationActivityAdaptersTest.java:[6,47] cannot find symbol`", "symbol: class RecordedAtText";
+    - `app`, con los tests de `core` apartados:
+      - `IntegrityRecomputationIntegrationTest.dtb1_anOldTextAndANewFixedText_inOneStream_bothMatch:205`: 'expected: "2026-10-20T10:00:05.000000000Z" but was: "2026-10-20T10:00:05Z"';
+      - `OrganizationActivityQueryIntegrationTest.dtb1_aNewEvent100msAfterAClosureOrAnAnchoringOfTheExactSecond_comesFirst:294`: 'Expecting actual: ["CAMPAIGN_CLOSED", "ASSET_RECEIVED", "ASSET_REGISTERED"] to start with: ["ASSET_RECEIVED", "CAMPAIGN_CLOSED"]'.
+  - **Verde por capas** (`mvn test -pl app -am`, módulo entero, sobre `045cd47`): core "Tests run: 376", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 601", todos con "Failures: 0, Errors: 0, Skipped: 0" y BUILD SUCCESS. El test de protección del hash (`7210254`) llegó después y lo cubre la CI.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `635c23f` con la base instalada con tests): 7 de 7 muertas, y en cada spec la línea base 0 sale VIVA ("Mutaciones vivas: 1"):
+    - 1, el adaptador sigue con `toString()` → `dtb1_append_atAnExactSecond_…`;
+    - 2, 6 decimales → `dtb1_alwaysNineDecimals_inUtc` y otros tres;
+    - 3, el adaptador hashea el texto fijo → `dtb1_anOldTextAndANewFixedText_inOneStream_bothMatch`;
+    - 4, zona `America/Bogota` → `dtb1_alwaysNineDecimals_inUtc` y otros dos;
+    - 5, G-8 con `closedAt.toString()` → `dtb1_aNewEvent100msAfter…`;
+    - 6, G-8 con `anchoredAt.toString()` → `dtb1_aNewEvent100msAfter…` y `t11b_aTieBetweenSources…`;
+    - 7, el mapa canónico del hash con el texto fijo → `dtb1_theHashFormOfRecordedAt_staysInstantToString`.
+  - **`ci-local.sh`** en un clon limpio de `006bac5`, salida 0: `evidencia-ci/ci-local-006bac5-2026-10-26T06-55-28Z.txt`. Resumen: core "Tests run: 377" (con el test de protección del hash), crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 601", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+- *Nota (2026-10-26, tren de fusiones, agente local de Manuel):* integrado `develop` `fdc62fd` (#154, deuda 1) en `d26db18`, sin conflictos. `scripts/ci-local.sh` en un clon limpio de `d26db18` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 377", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 604, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-d26db18-2026-10-26T11-35-52Z.txt`.
+- **Riesgo que queda (P-DT1-1):**
+  - dos eventos viejos del mismo segundo, o uno viejo y uno nuevo en el segundo del despliegue, pueden seguir fuera de orden cronológico;
+  - entre eventos nuevos, el orden es siempre el cronológico.
+
 ### 0.62 Ficha R-6, Enmienda 2: `truncated` en la actividad reciente (G-8) (2026-10-25, `feat/r6-g8-truncated`)
 
 - Numerada 0.62, en la serie del cierre del backend (0.60 a 0.69).
@@ -512,6 +548,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Decisión (Manuel, 2026-10-25):** se registra como deuda. **No se arregla en el PR del Bloque D** (#143). Arreglarlo pide escribir con precisión fija y migrar o tolerar los datos ya guardados.
 - **Nota (2026-10-25), decisión 8 de Manuel** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25): **DT-B-1 se queda como deuda**, sin ninguna acción en este corte.
 - **Nota (2026-10-26): pagada en este corte (pendiente).** D-2 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26) manda arreglarla sin reescribir los eventos guardados. El cómo está en `plan-deudas-1-a-3-2026-10-26.md` §2, que espera la aprobación de Manuel. Este texto se conserva hasta que el PR del código lo marque con otra nota.
+- **Nota (2026-10-26): pagada** en `fix/event-store-recorded-at` (§0.67). Los eventos nuevos guardan `recordedAt` con 9 decimales fijos, y los viejos se toleran al leer.
 
 ### 0.51 Ficha R-6, Bloque D: integridad de la organización (G-7) y actividad reciente (G-8) (2026-10-25, `feat/r6-bloque-d`)
 

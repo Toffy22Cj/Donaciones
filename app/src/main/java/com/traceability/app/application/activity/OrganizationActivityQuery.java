@@ -6,6 +6,7 @@ import com.traceability.convocatoria.application.query.OrganizationCampaignClosu
 import com.traceability.convocatoria.application.query.OrganizationCampaignClosuresQuery.CampaignClosure;
 import com.traceability.core.application.authorization.InsufficientRoleException;
 import com.traceability.core.application.authorization.OrganizationBoundaryPolicy;
+import com.traceability.core.application.event.RecordedAtText;
 import com.traceability.core.application.port.out.ActivityEventsPort;
 import com.traceability.core.application.port.out.ActivityEventsPort.ActivityEvent;
 import com.traceability.core.application.port.out.AssetDirectoryPort;
@@ -49,9 +50,11 @@ import java.util.Set;
  *   = {@code anchoredAt}; id = {@code batchId}, que solo viaja dentro del cursor cifrado. Nunca se lee
  *   {@code coverage}.</li>
  * </ol>
- * Los instantes se comparan como el texto ISO de {@code Instant.toString()}, que es como el Event Store guarda
- * {@code recordedAt} y como lo ordena Mongo (hallazgo H-D-2). Nunca el actor, {@code donorRef}, {@code beneficiaryRef},
- * custodios, ubicaciones exactas (solo {@code locationZone}) ni importes. {@code ADMINISTRATOR}, {@code REPRESENTATIVE}
+ * Los instantes se comparan como texto, que es como Mongo ordena {@code recordedAt} (hallazgo H-D-2). Desde DT-B-1, el
+ * Event Store lo guarda con {@link RecordedAtText} (9 decimales fijos) y {@code closedAt} y {@code anchoredAt} se
+ * escriben igual, así que el orden es el cronológico; un evento guardado antes conserva su texto de
+ * {@code Instant.toString()} y solo puede desordenarse dentro de su mismo segundo. Nunca el actor, {@code donorRef},
+ * {@code beneficiaryRef}, custodios, ubicaciones exactas (solo {@code locationZone}) ni importes. {@code ADMINISTRATOR}, {@code REPRESENTATIVE}
  * y {@code EMPLOYEE} de la organización (D-R6-8); el resto, el mismo 403, antes de leer nada.
  */
 @Service
@@ -158,7 +161,7 @@ public class OrganizationActivityQuery {
     private List<Keyed> closureItems(String organizationId, ActivityKey after, int wanted) {
         List<Keyed> items = new ArrayList<>();
         for (CampaignClosure c : closures.closedCampaigns(organizationId)) {
-            ActivityKey key = new ActivityKey(c.closedAt().toString(), SOURCE_CAMPAIGN, c.campaignRef());
+            ActivityKey key = new ActivityKey(RecordedAtText.of(c.closedAt()), SOURCE_CAMPAIGN, c.campaignRef());
             if (after == null || ORDER.compare(key, after) > 0) {
                 items.add(new Keyed(key, new ActivityItem("CAMPAIGN_CLOSED", c.closedAt(),
                         new Subject("CAMPAIGN", c.campaignRef()), null, null, null, null)));
@@ -178,7 +181,7 @@ public class OrganizationActivityQuery {
                 continue;
             }
             Instant anchoredAt = batch.get().anchoredAt();
-            ActivityKey key = new ActivityKey(anchoredAt.toString(), SOURCE_BATCH, count.merkleBatchId());
+            ActivityKey key = new ActivityKey(RecordedAtText.of(anchoredAt), SOURCE_BATCH, count.merkleBatchId());
             if (after == null || ORDER.compare(key, after) > 0) {
                 items.add(new Keyed(key, new ActivityItem("BATCH_ANCHORED", anchoredAt, null, count.events(),
                         null, null, null)));

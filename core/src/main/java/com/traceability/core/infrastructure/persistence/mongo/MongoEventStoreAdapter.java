@@ -2,6 +2,7 @@ package com.traceability.core.infrastructure.persistence.mongo;
 
 import com.traceability.contracts.HashPort;
 import com.traceability.core.application.event.EventCanonicalMapper;
+import com.traceability.core.application.event.RecordedAtText;
 import com.traceability.core.application.exception.ConcurrencyConflictException;
 import com.traceability.core.application.exception.SequenceGapException;
 import com.traceability.core.application.port.out.EventStorePort;
@@ -93,7 +94,8 @@ public class MongoEventStoreAdapter implements EventStorePort, EventStreamGenesi
                     .eventType(event.eventType().name())
                     .schemaVersion(schemaVersion)
                     .occurredAt(event.occurredAt() != null ? event.occurredAt().toString() : null)
-                    .recordedAt(recordedAt.toString())
+                    // DT-B-1: texto de listado con 9 decimales fijos; el hash de arriba sigue con Instant.toString()
+                    .recordedAt(RecordedAtText.of(recordedAt))
                     .actorRef(actorRef)
                     .origin(origin)
                     .payload(payloadMap)

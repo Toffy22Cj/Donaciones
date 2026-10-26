@@ -39,4 +39,15 @@ class EventCanonicalMapperTest {
 
         assertEquals(false, canonicalMap.containsKey("actorRef"), "Canonical map should explicitly exclude actorRef");
     }
+
+    // DT-B-1 (plan de las deudas 1 a 3 §2; ADR-051 F11): la forma del hash no cambia. El mapa canónico sigue con
+    // Instant.toString(); el texto de 9 decimales es solo el que se guarda para listar
+    @Test
+    void dtb1_theHashFormOfRecordedAt_staysInstantToString() {
+        Map<String, Object> canonicalMap = new EventCanonicalMapper().toCanonicalMap("evt-1", "stream-1", "PhysicalAsset",
+                1L, "ASSET_DISPATCHED", "1.0", Instant.parse("2026-10-20T10:00:00Z"), Instant.parse("2026-10-20T10:00:05Z"),
+                "origin-system", new AssetDispatchedPayload("carrier-1", "loc-1"));
+
+        assertEquals("2026-10-20T10:00:05Z", canonicalMap.get("recordedAt"));
+    }
 }

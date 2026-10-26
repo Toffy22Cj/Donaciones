@@ -279,6 +279,27 @@ class OrganizationActivityQueryIntegrationTest {
         assertThat(second.next()).isNull();
     }
 
+    // DT-B-1 (plan de las deudas 1 a 3 §2; P-DT1-3): un evento nuevo, con 9 decimales, 100 ms después de un cierre o de
+    // un anclaje en el segundo exacto, sale antes (de lo más reciente a lo más antiguo). Con Instant.toString() en el
+    // cierre o el anclaje, su "…:05Z" quedaba por delante del "…:05.100000000Z" del evento
+    @Test
+    void dtb1_aNewEvent100msAfterAClosureOrAnAnchoringOfTheExactSecond_comesFirst() {
+        insert("asset-1", 1, "ASSET_REGISTERED", registered("asset-1", ORG), "2026-10-01T00:00:00Z", "e-old", "b-dtb1");
+        insert("asset-1", 2, "ASSET_RECEIVED", new AssetReceivedPayload("site", "r"), "2026-10-10T00:00:05.100000000Z",
+                "e-new", null);
+        when(closures.closedCampaigns(ORG)).thenReturn(List.of(new CampaignClosure("camp-a",
+                Instant.parse("2026-10-10T00:00:05Z"))));
+
+        assertThat(query.page(employee(), ORG, null).items()).extracting(ActivityItem::type)
+                .startsWith("ASSET_RECEIVED", "CAMPAIGN_CLOSED");
+
+        when(closures.closedCampaigns(ORG)).thenReturn(List.of());
+        anchored("b-dtb1", Instant.parse("2026-10-10T00:00:05Z"));
+
+        assertThat(query.page(employee(), ORG, null).items()).extracting(ActivityItem::type)
+                .startsWith("ASSET_RECEIVED", "BATCH_ANCHORED");
+    }
+
     // Ítems: cantidad, unidad y zona salen del payload; un FUNDS_CLEARED no lleva importe
     @Test
     void items_carryQuantityUnitAndZoneFromThePayload_andAClearingCarriesNoAmount() {

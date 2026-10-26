@@ -136,6 +136,51 @@ class MongoEventStoreAdapterTest {
         mongoTemplate.dropCollection(OutboxMessageDocument.class);
     }
 
+    // DT-B-1 (plan de las deudas 1 a 3 §2): recordedAt se guarda con 9 decimales fijos, en UTC. Con la JDK 21,
+    // Instant.now() suele traer 9 cifras, así que el reloj se fija en un segundo exacto (solo en este hilo, sin cambiar
+    // el constructor del adaptador; P-DT1-4): es el caso que Instant.toString() escribe sin decimales
+    @Test
+    void dtb1_append_atAnExactSecond_storesRecordedAtWithNineFixedDecimals() {
+        Instant exactSecond = Instant.parse("2026-10-20T10:00:05Z");
+        try (org.mockito.MockedStatic<Instant> clock = org.mockito.Mockito.mockStatic(Instant.class,
+                org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            clock.when(Instant::now).thenReturn(exactSecond);
+            eventStoreAdapter.append("dtb1-exact", "PhysicalAsset", 0, List.of(new DomainEvent(() -> "ASSET_REGISTERED",
+                    new AssetRegisteredPayload("asset-dtb1", "VACCINE", new BigDecimal("1.0000"), "DOSES", "loc-A",
+                            "cust-A", null, null, null, null), exactSecond)),
+                    new com.traceability.core.domain.event.SystemActor("test"));
+        }
+
+        TraceabilityEventDocument doc = mongoTemplate.findOne(new org.springframework.data.mongodb.core.query.Query(
+                org.springframework.data.mongodb.core.query.Criteria.where("streamId").is("dtb1-exact")),
+                TraceabilityEventDocument.class);
+        assertEquals("2026-10-20T10:00:05.000000000Z", doc.getRecordedAt());
+    }
+
+    @Test
+    void dtb1_append_storesRecordedAtWithNineFixedDecimals() {
+        String streamId = "dtb1-" + java.util.UUID.randomUUID();
+        AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-dtb1", "VACCINE", new BigDecimal("1.0000"), "DOSES", "loc-A",
+                "cust-A", null, null, null, null);
+        List<DomainEvent> events = new java.util.ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            events.add(new DomainEvent(() -> "ASSET_REGISTERED", payload, Instant.now()));
+        }
+
+        eventStoreAdapter.append(streamId, "PhysicalAsset", 0, events, new com.traceability.core.domain.event.SystemActor("test"));
+
+        List<TraceabilityEventDocument> docs = mongoTemplate.find(
+                new org.springframework.data.mongodb.core.query.Query(
+                        org.springframework.data.mongodb.core.query.Criteria.where("streamId").is(streamId)),
+                TraceabilityEventDocument.class);
+        assertEquals(5, docs.size());
+        for (TraceabilityEventDocument doc : docs) {
+            assertTrue(doc.getRecordedAt().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{9}Z"),
+                    "recordedAt con 9 decimales: " + doc.getRecordedAt());
+            Instant.parse(doc.getRecordedAt());
+        }
+    }
+
     @Test
     void testAppend_GenesisEvent_UsesGenesisHash() {
         AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
