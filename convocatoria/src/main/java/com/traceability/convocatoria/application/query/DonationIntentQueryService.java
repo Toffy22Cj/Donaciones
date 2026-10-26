@@ -55,6 +55,6 @@ public class DonationIntentQueryService implements DonationIntentReadPort {
         Instant confirmedAt = i.getConfirmation() == null ? null : i.getConfirmation().confirmedAt();
         return new DonationView(i.getIntentId(), title, i.getAmount(), i.getCurrency(), i.getStatus().name(),
                 i.getFundId(), i.getApplicationTracking().fundsAppliedAt(), i.getCreatedAt(), confirmedAt,
-                i.getOrganizationRef(), i.getPaymentMethod().name(), publicCode);
+                i.getOrganizationRef(), i.getPaymentMethod().name(), publicCode, i.getCampaignRef());
     }
 }
