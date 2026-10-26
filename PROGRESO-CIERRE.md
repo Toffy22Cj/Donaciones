@@ -15,10 +15,10 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 | P0 documentos + plan | HECHO (PR abierto) | `chore/docs-cierre-backend` `17186e0` | #147 | solo documentos; diff sin líneas borradas | "plan aprobado" de Manuel |
 | M-22 verificación | HECHO con hallazgo | (en #147, §0.60) | #147 | 11 campos de `DonationDtos.java:30-32` | lista de campos del comprobante (H-CB-5) |
 | P1 D7 | HECHO (PR abierto) | `feat/identity-d7-reactivacion` `2174928` | #148 | ci-local 36a224c BUILD SUCCESS (app 566); 8/8 mutaciones | — |
-| P2 G-8 truncated | EN CURSO | `feat/r6-g8-truncated` `fef7e6c` | — | verde app 563 (+1 test aparte) | — |
+| P2 G-8 truncated | HECHO (PR abierto) | `feat/r6-g8-truncated` `bc969db` | #149 | ci-local fef7e6c BUILD SUCCESS (app 564); 5/5 mutaciones | — |
 | P3 M-21 | BLOQUEADO | — | — | — | `DonationIntentReadPort.DonationView` sin campaignRef (`convocatoria/.../DonationIntentReadPort.java:28-30`); cambiarlo es cambiar un puerto que usa `app` (regla 3.5), no autorizado |
-| P4 T3 portada | EN CURSO | `feat/adr051-t3-portada` `3ec967a` | — | rojo hecho; verde en curso | — |
-| P5 T5 | PENDIENTE | `feat/adr051-t5-evidencia-lectura` | — | — | enmienda ADR-021-D aprobada |
+| P4 T3 portada | HECHO (PR abierto) | `feat/adr051-t3-portada` `77e7136` | #150 | ci-local 3ec967a BUILD SUCCESS (app 568); 8/8 mutaciones | — |
+| P5 T5 | EN CURSO | `feat/adr051-t5-evidencia-lectura` `a7ec3c9` (sale de T3) | — | rojo hecho; verde en curso | depende de #150 |
 
 ## Bitácora
 
@@ -58,3 +58,6 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - D7: #148. G-8 y T3, en curso.
 - **M-21 bloqueado (regla 3 del prompt):** "convocatorias apoyadas" necesita el `campaignRef` de cada intención, y `DonationView` no lo lleva. Alternativas para Manuel: (a) añadir `campaignRef` a `DonationView` (cambio aditivo de un puerto de `convocatoria` que usa `app`); (b) sacarlo del fondo (`DonationReadModel.campaignRef`), pero solo existe para las donaciones con fondos aplicados, así que una `CONFIRMED` sin fondos aún no contaría.
 - Herramientas en /home/user/tools: ci.sh, mut.sh (con "mutación 0" de línea base), evidencia.py, ambos.py.
+
+- G-8: #149. T3: #150. T5: en curso, sale de `feat/adr051-t3-portada` porque retirar una portada necesita `ConvocatoriaCoverReferenceService` (depende de #150).
+- Las cinco ramas añaden secciones junto a §0.60 en estado-fase6: cuando se fusione una, las demás integran develop (merge normal, conservar los dos lados) y repiten la CI.
