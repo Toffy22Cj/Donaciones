@@ -23,7 +23,8 @@ import java.util.Optional;
  * Si falla el insert, el archivo queda huérfano: no causa daño y se registra con su clave (F2).
  * <p>
  * Evidencia de entrega (F9): los mismos bytes limpios de la misma organización devuelven la misma referencia sin
- * duplicar. Es de mejor esfuerzo, porque volver a codificar no es determinista entre versiones de la JDK (F4).
+ * duplicar. Es de mejor esfuerzo, porque volver a codificar no es determinista entre versiones de la JDK (F4). Si esa
+ * evidencia se retiró por F7, la subida se rechaza con {@link EvidenceRemovedException} (deuda 1).
  */
 @Service
 public class MediaUploadService {
@@ -66,7 +67,7 @@ public class MediaUploadService {
             Optional<MediaObject> existing =
                     metadata.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256());
             if (existing.isPresent()) {
-                return toStoredMedia(existing.get());
+                return toStoredMedia(live(existing.get()));
             }
         }
 
@@ -83,12 +84,25 @@ public class MediaUploadService {
             // carrera de dos evidencias idénticas: gana el índice único; esta copia queda huérfana (P-8)
             logOrphan(objectKey, purpose, e);
             return metadata.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256())
+                    .map(MediaUploadService::live)
                     .map(MediaUploadService::toStoredMedia)
                     .orElseThrow(() -> e);
         } catch (RuntimeException e) {
             logOrphan(objectKey, purpose, e);
             throw e;
         }
+    }
+
+    /**
+     * Deuda 1 (plan de las deudas 1 a 3 §1; P-DB1-1 y P-DB1-2): los bytes de una evidencia retirada por F7 no se
+     * reutilizan ni se guardan de nuevo, así que subir la misma imagen no salta la retirada. Responde 410
+     * {@code EvidenceRemoved}, como la lectura (F6).
+     */
+    private static MediaObject live(MediaObject evidence) {
+        if (evidence.deletedAt() != null) {
+            throw new EvidenceRemovedException();
+        }
+        return evidence;
     }
 
     /** ADR-051 F2: el huérfano se registra con su clave; ni el mensaje, ni la organización, ni quién subió. */
