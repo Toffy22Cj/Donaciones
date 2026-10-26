@@ -82,3 +82,12 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - D-3: métodos nuevos `findLatest…`, solo para G-8.
 - Contradicción anotada: ADR-025 es el Audit Log de identity, no el Event Store.
 - Siguiente: tras la aprobación, P1 → P2 → P3 (P3 sale de P2 si P2 no está fusionado).
+- 05:48Z: #153 APROBADO por buelvasmanuel (comentario 6409194078) y fusionado. develop en 9295634.
+  - P-DB1-3: el logo y la portada quedan como deuda registrada.
+  - Todo lo demás, como se propuso.
+- **P1** `fix/media-evidencia-retirada` (worktree /home/user/p1): registro de la aprobación `c5f6f40`; tests `b3559b8` (rojo "expected: 410 but was: 201"); código `80dce43`. Docs §0.66 sin commit (marcadores VERDE_P1, MUT_P1, CI_P1).
+- **P2** `fix/event-store-recorded-at` (/home/user/p2): tests `664669d`; código `045cd47`; test de protección del hash `7210254`; docs `§0.67`.
+  - Desvío: mockStatic(Instant) en los tests, porque en JDK 21 `now()` ya da 9 cifras.
+- **P3** `feat/r6-g8-descendente` (/home/user/p3), desde P2: tests `b22bcc9`; código `a60e0a2`; docs `9e1d9a9` §0.68.
+  - Desvío: los dobles de los tests e2 pasan a los métodos nuevos.
+- Specs de mutaciones en /home/user/tools/mut-p1, mut-p2 y mut-p3. Van de una en una, porque `m2-mut` es compartido.
