@@ -274,6 +274,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - **verde por capas** (módulo completo): `core` 370, `crypto` 57, `ai` 47, `api` 174, `identity` 396, `convocatoria` 259 y `app` "Tests run: 592", todos con "Failures: 0, Errors: 0, Skipped: 0", con la medición del Bloque C en verde;
     - **mutaciones** (`scripts/mutaciones.py`, clon limpio con la base instalada con tests): `core` 1 de 1 muerta, `api` 3 de 3 y `app` 9 de 9 (incluida la 12, "el productor no pasa el evidenceRef"); cada spec dice "Mutaciones vivas: 1", que es su línea base 0;
     - **`ci-local.sh`** en un clon limpio de `136c4ca`, salida 0: `evidencia-ci/ci-local-136c4ca-2026-10-26T03-44-59Z.txt`, con la app en "Tests run: 592, Failures: 0, Errors: 0, Skipped: 0".
+  - **Nota (2026-10-26): la deuda de la deduplicación, pagada en este corte (pendiente).** D-1 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26): volver a subir los bytes de una evidencia retirada por F7 se rechaza. El cómo está en `plan-deudas-1-a-3-2026-10-26.md` §1 (recomienda el 410 `EvidenceRemoved` que ya existe), que espera la aprobación de Manuel.
 
 ### 0.65 M-21 "Mi impacto": `GET /api/v1/account/impact` (2026-10-26, `feat/account-impact`)
 
@@ -482,6 +483,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Dónde afecta:** los directorios por génesis y G-8 (`OrganizationActivityQuery`) ordenan por `recordedAt` como texto. G-8 compara todos los instantes con ese mismo orden, así que el cursor nunca repite ni salta. El riesgo es que, dentro de un mismo segundo, el orden puede no ser cronológico.
 - **Decisión (Manuel, 2026-10-25):** se registra como deuda. **No se arregla en el PR del Bloque D** (#143). Arreglarlo pide escribir con precisión fija y migrar o tolerar los datos ya guardados.
 - **Nota (2026-10-25), decisión 8 de Manuel** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25): **DT-B-1 se queda como deuda**, sin ninguna acción en este corte.
+- **Nota (2026-10-26): pagada en este corte (pendiente).** D-2 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-26) manda arreglarla sin reescribir los eventos guardados. El cómo está en `plan-deudas-1-a-3-2026-10-26.md` §2, que espera la aprobación de Manuel. Este texto se conserva hasta que el PR del código lo marque con otra nota.
 
 ### 0.51 Ficha R-6, Bloque D: integridad de la organización (G-7) y actividad reciente (G-8) (2026-10-25, `feat/r6-bloque-d`)
 
