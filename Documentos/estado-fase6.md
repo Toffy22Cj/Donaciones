@@ -422,7 +422,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 4 y 4b, G-8 vuelve a los métodos de siempre → los e2 y los dos `pe2_with10001…`;
     - 5, G-7 pasa a los nuevos → `pe2_g7_keepsReadingTheDirectoriesOfAlways_neverTheLatest` y `t10d_…`;
     - 6, `truncated` con `>=` → `e2_3_exactlyTheLimitOfEach_isNotTruncated`.
-  - **`ci-local.sh`:** CI_P3.
+  - **`ci-local.sh`** en un clon limpio de `9bffd83` (con DT-B-1 integrada), salida 0: `evidencia-ci/ci-local-9bffd83-2026-10-26T07-11-17Z.txt`. Resumen: core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 604", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Después solo se integró el commit de documentos de DT-B-1 (`facb21f`).
 
 ### 0.63 ADR-051, Tarea 3: portada de la convocatoria (2026-10-25, `feat/adr051-t3-portada`)
 
