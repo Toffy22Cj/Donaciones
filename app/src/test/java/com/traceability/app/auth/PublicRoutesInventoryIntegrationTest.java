@@ -123,7 +123,9 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/organizations/{organizationId}/delivery-evidence",
             // Ficha R-6, Bloque D: integridad (G-7) y actividad (G-8) de la organización
             "GET /api/v1/organizations/{organizationId}/integrity",
-            "GET /api/v1/organizations/{organizationId}/activity");
+            "GET /api/v1/organizations/{organizationId}/activity",
+            // ADR-050 D7: reactivar una cuenta, solo el administrador de plataforma (plan de cierre, §D7)
+            "POST /api/v1/platform/accounts/{accountId}/reactivate");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
