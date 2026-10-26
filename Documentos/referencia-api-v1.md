@@ -112,6 +112,8 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 | `GET /platform/administrators` (§3.2) | ídem | — | `200 {items: [{accountId, status}]}`, una página de 100, sin email, `no-store` | 403 |
 | `POST /platform/administrators` (§3.2) | ídem | `{accountId}` | `201 {accountId, platformAuthority: "ADMINISTRATOR"}` | 400; 403 (antes de validar); 404 cuenta inexistente; 409 `PlatformAuthorityAlreadyGranted`, `PlatformAuthorityTargetInactive` |
 | `POST /platform/administrators/{accountId}/revoke` (§3.2, DD-70) | ídem | — | `200 {accountId}` | 403; 404; 409 `PlatformAuthorityNotHeld`, `LastPlatformAdministrator` (nunca sin administradores) |
+| `POST /platform/organizations/{organizationId}/media/remove` (ADR-051 F7; Tarea 5; nota del 2026-10-25) | ídem | `{purpose: DELIVERY_EVIDENCE\|ORGANIZATION_LOGO\|CAMPAIGN_COVER, ref?, reason}`: `ref` es el `evidenceRef` (`sha256:`) para la evidencia, el `campaignRef` para la portada y nada para el logo; `reason` de 1 a 500 caracteres | `204`: borra los bytes y deja en el metadato `deletedAt`, `deletedBy` y `reason`; para el logo y la portada, quita también la referencia. Ya retirada, o sin logo ni portada → `204` igual | 401; 403 (antes de validar el cuerpo); 400 `purpose`, `ref` o `reason`; 404 evidencia inexistente en esa organización; 503 si el proveedor falla. El motivo nunca va al log ni a una respuesta |
+
 | `POST /platform/accounts/{accountId}/reactivate` (ADR-050 D7; nota del 2026-10-25) | ídem | — | `200 {accountId, status: "ACTIVE"}`, `no-store`; ya activa → `200` igual, sin auditoría | 401 sin JWT; 403 uniforme (antes de leer la cuenta); 404 `NotFound` cuenta inexistente (solo la ve la plataforma). Los tokens anteriores a la desactivación siguen dando 401: la persona vuelve a iniciar sesión |
 
 ## 3. Organización (panel)
@@ -219,6 +221,8 @@ Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras 
 - **Orden para el cliente (F5):** primero subir la foto, con conexión, y después entregar con su `evidenceRef`. Despachar y recibir no cambian.
 - **Eventos antiguos:** los `ASSET_DELIVERED` con `evidenceRef` en texto libre se siguen leyendo igual; no se reescriben ni cambia la verificación de su cadena.
 
+*Nota (2026-10-25, ADR-051, Tarea 5; F6 y F7): leer la evidencia.* `GET /physical-assets/{assetRef}/evidence`, con JWT. La leen los miembros de la organización del activo, con cualquier rol, y el administrador de plataforma. Responde `200` con los bytes guardados, `Cache-Control: private, no-store` y el `Content-Type` del metadato. Errores: 401; el 403 uniforme para otra organización, para una cuenta sin organización o para un activo inexistente (DD-12); 404 `NotFound`, el mismo si no hay entrega, si el `evidenceRef` es texto libre heredado o si faltan el metadato o los bytes; **410 `EvidenceRemoved`** si la plataforma la retiró. Las filas de arriba no se reescriben.
+
 ## 7. Fondos (Camino A)
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
@@ -254,6 +258,8 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 - **Vectores fijos** para el test del cliente: `crypto/src/test/resources/merkle/proof-vectors.json` (`{description, leaves, index, path, root}`; las hojas son SHA-256 de `"leaf-0"`, `"leaf-1"`…; incluye 5 hojas con índice 4 y con índice 2).
 - **Límites (E1.4):** el árbol no separa por dominio las hojas de los nodos internos y repite el último nodo de un nivel impar, así que en teoría admite segundas preimágenes de árbol; no se cambia porque invalidaría las raíces ya ancladas (haría falta un ADR). La prueba demuestra que el hash del paso está en la raíz anclada en esa transacción; **no** demuestra que el hash corresponda al contenido del evento, que no se expone: eso lo comprueba `GET …/integrity`, en el servidor.
 - Sigue sin `sequence`, `streamId`, `merkleBatchId`, `previousHash` ni `leafHashes` (DD-76). Las filas de arriba no se reescriben.
+
+*Nota (2026-10-25, enmienda 1 de ADR-021-D; ADR-051 F6, C2 (a), Tarea 5):* en `GET /donations/tracking/assets/{assetRef}/history`, el paso de la entrega (`status: "DELIVERED"`) gana **`evidenceRegistered`**: `true` si el evento lleva un `evidenceRef` no vacío y `false` si no lo lleva. También gana **`evidenceRef?`**, solo si es una huella `sha256:<64 hexadecimales en minúscula>`. Un `evidenceRef` antiguo de texto libre **nunca** sale, porque puede llevar datos personales. Los demás pasos no llevan ninguno de los dos campos, y `logistics` no cambia. Tras una retirada (F7), el paso sigue igual: la huella está en el evento, que es inmutable. Nunca sale la imagen, una URL de la evidencia ni la `objectKey`.
 
 ## 9. Sin HTTP
 

@@ -49,6 +49,20 @@ public class ConvocatoriaCoverReferenceService {
         return convocatorias.replaceCoverObjectKey(campaignRef, coverObjectKey);
     }
 
+    /**
+     * ADR-051 F7 (Tarea 5): la plataforma retira una portada que incumple la regla. Solo el administrador de plataforma;
+     * la convocatoria tiene que ser de la organización de la ruta.
+     *
+     * @return la anterior; vacío si no había portada, y nada cambia
+     */
+    public Optional<String> removeAsPlatform(String actorAccountId, String organizationId, String campaignRef) {
+        authorization.requirePlatformAdministrator(actorAccountId);
+        convocatorias.findByCampaignRef(campaignRef)
+                .filter(found -> found.getOrganizationRef().equals(organizationId))
+                .orElseThrow(() -> new CampaignNotFoundException("Campaign " + campaignRef + " not found"));
+        return convocatorias.replaceCoverObjectKey(campaignRef, null);
+    }
+
     /** Quita la portada y devuelve la anterior; sin portada, vacío y nada cambia. */
     public Optional<String> remove(String actorAccountId, String organizationId, String campaignRef) {
         requireCoverManager(actorAccountId, organizationId, campaignRef);

@@ -7,6 +7,8 @@ import identity.domain.exception.OrganizationAccessDeniedException;
 import identity.domain.exception.OrganizationNotFoundException;
 import identity.domain.model.Organization;
 import identity.domain.model.OrganizationId;
+import identity.application.authorization.PlatformAuthorizationPolicy;
+import identity.application.authorization.PlatformCommandType;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -24,12 +26,14 @@ public class OrganizationLogoReferenceService {
     private final OrganizationMembersPolicy policy;
     private final OrganizationRepositoryPort organizations;
     private final MongoTransactionRetryHelper retryHelper;
+    private final PlatformAuthorizationPolicy platformPolicy;
 
     public OrganizationLogoReferenceService(OrganizationMembersPolicy policy, OrganizationRepositoryPort organizations,
-                                            MongoTransactionRetryHelper retryHelper) {
+                                            MongoTransactionRetryHelper retryHelper, PlatformAuthorizationPolicy platformPolicy) {
         this.policy = policy;
         this.organizations = organizations;
         this.retryHelper = retryHelper;
+        this.platformPolicy = platformPolicy;
     }
 
     /** Paso 1 de §4.2: el permiso, antes de leer ni guardar ningún byte. */
@@ -51,6 +55,22 @@ public class OrganizationLogoReferenceService {
     /** @return la referencia anterior; vacío si no había logo, sin escribir nada (P-T2-4) */
     public Optional<String> remove(AuthorizationPrincipal principal, String organizationId) {
         requireLogoManager(principal, organizationId);
+        return retryHelper.executeWithRetry(() -> {
+            Organization organization = load(organizationId);
+            Optional<String> previous = organization.removeLogo();
+            previous.ifPresent(ignored -> organizations.save(organization));
+            return previous;
+        });
+    }
+
+    /**
+     * ADR-051 F7 (Tarea 5): la plataforma retira un logo que incumple la regla. Solo el administrador de plataforma
+     * ({@code REMOVE_MEDIA}); quita la referencia como {@link #remove}, sin el permiso de gestor del logo.
+     *
+     * @return la referencia anterior; vacío si no había logo, sin escribir nada
+     */
+    public Optional<String> removeAsPlatform(AuthorizationPrincipal principal, String organizationId) {
+        platformPolicy.authorize(principal, PlatformCommandType.REMOVE_MEDIA);
         return retryHelper.executeWithRetry(() -> {
             Organization organization = load(organizationId);
             Optional<String> previous = organization.removeLogo();

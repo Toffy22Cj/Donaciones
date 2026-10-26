@@ -514,6 +514,21 @@ class GoldenPathHttpIntegrationTest {
                 assertThat(proof.get("leafIndex").asInt()).isNotNegative();
                 assertThat(proof.has("network") && proof.has("anchoredAt")).isTrue();
             }
+            // ADR-051, Tarea 5 (enmienda de ADR-021-D, E1; test 1): el paso de la entrega lleva la huella real del
+            // evento, que es la de la foto subida; los demás pasos no llevan ninguno de los dos campos
+            Document deliveredEvent = mongoTemplate.getCollection("event_store")
+                    .find(new Document("streamId", assetId).append("eventType", "ASSET_DELIVERED")).first();
+            String storedEvidence = ((Document) deliveredEvent.get("payload")).getString("evidenceRef");
+            assertThat(storedEvidence).matches("^sha256:[0-9a-f]{64}$");
+            for (JsonNode step : steps) {
+                if (step.get("status").asText().equals("DELIVERED")) {
+                    assertThat(step.get("evidenceRegistered").asBoolean()).isTrue();
+                    assertThat(step.get("evidenceRef").asText()).isEqualTo(storedEvidence);
+                } else {
+                    assertThat(step.has("evidenceRegistered")).as(step.toString()).isFalse();
+                    assertThat(step.has("evidenceRef")).as(step.toString()).isFalse();
+                }
+            }
             // 9d (ampliado) por HTTP: nada interno en la respuesta
             assertThat(historyResponse.body()).doesNotContain("\"sequence\"").doesNotContain("streamId")
                     .doesNotContain("merkleBatchId").doesNotContain("previousHash").doesNotContain("leafHashes")

@@ -16,9 +16,13 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Component
 public class AssetHistoryMapper {
+
+    /** ADR-051 F3: el único formato que se expone (enmienda de ADR-021-D, E1). */
+    private static final Pattern FOOTPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
 
     private final LocationReferenceService locationReferenceService;
     private final PublicDonationMapper publicDonationMapper;
@@ -39,14 +43,21 @@ public class AssetHistoryMapper {
         // Ficha R-6, G-3 y Enmienda 1, E1: una lectura por historial; cada paso se cruza con su evento por sequence,
         // en el servidor (la sequence no sale por HTTP, DD-76)
         Map<Long, StepAnchor> anchorBySequence = anchors.anchorBySequence(document.assetId());
+        // Enmienda 1 de ADR-021-D: la huella de la entrega llega en el mismo StepAnchor (H-T5-1, (a)), sin otra consulta
         List<PublicTransitionDTO> transitions = document.transitions().stream()
-                .map(t -> toTransitionDto(t, anchorBySequence.get(t.sequence())))
+                .map(t -> {
+                    StepAnchor anchor = anchorBySequence.get(t.sequence());
+                    return toTransitionDto(t, anchor, anchor != null ? anchor.evidenceRef() : null);
+                })
                 .toList();
 
         return new AssetHistoryPublicDTO(transitions);
     }
 
-    private PublicTransitionDTO toTransitionDto(AssetTransitionReadModel transition, StepAnchor anchor) {
+    private PublicTransitionDTO toTransitionDto(AssetTransitionReadModel transition, StepAnchor anchor,
+                                                String evidenceRef) {
+        // E1: solo el paso de la entrega lleva los campos de la evidencia
+        boolean delivery = "DELIVERED".equals(transition.status());
         String zone = locationReferenceService.resolveZone(transition.location())
                 .orElse(null);
 
@@ -59,7 +70,10 @@ public class AssetHistoryMapper {
                 // Un paso sin evento en el mapa es PENDING (P-R6C-3), sin hash: no hay evento del que leerlo (P-C-4)
                 (anchor != null ? anchor.status() : TrackingAnchorStatus.PENDING).name(),
                 anchor != null ? anchor.eventHash() : null,
-                anchor != null ? toProofDto(anchor.proof()) : null
+                anchor != null ? toProofDto(anchor.proof()) : null,
+                delivery ? Boolean.valueOf(evidenceRef != null && !evidenceRef.isBlank()) : null,
+                // E2: el texto libre heredado puede llevar datos personales y nunca sale
+                delivery && evidenceRef != null && FOOTPRINT.matcher(evidenceRef).matches() ? evidenceRef : null
         );
     }
 

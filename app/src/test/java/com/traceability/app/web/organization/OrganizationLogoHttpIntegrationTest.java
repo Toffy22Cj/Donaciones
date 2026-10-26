@@ -575,6 +575,38 @@ class OrganizationLogoHttpIntegrationTest {
         assertThat(detail.get("organizationVerified").asBoolean()).isTrue();
     }
 
+    // ── ADR-051, Tarea 5 (T5-6; F7): la plataforma retira un logo ──
+
+    private HttpResponse<byte[]> platformRemove(String account, String org) throws Exception {
+        return send("POST", "/api/v1/platform/organizations/" + org + "/media/remove", account,
+                HttpRequest.BodyPublishers.ofString("{\"purpose\":\"ORGANIZATION_LOGO\",\"reason\":\"logo inapropiado\"}"),
+                "application/json");
+    }
+
+    @Test
+    void t5_6_thePlatformRemovesALogo_theReadsGive404_andTheMetadataKeepsTheTrace() throws Exception {
+        World w = world();
+        String key = uploadLogo(w);
+
+        HttpResponse<byte[]> asRepresentative = platformRemove(w.representative(), w.org());
+        assertThat(asRepresentative.statusCode()).isEqualTo(403);
+        assertThat(logoKeyOf(w.org())).isEqualTo(key);
+
+        HttpResponse<byte[]> r = platformRemove(platformAdmin, w.org());
+
+        assertThat(r.statusCode()).as(text(r)).isEqualTo(204);
+        assertThat(logoKeyOf(w.org())).isNull();
+        assertThat(storage.get(key)).isEmpty();
+        Document meta = mediaByKey(key);
+        assertThat(meta.get("deletedAt")).isNotNull();
+        assertThat(meta.getString("deletedBy")).isEqualTo(platformAdmin);
+        assertThat(meta.getString("reason")).isEqualTo("logo inapropiado");
+        assertThat(publicLogo(w.publicCode()).statusCode()).isEqualTo(404);
+        assertThat(memberLogo(w.org(), w.employee()).statusCode()).isEqualTo(404);
+        assertThat(body(send("GET", "/api/v1/public/campaigns/" + w.publicCode(), null, null, null)).has("organizationLogoUrl")).isFalse();
+        assertThat(platformRemove(platformAdmin, w.org()).statusCode()).isEqualTo(204);
+    }
+
     private JsonNode discoveryItem(String publicCode) throws Exception {
         String cursor = null;
         for (int page = 0; page < 50; page++) {
