@@ -4,6 +4,7 @@ import com.traceability.api.web.ApiErrorMapping;
 import com.traceability.api.web.ApiErrorMappings;
 import com.traceability.api.web.ApiExceptionHandler;
 import com.traceability.app.application.media.ImageTooLargeException;
+import com.traceability.app.application.media.CampaignCoverNotFoundException;
 import com.traceability.app.application.media.OrganizationLogoNotFoundException;
 import com.traceability.app.application.media.UnsupportedImageFormatException;
 import com.traceability.contracts.media.MediaStorageUnavailableException;
@@ -37,6 +38,8 @@ public class MediaApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(MediaStorageUnavailableException.class, HttpStatus.SERVICE_UNAVAILABLE, null),
                 // D-T2-1: la única causa de 404 de las dos rutas del logo
                 new ApiErrorMapping(OrganizationLogoNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
+                // ADR-051, Tarea 3: el mismo 404 en todos los casos de la portada pública
+                new ApiErrorMapping(CampaignCoverNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 // ADR-051 F3 (Tarea 4): una foto, un activo; y el mismo 400 para inexistente, ajena, no evidencia o borrada
                 new ApiErrorMapping(com.traceability.contracts.media.EvidenceAlreadyBoundException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(com.traceability.contracts.media.EvidenceNotFoundException.class, HttpStatus.BAD_REQUEST, null));

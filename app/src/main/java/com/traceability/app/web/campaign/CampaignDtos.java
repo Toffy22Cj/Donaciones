@@ -46,12 +46,12 @@ public final class CampaignDtos {
      * CV-07 (plan B6-a §2.3; DD-03). Importes como texto (T-34); nulos omitidos (Q-B60-2). {@code organizationVerified}
      * siempre está (ficha L-FRONTS, A1; M-07). {@code organizationLogoUrl} solo si la organización tiene logo (ADR-051
      * F6, Enmienda 1; plan de la Tarea 2 §2): apunta a la ruta pública por {@code publicCode}, nunca al
-     * {@code organizationId}.
+     * {@code organizationId}. {@code coverImageUrl} solo si la convocatoria tiene portada (ADR-051 F6, Tarea 3).
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record PublicCampaignResponse(String organizationName, boolean organizationVerified, String title,
                                          String description, String status,
                                          String startDate, String endDate, Set<String> acceptedDonationTypes,
                                          Set<String> acceptedPaymentMethods, String currency, String targetAmount,
-                                         String clearedAmount, String organizationLogoUrl) {}
+                                         String clearedAmount, String organizationLogoUrl, String coverImageUrl) {}
 }

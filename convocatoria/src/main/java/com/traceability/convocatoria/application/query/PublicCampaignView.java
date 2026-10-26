@@ -12,8 +12,10 @@ import java.util.Set;
  * @param currency      solo con {@code MONETARY}
  * @param targetAmount  solo con {@code MONETARY}
  * @param clearedAmount solo con {@code MONETARY}
+ * @param coverObjectKey interna, como {@code organizationRef}: la {@code objectKey} de la portada, o nula; {@code app}
+ *                       la usa para servirla y dar {@code coverImageUrl}, y nunca sale (ADR-051, Tarea 3; P-T3-2)
  */
 public record PublicCampaignView(String organizationRef, String title, String description, String status,
                                  Instant startDate, Instant endDate, Set<String> acceptedDonationTypes,
                                  Set<String> acceptedPaymentMethods, String currency, Long targetAmount,
-                                 Long clearedAmount) {}
+                                 Long clearedAmount, String coverObjectKey) {}

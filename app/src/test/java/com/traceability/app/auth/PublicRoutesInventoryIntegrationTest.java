@@ -125,7 +125,10 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/organizations/{organizationId}/integrity",
             "GET /api/v1/organizations/{organizationId}/activity",
             // ADR-050 D7: reactivar una cuenta, solo el administrador de plataforma (plan de cierre, §D7)
-            "POST /api/v1/platform/accounts/{accountId}/reactivate");
+            "POST /api/v1/platform/accounts/{accountId}/reactivate",
+            // ADR-051, Tarea 3: subir y quitar la portada (F8), solo ADMINISTRATOR; la lectura pública está en PublicRoutes
+            "PUT /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
+            "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover");
 
     @Container
     static MongoDBContainer mongo = new MongoDBContainer(DockerImageName.parse("mongo:6.0")).withCommand("--replSet", "rs0");
@@ -165,6 +168,8 @@ class PublicRoutesInventoryIntegrationTest {
     void everyApiRoute_isEitherExplicitlyPublicOrExplicitlyProtected() {
         List<Endpoint> endpoints = apiEndpoints();
         assertThat(endpoints).extracting(Endpoint::pattern)
+                .contains("/api/v1/public/campaigns/{publicCode}/cover",
+                        "/api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover")
                 .contains("/api/v1/public/campaigns/{publicCode}/organization-logo",
                         "/api/v1/organizations/{organizationId}/logo")
                 // ADR-050 D8: las dos rutas de la recuperación existen y son públicas (PublicRoutes)

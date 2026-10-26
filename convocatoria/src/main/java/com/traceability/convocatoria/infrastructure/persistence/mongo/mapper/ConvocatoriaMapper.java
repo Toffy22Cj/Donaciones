@@ -34,6 +34,7 @@ public final class ConvocatoriaMapper {
         d.status = c.getStatus().name();
         applyConfiguration(d, c.getConfiguration());
         d.configurationVersion = c.getConfigurationVersion();
+        d.coverObjectKey = c.getCoverObjectKey();
         return d;
     }
 
@@ -57,6 +58,6 @@ public final class ConvocatoriaMapper {
                 d.onTargetReached == null ? null : OnTargetReached.valueOf(d.onTargetReached));
         return Convocatoria.reconstitute(d.campaignRef, d.organizationRef, d.publicCode, d.title, d.description,
                 Visibility.valueOf(d.visibility), d.startDate, d.endDate, ConvocatoriaStatus.valueOf(d.status), cfg,
-                d.configurationVersion);
+                d.configurationVersion, d.coverObjectKey);
     }
 }
