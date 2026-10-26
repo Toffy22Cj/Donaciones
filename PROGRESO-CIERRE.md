@@ -100,3 +100,5 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - #156 integra develop (982cdfe): CI salida 0, app 607. El merge paralelo de otro agente (10fa18e) tenía el mismo árbol y lo integré en 01a83b8, sin forzar.
   - Hallazgo: CampaignFundingLedgerIntegrationTest.java:551 tiene una carrera (DonationIntentNotConfirmedException no aceptada). Falló una vez en la CI de b536e02. Arreglo propuesto, sin aplicar.
 - Queda #156, listo para fusionar.
+- 12:28Z #156 fusionado. **Deudas 1 a 3 terminadas:** #153, #154, #155 y #156, todos fusionados.
+- Quedan solo la deuda P-DB1-3 (logo y portada, aceptada) y la propuesta para el test con carrera de convocatoria (:551).
