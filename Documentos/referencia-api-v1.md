@@ -40,6 +40,15 @@
 - **`paymentMethod`**: `GATEWAY`, `BANK_TRANSFER` o `CASH`; siempre;
 - **`publicCode?`**: **solo** si la convocatoria es `PUBLIC` al leer; una `PRIVATE_LINK` nunca lo trae (ADR-041 §2.7).
 
+*Nota (2026-10-25, M-21 "Mi impacto"; plan de cierre §M-21, aprobado en #147):* ruta nueva **`GET /account/impact`**, con JWT de cualquier cuenta y `Cache-Control: private, no-store`. Responde `200 {donationsCount, totals: [{currency, amount}], campaignsSupported, deliveredUnits: [{unitOfMeasure, quantity}], truncated}`:
+- `donationsCount`: las donaciones `CONFIRMED` de la cuenta (DD-46).
+- `totals`: su suma **por moneda**, en unidades mínimas y como texto; nunca se suman monedas distintas.
+- `campaignsSupported`: las convocatorias distintas de esas donaciones.
+- `deliveredUnits`: las cantidades de los activos `DELIVERED` de los fondos de esas donaciones, sumadas **por unidad de medida** y como texto. Cada activo cuenta una vez. **Se presentan como "unidades entregadas en las convocatorias que apoyaste"**, no como unidades atribuidas al donante (P-M21-4).
+- `truncated`: `true` si la cuenta tiene más de 100 donaciones, el tope de DD-21. Solo cuentan las 100 más recientes.
+
+Una cuenta que nunca donó recibe ceros y listas vacías, y su seudónimo no se crea. Nunca salen el seudónimo, el `donorRef`, el `fundId`, el `assetId` ni el `campaignRef`. Errores: 401.
+
 Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final (enmienda de DD-21). La página sigue siendo de 100, sin `nextCursor`, y trae las 100 más recientes. Ninguna respuesta lleva `organizationRef` ni `donorRef`. Las filas de arriba no se reescriben.
 
 *Nota (2026-10-24, ADR-050 D4 y D5; plan R-3 + R-2, `feat/identity-r3-r2-revocacion-contrasena`):* ruta nueva y revocación de sesiones. Las filas de arriba y la regla 401 de §0 no se reescriben; esta nota las amplía.

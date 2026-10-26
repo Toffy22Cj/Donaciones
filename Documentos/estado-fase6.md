@@ -229,6 +229,35 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.65 M-21 "Mi impacto": `GET /api/v1/account/impact` (2026-10-26, `feat/account-impact`)
+
+- Numerada 0.65, en la serie del cierre del backend (0.60 a 0.69).
+- **Norma:**
+  - `plan-cierre-backend-2026-10-25.md` §M-21, APROBADO por Manuel (#147, comentario 6404356890), con P-M21-1 a 5. Respuestas: P-M21-3, solo `CONFIRMED`; P-M21-4, conteo por activo, presentado como "unidades entregadas en las convocatorias que apoyaste";
+  - **decisión (a) de Manuel** (#147, comentario 6406618994): `DonationView` gana `campaignRef`. Es la autorización 3.5 del puerto. Se registra en el PR de T5 (`decisiones-delegadas-2026-10.md` y el plan).
+- **Qué hace:**
+  - `convocatoria`: `DonationIntentReadPort.DonationView` gana `campaignRef`, interno, como `organizationRef`. Es aditivo y `DonationIntentQueryService` lo rellena.
+  - `app`:
+    - `AccountImpactQuery` cuenta solo `CONFIRMED`, suma por moneda, cuenta los `campaignRef` distintos y suma por unidad de medida los activos `DELIVERED` de la `logistics` de cada fondo, cada activo una vez. Tiene el tope de 100 de DD-21, con `truncated`, y lee el seudónimo sin crearlo;
+    - `AccountImpactController`: `GET /api/v1/account/impact`, `private, no-store`.
+- **Evidencia:**
+  - **Rojo primero,** sin la producción:
+    - `convocatoria` no compilaba: "`DonationHistoryIntegrationTest.java:[173,33] cannot find symbol`" (`campaignRef()`);
+    - `app` no compilaba: "`AccountImpactQueryTest.java:[112,39] package AccountImpactQuery does not exist`";
+    - con ese test apartado, `AccountImpactHttpIntegrationTest` daba "Tests run: 2, Failures: 1" (404 donde se espera 200);
+    - el 401 sin JWT pasaba ya sin la ruta: lo da el filtro.
+  - **Verde por capas** (módulo entero, `-pl app -am test`, Surefire literal):
+    - core "Tests run: 369, Failures: 0, Errors: 0, Skipped: 0";
+    - crypto 57;
+    - ai 47;
+    - api 170;
+    - identity 392;
+    - convocatoria 260;
+    - app "Tests run: 589, Failures: 0, Errors: 0, Skipped: 0".
+    - Todos con 0 fallos y BUILD SUCCESS.
+  - **Mutaciones:** MUT_M21.
+  - **`ci-local.sh`:** CI_M21.
+
 ### 0.61 ADR-050 D7: la plataforma reactiva una cuenta (2026-10-25, `feat/identity-d7-reactivacion`)
 
 - Numerada 0.61, en la serie del cierre del backend (0.60 a 0.69).
