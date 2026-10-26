@@ -396,6 +396,7 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - 6, G-8 con `anchoredAt.toString()` → `dtb1_aNewEvent100msAfter…` y `t11b_aTieBetweenSources…`;
     - 7, el mapa canónico del hash con el texto fijo → `dtb1_theHashFormOfRecordedAt_staysInstantToString`.
   - **`ci-local.sh`** en un clon limpio de `006bac5`, salida 0: `evidencia-ci/ci-local-006bac5-2026-10-26T06-55-28Z.txt`. Resumen: core "Tests run: 377" (con el test de protección del hash), crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app "Tests run: 601", todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+- *Nota (2026-10-26, tren de fusiones, agente local de Manuel):* integrado `develop` `fdc62fd` (#154, deuda 1) en `d26db18`, sin conflictos. `scripts/ci-local.sh` en un clon limpio de `d26db18` (`free -g`: 4 GB disponibles): `BUILD SUCCESS`; core "Tests run: 377", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 604, todos con "Failures: 0, Errors: 0, Skipped: 0". Evidencia: `evidencia-ci/ci-local-d26db18-2026-10-26T11-35-52Z.txt`.
 - **Riesgo que queda (P-DT1-1):**
   - dos eventos viejos del mismo segundo, o uno viejo y uno nuevo en el segundo del despliegue, pueden seguir fuera de orden cronológico;
   - entre eventos nuevos, el orden es siempre el cronológico.
