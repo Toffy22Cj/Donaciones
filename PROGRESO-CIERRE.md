@@ -134,3 +134,16 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - `e0a457a`: evidencia.
   Mutaciones: 11 de 11 en `convocatoria` y 12 de 12 en `app`. `ci-local` en `7814d8d`: convocatoria 272 y app 622, BUILD SUCCESS.
 - **Siguiente:** esperar el comentario de aprobación de Manuel en #158 para escribir el código de la Enmienda 2 (rama `feat/identity-adr050-e2-verificacion-correo` [Plan]). Cuando #157 se fusione, integrar `develop` en #158 y #159 con merge y repetir `ci-local` en #159.
+
+### Tercer encargo (2026-10-29): R-1 al día, C-1 y R-7, código de la Enmienda 2
+- **1. #159 HECHO:**
+  - merge de `develop` `d313bc6` (`94de436`);
+  - las dos notas en la ficha R-1 (`6dc17f5`);
+  - `ci-local` en `6dc17f5`: convocatoria 272 y app 622, BUILD SUCCESS (`7e35792`).
+  Listo para fusionar.
+- **2. #161 HECHO** (`chore/docs-r7-y-c1`): C-1 y C-5 literales (`0232750`) y la ficha R-7 con `git am`, autor Carlos (`0481f9f`, `dd7a5a0`).
+- **4. Plan R-7: #162 HECHO** (`chore/docs-plan-r7`, `ea0883c`, "depende de #161"). ESPERA la aprobación de Manuel; sin código.
+- **3. Enmienda 2: EN CURSO** en `feat/identity-adr050-e2-verificacion-correo`, desde #158 (merge de `develop` `0fa64fd`).
+  - Commits: `449fa26` (nota de la aprobación de Manuel) y `59d25c0` (tests en rojo por compilación).
+  - Código escrito.
+  - **BLOQUEO P-E2V-13:** ADR-038 §2.2 (`ArchitectureTest.java:67-88`) no deja a `EmailVerificationService` construir el actor de `EMAIL_VERIFIED`. No se toca el test; lo decide Manuel.
