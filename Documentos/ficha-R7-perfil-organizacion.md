@@ -1,7 +1,7 @@
 # Ficha R-7 — Perfil de la organización
 
 **Naturaleza:** ficha de contrato HTTP, en el formato de la ficha R-1 y la ficha S-18. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
-**Estado: BORRADOR — espera las decisiones de Carlos (§8; P9 ya decidida).** Cada pregunta trae una recomendación. Al aprobar la ficha, Carlos escribe en el PR "P1 a P8 según la recomendación" o la opción que elija en cada una. Hasta entonces nada de esto se implementa.
+**Estado: CONGELADA — Carlos, 2026-10-29: P1 a P8 según la recomendación de §8; P9, no.** El código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
 **Fecha:** 2026-10-29 (UTC). **Base verificada:** `develop` `993c3e8`.
 **Origen:** Carlos, 2026-10-28 ("falta el perfil… el de la organización"). La pantalla 11 de los bocetos de Manuel (`paxfide-web/Documentos/paxfide-pantallas-web.html`, "Datos de la organización") estaba marcada **PROPUESTA · SIN BACKEND · DEPENDE DE ADR**.
 **Requiere enmienda o ADR:**
@@ -86,7 +86,7 @@ Hay dos grupos: lo **público**, que ve el donante, y lo **de verificación**, q
 - Un dígito que no coincide → 400 `nitCheckDigit`.
 - **[Plan]** El plan incluye tres NIT reales públicos de prueba con su dígito, comprobados a mano contra el RUES, y un caso inválido.
 
-## 8. Decisiones — las toma Carlos al aprobar
+## 8. Decisiones — Carlos, 2026-10-29 (las recomendaciones de P1 a P8 quedan aprobadas)
 
 | # | Pregunta | Opciones | Recomendación |
 |---|---|---|---|
