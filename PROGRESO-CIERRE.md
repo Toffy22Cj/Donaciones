@@ -102,3 +102,14 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - Queda #156, listo para fusionar.
 - 12:28Z #156 fusionado. **Deudas 1 a 3 terminadas:** #153, #154, #155 y #156, todos fusionados.
 - Quedan solo la deuda P-DB1-3 (logo y portada, aceptada) y la propuesta para el test con carrera de convocatoria (:551).
+
+## Trabajo de Carlos (2026-10-29)
+
+- Punto de partida: `develop` en 993c3e8, sin PR abiertos. Sesión web: `~/Documentos/backend-donaciones/` no está accesible.
+- **P0:** PR borrador #157 (`chore/docs-trabajo-carlos-2026-10-29`, ccfeaef).
+  - Hecho: la nota con C-1 a C-3 en `decisiones-delegadas-2026-10.md` y la nota en `ADR-050-enmienda-1-iat-del-login.md`. Solo añade texto.
+  - Falta, porque no hay fuentes: la ficha y el plan R-1, `enmienda2-0001.patch` y el texto literal de C-1 ("[texto cortado]"). Se pidieron a Manuel en #157.
+  - Hechos del plan R-1 verificados contra 993c3e8: `PublicCampaignDiscoveryQuery.java:44`, `ConvocatoriaRepositoryPort.java:42`, `MongoConvocatoriaRepositoryAdapter.java:21` y `:98`, `ConvocatoriaDocument.java:20-38`.
+- **P1 (R-1):** bloqueado. Faltan el plan R-1 §2 y los tests 1 a 15 de la ficha §8.
+- **P2 (Enmienda 2):** bloqueado. Falta el texto de la Enmienda 2 (E2-3 y su Definición de hecho, tests 1 a 14).
+- **R-7:** no se empieza (C-4).
