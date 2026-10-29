@@ -113,3 +113,13 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - **P1 (R-1):** bloqueado. Faltan el plan R-1 §2 y los tests 1 a 15 de la ficha §8.
 - **P2 (Enmienda 2):** bloqueado. Falta el texto de la Enmienda 2 (E2-3 y su Definición de hecho, tests 1 a 14).
 - **R-7:** no se empieza (C-4).
+
+### Sesión web, segundo encargo (2026-10-29)
+- Fuentes leídas de `wip/fuentes-carlos-2026-10-29` (`fuentes-carlos/`).
+- **P0 HECHO:** #157 listo para revisión (ya no es borrador). Commits:
+  - `6f7afa2`: Enmienda 2 con `git am`, autor Carlos;
+  - `d1a4b75`: ficha y plan R-1, copia literal;
+  - `546f505`: notas.
+  `git diff develop -- Documentos | grep '^-[^-]'` → 0. C-1 sigue como "[texto cortado]".
+- **P2 plan HECHO:** #158 (`chore/docs-plan-adr050-enmienda-2`, `4fbc326`), "depende de #157". ESPERA el comentario de aprobación de Manuel. Sin código de la Enmienda 2.
+- **P1 R-1:** EN CURSO. Rama `feat/convocatoria-r1-busqueda-descubrimiento` desde #157.
