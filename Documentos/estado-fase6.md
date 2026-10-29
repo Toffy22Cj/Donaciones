@@ -258,6 +258,9 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - *Nota (2026-10-29): `ci-local.sh`* en un clon limpio de `7814d8d` (`free -g`: 15 GB en total, 14 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-7814d8d-2026-10-29T17-47-44Z.txt`.
   - Resumen: core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 272 y app 622, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
   - Respecto de la línea base: convocatoria +12 y app +15.
+- *Nota (2026-10-29, más tarde):* se integró `develop` `d313bc6` (#157 y #160) con un merge normal (`94de436`), sin conflictos. Se añadieron en la ficha R-1 las dos notas de las observaciones que aceptó Manuel (#159, comentario 6504628005).
+  - `ci-local.sh` en un clon limpio de `6dc17f5` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 272 y app 622, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Evidencia: `evidencia-ci/ci-local-6dc17f5-2026-10-29T18-52-26Z.txt`.
 
 ### 0.64 ADR-051, Tarea 5: leer la evidencia, retirarla por la plataforma y la huella en el seguimiento (2026-10-25, `feat/adr051-t5-evidencia-lectura`)
 
