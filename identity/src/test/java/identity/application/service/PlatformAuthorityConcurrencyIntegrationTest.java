@@ -58,6 +58,7 @@ import static org.mockito.Mockito.reset;
 @DataMongoTest
 @ContextConfiguration(classes = identity.infrastructure.persistence.mongo.IdentityTestApplication.class)
 @Import({
+        EmailVerificationTestBeans.class, // ADR-050 Enmienda 2: el servicio de verificación y los dos puertos de correo
         MongoAccountRepositoryAdapter.class,
         MongoPlatformAuthorityStateAdapter.class,
         MongoAuditLogAdapter.class,

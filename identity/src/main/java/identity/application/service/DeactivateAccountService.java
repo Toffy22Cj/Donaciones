@@ -3,6 +3,8 @@ package identity.application.service;
 import com.github.f4b6a3.ulid.UlidCreator;
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.AuditLogPort;
+import identity.application.port.out.SecurityNoticeMailPort;
+import identity.application.port.out.SecurityNoticeMailPort.SecurityNotice;
 import identity.domain.model.Account;
 import identity.domain.model.AccountId;
 import identity.domain.model.AuditAction;
@@ -26,6 +28,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class DeactivateAccountService {
@@ -37,6 +40,7 @@ public class DeactivateAccountService {
     private final OrganizationRepositoryPort organizations;
     private final CampaignResponsibilityPort responsibilities;
     private final AuthorizationAuditActorMapper auditActors;
+    private final SecurityNoticeMailPort notices;
     private final Clock clock;
 
     public DeactivateAccountService(AccountRepositoryPort accountRepository, 
@@ -46,6 +50,7 @@ public class DeactivateAccountService {
                                     OrganizationRepositoryPort organizations,
                                     CampaignResponsibilityPort responsibilities,
                                     AuthorizationAuditActorMapper auditActors,
+                                    SecurityNoticeMailPort notices,
                                     ObjectProvider<Clock> clock) {
         this.accountRepository = accountRepository;
         this.auditLogPort = auditLogPort;
@@ -54,6 +59,7 @@ public class DeactivateAccountService {
         this.organizations = organizations;
         this.responsibilities = responsibilities;
         this.auditActors = auditActors;
+        this.notices = notices;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
@@ -69,12 +75,15 @@ public class DeactivateAccountService {
      * </ol>
      * Si pasa, {@code deactivate(now)} fija {@code credentialsNotBefore} (D4) y se audita {@code ACCOUNT_DEACTIVATED}
      * con el actor del principal. La organización y la membresía no cambian (D6). En cualquier rechazo, nada cambia.
+     * <p>
+     * ADR-050 Enmienda 2, E2-4 y Q4: si la cuenta cambió, después de confirmar se entrega el aviso
+     * {@code ACCOUNT_DEACTIVATED}. La desactivación por la plataforma ({@link #deactivateAccount}) no avisa (P-E2V-9).
      */
     public void deactivateOwnAccount(AuthorizationPrincipal principal, String currentPlainPassword) {
         AuditActor self = auditActors.toAuditActor(principal);
         AccountId accountId = new AccountId(principal.accountId());
 
-        retryHelper.executeWithRetry(() -> {
+        Optional<SecurityNotice> notice = retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(accountId);
             if (currentPlainPassword == null || !passwordHasher.matches(currentPlainPassword, account.getPasswordHash())) {
                 throw new CurrentPasswordIncorrectException("Current password does not match");
@@ -96,12 +105,16 @@ public class DeactivateAccountService {
                 }
             }
             Instant now = clock.instant();
-            if (account.deactivate(now)) {
-                accountRepository.save(account);
-                auditLogPort.record(AuditLogEntry.record(UlidCreator.getUlid().toString(), now, self,
-                        account.getAccountId(), null, AuditAction.ACCOUNT_DEACTIVATED, Collections.emptyMap()));
+            if (!account.deactivate(now)) {
+                return Optional.<SecurityNotice>empty();
             }
+            accountRepository.save(account);
+            auditLogPort.record(AuditLogEntry.record(UlidCreator.getUlid().toString(), now, self,
+                    account.getAccountId(), null, AuditAction.ACCOUNT_DEACTIVATED, Collections.emptyMap()));
+            return Optional.of(new SecurityNotice(account.getAccountId().value(), account.getEmail().value(),
+                    SecurityNotice.Kind.ACCOUNT_DEACTIVATED, now));
         });
+        notice.ifPresent(notices::dispatch);
     }
 
     public void deactivateAccount(AuditActor actor, AccountId accountId) {

@@ -47,6 +47,7 @@ import static org.mockito.Mockito.reset;
 @DataMongoTest
 @ContextConfiguration(classes = identity.infrastructure.persistence.mongo.IdentityTestApplication.class)
 @Import({
+        EmailVerificationTestBeans.class, // ADR-050 Enmienda 2: el servicio de verificación y los dos puertos de correo
         MongoAccountRepositoryAdapter.class,
         MongoAuditLogAdapter.class,
         BCryptPasswordHasherAdapter.class,
@@ -70,6 +71,7 @@ class LoginAcceptanceIntegrationTest extends BaseMongoIntegrationTest {
 
     @Autowired private CreateAccountService accounts;
     @Autowired private AuthenticateAccountPort login;
+    @Autowired private EmailVerificationService verifications;
     @Autowired private PasswordHasherPort hasher;
     @Autowired private MongoTemplate mongoTemplate;
     @MockitoSpyBean private AccountRepositoryPort accountRepository;
@@ -150,6 +152,9 @@ class LoginAcceptanceIntegrationTest extends BaseMongoIntegrationTest {
     void test5_anUpToDateAccount_writesNothing() {
         String email = newEmail();
         Account account = accounts.createAccount(new Email(email), PASSWORD, CURRENT, CURRENT);
+        // ADR-050 Enmienda 2, E2-3: el registro público nace sin verificar; se verifica antes de iniciar sesión
+        verifications.confirm(EmailVerificationTestBeans.VERIFICATION_MAILS.stream()
+                .filter(m -> m.to().equals(email)).findFirst().orElseThrow().token());
         reset(accountRepository);
 
         login.authenticate(email, PASSWORD, AcceptedLegalVersions.NONE);

@@ -44,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @DataMongoTest
 @ContextConfiguration(classes = identity.infrastructure.persistence.mongo.IdentityTestApplication.class)
 @Import({
+        EmailVerificationTestBeans.class, // ADR-050 Enmienda 2: el servicio de verificación y los dos puertos de correo
         MongoAccountRepositoryAdapter.class,
         MongoAuditLogAdapter.class,
         MongoOrganizationRepositoryAdapter.class,

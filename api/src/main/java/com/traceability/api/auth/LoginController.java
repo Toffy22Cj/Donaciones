@@ -5,6 +5,7 @@ import com.traceability.contracts.authentication.AcceptedLegalVersions;
 import com.traceability.contracts.authentication.AuthenticateAccountPort;
 import com.traceability.contracts.authentication.AuthenticatedAccount;
 import com.traceability.contracts.authentication.AuthenticationFailedException;
+import com.traceability.contracts.authentication.EmailNotVerifiedException;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,8 @@ import java.time.temporal.ChronoUnit;
  *   <li>email o contraseña vacíos → 400, sin llamar a la autenticación (ID01-D2);</li>
  *   <li>cualquier fallo de autenticación → el mismo 401, sin motivo (ID01-D1). Se decide antes que las aceptaciones:
  *       una contraseña incorrecta nunca da 403 (ADR-050 Enmienda 1, parte 3, E3-2);</li>
+ *   <li>contraseña correcta, cuenta activa y correo sin verificar → {@code 403 EmailNotVerified}, sin token y sin datos
+ *       (ADR-050 Enmienda 2, E2-3); va antes que las aceptaciones;</li>
  *   <li>contraseña correcta y versiones legales vigentes pendientes que el cuerpo no trae ({@code acceptedTermsVersion?},
  *       {@code acceptedDataPolicyVersion?}) → {@code 403 AcceptanceRequired} con {@code {pendingTermsVersion?,
  *       pendingDataPolicyVersion?}} y sin token (ADR-050 D3, Q1 (a); E3-4; P-R5-5);</li>
@@ -82,6 +85,9 @@ public class LoginController {
         } catch (AuthenticationFailedException e) {
             log.debug("Login rejected");
             return problem(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        } catch (EmailNotVerifiedException e) {
+            log.debug("Login requires a verified email");
+            return emailNotVerified();
         } catch (AcceptanceRequiredException e) {
             log.debug("Login requires accepting the current legal versions");
             return acceptanceRequired(e);
@@ -113,6 +119,13 @@ public class LoginController {
         if (e.pendingDataPolicyVersion() != null) {
             problem.setProperty("pendingDataPolicyVersion", e.pendingDataPolicyVersion());
         }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(PROBLEM_JSON).body(problem);
+    }
+
+    /** ADR-050 Enmienda 2, E2-3: {@code title = EmailNotVerified}, sin token ni datos de la cuenta. */
+    private static ResponseEntity<ProblemDetail> emailNotVerified() {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "The email must be verified");
+        problem.setTitle("EmailNotVerified");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(PROBLEM_JSON).body(problem);
     }
 

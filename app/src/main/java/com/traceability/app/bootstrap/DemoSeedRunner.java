@@ -96,8 +96,18 @@ public class DemoSeedRunner implements ApplicationRunner {
         log.info("Demo seed: platform account {}", platform.value());
     }
 
+    /**
+     * ADR-050 Enmienda 2, E2-1 y P-E2V-4: las cuentas de la semilla nacen verificadas (alta de sistema) y las que ya
+     * existen en una base desplegada se marcan con una escritura condicional e idempotente.
+     */
     private Account ensureAccount(String email) {
         return accountRepository.findByEmail(new Email(email))
+                .map(existing -> {
+                    if (!existing.isEmailVerified()) {
+                        accountRepository.markEmailVerifiedIfUnverified(existing.getAccountId(), java.time.Instant.now());
+                    }
+                    return existing;
+                })
                 .orElseGet(() -> accounts.createAccount(new Email(email), password));
     }
 }

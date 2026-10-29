@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
  * Cuenta propia (ficha L-FRONTS, A3; M-26): {@code GET /api/v1/account} → {@code {email}}, {@code Cache-Control:
  * no-store}. JWT obligatorio; solo la cuenta del JWT, con o sin organización. Sin JWT válido, o con la cuenta
  * {@code INACTIVE}, el filtro da 401. El correo es un dato personal: no se registra en ningún log. {@code GET /me}
- * (ficha N1) sigue sin email.
+ * (ficha N1) sigue sin email. ADR-050 Enmienda 2, E2-1: lleva además {@code emailVerified} (booleano).
  */
 @RestController
 public class AccountController {
 
-    public record AccountResponse(String email) {}
+    public record AccountResponse(String email, boolean emailVerified) {}
 
     private final AccountEmailQuery emails;
 
@@ -28,6 +28,10 @@ public class AccountController {
     @GetMapping("/api/v1/account")
     public ResponseEntity<AccountResponse> account(@CurrentActor HumanActor actor) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-                .body(new AccountResponse(emails.emailOf(actor.accountId())));
+                .body(response(emails.account(actor.accountId())));
+    }
+
+    private static AccountResponse response(AccountEmailQuery.AccountEmail account) {
+        return new AccountResponse(account.email(), account.emailVerified());
     }
 }

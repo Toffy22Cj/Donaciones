@@ -7,6 +7,8 @@ import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.AuditLogPort;
 import identity.application.port.out.PasswordHasherPort;
 import identity.application.port.out.PasswordResetTokenRepositoryPort;
+import identity.application.port.out.SecurityNoticeMailPort;
+import identity.application.port.out.SecurityNoticeMailPort.SecurityNotice;
 import identity.domain.exception.CurrentPasswordIncorrectException;
 import identity.domain.exception.PasswordResetTokenInvalidException;
 import identity.domain.model.Account;
@@ -37,6 +39,8 @@ public class ChangeCredentialsService {
     private final MongoTransactionRetryHelper retryHelper;
     private final AuthorizationAuditActorMapper auditActors;
     private final PasswordResetTokenRepositoryPort resetTokens;
+    private final EmailVerificationService verifications;
+    private final SecurityNoticeMailPort notices;
     private final Clock clock;
 
     public ChangeCredentialsService(AccountRepositoryPort accountRepository, 
@@ -45,6 +49,8 @@ public class ChangeCredentialsService {
                                   MongoTransactionRetryHelper retryHelper,
                                   AuthorizationAuditActorMapper auditActors,
                                   PasswordResetTokenRepositoryPort resetTokens,
+                                  EmailVerificationService verifications,
+                                  SecurityNoticeMailPort notices,
                                   ObjectProvider<Clock> clock) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
@@ -52,6 +58,8 @@ public class ChangeCredentialsService {
         this.retryHelper = retryHelper;
         this.auditActors = auditActors;
         this.resetTokens = resetTokens;
+        this.verifications = verifications;
+        this.notices = notices;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
@@ -76,6 +84,9 @@ public class ChangeCredentialsService {
      *
      * La cuenta es la del principal autenticado, que también es el actor de la auditoría.
      *
+     * ADR-050 Enmienda 2, E2-4: después de confirmar, entrega el aviso {@code PASSWORD_CHANGED}; un cambio rechazado no
+     * avisa.
+     *
      * @return el {@code credentialsNotBefore} confirmado, que es el {@code iat} del token nuevo
      * @throws CurrentPasswordIncorrectException si la actual no coincide; nada cambia
      */
@@ -83,15 +94,24 @@ public class ChangeCredentialsService {
         AuditActor self = auditActors.toAuditActor(principal);
         AccountId accountId = new AccountId(principal.accountId());
 
-        return retryHelper.executeWithRetry(() -> {
+        Changed changed = retryHelper.executeWithRetry(() -> {
             Account account = accountRepository.findById(accountId);
             if (currentPlainPassword == null || !passwordHasher.matches(currentPlainPassword, account.getPasswordHash())) {
                 throw new CurrentPasswordIncorrectException("Current password does not match");
             }
             PlainPassword password = new PlainPassword(newPlainPassword);
-            applyChange(self, account, password, Collections.emptyMap());
-            return account.getCredentialsNotBefore();
+            return new Changed(account, applyChange(self, account, password, Collections.emptyMap()));
         });
+        notify(changed, SecurityNotice.Kind.PASSWORD_CHANGED);
+        return changed.account().getCredentialsNotBefore();
+    }
+
+    /** La cuenta tal como quedó y el instante del cambio, para el aviso que se entrega después de confirmar. */
+    private record Changed(Account account, Instant at) {}
+
+    private void notify(Changed changed, SecurityNotice.Kind kind) {
+        notices.dispatch(new SecurityNotice(changed.account().getAccountId().value(), changed.account().getEmail().value(),
+                kind, changed.at()));
     }
 
     /**
@@ -104,6 +124,9 @@ public class ChangeCredentialsService {
      * El actor es {@code AccountAuditActor} de la cuenta del token: quien confirma demostró controlar su correo (ADR-050
      * Enmienda 1, parte 2, que enmienda ADR-038 E1). Cualquier condición no cumplida es la misma {@link
      * PasswordResetTokenInvalidException} y la transacción se revierte entera.
+     * <p>
+     * ADR-050 Enmienda 2, E2-2: en la misma transacción, y después de guardar la cuenta, una cuenta sin verificar queda
+     * verificada (P-E2V-8). E2-4: después de confirmar, se entrega el aviso {@code PASSWORD_RESET}.
      */
     public void resetCredentials(String token, String newPlainPassword) {
         PlainPassword password = new PlainPassword(newPlainPassword);
@@ -115,7 +138,7 @@ public class ChangeCredentialsService {
         // hash, y la perdedora agota sus reintentos de WriteConflict en markUsedIfPending (500) en lugar de releer USED
         PasswordHash newPasswordHash = passwordHasher.hash(password.value());
 
-        retryHelper.executeWithRetry(() -> {
+        Changed changed = retryHelper.executeWithRetry(() -> {
             Instant now = clock.instant();
             PasswordResetToken resetToken = resetTokens.findByTokenHash(tokenHash)
                     .filter(t -> t.isUsableAt(now))
@@ -127,16 +150,21 @@ public class ChangeCredentialsService {
             if (!resetTokens.markUsedIfPending(resetToken.getId(), now)) {
                 throw new PasswordResetTokenInvalidException();
             }
-            applyChange(new AuditActor.AccountAuditActor(account.getAccountId()), account, newPasswordHash,
-                    Map.<String, Object>of("via", "PASSWORD_RESET"));
+            Instant changedAt = applyChange(new AuditActor.AccountAuditActor(account.getAccountId()), account,
+                    newPasswordHash, Map.<String, Object>of("via", "PASSWORD_RESET"));
+            // después del save, que reemplaza el documento: la escritura condicional no se pisa
+            verifications.verifyWithinPasswordReset(account.getAccountId(), changedAt);
+            return new Changed(account, changedAt);
         });
+        notify(changed, SecurityNotice.Kind.PASSWORD_RESET);
     }
 
-    private void applyChange(AuditActor actor, Account account, PlainPassword password, Map<String, Object> summary) {
-        applyChange(actor, account, passwordHasher.hash(password.value()), summary);
+    private Instant applyChange(AuditActor actor, Account account, PlainPassword password, Map<String, Object> summary) {
+        return applyChange(actor, account, passwordHasher.hash(password.value()), summary);
     }
 
-    private void applyChange(AuditActor actor, Account account, PasswordHash newPasswordHash, Map<String, Object> summary) {
+    /** @return el instante del cambio */
+    private Instant applyChange(AuditActor actor, Account account, PasswordHash newPasswordHash, Map<String, Object> summary) {
         Instant now = clock.instant();
         account.changeCredentials(newPasswordHash, now);
 
@@ -152,5 +180,6 @@ public class ChangeCredentialsService {
                 summary
         );
         auditLogPort.record(auditLog);
+        return now;
     }
 }
