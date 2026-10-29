@@ -255,6 +255,9 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - `convocatoria`: 11 de 11 muertas (C1 a C11);
     - `app`: 12 de 12 muertas (A1 a A12).
     El PR #159 dice qué test mata cada una.
+- *Nota (2026-10-29): `ci-local.sh`* en un clon limpio de `7814d8d` (`free -g`: 15 GB en total, 14 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-7814d8d-2026-10-29T17-47-44Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 272 y app 622, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Respecto de la línea base: convocatoria +12 y app +15.
 
 ### 0.64 ADR-051, Tarea 5: leer la evidencia, retirarla por la plataforma y la huella en el seguimiento (2026-10-25, `feat/adr051-t5-evidencia-lectura`)
 
