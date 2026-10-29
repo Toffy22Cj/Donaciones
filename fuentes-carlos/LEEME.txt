@@ -1,0 +1,21 @@
+BACKEND (repo Donaciones) — para Manuel
+
+Aplicar en un clon limpio, cada grupo en su rama desde develop:
+
+1) Enmienda 2 de ADR-050 (PROPUESTA) — verificación del correo y avisos
+   git checkout -b chore/docs-adr050-enmienda-2 develop
+   git am patches/enmienda2-0001.patch
+   -> Carlos aprueba con Q1..Q5 (recomendación: a, a, 24 h, sí, sin IP).
+   -> Mensaje: mensaje-manuel-enmienda2.txt
+
+2) Ficha R-7 perfil de la organización (CONGELADA)
+   git checkout -b chore/docs-ficha-r7-perfil-organizacion develop
+   git am patches/r7-0001.patch patches/r7-0002.patch
+   -> Mensaje: mensaje-manuel-r7.txt
+
+3) R-1 búsqueda en convocatorias: ficha CONGELADA + plan PROPUESTO.
+   Ya están en el proyecto; aquí van las copias. Falta decidir quién
+   aprueba el plan.
+
+Copias legibles: ADR-050-enmienda-2-...md, ficha-R7-...md,
+ficha-R1-...md, plan-r1-...md.

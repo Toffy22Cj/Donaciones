@@ -1,0 +1,20 @@
+Manuel: te dejo la ficha R-7 (perfil de la organización), CONGELADA por mí
+el 2026-10-29: P1 a P8 según la recomendación de §8; P9 no (sin foto de
+usuario). Documentos/ficha-R7-perfil-organizacion.md.
+
+Qué pide:
+- Campos públicos: descripción, sitio web, ubicación (DIVIPOLA) y correo
+  de contacto. Campos de verificación: razón social, NIT con dígito de
+  verificación, régimen tributario especial y teléfono.
+- PUT /organizations/{id}/profile.
+- POST /organizations/{id}/verification/resubmit
+  (NEEDS_MORE_INFORMATION -> PENDING_VERIFICATION).
+- GET /public/locations y organizationProfile? en el detalle público (CV-07).
+
+Ojo: el archivo DIVIPOLA lo descarga una persona desde el DANE (no un
+agente). El correo público (P3) añade una línea a los términos de la
+organización y cambia su versión.
+
+Con la delegación de siempre: tu plan corto primero (yo no escribo código
+antes de que lo apruebes), tests en rojo, ci-local en un clon limpio y el
+resumen literal de Surefire.

@@ -1,0 +1,166 @@
+From 71bbd04d0707955c4483cc89c4029be40d4e91f0 Mon Sep 17 00:00:00 2001
+From: Carlos <cjpp12220@gmail.com>
+Date: Wed, 28 Oct 2026 23:18:47 -0500
+Subject: [PATCH 1/2] =?UTF-8?q?docs:=20ficha=20R-7=20(BORRADOR)=20?=
+ =?UTF-8?q?=E2=80=94=20perfil=20de=20la=20organizaci=C3=B3n?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Datos públicos y de verificación, PUT /organizations/{id}/profile, respuesta
+a la solicitud de información (NEEDS_MORE_INFORMATION -> PENDING_VERIFICATION),
+catálogo DIVIPOLA y dígito de verificación del NIT. P1 a P9 con
+recomendación, a decidir por Carlos.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01D9FYMsbwCQs3Ct2HP9nbF5
+---
+ Documentos/ficha-R7-perfil-organizacion.md | 136 +++++++++++++++++++++
+ 1 file changed, 136 insertions(+)
+ create mode 100644 Documentos/ficha-R7-perfil-organizacion.md
+
+diff --git a/Documentos/ficha-R7-perfil-organizacion.md b/Documentos/ficha-R7-perfil-organizacion.md
+new file mode 100644
+index 0000000..d4abc08
+--- /dev/null
++++ b/Documentos/ficha-R7-perfil-organizacion.md
+@@ -0,0 +1,136 @@
++# Ficha R-7 — Perfil de la organización
++
++**Naturaleza:** ficha de contrato HTTP, en el formato de la ficha R-1 y la ficha S-18. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
++**Estado: BORRADOR — espera las decisiones de Carlos (§8; P9 ya decidida).** Cada pregunta trae una recomendación. Al aprobar la ficha, Carlos escribe en el PR "P1 a P8 según la recomendación" o la opción que elija en cada una. Hasta entonces nada de esto se implementa.
++**Fecha:** 2026-10-29 (UTC). **Base verificada:** `develop` `993c3e8`.
++**Origen:** Carlos, 2026-10-28 ("falta el perfil… el de la organización"). La pantalla 11 de los bocetos de Manuel (`paxfide-web/Documentos/paxfide-pantallas-web.html`, "Datos de la organización") estaba marcada **PROPUESTA · SIN BACKEND · DEPENDE DE ADR**.
++**Requiere enmienda o ADR:**
++- extender `POST /organizations` y `GET /organizations/{id}` es aditivo, y basta con esta ficha (como la R-6);
++- la transición nueva de verificación (§5) cambia la máquina de estados de `Organization`; esta ficha la fija y se registra como enmienda de la ficha S-18;
++- si se elige subir el certificado (P6 (b)), hace falta una enmienda de ADR-051.
++
++---
++
++## 1. Problema
++
++- **Una organización solo tiene `type` y `name`,** además del logo, los miembros y el estado de verificación (`identity/.../domain/model/Organization.java`).
++- **La plataforma no tiene con qué verificarla:** no hay un NIT ni nada que consultar en un registro público.
++- **El donante no sabe nada de ella** más allá del nombre, el logo y la insignia "Verificada".
++- **Un estado sin salida para la organización.** Cuando la plataforma pide más información (`NEEDS_MORE_INFORMATION`), la organización no tiene cómo responder dentro del sistema: no hay ninguna operación suya que devuelva la solicitud a revisión. Solo la plataforma puede mover ese estado (regla 2.6).
++
++## 2. Lo que no cambia
++
++| Regla | Fuente |
++|---|---|
++| La organización vive en `identity`, **fuera del Event Store**. Nada de esta ficha entra en los eventos de `core`, el hash, Merkle ni la blockchain | ADR-048, ADR-050 D11 |
++| Ninguna respuesta pública lleva el `organizationId` | Enmienda 1 de ADR-051 |
++| Las rutas públicas muestran solo el nombre, la verificación y el logo de la organización, a través de la convocatoria | CV-07, ADR-051 T2 |
++| `REJECTED` es terminal. H-S18-2 (el representante atrapado) sigue abierto y **no se decide aquí** | Ficha S-18 |
++| Crear la organización exige `acceptedOrganizationTermsVersion` | ADR-050 D2, R-5 |
++
++## 3. Datos
++
++Hay dos grupos: lo **público**, que ve el donante, y lo **de verificación**, que solo ven los miembros con permiso y la plataforma.
++
++| Campo | Grupo | Regla | Obligatorio |
++|---|---|---|---|
++| `name` (ya existe) | Público | 1 a 200 | Sí |
++| `description` | Público | 1 a 500 puntos de código, texto plano (sin HTML ni Markdown) | No |
++| `website` | Público | URL `https://` absoluta, hasta 200 caracteres; nada de `javascript:` ni `http:` | No |
++| `location` | Público | `{departmentCode, municipalityCode}` del catálogo DIVIPOLA del DANE (§6). Un municipio que no es de ese departamento → 400 | No |
++| `contactEmail` | Público, según P3 | Correo institucional, con el mismo validador que el de las cuentas | No |
++| `legalName` (razón social) | Verificación | 1 a 200 | Según P2 |
++| `nit` y `nitCheckDigit` | Verificación | NIT de 9 dígitos y su dígito de verificación, que **se valida** con el algoritmo de la DIAN (§7). Único entre organizaciones (P5) | Según P2 |
++| `specialTaxRegime` (régimen tributario especial) | Verificación | Booleano; solo si `type = FOUNDATION` | No |
++| `contactPhone` | Verificación | Teléfono colombiano: 10 dígitos que empiezan por 3 (celular) o 60 (fijo) | No |
++
++**No se piden**, por las preguntas P4 y P6: el nombre del representante legal ni el certificado de Cámara de Comercio.
++
++## 4. Contrato
++
++| Método y ruta | Quién | Cuerpo | Respuesta | Errores |
++|---|---|---|---|---|
++| `POST /organizations` (ampliado) | Como hoy | Lo de hoy (`type`, `name`, `acceptedOrganizationTermsVersion`) más todos los campos de §3, **opcionales** | Como hoy | Además, 400 con el campo nombrado; 409 `OrganizationNitAlreadyRegistered` (P5) |
++| `PUT /organizations/{organizationId}/profile` (nuevo) | `REPRESENTATIVE` o `ADMINISTRATOR` (como el logo) | Todos los campos de §3. Ausente o `null` **borra** el opcional, como `PUT /account/profile` | `200` con el perfil completo, `no-store` | 400 por campo; 403 uniforme (DD-01); 409 `OrganizationProfileLocked` si se cambia un campo bloqueado (P1); 409 `OrganizationNitAlreadyRegistered` |
++| `GET /organizations/{organizationId}` (ampliado) | Como hoy (S-18) | — | Lo de hoy más todos los campos de §3 | Como hoy |
++| `POST /organizations/{organizationId}/verification/resubmit` (nuevo, §5) | `REPRESENTATIVE` o `ADMINISTRATOR` | — | `200 {verificationStatus: "PENDING_VERIFICATION"}` | 403; 409 `VerificationResubmitNotAllowed` si el estado no es `NEEDS_MORE_INFORMATION` |
++| `GET /platform/organizations` (ampliado) | Plataforma, como hoy | — | Cada ítem lleva además los campos de §3 | Como hoy |
++| `GET /public/campaigns/{publicCode}` (ampliado) | Pública | — | Gana `organizationProfile?: {description?, website?, location?: {departmentName, municipalityName}, contactEmail?}`, **solo con los campos públicos**. Nunca NIT, razón social, teléfono ni régimen | Como hoy |
++| `GET /public/locations` (nuevo, §6) | Pública | — | `200 {catalogVersion, departments: [{code, name, municipalities: [{code, name}]}]}`, `Cache-Control: public, max-age=86400` | — |
++
++**Auditoría:** `ORGANIZATION_PROFILE_UPDATED`, que guarda **solo qué campos cambiaron**, nunca los valores (como `PROFILE_UPDATED`, ADR-050 D10).
++
++## 5. Responder a una solicitud de información
++
++- **Transición nueva:** `NEEDS_MORE_INFORMATION → PENDING_VERIFICATION`. La dispara la organización con `resubmit`, después de corregir sus datos.
++- **Se borra la solicitud** (`informationRequest`), como ya hacen `verify` y `reject`.
++- Vuelve a la cola de la plataforma con el filtro de siempre.
++- **No reabre `REJECTED` ni toca `VERIFIED`**: desde cualquier otro estado da 409 `VerificationResubmitNotAllowed`, nombrada y con su test.
++- La máquina de estados queda así:
++  - `PENDING_VERIFICATION → VERIFIED | REJECTED | NEEDS_MORE_INFORMATION`;
++  - `NEEDS_MORE_INFORMATION → VERIFIED | REJECTED | PENDING_VERIFICATION`;
++  - `VERIFIED` y `REJECTED` son terminales (H-S18-2 aparte).
++
++## 6. Catálogo de ubicaciones (DIVIPOLA)
++
++- **De dónde sale:** un archivo JSON con los departamentos y municipios de la DIVIPOLA del DANE, guardado como recurso del backend. Lleva la fecha de corte en `catalogVersion`.
++- **Quién lo consigue:** un humano del equipo lo descarga de la fuente oficial del DANE (datos abiertos). El agente no tiene acceso a esa red y **no lo escribe a mano**.
++- **Uso:** el backend valida contra él y lo sirve en `GET /public/locations`. La web lo usa para los dos desplegables.
++- **Persistencia:** se guardan los códigos, no los nombres. Los nombres se resuelven al leer.
++- Sin dependencia nueva.
++
++## 7. Dígito de verificación del NIT
++
++- Pesos de la DIAN, de derecha a izquierda sobre los 9 dígitos: 3, 7, 13, 17, 19, 23, 29, 37, 41.
++- Se suma el producto de cada dígito por su peso y se calcula `r = suma mod 11`. Si `r` es 0 o 1, el dígito es `r`; si no, es `11 − r`.
++- Un dígito que no coincide → 400 `nitCheckDigit`.
++- **[Plan]** El plan incluye tres NIT reales públicos de prueba con su dígito, comprobados a mano contra el RUES, y un caso inválido.
++
++## 8. Decisiones — las toma Carlos al aprobar
++
++| # | Pregunta | Opciones | Recomendación |
++|---|---|---|---|
++| P1 | ¿Qué se puede editar después de **verificada**? | (a) Todo. (b) Lo público se edita libre; `name`, `legalName`, `nit` y `nitCheckDigit` quedan bloqueados (409) y solo los cambia la plataforma. (c) Cualquier cambio la devuelve a revisión | **(b)**: impide que una organización verificada cambie su identidad y conserve la insignia. Para corregir un dato bloqueado se escribe a la plataforma (fuera del sistema en este corte) |
++| P2 | ¿NIT y razón social son obligatorios? | (a) Al crear. (b) Opcionales al crear, pero la plataforma no puede **verificar** sin ellos (`verify` → 409 `VerificationDataMissing`). (c) Opcionales siempre | **(b)**: crear sigue siendo rápido, y la verificación tiene con qué comprobarse. `verify` cambia por una regla nueva, con su excepción nombrada y su test |
++| P3 | ¿El correo de contacto es público? | (a) Público. (b) Solo para la plataforma | **(a)**, con el aviso en el formulario: "Usa un correo de la organización, no uno personal: será público". Es un dato de contacto para donantes. Si es personal, lo decidió quien lo escribió advertido (Ley 1581: la persona lo publica) |
++| P4 | ¿Se pide el nombre del representante legal? | (a) Sí, solo visible para la plataforma. (b) No | **(b) No**, por minimización (Ley 1581): con el NIT, la plataforma consulta el representante en el RUES, que es público. Guardarlo nos obliga a tratar un dato personal sin necesidad |
++| P5 | ¿Un NIT solo puede tener una organización? | (a) Sí, con índice único → 409. (b) No | **(a)**: evita que alguien registre una segunda organización con el NIT de otra para suplantarla. El 409 revela que ese NIT ya está registrado, pero los NIT son públicos (RUES) |
++| P6 | ¿Se sube el certificado de Cámara de Comercio? | (a) No: la plataforma lo consulta en el RUES con el NIT. (b) Sí, en PDF (requiere enmienda de ADR-051: un tipo nuevo, un formato nuevo y la limpieza de PDF) | **(a)**: el certificado es público en el RUES. Un PDF subido es un vector de ataque nuevo y un mecanismo nuevo (regla 3.5), sin ganancia |
++| P7 | ¿Dónde ve el donante el perfil? | (a) En el detalle de la convocatoria (`/c/:publicCode`), en un bloque "Sobre la organización". (b) Además, en una página pública de la organización | **(a)**: no hace falta una ruta nueva ni exponer un identificador de la organización (Enmienda 1 de ADR-051) |
++| P8 | Responder a la solicitud de información (§5) | (a) Con `resubmit`. (b) Que siga moviéndolo solo la plataforma | **(a)**: hoy la organización no tiene salida en `NEEDS_MORE_INFORMATION` (regla 2.6) |
++| P9 | Foto de perfil del **usuario** | — | **Decidido (Carlos, 2026-10-29): no.** El Perfil sigue con un icono. La foto de perfil de la organización es su logo, que ya existe (ADR-051 T2) |
++
++## 9. Tests previstos (rojos primero)
++
++**Unitarios**
++
++1. Dígito de verificación del NIT: casos válidos, uno inválido, y los casos `r = 0` y `r = 1`.
++2. `Organization.resubmit()`: desde `NEEDS_MORE_INFORMATION` → `PENDING_VERIFICATION`, y se borra la solicitud. Desde los otros tres estados → la excepción nombrada (negativas).
++3. Con P2 (b): `verify()` sin NIT o sin razón social → `VerificationDataMissing`. Con los dos, verifica.
++4. Con P1 (b): editar un campo bloqueado de una verificada → `OrganizationProfileLocked`. Editar uno público, en cambio, funciona.
++5. Validaciones: `website` con `http:` o `javascript:` → 400; un municipio de otro departamento → 400; una descripción de 501 caracteres → 400.
++
++**Integración HTTP (Testcontainers)**
++
++6. Crear con y sin campos opcionales. Con un NIT repetido → 409 (P5), sin crear la organización.
++7. `PUT /profile`: por un `REPRESENTATIVE` y por un `ADMINISTRATOR` → 200. Por un `EMPLOYEE`, otra organización o un id inexistente → el mismo 403. Auditoría solo con los nombres de los campos (negativa: ningún valor en la auditoría).
++8. `GET /public/campaigns/{publicCode}`: lleva `organizationProfile` con los campos públicos. **Nunca** `nit`, `nitCheckDigit`, `legalName`, `contactPhone`, `specialTaxRegime` ni `organizationId` (negativa sobre el JSON completo).
++9. `GET /platform/organizations` muestra los datos de verificación. `GET /organizations/{id}` también, solo para `REPRESENTATIVE` y `ADMINISTRATOR`.
++10. `resubmit` → la organización vuelve a la cola de la plataforma con `PENDING_VERIFICATION`.
++11. `GET /public/locations` → el catálogo, con su `catalogVersion` y sus cabeceras de caché.
++
++**Común**
++
++12. `GoldenPathHttpIntegrationTest` en verde y `scripts/ci-local.sh` completo en un clon limpio, con el resumen literal de Surefire.
++
++## 10. Documentos que se actualizan con el PR
++
++- `referencia-api-v1.md`: notas fechadas con las rutas y los campos.
++- `ficha-S18-estado-verificacion-organizacion.md`: nota de la transición nueva (§5).
++- `estado-fase6.md`.
++- Términos para organizaciones (`paxfide-web/Documentos/legal/terminos-organizacion-v1-2026-10.md`): si P3 queda en (a), una línea sobre los datos públicos del perfil. Eso cambia la versión del texto (ADR-050 D3), y la cambia Carlos.
++- **Aviso a la web y al móvil.** La web tendrá su tarea:
++  - el formulario de crear organización y el de editar el perfil en `/panel/organization`;
++  - "Responder y enviar a revisión";
++  - el bloque "Sobre la organización" en `/c/:publicCode`;
++  - los datos de verificación en la cola de la plataforma.
+-- 
+2.43.0
+

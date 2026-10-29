@@ -1,0 +1,18 @@
+Manuel: te dejo en un PR la Enmienda 2 de ADR-050 (PROPUESTA):
+Documentos/ADR-050-enmienda-2-verificacion-correo-y-avisos.md.
+
+Qué pide:
+1. Verificar el correo al crear la cuenta: un enlace con token (el mismo
+   patrón que la recuperación de D8), 403 EmailNotVerified en el login
+   después de comprobar la contraseña, y "Reenviar" sin revelar si el
+   correo existe.
+2. Avisos por correo, sin token, cuando se cambia o se recupera la
+   contraseña y cuando se desactiva la cuenta.
+
+Cambia el contrato del login (AuthenticateAccountPort), así que va con
+enmienda (regla 3.5). Las preguntas Q1 a Q5 las cierro yo al aprobarla.
+Después, tu plan corto con la delegación de siempre: primero los tests en
+rojo, ci-local en un clon limpio y el resumen literal de Surefire.
+
+Cuando esté en develop, avísame: la web tiene lista su tarea (P-6) para
+cuando el contrato esté publicado en referencia-api-v1.md.

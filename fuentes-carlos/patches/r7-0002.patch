@@ -1,0 +1,41 @@
+From 1c21796839747958b985d01a34fa52fd2787573b Mon Sep 17 00:00:00 2001
+From: Carlos <cjpp12220@gmail.com>
+Date: Wed, 28 Oct 2026 23:29:33 -0500
+Subject: [PATCH 2/2] =?UTF-8?q?docs:=20ficha=20R-7=20CONGELADA=20(Carlos,?=
+ =?UTF-8?q?=202026-10-29:=20P1=20a=20P8=20seg=C3=BAn=20la=20recomendaci?=
+ =?UTF-8?q?=C3=B3n,=20P9=20no)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01D9FYMsbwCQs3Ct2HP9nbF5
+---
+ Documentos/ficha-R7-perfil-organizacion.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Documentos/ficha-R7-perfil-organizacion.md b/Documentos/ficha-R7-perfil-organizacion.md
+index d4abc08..9c5b1a2 100644
+--- a/Documentos/ficha-R7-perfil-organizacion.md
++++ b/Documentos/ficha-R7-perfil-organizacion.md
+@@ -1,7 +1,7 @@
+ # Ficha R-7 — Perfil de la organización
+ 
+ **Naturaleza:** ficha de contrato HTTP, en el formato de la ficha R-1 y la ficha S-18. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
+-**Estado: BORRADOR — espera las decisiones de Carlos (§8; P9 ya decidida).** Cada pregunta trae una recomendación. Al aprobar la ficha, Carlos escribe en el PR "P1 a P8 según la recomendación" o la opción que elija en cada una. Hasta entonces nada de esto se implementa.
++**Estado: CONGELADA — Carlos, 2026-10-29: P1 a P8 según la recomendación de §8; P9, no.** El código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
+ **Fecha:** 2026-10-29 (UTC). **Base verificada:** `develop` `993c3e8`.
+ **Origen:** Carlos, 2026-10-28 ("falta el perfil… el de la organización"). La pantalla 11 de los bocetos de Manuel (`paxfide-web/Documentos/paxfide-pantallas-web.html`, "Datos de la organización") estaba marcada **PROPUESTA · SIN BACKEND · DEPENDE DE ADR**.
+ **Requiere enmienda o ADR:**
+@@ -86,7 +86,7 @@ Hay dos grupos: lo **público**, que ve el donante, y lo **de verificación**, q
+ - Un dígito que no coincide → 400 `nitCheckDigit`.
+ - **[Plan]** El plan incluye tres NIT reales públicos de prueba con su dígito, comprobados a mano contra el RUES, y un caso inválido.
+ 
+-## 8. Decisiones — las toma Carlos al aprobar
++## 8. Decisiones — Carlos, 2026-10-29 (las recomendaciones de P1 a P8 quedan aprobadas)
+ 
+ | # | Pregunta | Opciones | Recomendación |
+ |---|---|---|---|
+-- 
+2.43.0
+
