@@ -42,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * vieja → 400 y sin cuenta), el perfil ({@code GET}/{@code PUT /api/v1/account/profile}) y test 23 (el nombre no aparece
  * en {@code /me}, {@code /account}, la lista de miembros ni el descubrimiento público, ni en los logs).
  */
+@org.springframework.context.annotation.Import(com.traceability.app.support.CapturedMail.class) // ADR-050 Enmienda 2: verificar el correo
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
 @ExtendWith(OutputCaptureExtension.class)
@@ -98,6 +99,10 @@ class AccountRegistrationAndProfileHttpIntegrationTest {
     }
 
     private String login(String email) throws Exception {
+        // ADR-050 Enmienda 2, E2-3: las cuentas registradas por la ruta pública verifican su correo antes de entrar
+        if (accountDocument(email) != null && accountDocument(email).get("emailVerifiedAt") == null) {
+            com.traceability.app.support.CapturedMail.confirmVerification(port, email);
+        }
         HttpResponse<String> r = send("POST", "/api/v1/auth/login", null,
                 "{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\"}");
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);

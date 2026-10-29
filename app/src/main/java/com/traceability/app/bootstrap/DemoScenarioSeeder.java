@@ -79,6 +79,7 @@ public class DemoScenarioSeeder {
     private final BootstrapPlatformAuthorityService bootstrap;
     private final AddEmployeeService employees;
     private final AssignAdministratorService administrators;
+    private final identity.application.port.out.AccountRepositoryPort accounts;
     private final ObjectProvider<SimulatedWebhookSignature> signature;
     private final Clock clock;
     private final identity.domain.model.LegalVersions legalVersions;
@@ -90,6 +91,7 @@ public class DemoScenarioSeeder {
 
     public DemoScenarioSeeder(MongoTemplate mongoTemplate, BootstrapPlatformAuthorityService bootstrap,
                               AddEmployeeService employees, AssignAdministratorService administrators,
+                              identity.application.port.out.AccountRepositoryPort accounts,
                               ObjectProvider<SimulatedWebhookSignature> signature, ObjectProvider<Clock> clock,
                               identity.domain.model.LegalVersions legalVersions,
                               @Value("${traceability.demo.seed.password:}") String password,
@@ -104,6 +106,7 @@ public class DemoScenarioSeeder {
         this.bootstrap = bootstrap;
         this.employees = employees;
         this.administrators = administrators;
+        this.accounts = accounts;
         this.signature = signature;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
         this.legalVersions = legalVersions;
@@ -129,6 +132,13 @@ public class DemoScenarioSeeder {
                     "acceptedTermsVersion", legalVersions.terms(), "acceptedDataPolicyVersion", legalVersions.dataPolicy()),
                     null,
                     false, 201);
+        }
+        // ADR-050 Enmienda 2, E2-1 y P-E2V-4: las cuentas de la semilla las crea el sistema y nacen verificadas, aunque
+        // se registren por la API como un front; escritura condicional, sin correo de verificación que esperar
+        for (String email : List.of(PLATFORM, REPRESENTATIVE, ADMINISTRATOR, EMPLOYEE_1, EMPLOYEE_2, DONOR,
+                PENDING_REPRESENTATIVE)) {
+            accounts.findByEmail(new identity.domain.model.Email(email)).ifPresent(a ->
+                    accounts.markEmailVerifiedIfUnverified(a.getAccountId(), clock.instant()));
         }
         bootstrap.bootstrap(PLATFORM);
         Map<String, String> token = new LinkedHashMap<>();

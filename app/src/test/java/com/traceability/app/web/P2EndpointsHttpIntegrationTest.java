@@ -49,6 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code /me}, registro, listado de convocatorias de la organización, cerrar, CV-03 y retirar responsable,
  * descubrimiento público, activos y miembros de la organización, y rechazar / pedir información a una organización.
  */
+@org.springframework.context.annotation.Import(com.traceability.app.support.CapturedMail.class) // ADR-050 Enmienda 2: verificar el correo
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
 @TestPropertySource(properties = {
@@ -196,6 +197,8 @@ class P2EndpointsHttpIntegrationTest {
         JsonNode account = json.readTree(created.body());
         assertThat(account.fieldNames()).toIterable().containsExactlyInAnyOrder("accountId", "status");
         assertThat(account.get("status").asText()).isEqualTo("ACTIVE");
+        // ADR-050 Enmienda 2, E2-3: el registro público nace sin verificar; se verifica antes de entrar
+        com.traceability.app.support.CapturedMail.confirmVerification(port, email);
         assertThat(ok(send("POST", "/api/v1/auth/login", null, body, null), 200).get("token").asText()).isNotBlank();
 
         HttpResponse<String> duplicate = send("POST", "/api/v1/auth/register", null, body, null);

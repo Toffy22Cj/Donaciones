@@ -94,4 +94,22 @@ public class CapturedMail {
         }
         throw new AssertionError("No llegó el correo de verificación");
     }
+
+    /**
+     * Verifica el correo de una cuenta registrada por la ruta pública, como haría la persona: toma el token del correo
+     * capturado y lo confirma en {@code POST /api/v1/auth/email-verification/confirm} (ADR-050 Enmienda 2, E2-2).
+     */
+    public static void confirmVerification(int port, String email) throws Exception {
+        String token = verificationToken(email);
+        java.net.http.HttpResponse<String> r = java.net.http.HttpClient.newHttpClient().send(
+                java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:" + port
+                                + "/api/v1/auth/email-verification/confirm"))
+                        .header("Content-Type", "application/json")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{\"token\":\"" + token + "\"}"))
+                        .build(),
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        if (r.statusCode() != 204) {
+            throw new AssertionError("La confirmación del correo respondió " + r.statusCode());
+        }
+    }
 }
