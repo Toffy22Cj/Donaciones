@@ -287,3 +287,25 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
   - Se autorizan (§3.5) `findLatestFundIdsByOrganization` y `findLatestAssetIdsByOrganization`.
   - Los métodos existentes y G-7 no cambian.
 - **La contradicción anotada:** la cita de ADR-025 era errónea, porque ADR-025 trata del Audit Log de `identity`. La inmutabilidad del Event Store se apoya en `documento-maestro-proyecto.md:18` y `:499`. La restricción no cambia: los eventos guardados no se reescriben.
+
+**Nota (2026-10-29): tres decisiones de Carlos y de Manuel, "comunicado por Manuel".** Llegan en el encargo del 2026-10-29 de Manuel ("Trabajo de Carlos"). Se registran antes de cualquier código (regla 3.4).
+
+- **C-1. Enmienda 1 de ADR-050, partes 1 y 2: aprobación escrita de Carlos.** Carlos aprobó por escrito las partes 1 y 2 y **acepta que `iat = max(segundo actual truncado, credentialsNotBefore)` se quede en `LoginController`, como dice E1-2** (`ADR-050-enmienda-1-iat-del-login.md:51-53`), en lugar de moverlo a `identity`.
+  - **Texto literal: [texto cortado].** El texto que llegó a Manuel estaba cortado en "identit", y en esta sesión no se recibió ni siquiera ese fragmento. Queda pendiente de que Manuel lo pegue completo; se pide en el PR. Cuando llegue, se registra en una nota nueva debajo de esta.
+  - Completa la nota del 2026-10-25 de la línea 179 de este archivo ("texto literal pendiente de registrar"), que se conserva.
+- **C-2. Plan R-1 (búsqueda y descubrimiento de convocatorias): APROBADO por Carlos.** Texto literal de Carlos: "plan-r1-busqueda-descubrimiento.md: PROPUESTO, nunca aprobado. Pásalo aprobado". Además: "Todo está aprobado". Es la aprobación citable del plan (regla 3.4) para el código de R-1.
+- **C-3. Enmienda 2 de ADR-050: Carlos deja a Manuel a cargo, y Manuel cierra Q1 a Q5:**
+  - **Q1 (a):** sin correo verificado no se inicia sesión.
+  - **Q2 (a):** las cuentas existentes quedan sin verificar; la semilla y el administrador de plataforma nacen verificados.
+    - **Condición:** el PR de código avisa a la web y al móvil **antes de desplegar**, porque las cuentas reales existentes quedarán bloqueadas hasta verificar el correo.
+  - **Q3:** 24 h.
+  - **Q4:** sí hay aviso al desactivar.
+  - **Q5:** sin IP ni dispositivo.
+  - **Qué autoriza:** son decisiones de **qué** entra; **no** autorizan código. El código necesita el plan corto `plan-adr050-enmienda-2.md` aprobado por Manuel con un comentario citable.
+- **R-7 (perfil de la organización): no se empieza.** Carlos dijo antes "no lo empieces"; Manuel lo confirma con él. La ficha R-7 solo se sube, con sus parches, en un PR de documentos aparte si Manuel lo pide.
+
+**Nota (2026-10-29, más tarde): precisión de Manuel sobre C-3 y fuentes recibidas.**
+- La condición de Q2 queda así: el PR de código de la Enmienda 2 avisa a la web y al móvil de que **no se despliega hasta que manejen el 403 `EmailNotVerified`**.
+- La Enmienda 2 autoriza cambiar `AuthenticateAccountPort` (E2-3, regla 3.5).
+- R-7 no se empieza hasta que Carlos lo confirme.
+- Las fuentes de Carlos llegaron en la rama `wip/fuentes-carlos-2026-10-29` (carpeta `fuentes-carlos/`, que no se fusiona). El texto literal de C-1 sigue pendiente ("[texto cortado]").

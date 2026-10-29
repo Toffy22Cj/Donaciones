@@ -6,6 +6,8 @@
 
 > **Nota (2026-10-25): APROBADA por Carlos, partes 1 y 2** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-25, comunicado por Manuel; texto literal pendiente de registrar). "PROPUESTA" se conserva; esta nota lo supera. La parte 3 (P-R5-1, D3) no existe todavía y no queda cubierta.
 
+> **Nota (2026-10-29): aprobación escrita de Carlos de las partes 1 y 2, y "el iat se queda en `LoginController` (E1-2), aceptado".** Carlos aceptó que `iat = max(segundo actual truncado, credentialsNotBefore)` se quede en `LoginController`, como dice E1-2, en lugar de moverlo a `identity` (`decisiones-delegadas-2026-10.md`, nota del 2026-10-29, C-1; comunicado por Manuel). **Texto literal: [texto cortado]**: llegó cortado en "identit" y está pendiente de que Manuel lo pegue completo. Esta nota sustituye a "texto literal pendiente de registrar" de la nota anterior, que se conserva.
+
 > **Nota (2026-10-25): parte 1 implementada** en #137 (`fix/identity-p-r3-3-iat-del-login`), fusionado en `develop` como `37827c0`. La parte 2 está en #140 (nota en su sección). *El documento de cierre de Manuel (`cierre-backend-2026-10-25.md` §2) dice "parte 1 en #135", pero #135 (`536ffe6`) solo registró la aprobación de la parte 3; el código de la parte 1 entró con #137.* El estado de arriba se conserva.
 
 **No autoriza código por sí sola.** El código va en su propio PR, con un plan corto aprobado por Manuel (regla 3.4), y solo después de que Carlos apruebe esta enmienda. **Ese PR se fusiona antes que el código de R-4.**
