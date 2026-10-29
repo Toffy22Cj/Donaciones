@@ -123,3 +123,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   `git diff develop -- Documentos | grep '^-[^-]'` → 0. C-1 sigue como "[texto cortado]".
 - **P2 plan HECHO:** #158 (`chore/docs-plan-adr050-enmienda-2`, `4fbc326`), "depende de #157". ESPERA el comentario de aprobación de Manuel. Sin código de la Enmienda 2.
 - **P1 R-1:** EN CURSO. Rama `feat/convocatoria-r1-busqueda-descubrimiento` desde #157.
+- **R-1, código:** commit `7ef2625` en `feat/convocatoria-r1-busqueda-descubrimiento` (todavía sin push).
+  - Rojo por compilación guardado.
+  - Verde: `convocatoria` "Tests run: 272, Failures: 0, Errors: 0, Skipped: 0"; `app` dirigido, 41 en verde.
+  - Pendiente: `app` completo, mutaciones (en curso en el clon `scratchpad/mut`), `ci-local` en un clon limpio y el PR.
+  - Docker se arranca a mano en esta sesión (`dockerd`).
