@@ -1,5 +1,6 @@
 package com.traceability.convocatoria.infrastructure.persistence.mongo.mapper;
 
+import com.traceability.convocatoria.application.query.SearchTextNormalizer;
 import com.traceability.convocatoria.domain.model.Convocatoria;
 import com.traceability.convocatoria.domain.model.ConvocatoriaConfiguration;
 import com.traceability.convocatoria.domain.model.ConvocatoriaStatus;
@@ -27,6 +28,8 @@ public final class ConvocatoriaMapper {
         d.organizationRef = c.getOrganizationRef();
         d.publicCode = c.getPublicCode();
         d.title = c.getTitle();
+        // ficha R-1 §4: no es dominio; toDomain lo ignora
+        d.titleSearch = SearchTextNormalizer.normalize(c.getTitle());
         d.description = c.getDescription();
         d.visibility = c.getVisibility().name();
         d.startDate = c.getStartDate();

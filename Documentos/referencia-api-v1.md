@@ -209,6 +209,22 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 
 *Nota (2026-10-25, ADR-051 Tarea 3):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`coverImageUrl?`** (`/api/v1/public/campaigns/{publicCode}/cover`), solo si la convocatoria tiene portada. Ninguna respuesta pública lleva el `campaignRef`, el `organizationId` ni la `objectKey`.
 
+*Nota (2026-10-29, ficha R-1, `ficha-R1-busqueda-descubrimiento-convocatorias.md`; plan R-1 aprobado por Carlos):* `GET /public/campaigns` acepta además, todos opcionales, **`?q=&donationType=&sort=&cursor=`**. **La forma de la respuesta no cambia.**
+- **`q`:** se recorta y debe tener de 2 a 100 puntos de código. Busca por subcadena en el título, sin distinguir mayúsculas ni tildes; ningún carácter actúa como operador. `?q=` vacío o de solo espacios → 400.
+- **`donationType`:** `MONETARY` o `IN_KIND`. La convocatoria debe aceptar ese tipo.
+- **`sort`:**
+  - `ending_soon`: `endDate` ascendente;
+  - `recent`: `startDate` descendente;
+  - sin `sort`, `publicCode` ascendente, como antes;
+  - el desempate es siempre `publicCode` ascendente.
+- **Errores:** un valor fuera de esos → 400 `BadRequest`, con el cuerpo fijo de siempre. Se valida en el orden `q`, `donationType`, `sort`, `cursor`, y cada error corresponde a un solo campo, el primero que falla.
+- **`cursor` (versión 2):**
+  - lleva dentro los filtros y el orden de la petición que lo emitió;
+  - usarlo con otros → 400 `cursor`;
+  - un cursor del formato anterior solo vale sin `q`, sin `donationType` y sin `sort`.
+- Sigue sin listar nunca `PRIVATE_LINK` ni `CLOSED`.
+- Las filas de arriba no se reescriben.
+
 ## 6. Activos físicos
 
 Todas con JWT; `EMPLOYEE` de la organización salvo indicación; las escrituras con `Command-Id`.
