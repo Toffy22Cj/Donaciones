@@ -548,7 +548,11 @@ class CampaignFundingLedgerIntegrationTest extends AbstractConvocatoriaServiceIn
                         try {
                             f.get();
                         } catch (ExecutionException e) {
-                            assertInstanceOf(CampaignFundingLimitExceededException.class, e.getCause());
+                            // si el rechazo confirma antes, apply ve FUNDING_REJECTED y lanza
+                            // DonationIntentNotConfirmedException (CampaignFundingLedgerService:90): salida legítima
+                            assertTrue(e.getCause() instanceof CampaignFundingLimitExceededException
+                                            || e.getCause() instanceof DonationIntentNotConfirmedException,
+                                    () -> "unexpected failure: " + e.getCause());
                         }
                     }
                 } finally {
