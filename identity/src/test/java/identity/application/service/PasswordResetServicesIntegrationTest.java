@@ -74,6 +74,8 @@ import static org.mockito.Mockito.verify;
         MongoAuditLogAdapter.class,
         MongoOrganizationRepositoryAdapter.class,
         MongoPasswordResetTokenRepositoryAdapter.class,
+        identity.infrastructure.persistence.mongo.repositories.MongoDeviceCredentialRepositoryAdapter.class,
+        DeviceCredentialService.class,
         BCryptPasswordHasherAdapter.class,
         MongoTransactionRetryHelper.class,
         CreateAccountService.class,
