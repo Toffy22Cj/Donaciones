@@ -147,3 +147,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - Commits: `449fa26` (nota de la aprobación de Manuel) y `59d25c0` (tests en rojo por compilación).
   - Código escrito.
   - **BLOQUEO P-E2V-13:** ADR-038 §2.2 (`ArchitectureTest.java:67-88`) no deja a `EmailVerificationService` construir el actor de `EMAIL_VERIFIED`. No se toca el test; lo decide Manuel.
+- **3. Enmienda 2: #163 en BORRADOR**, BLOQUEADO por P-E2V-13 (el actor de `EMAIL_VERIFIED` frente a ADR-038 §2.2, `ArchitectureTest.java:67-88`).
+  - Commits: `7ea5370` (código), `aea7f43` (tests adaptados y semilla) y `fd7af15` (documentos).
+  - `identity`: 411 tests, con una sola falla, la de esa regla. `app`: en verde en dirigido.
+  - Con la decisión de Manuel: aplicar la opción, hacer las mutaciones y `ci-local`, y pasar el PR a listo.
+  - El contenedor se reinició una vez (el error 137 fue por correr dos builds a la vez). Docker se arranca a mano.
