@@ -1,6 +1,17 @@
 # Plan R-1 — Búsqueda, filtro y orden en el descubrimiento público
 
 **Estado: PROPUESTO — espera la aprobación de Carlos (regla 3.4). No se escribe código antes.**
+
+> **Nota (2026-10-29): APROBADO por Carlos.** Texto literal de Carlos: "plan-r1-busqueda-descubrimiento.md: PROPUESTO, nunca aprobado. Pásalo aprobado". Además: "Todo está aprobado" (`decisiones-delegadas-2026-10.md`, nota del 2026-10-29, C-2; comunicado por Manuel). "PROPUESTO" se conserva; esta nota lo supera.
+>
+> **Revisado contra `develop` `993c3e8` (el plan se escribió sobre `4bef7be`): los hechos siguen valiendo.**
+> - `findPublicOpenAfter` solo lo llama `PublicCampaignDiscoveryQuery` (`convocatoria/src/main/java/com/traceability/convocatoria/application/query/PublicCampaignDiscoveryQuery.java:44`). Se declara en `ConvocatoriaRepositoryPort.java:42` y se implementa en `MongoConvocatoriaRepositoryAdapter.java:98`.
+> - `MongoConvocatoriaRepositoryAdapter` es la única implementación de `ConvocatoriaRepositoryPort` (`MongoConvocatoriaRepositoryAdapter.java:21`). No hay dobles de test que la implementen.
+> - Los campos de `ConvocatoriaDocument` que usa el plan existen: `visibility`, `status`, `startDate`, `endDate`, `publicCode`, `title` y `acceptedDonationTypes` (`ConvocatoriaDocument.java:22-30`). `titleSearch` no existe todavía, como espera el plan. Desde `4bef7be` se añadió `coverObjectKey` (`:38`, ADR-051 T3).
+> - Los archivos existentes del §2 y del §3 están donde dice el plan: `ConvocatoriaMapper.java`, `DiscoveryCursorCodec.java`, `PublicCampaignDiscoveryController.java`, `AbstractConvocatoriaMongoIntegrationTest.java`, `DiscoveryCursorCodecTest.java`, `MongoIndexesAtStartupIntegrationTest.java` y `P2EndpointsHttpIntegrationTest.java`. `DiscoveryCursorCodec` cifra hoy en US-ASCII (`DiscoveryCursorCodec.java:82` y `:100`). Los archivos nuevos no existen todavía.
+> - `title` sigue sin poder editarse (`Convocatoria.java:42`, `final`). Las escrituras posteriores a la creación son `$set` de campos concretos (`MongoConvocatoriaRepositoryAdapter.java:47-80`), así que no borran `titleSearch`.
+>
+> **El §6 (evidencia pegada por un humano) queda superado.** La evidencia sigue el ciclo del encargo del 2026-10-29: rojo primero con la salida literal, verde por capas con el módulo completo y el resumen literal de Surefire, mutaciones con `scripts/mutaciones.py` y `scripts/ci-local.sh` en un clon limpio, con la salida en `Documentos/evidencia-ci/`. El §6 se conserva.
 **Fecha:** 2026-10-18 (UTC).
 **Contrato:** `ficha-R1-busqueda-descubrimiento-convocatorias.md` (CONGELADA). Este plan no decide nada que la ficha no fije; si al implementar aparece un caso no cubierto, se detiene y se pregunta (regla 2.1).
 **Base:** `develop` en `4bef7be`. **Rama:** `feat/convocatoria-r1-busqueda-descubrimiento`.

@@ -8,6 +8,17 @@
 - **Las preguntas Q1 a Q5** (§"Preguntas") tienen una recomendación. Al aprobar la enmienda, Carlos aprueba la recomendación o elige otra opción, por escrito en el PR.
 - **El cómo de la implementación** (los puntos **[Plan]**) lo decide Manuel en su plan, por la delegación del 2026-10-24.
 
+> **Nota (2026-10-29): Carlos dejó la enmienda a cargo de Manuel, y Manuel cierra Q1 a Q5** (`decisiones-delegadas-2026-10.md`, nota del 2026-10-29, C-3; comunicado por Manuel). La enmienda fija el **qué**. Las respuestas de Manuel coinciden con la recomendación de cada pregunta:
+> - **Q1 (a):** sin correo verificado no se inicia sesión.
+> - **Q2 (a):** las cuentas existentes quedan sin verificar; la semilla y el administrador de plataforma nacen verificados.
+> - **Q3:** 24 h.
+> - **Q4:** sí hay aviso al desactivar.
+> - **Q5:** sin IP ni dispositivo.
+>
+> **Condición de Q2:** el PR de código avisa a la web y al móvil de que **no se despliega hasta que manejen el 403 `EmailNotVerified`**, porque las cuentas reales existentes quedarán bloqueadas hasta verificar el correo.
+>
+> Con esto se autoriza (regla 3.5) el cambio de `AuthenticateAccountPort` (`contracts`) que describe E2-3. **No autoriza código por sí sola:** el código espera el plan `plan-adr050-enmienda-2.md` aprobado por Manuel con un comentario citable. "PROPUESTA" se conserva; esta nota lo supera.
+
 **No autoriza código por sí sola** (regla 3.4). **Es una enmienda** porque introduce un mecanismo nuevo (tokens de verificación y avisos) y cambia el contrato del login, que usa `api` a través de `AuthenticateAccountPort` (regla 3.5).
 
 **Enmienda a:** ADR-050 (APROBADO — Carlos, 2026-10-18): D1, D4, D5, D6 y D8. Usa el mismo patrón de token que ADR-049 D2 y D3 y que D8.

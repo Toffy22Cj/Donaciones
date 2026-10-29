@@ -2,6 +2,12 @@
 
 **Naturaleza:** ficha de contrato HTTP, en el formato de `ficha-S18-estado-verificacion-organizacion.md`. **No es un ADR y no autoriza código** por sí sola: el código sigue el plan `plan-r1-busqueda-descubrimiento.md`, que necesita su propia aprobación (regla 3.4).
 **Estado: CONGELADA** — decisiones B1 a B7 de Carlos, 2026-10-18T18:45Z (§7).
+
+> **Nota (2026-10-29), anotada sin resolver (regla: contradicción con una ficha CONGELADA).** Tras congelarse esta ficha, el descubrimiento ganó campos por cada ítem que la tabla del §2 (línea "Forma de cada ítem") no lista:
+> - `coverImageUrl?` (ADR-051, Tarea 3): `app/src/main/java/com/traceability/app/web/campaign/PublicCampaignDiscoveryController.java:36` y `:68`;
+> - también `organizationLogoUrl?` (ADR-051 F6, `:35` y `:67`) y `organizationVerified` (ficha L-FRONTS A1, M-07, `:33` y `:63`).
+>
+> El §3 ya excluye los campos de imagen de ADR-051 "que entran con las tareas de ese ADR". R-1 no cambia la forma de la respuesta, así que **no hay conflicto**. La tabla del §2 no se toca.
 **Fecha:** 2026-10-18 (UTC).
 **Autor:** Carlos (dueño del módulo `convocatoria`), con asistencia de Claude.
 **Origen:** M-10 de la lista del móvil (16 de octubre) y tarea R-1 del backend de Carlos.

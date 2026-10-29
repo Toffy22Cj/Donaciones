@@ -303,3 +303,9 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
   - **Q5:** sin IP ni dispositivo.
   - **Qué autoriza:** son decisiones de **qué** entra; **no** autorizan código. El código necesita el plan corto `plan-adr050-enmienda-2.md` aprobado por Manuel con un comentario citable.
 - **R-7 (perfil de la organización): no se empieza.** Carlos dijo antes "no lo empieces"; Manuel lo confirma con él. La ficha R-7 solo se sube, con sus parches, en un PR de documentos aparte si Manuel lo pide.
+
+**Nota (2026-10-29, más tarde): precisión de Manuel sobre C-3 y fuentes recibidas.**
+- La condición de Q2 queda así: el PR de código de la Enmienda 2 avisa a la web y al móvil de que **no se despliega hasta que manejen el 403 `EmailNotVerified`**.
+- La Enmienda 2 autoriza cambiar `AuthenticateAccountPort` (E2-3, regla 3.5).
+- R-7 no se empieza hasta que Carlos lo confirme.
+- Las fuentes de Carlos llegaron en la rama `wip/fuentes-carlos-2026-10-29` (carpeta `fuentes-carlos/`, que no se fusiona). El texto literal de C-1 sigue pendiente ("[texto cortado]").
