@@ -46,6 +46,8 @@
 
 **Orden de validación:** `q`, `donationType`, `sort` y por último `cursor`. Cada error nombra un solo campo, el primero que falla.
 
+> **Nota (2026-10-29), anotada sin resolver:** el cuerpo de la respuesta 400 **no** nombra el campo. Es el `BadRequest` fijo de `InvalidRequestFieldException` (`api/src/main/java/com/traceability/api/web/InvalidRequestFieldException.java:7-10`), igual que en todas las rutas, mientras esta tabla dice "400 `InvalidRequestField` (`q`)". Manuel lo acepta (#159, https://github.com/Toffy22Cj/Donaciones/pull/159#issuecomment-6504628005): R-1 no cambia ese cuerpo solo para sí. El campo que nombra cada error se comprueba llamando al controlador (`PublicCampaignDiscoveryHttpIntegrationTest`, `rejects`). El texto de arriba se conserva.
+
 **Excluido a propósito:** filtro por estado (B1), por organización (B2), búsqueda en la descripción o en el nombre de la organización, y los campos de imagen de ADR-051 (`coverImageUrl?`, `organizationLogoUrl?`), que entran con las tareas de ese ADR.
 
 ## 4. Búsqueda sin mayúsculas ni tildes
@@ -78,6 +80,8 @@ Declarados con `@CompoundIndex` en `ConvocatoriaDocument`, para que `MongoIndexI
 - `idx_discovery_recent`: `{visibility: 1, status: 1, startDate: -1, publicCode: 1}`.
 
 El orden por defecto sigue usando `uq_public_code`. La búsqueda por subcadena no usa índice (recorre las convocatorias públicas abiertas que pasan los demás filtros); es aceptable para el volumen del proyecto y se registra como límite conocido.
+
+> **Nota (2026-10-29): otro límite conocido**, aceptado por Manuel (#159, https://github.com/Toffy22Cj/Donaciones/pull/159#issuecomment-6504628005). Un `q` formado solo por marcas diacríticas combinantes (por ejemplo, dos tildes sueltas) cumple los 2 puntos de código, porque la longitud se mide tras recortar y antes de normalizar (§3). Al normalizar queda vacío y coincide con todas las convocatorias. Solo devuelve convocatorias públicas abiertas, igual que sin `q`.
 
 ## 7. Decisiones — Carlos, 2026-10-18T18:45Z
 
