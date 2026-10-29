@@ -114,6 +114,11 @@ class MongoIndexesAtStartupIntegrationTest {
         uniquePartial(ConfigurationChangeRequestDocument.COLLECTION, ConfigurationChangeRequestDocument.PENDING_INDEX,
                 new Document("campaignRef", 1), new Document("status", "PENDING"));
         unique("convocatorias", "uq_public_code", new Document("publicCode", 1));
+        // ficha R-1 §6: los dos órdenes del descubrimiento
+        assertThat(index("convocatorias", "idx_discovery_ending_soon").get("key", Document.class)).isEqualTo(
+                new Document("visibility", 1).append("status", 1).append("endDate", 1).append("publicCode", 1));
+        assertThat(index("convocatorias", "idx_discovery_recent").get("key", Document.class)).isEqualTo(
+                new Document("visibility", 1).append("status", 1).append("startDate", -1).append("publicCode", 1));
         // identidad
         unique("accounts", "email", new Document("email", 1));
         unique("donor_pseudonyms", "pseudonym", new Document("pseudonym", 1));

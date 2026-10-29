@@ -152,6 +152,11 @@ Necesidad confirmada en la ronda de cierre de riesgos; contrato HTTP pendiente.
   - (b) Con `?status=`. En contra: ninguna fuente lo respalda, y exponer `CLOSED` en el descubrimiento es una decisión de producto nueva.
 - **Q-v2-4.** Campos del ítem resumido: subconjunto de `ConvocatoriaReadModel` (matriz ADR-021-D). Se fija en la ficha, no aquí.
 
+*Nota (2026-10-29): la decisión de Q-v2-3 cambió.* La ficha R-1 (`ficha-R1-busqueda-descubrimiento-convocatorias.md`, CONGELADA, decisiones B1 a B7 de Carlos del 2026-10-18) sustituye la opción (a), "sin filtros". El descubrimiento acepta `q` (búsqueda en el título), `donationType` y `sort` (`ending_soon`, `recent`).
+- Sigue **sin** filtro de estado (B1 mantiene DD-52) y sin filtro por organización (B2).
+- El requisito de no listar nunca Privada-por-enlace no cambia.
+- La fila de Q-v2-3 en la tabla de decisiones se conserva.
+
 ### 3.4 Comandos de Convocatoria sin endpoint — dueño: Convocatoria (Carlos)
 
 Aprobados en dominio, sin forma HTTP:

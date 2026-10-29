@@ -12,9 +12,13 @@ import java.util.Base64;
 import java.util.Optional;
 
 /**
- * Cursor opaco del descubrimiento (T-35; DD-53 rehecha por indicación de Carlos, 2026-10-07): el último
- * {@code publicCode} de la página, cifrado y autenticado con AES-256-GCM e IV aleatorio, en Base64 URL. El cliente no
- * puede leerlo ni fabricarlo; uno alterado, ajeno o de otra clave es inválido (→ 400). Solo JDK, sin dependencias.
+ * Cursor opaco del descubrimiento (T-35; DD-53 rehecha por indicación de Carlos, 2026-10-07): un texto cifrado y
+ * autenticado con AES-256-GCM e IV aleatorio, en Base64 URL. El cliente no puede leerlo ni fabricarlo; uno alterado,
+ * ajeno o de otra clave es inválido (→ 400). Solo JDK, sin dependencias.
+ * <p>
+ * El texto es el último {@code publicCode} (formato v1) o la carga v2 de la ficha R-1 ({@link DiscoveryCursorPayload}),
+ * en UTF-8 para llevar {@code q} con tildes (plan R-1 §2). Los cursores v1 ya emitidos, cifrados en US-ASCII, descifran
+ * igual: ASCII es un subconjunto de UTF-8. Sin cambio de clave ni de formato binario.
  * <p>
  * Clave: {@code TRACEABILITY_DISCOVERY_CURSOR_KEY} (32 bytes en Base64), obligatoria, sin valor por defecto y distinta
  * de los demás secretos (Carlos, 2026-10-07; {@code DiscoveryCursorConfig}). Nunca se registra.
@@ -73,13 +77,13 @@ public final class DiscoveryCursorCodec {
         return new DiscoveryCursorCodec(key);
     }
 
-    public String encode(String publicCode) {
+    public String encode(String text) {
         try {
             byte[] iv = new byte[IV_BYTES];
             RANDOM.nextBytes(iv);
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, iv));
-            byte[] sealed = cipher.doFinal(publicCode.getBytes(StandardCharsets.US_ASCII));
+            byte[] sealed = cipher.doFinal(text.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(
                     ByteBuffer.allocate(iv.length + sealed.length).put(iv).put(sealed).array());
         } catch (GeneralSecurityException e) {
@@ -97,7 +101,7 @@ public final class DiscoveryCursorCodec {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(TAG_BITS, raw, 0, IV_BYTES));
             // GCM autentica: solo un cursor emitido con esta clave descifra; el formato lo comprueba quien llama
-            return Optional.of(new String(cipher.doFinal(raw, IV_BYTES, raw.length - IV_BYTES), StandardCharsets.US_ASCII));
+            return Optional.of(new String(cipher.doFinal(raw, IV_BYTES, raw.length - IV_BYTES), StandardCharsets.UTF_8));
         } catch (IllegalArgumentException | GeneralSecurityException e) {
             return Optional.empty();
         }
