@@ -1,0 +1,11 @@
+DIVIPOLA — aportado por Manuel el 2026-10-29 (C-5: lo descarga una persona desde el DANE).
+
+- DIVIPOLA_Municipios.xlsx: archivo original del DANE, "Codificación de la División Político
+  Administrativa de Colombia - DIVIPOLA septiembre 2026", hoja "Municipios".
+- divipola.json: conversión al formato de P-R7-2
+  {catalogVersion, departments: [{code, name, municipalities: [{code, name}]}]}, con
+  catalogVersion "DIVIPOLA-2026-09".
+  33 departamentos y 1122 entradas: 1103 municipios, 1 isla y 18 áreas no municipalizadas.
+  Ningún código repetido, y cada código de municipio empieza por el de su departamento.
+  Los nombres van tal como vienen del DANE, en mayúsculas y con tildes.
+  Se incluyen la isla y las áreas no municipalizadas, porque son parte de la DIVIPOLA.
