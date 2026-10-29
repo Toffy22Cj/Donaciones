@@ -8,6 +8,8 @@
 > - también `organizationLogoUrl?` (ADR-051 F6, `:35` y `:67`) y `organizationVerified` (ficha L-FRONTS A1, M-07, `:33` y `:63`).
 >
 > El §3 ya excluye los campos de imagen de ADR-051 "que entran con las tareas de ese ADR". R-1 no cambia la forma de la respuesta, así que **no hay conflicto**. La tabla del §2 no se toca.
+
+> **Nota (2026-10-29): implementada** en #159, sin cambios de contrato. Los tests 1 a 14 del §8 están en `SearchTextNormalizerTest`, `MongoConvocatoriaDiscoveryIntegrationTest`, `DiscoveryCursorCodecTest`, `PublicCampaignDiscoveryHttpIntegrationTest` y `MongoIndexesAtStartupIntegrationTest`. El test 15 (`ci-local.sh`) está en `estado-fase6.md` §0.71.
 **Fecha:** 2026-10-18 (UTC).
 **Autor:** Carlos (dueño del módulo `convocatoria`), con asistencia de Claude.
 **Origen:** M-10 de la lista del móvil (16 de octubre) y tarea R-1 del backend de Carlos.
