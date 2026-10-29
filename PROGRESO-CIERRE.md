@@ -128,3 +128,9 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - Verde: `convocatoria` "Tests run: 272, Failures: 0, Errors: 0, Skipped: 0"; `app` dirigido, 41 en verde.
   - Pendiente: `app` completo, mutaciones (en curso en el clon `scratchpad/mut`), `ci-local` en un clon limpio y el PR.
   - Docker se arranca a mano en esta sesión (`dockerd`).
+- **R-1 HECHO:** #159 listo para revisión ("depende de #157"). Commits:
+  - `7ef2625`: código;
+  - `7814d8d`: documentos;
+  - `e0a457a`: evidencia.
+  Mutaciones: 11 de 11 en `convocatoria` y 12 de 12 en `app`. `ci-local` en `7814d8d`: convocatoria 272 y app 622, BUILD SUCCESS.
+- **Siguiente:** esperar el comentario de aprobación de Manuel en #158 para escribir el código de la Enmienda 2 (rama `feat/identity-adr050-e2-verificacion-correo` [Plan]). Cuando #157 se fusione, integrar `develop` en #158 y #159 con merge y repetir `ci-local` en #159.
