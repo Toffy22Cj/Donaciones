@@ -110,6 +110,24 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
 - **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
+*Nota (2026-10-29, ADR-050 Enmienda 2; plan aprobado en #158; #163):* **verificación del correo y avisos de seguridad.** Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/register` | como antes | como antes | `201`, como antes. La cuenta nace **sin verificar** y se envía un correo con `{TRACEABILITY_WEB_BASE_URL}/verificar-correo#token=…` (válido 24 h, un solo uso). La respuesta no espera al envío | como antes |
+| `POST /auth/login` | como antes | como antes | Con la contraseña correcta, la cuenta activa y **el correo sin verificar** → **`403` `application/problem+json`, `title` `EmailNotVerified`**, sin token. Va antes que `AcceptanceRequired`. Con una contraseña errónea, el 401 de siempre, sin revelar nada | como antes |
+| `POST /auth/email-verification` | pública | `{email}` | **Siempre el mismo `202` sin cuerpo**, `no-store`, exista o no la cuenta y esté o no verificada. Solo una cuenta `ACTIVE` sin verificar, fuera del enfriamiento de 5 minutos, recibe un correo nuevo; el anterior queda sustituido | 400 `email` vacío |
+| `POST /auth/email-verification/confirm` | pública | `{token}` | `204`, `no-store`. **No inicia sesión.** Una cuenta ya verificada con un token todavía pendiente → `204` sin cambios | 400 `token` vacío; **el mismo 400 `EmailVerificationTokenInvalid`** para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva |
+| `GET /account` | como antes | — | `200 {email, emailVerified}`: gana `emailVerified` (booleano) | como antes |
+
+- **Cuentas que ya existían** al desplegar (Q2 (a)): quedan sin verificar y deben verificar en su siguiente login, con "Reenviar". Las cuentas de la semilla y el administrador de plataforma inicial nacen verificados.
+- **Confirmar una recuperación** (`/auth/password-reset/confirm`) también verifica el correo.
+- **Avisos por correo, sin enlace con token:**
+  - al cambiar la contraseña: "Tu contraseña de PaxFide cambió";
+  - al confirmar una recuperación: "Restableciste tu contraseña de PaxFide";
+  - al desactivar la propia cuenta: "Desactivaste tu cuenta de PaxFide".
+  Llevan la fecha y hora de Bogotá; nunca la contraseña, un token, la IP ni el dispositivo. Un fallo de envío no cambia la respuesta.
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |

@@ -19,6 +19,8 @@
 >
 > Con esto se autoriza (regla 3.5) el cambio de `AuthenticateAccountPort` (`contracts`) que describe E2-3. **No autoriza código por sí sola:** el código espera el plan `plan-adr050-enmienda-2.md` aprobado por Manuel con un comentario citable. "PROPUESTA" se conserva; esta nota lo supera.
 
+> **Nota (2026-10-29): contradicción anotada, sin resolver (P-E2V-13).** E2-2 pide auditar `EMAIL_VERIFIED`, pero ADR-038 §2.2 (`identity/src/test/java/identity/architecture/ArchitectureTest.java:67-88`) solo deja construir `AccountAuditActor` en `CreateAccountService`, `ChangeCredentialsService` (por la Enmienda 1 de ADR-050, parte 2), `AuthorizationAuditActorMapper` y `AuditLogEntryMapper`, y `SystemAuditActor` solo en `BootstrapPlatformAuthorityService` y `AuditLogEntryMapper`. Esta enmienda no autoriza a `EmailVerificationService`. Lo decide Manuel en #163.
+
 **No autoriza código por sí sola** (regla 3.4). **Es una enmienda** porque introduce un mecanismo nuevo (tokens de verificación y avisos) y cambia el contrato del login, que usa `api` a través de `AuthenticateAccountPort` (regla 3.5).
 
 **Enmienda a:** ADR-050 (APROBADO — Carlos, 2026-10-18): D1, D4, D5, D6 y D8. Usa el mismo patrón de token que ADR-049 D2 y D3 y que D8.
