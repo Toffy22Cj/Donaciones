@@ -309,3 +309,10 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - La Enmienda 2 autoriza cambiar `AuthenticateAccountPort` (E2-3, regla 3.5).
 - R-7 no se empieza hasta que Carlos lo confirme.
 - Las fuentes de Carlos llegaron en la rama `wip/fuentes-carlos-2026-10-29` (carpeta `fuentes-carlos/`, que no se fusiona). El texto literal de C-1 sigue pendiente ("[texto cortado]").
+
+**Nota (2026-10-29): "plan aprobado" de Manuel sobre la Enmienda 2 de ADR-050.** Fuente citable: comentario de `buelvasmanuel` en #158, 2026-10-29T18:09:13Z, https://github.com/Toffy22Cj/Donaciones/pull/158#issuecomment-6504627552. Aprueba `plan-adr050-enmienda-2.md`.
+- **P-E2V-1 a P-E2V-12:** aprobados tal como los recomienda el plan.
+- **P-E2V-2:** las cuentas que crea el sistema (semilla y tests, `CreateAccountService`) nacen verificadas.
+- **P-E2V-3:** se acepta el riesgo. Los administradores de plataforma que ya existen **no** se marcan como verificados al desplegar, por coherencia con Q2 (a): recuperan el acceso con "Reenviar" o con la recuperación. **Condición:** antes de desplegar, el SMTP de producción tiene que estar comprobado. Va en el aviso del PR de código.
+- **P-E2V-10:** los avisos llevan la hora de America/Bogota; el correo de recuperación (D8) no se toca.
+- **Autoriza** el código, en un PR que sale de la rama de #158 ("depende de #158"), con el cambio de `AuthenticateAccountPort` (E2-3, regla 3.5).
