@@ -310,6 +310,19 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - R-7 no se empieza hasta que Carlos lo confirme.
 - Las fuentes de Carlos llegaron en la rama `wip/fuentes-carlos-2026-10-29` (carpeta `fuentes-carlos/`, que no se fusiona). El texto literal de C-1 sigue pendiente ("[texto cortado]").
 
+**Nota (2026-10-29, más tarde): texto literal de C-1 y C-5, de Carlos, comunicados por Manuel.**
+- **C-1, texto completo.** Sustituye a "[texto cortado]" de la nota del 2026-10-29 (C-1, línea 294 de este archivo), que se conserva:
+
+  > "Apruebo la Enmienda 1 de ADR-050 (ADR-050-enmienda-1-iat-del-login.md), partes 1 y 2. Acepto que iat = max(segundo actual truncado, credentialsNotBefore) se calcule en LoginController, como dice E1-2, y no se mueva a identity"
+- **C-5, que sustituye a C-4.** Texto literal de Carlos:
+
+  > "Confirmo que R-7 se puede empezar. La ficha R-7 está CONGELADA (P1 a P8 según la recomendación, P9 no). Manuel aprueba el plan corto con la delegación de siempre antes de escribir código. El archivo DIVIPOLA lo descarga una persona desde el DANE."
+
+  **Qué autoriza:** subir la ficha R-7 (`ficha-R7-perfil-organizacion.md`, autor Carlos) y escribir `plan-r7-perfil-organizacion.md`. **No autoriza código:** el código espera el "plan aprobado" de Manuel en un comentario citable. Ningún agente descarga el archivo DIVIPOLA.
+- **Aprobaciones de Manuel ya publicadas,** que se registran aquí:
+  - el plan de la Enmienda 2 (#158, https://github.com/Toffy22Cj/Donaciones/pull/158#issuecomment-6504627552), con P-E2V-1 a 12 como se recomiendan;
+  - las dos observaciones de R-1 (#159, https://github.com/Toffy22Cj/Donaciones/pull/159#issuecomment-6504628005).
+
 **Nota (2026-10-29): "plan aprobado" de Manuel sobre la Enmienda 2 de ADR-050.** Fuente citable: comentario de `buelvasmanuel` en #158, 2026-10-29T18:09:13Z, https://github.com/Toffy22Cj/Donaciones/pull/158#issuecomment-6504627552. Aprueba `plan-adr050-enmienda-2.md`.
 - **P-E2V-1 a P-E2V-12:** aprobados tal como los recomienda el plan.
 - **P-E2V-2:** las cuentas que crea el sistema (semilla y tests, `CreateAccountService`) nacen verificadas.
