@@ -122,6 +122,7 @@ class EmailVerificationServicesIntegrationTest extends BaseMongoIntegrationTest 
     @Autowired private AuthenticateAccountPort login;
     @Autowired private MongoTemplate mongoTemplate;
     @Autowired private MongoMappingContext mappingContext;
+    @Autowired private identity.application.port.out.EmailVerificationTokenRepositoryPort verificationTokens;
 
     @BeforeEach
     void setUp() {
@@ -321,6 +322,25 @@ class EmailVerificationServicesIntegrationTest extends BaseMongoIntegrationTest 
             pool.shutdownNow();
         }
         assertThat(verifiedAudits(account.getAccountId())).isEqualTo(1);
+    }
+
+    /** El contrato del puerto: {@code PENDING → USED} es condicional; un token ya usado o sustituido no se vuelve a usar. */
+    @Test
+    void test5_markUsedIfPending_isConditional_onlyThePendingTokenChanges() {
+        String email = newEmail();
+        Account account = register(email);
+        String id = tokensOf(account.getAccountId()).get(0).getId();
+
+        assertThat(verificationTokens.markUsedIfPending(id, TestBeans.CLOCK.now)).isTrue();
+        assertThat(verificationTokens.markUsedIfPending(id, TestBeans.CLOCK.now.plusSeconds(1))).isFalse();
+        assertThat(tokensOf(account.getAccountId()).get(0).getUsedAt()).isEqualTo(TestBeans.CLOCK.now);
+
+        TestBeans.CLOCK.now = TestBeans.CLOCK.now.plusSeconds(300);
+        verifications.request(email);
+        String superseded = tokensOf(account.getAccountId()).stream().filter(t -> t.getStatus().equals("PENDING"))
+                .findFirst().orElseThrow().getId();
+        verificationTokens.supersedePendingFor(account.getAccountId());
+        assertThat(verificationTokens.markUsedIfPending(superseded, TestBeans.CLOCK.now)).isFalse();
     }
 
     // ── 6 ──
