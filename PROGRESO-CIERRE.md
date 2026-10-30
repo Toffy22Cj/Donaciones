@@ -163,3 +163,7 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - `ci-local` en curso.
 - **P0 HECHO:** #164 (`chore/docs-plan-adr050-r6-google`, `7c38e45`, "depende de #163"), con las notas de G-0 a G-2 y el plan con P-G-1 a 14. ESPERA la aprobación de Manuel; sin código de Google.
 - **Pendiente:** el código de R-7 (aprobado en #162) no está en este encargo; queda para el siguiente.
+- **#163 HECHO, listo para fusionar:**
+  - mutaciones 13 de 13 (la 4 necesitó el test `test5_markUsedIfPending_isConditional_…`, `dfc4768`);
+  - `ci-local` en `dfc4768`: identity 412 y app 630, BUILD SUCCESS (`b632154`).
+- **#164:** sin comentario de aprobación todavía. P1 (código de Google) detenido.
