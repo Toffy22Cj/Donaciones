@@ -273,6 +273,13 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Rojo** (`59d25c0`, solo tests): no compilan sin el código (`cannot find symbol` en `EmailNotVerifiedException`, `EmailVerificationService`, `EmailVerificationTokenDocument`, `SecurityNoticeMailPort`...).
   - **`identity`** (`mvn test -pl identity -am`): "Tests run: 411, Failures: 1, Errors: 0, Skipped: 0". La única falla es la regla de P-E2V-13.
   - **`app`:** los tests nuevos y los adaptados, en verde (#163).
+- *Nota (2026-10-30): desbloqueado y terminado.*
+  - **P-E2V-13:** Manuel eligió la opción (a) (#163, comentario 6506647217). `EmailVerificationService` entra en la regla de `ArchitectureTest.java:67-88` (`31c2a56`).
+  - **Merge** de `develop` `6375c40`, con conflictos solo en notas, resueltos conservando los dos lados.
+  - **Mutaciones** (`scripts/mutaciones.py`, clones limpios; la mutación 0 de línea base sale VIVA en cada ejecución):
+    - 13 de 13 muertas;
+    - la 4 (`markUsedIfPending` sin `PENDING`) sobrevivió primero, porque la transacción ya serializa las confirmaciones. Se añadió `test5_markUsedIfPending_isConditional_…` (`dfc4768`), que la mata.
+  - **`ci-local.sh`** en un clon limpio de `dfc4768` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 175, identity 412, convocatoria 272 y app 630, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-dfc4768-2026-10-30T05-59-02Z.txt`. También está la de `31c2a56`.
 
 ### 0.64 ADR-051, Tarea 5: leer la evidencia, retirarla por la plataforma y la huella en el seguimiento (2026-10-25, `feat/adr051-t5-evidencia-lectura`)
 
