@@ -158,9 +158,8 @@ public class EmailVerificationService {
 
     /**
      * El actor es la cuenta, que demostró controlar su correo, como en la confirmación de la recuperación (ADR-050
-     * Enmienda 1, parte 2). <b>Pendiente (P-E2V-13):</b> ADR-038 §2.2 solo deja construir {@code AccountAuditActor} a las
-     * clases que nombra {@code ArchitectureTest} ({@code :67-78}), y esta no está entre ellas. La Enmienda 2 no lo
-     * autoriza; lo decide Manuel.
+     * Enmienda 1, parte 2). P-E2V-13, opción (a), decidida por Manuel en #163 (2026-10-29): esta clase se añade a las
+     * que ADR-038 §2.2 deja construir {@code AccountAuditActor} ({@code ArchitectureTest}).
      */
     private void recordVerified(AccountId accountId, Instant now, Map<String, Object> summary) {
         auditLogPort.record(AuditLogEntry.record(UlidCreator.getUlid().toString(), now,
