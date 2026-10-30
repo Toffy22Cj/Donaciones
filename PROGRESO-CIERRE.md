@@ -152,3 +152,14 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - `identity`: 411 tests, con una sola falla, la de esa regla. `app`: en verde en dirigido.
   - Con la decisión de Manuel: aplicar la opción, hacer las mutaciones y `ci-local`, y pasar el PR a listo.
   - El contenedor se reinició una vez (el error 137 fue por correr dos builds a la vez). Docker se arranca a mano.
+
+## Google R-6 (2026-10-30)
+- **Al empezar:**
+  - #158, #159 y #161 ya fusionados (`develop` `6375c40`);
+  - Manuel decidió P-E2V-13, opción (a), en #163, y aprobó el plan R-7 en #162 (P-R7-1: el JSON de DIVIPOLA está en `wip/fuentes-carlos-2026-10-29:fuentes-carlos/divipola/divipola.json`).
+- **#163:**
+  - merge de `develop` (`6375c40`), con conflictos solo en notas, resueltos conservando los dos lados;
+  - P-E2V-13 (a) aplicada en `31c2a56`;
+  - `ci-local` en curso.
+- **P0 HECHO:** #164 (`chore/docs-plan-adr050-r6-google`, `7c38e45`, "depende de #163"), con las notas de G-0 a G-2 y el plan con P-G-1 a 14. ESPERA la aprobación de Manuel; sin código de Google.
+- **Pendiente:** el código de R-7 (aprobado en #162) no está en este encargo; queda para el siguiente.
