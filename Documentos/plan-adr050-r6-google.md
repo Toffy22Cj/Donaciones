@@ -27,6 +27,12 @@
 > | 16 | Vincular no avisa | G-17 |
 > | 17 | Desvincular no audita | G-15 |
 
+> **Nota (2026-10-31): implementado** en #166. La evidencia está en `estado-fase6.md` §0.80. Dos nombres **[Plan]** nuevos, que se dicen en el PR:
+> - `LoginProblems` (en `api`): las respuestas de error comunes a los dos logins;
+> - `LoginAcceptances` (en `identity`): la regla de D3, común a los dos logins.
+>
+> Las excepciones de conflicto toman el nombre de su título de P-G-4 (`GoogleAccountAlreadyLinkedException` y `AccountAlreadyLinkedToGoogleException`) en lugar de los nombres de §2.
+
 **Qué entra** lo fija ADR-050 D9 (`ADR-050-cuenta-y-sesiones.md:172-184`) y sus tests 27 a 29 (`:284-287`). G-0 retoma R-6 y G-1 y G-2 fijan la configuración (`decisiones-delegadas-2026-10.md`, nota del 2026-10-30). Este plan fija el **cómo**.
 
 **Base verificada:** la rama de #163 (Enmienda 2 de ADR-050, `31c2a56`), con `develop` `6375c40` integrado. **Depende de #163**, porque la Enmienda 2 cambia el login (E2-3) y `AuthenticateAccountPort`. Cada ruta:línea de este plan es de esa base.
