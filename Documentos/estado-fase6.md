@@ -272,6 +272,9 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
     - `app`: 640, con 1 falla de test (el test 8 buscaba la subcadena "nit", que está en "comunitarios"), arreglada en `19c611a`.
   - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `2d3862e`, con la mutación 0 de línea base VIVA): 12 de 12 muertas, 7 en `identity` y 5 en `app`.
   - **`ci-local.sh`** en un clon limpio de `3e2a6a1` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 175, identity 428, convocatoria 272 y app 640, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-3e2a6a1-2026-10-31T15-53-16Z.txt`.
+- *Nota (2026-10-31, más tarde):* se integró `develop` `265764a` (#166, Google, y #167, la guía de despliegue) con un merge normal (`0b0fb56`).
+  - Los conflictos solo añadían cosas y se resolvieron conservando los dos lados, con lo de develop primero: notas, `AuditAction`, `IdentityApiErrorMappings` y `PublicRoutesInventoryIntegrationTest`.
+  - `ci-local.sh` en un clon limpio de `0b0fb56` (`free -g`: 15 GB en total, 14 disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 175, identity 429, convocatoria 272 y app 663, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-0b0fb56-2026-10-31T21-51-54Z.txt`.
 
 ### 0.71 R-1: búsqueda, filtro y orden en el descubrimiento público (2026-10-29, `feat/convocatoria-r1-busqueda-descubrimiento`, #159)
 
