@@ -5,6 +5,7 @@ import com.traceability.contracts.authentication.AcceptedLegalVersions;
 import com.traceability.contracts.authentication.AuthenticateAccountPort;
 import com.traceability.contracts.authentication.AuthenticatedAccount;
 import com.traceability.contracts.authentication.AuthenticationFailedException;
+import com.traceability.contracts.authentication.EmailNotVerifiedException;
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.PasswordHasherPort;
 import identity.domain.exception.InvalidEmailFormatException;
@@ -31,6 +32,9 @@ import java.util.function.Supplier;
  * <p>Los tres fallos (email inexistente o mal formado, contraseña incorrecta, cuenta {@code INACTIVE}) lanzan la misma
  * {@link AuthenticationFailedException} y cuestan lo mismo: {@code matches} se ejecuta siempre, contra un hash ficticio
  * del mismo coste cuando la cuenta no existe, y el estado se comprueba después (ADR-047 Q5).
+ *
+ * <p>Después, el correo verificado (ADR-050 Enmienda 2, E2-3): si falta, {@link EmailNotVerifiedException}, sin
+ * escribir nada.
  *
  * <p>Después, y solo después, las aceptaciones (ADR-050 D3; Enmienda 1, parte 3, E3-2 y E3-3): si la cuenta tiene
  * alguna versión vigente pendiente, el login solo sigue si {@code accepted} trae exactamente esas, y entonces se
@@ -70,6 +74,10 @@ public class AuthenticateAccountPortImpl implements AuthenticateAccountPort {
 
         if (account.isEmpty() || !passwordMatches || account.get().getStatus() == AccountStatus.INACTIVE) {
             throw new AuthenticationFailedException();
+        }
+        // ADR-050 Enmienda 2, E2-3 (Q1 (a)): después de la contraseña y el estado, antes de las aceptaciones (D3)
+        if (!account.get().isEmailVerified()) {
+            throw new EmailNotVerifiedException();
         }
         requireCurrentAcceptances(account.get(), accepted == null ? AcceptedLegalVersions.NONE : accepted);
         // ADR-050 Enmienda 1, E1-1: el credentialsNotBefore sale del mismo documento que validó la contraseña

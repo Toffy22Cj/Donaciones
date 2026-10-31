@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
  * B3 de punta a punta con el contexto real (identity + api + Mongo). Definición de hecho de ADR-047 (P4),
  * puntos 8, 9, 10 y 12.
  */
+@org.springframework.context.annotation.Import(com.traceability.app.support.CapturedMail.class) // ADR-050 Enmienda 2: verificar el correo
 @SpringBootTest(classes = {TraceabilityApplication.class, AuthenticationEndToEndIntegrationTest.WhoAmIController.class})
 @AutoConfigureMockMvc
 @Testcontainers
@@ -96,6 +97,13 @@ class AuthenticationEndToEndIntegrationTest {
                 .content("{\"email\":\"" + email + "\",\"password\":\"" + password + "\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
     }
 
+    /** ADR-050 Enmienda 2, E2-3: confirma por la ruta pública el token del correo de verificación capturado. */
+    private void verifyEmail(String email) throws Exception {
+        String token = com.traceability.app.support.CapturedMail.verificationToken(email);
+        assertThat(mvc.perform(post("/api/v1/auth/email-verification/confirm").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\":\"" + token + "\"}")).andReturn().getResponse().getStatus()).isEqualTo(204);
+    }
+
     private static String token(MvcResult login) throws Exception {
         String body = login.getResponse().getContentAsString();
         return body.substring("{\"token\":\"".length(), body.length() - 2);
@@ -128,6 +136,7 @@ class AuthenticationEndToEndIntegrationTest {
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + mixed + "\",\"password\":\"pw-correct-123\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
         assertThat(registered.getResponse().getStatus()).isEqualTo(201);
+        verifyEmail(mixed.toLowerCase(java.util.Locale.ROOT));
 
         MvcResult lower = login(mixed.toLowerCase(java.util.Locale.ROOT), "pw-correct-123");
         MvcResult upper = login(mixed.toUpperCase(java.util.Locale.ROOT), "pw-correct-123");
@@ -151,6 +160,7 @@ class AuthenticationEndToEndIntegrationTest {
         MvcResult registered = mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"  " + email + " \",\"password\":\"pw-correct-123\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}")).andReturn();
         assertThat(registered.getResponse().getStatus()).isEqualTo(201);
+        verifyEmail(email);
 
         assertThat(login(email, "pw-correct-123").getResponse().getStatus()).isEqualTo(200);
         assertThat(login(" " + email.toUpperCase(java.util.Locale.ROOT) + "  ", "pw-correct-123").getResponse().getStatus())

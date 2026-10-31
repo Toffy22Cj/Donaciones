@@ -5,6 +5,7 @@ import com.traceability.contracts.authentication.AcceptedLegalVersions;
 import com.traceability.contracts.authentication.AuthenticateAccountPort;
 import com.traceability.contracts.authentication.AuthenticatedAccount;
 import com.traceability.contracts.authentication.AuthenticationFailedException;
+import com.traceability.contracts.authentication.EmailNotVerifiedException;
 import com.traceability.contracts.authentication.TokenIssuanceException;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -202,5 +203,21 @@ class LoginControllerTest {
 
         assertThat(r.getResponse().getStatus()).isEqualTo(200);
         verify(authenticate).authenticate("donor@example.org", "pw-123456", accepted);
+    }
+
+    /** ADR-050 Enmienda 2, E2-3 (test 2 de la Definición de hecho, a nivel de controlador). */
+    @Test
+    void anUnverifiedEmail_is403EmailNotVerified_withoutToken() throws Exception {
+        when(authenticate.authenticate("donor@example.org", "pw-123456", AcceptedLegalVersions.NONE))
+                .thenThrow(new EmailNotVerifiedException());
+
+        MvcResult r = login("{\"email\":\"donor@example.org\",\"password\":\"pw-123456\"}");
+
+        assertThat(r.getResponse().getStatus()).isEqualTo(403);
+        assertThat(r.getResponse().getContentType()).isEqualTo("application/problem+json");
+        String body = r.getResponse().getContentAsString();
+        assertThat(body).contains("\"title\":\"EmailNotVerified\"").doesNotContain("token")
+                .doesNotContain("donor@example.org");
+        verifyNoInteractions(issuer);
     }
 }

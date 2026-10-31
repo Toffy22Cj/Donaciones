@@ -16,6 +16,9 @@ class PublicRoutesTest {
                         "POST /api/v1/auth/register PUBLIC",
                         "POST /api/v1/auth/password-reset PUBLIC",
                         "POST /api/v1/auth/password-reset/confirm PUBLIC",
+                        // ADR-050 Enmienda 2, E2-2: reenviar y confirmar la verificación del correo
+                        "POST /api/v1/auth/email-verification PUBLIC",
+                        "POST /api/v1/auth/email-verification/confirm PUBLIC",
                         "GET /api/v1/public/campaigns/{publicCode} PUBLIC",
                         "GET /api/v1/public/campaigns PUBLIC",
                         "POST /api/v1/public/campaigns/{publicCode}/donation-intents OPTIONAL_JWT",

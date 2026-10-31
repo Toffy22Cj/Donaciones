@@ -2,6 +2,8 @@
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. Un solo mensaje aprueba el plan, sus nombres **[Plan]** y los puntos P-E2V-1 a P-E2V-12. Si Manuel responde a un punto, su respuesta sustituye a la recomendación. **No hay código antes de esa aprobación** (regla 3.4).
 
+> **Nota (2026-10-29): APROBADO por Manuel**, por la delegación de Carlos (comentario de `buelvasmanuel` en #158, https://github.com/Toffy22Cj/Donaciones/pull/158#issuecomment-6504627552; registrado en `decisiones-delegadas-2026-10.md`). P-E2V-1 a P-E2V-12 se aprueban como se recomiendan. **P-E2V-3:** los administradores de plataforma existentes no se marcan como verificados; antes de desplegar hay que comprobar el SMTP de producción. "PROPUESTO" se conserva; esta nota lo supera.
+
 **Qué entra** lo fija `ADR-050-enmienda-2-verificacion-correo-y-avisos.md` (E2-1 a E2-5). Carlos dejó la enmienda a cargo de Manuel, y Manuel cerró Q1 a Q5 el 2026-10-29: (a), (a), 24 h, sí, sin IP (`decisiones-delegadas-2026-10.md`, nota del 2026-10-29, C-3). Este plan fija el **cómo** (los puntos [Plan] de la enmienda).
 
 **Base verificada:** `develop` `993c3e8`. Cada ruta:línea de este plan se abrió sobre esa base. **Depende de #157**, que trae la enmienda a `Documentos/`.

@@ -262,6 +262,25 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - `ci-local.sh` en un clon limpio de `6dc17f5` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 272 y app 622, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
   - Evidencia: `evidencia-ci/ci-local-6dc17f5-2026-10-29T18-52-26Z.txt`.
 
+### 0.70 ADR-050 Enmienda 2: verificar el correo y avisos de seguridad (2026-10-29, `feat/identity-adr050-e2-verificacion-correo`, #163)
+
+- Numerada 0.70, en la serie del trabajo del 2026-10-29 (0.70 a 0.79), como dice P-E2V-12.
+- **Norma:**
+  - `ADR-050-enmienda-2-verificacion-correo-y-avisos.md` (E2-1 a E2-5), con Q1 a Q5 cerradas por Manuel (C-3);
+  - `plan-adr050-enmienda-2.md`, APROBADO por Manuel (#158, comentario 6504627552).
+- **Estado: BLOQUEADO por P-E2V-13.** La Enmienda 2 pide auditar `EMAIL_VERIFIED` (E2-2). ADR-038 §2.2, que vigila `identity/src/test/java/identity/architecture/ArchitectureTest.java:67-88`, solo deja construir los dos tipos de actor de auditoría en clases concretas, y `EmailVerificationService` no está entre ellas. El test no se toca; lo decide Manuel.
+- **Evidencia hasta ahora:**
+  - **Rojo** (`59d25c0`, solo tests): no compilan sin el código (`cannot find symbol` en `EmailNotVerifiedException`, `EmailVerificationService`, `EmailVerificationTokenDocument`, `SecurityNoticeMailPort`...).
+  - **`identity`** (`mvn test -pl identity -am`): "Tests run: 411, Failures: 1, Errors: 0, Skipped: 0". La única falla es la regla de P-E2V-13.
+  - **`app`:** los tests nuevos y los adaptados, en verde (#163).
+- *Nota (2026-10-30): desbloqueado y terminado.*
+  - **P-E2V-13:** Manuel eligió la opción (a) (#163, comentario 6506647217). `EmailVerificationService` entra en la regla de `ArchitectureTest.java:67-88` (`31c2a56`).
+  - **Merge** de `develop` `6375c40`, con conflictos solo en notas, resueltos conservando los dos lados.
+  - **Mutaciones** (`scripts/mutaciones.py`, clones limpios; la mutación 0 de línea base sale VIVA en cada ejecución):
+    - 13 de 13 muertas;
+    - la 4 (`markUsedIfPending` sin `PENDING`) sobrevivió primero, porque la transacción ya serializa las confirmaciones. Se añadió `test5_markUsedIfPending_isConditional_…` (`dfc4768`), que la mata.
+  - **`ci-local.sh`** en un clon limpio de `dfc4768` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 175, identity 412, convocatoria 272 y app 630, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-dfc4768-2026-10-30T05-59-02Z.txt`. También está la de `31c2a56`.
+
 ### 0.64 ADR-051, Tarea 5: leer la evidencia, retirarla por la plataforma y la huella en el seguimiento (2026-10-25, `feat/adr051-t5-evidencia-lectura`)
 
 - Numerada 0.64, en la serie del cierre del backend (0.60 a 0.69).

@@ -69,6 +69,10 @@ public class BootstrapPlatformAuthorityService {
             // 5. platformAuthorityStatePort.initialize() — primera escritura (colisión de bootstraps concurrentes)
             platformAuthorityStatePort.initialize();
 
+            // ADR-050 Enmienda 2, E2-1 y P-E2V-3: el administrador de plataforma inicial nace verificado; si ya lo estaba,
+            // no cambia. Escritura condicional y nunca save, antes de la concesión
+            accountRepository.markEmailVerifiedIfUnverified(account.getAccountId(), Instant.now());
+
             // 6. si accountRepository.grantPlatformAuthorityIfAbsent(id) es false -> PlatformAuthorityInvariantViolationException
             if (!accountRepository.grantPlatformAuthorityIfAbsent(account.getAccountId())) {
                 throw new PlatformAuthorityInvariantViolationException(

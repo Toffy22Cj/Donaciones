@@ -30,4 +30,5 @@ public class AccountDocument {
     private Instant termsAcceptedAt;
     private String dataPolicyVersion;
     private Instant dataPolicyAcceptedAt;
+    private Instant emailVerifiedAt; // nullable (ADR-050 Enmienda 2, E2-1)
 }

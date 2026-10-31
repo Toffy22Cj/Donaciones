@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code POST /api/v1/auth/login} exige las versiones legales vigentes. Numeración de la definición de hecho de la parte
  * 3: 1, 2, 3 (el 401 byte a byte, nunca 403) y 4.
  */
+@org.springframework.context.annotation.Import(com.traceability.app.support.CapturedMail.class) // ADR-050 Enmienda 2: verificar el correo
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TraceabilityApplication.class)
 @Testcontainers
 @TestPropertySource(properties = {
@@ -181,6 +182,8 @@ class LoginAcceptanceHttpIntegrationTest {
     void anAccountRegisteredWithTheCurrentVersions_logsInWithoutSendingThem() throws Exception {
         String email = newEmail();
         accounts.createAccount(new Email(email), PASSWORD, CURRENT, CURRENT);
+        // ADR-050 Enmienda 2, E2-3: el registro público nace sin verificar
+        com.traceability.app.support.CapturedMail.confirmVerification(port, email);
 
         assertThat(login(email, PASSWORD, null, null).statusCode()).isEqualTo(200);
     }
