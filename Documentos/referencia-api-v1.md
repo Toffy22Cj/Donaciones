@@ -165,6 +165,23 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 | `DELETE /organizations/{organizationId}/logo` (ADR-051 F8; Tarea 2) | ídem | `204`, también sin logo previo (P-T2-4) | 403 |
 | `GET /organizations/{organizationId}/logo` (ADR-051 F6, Enmienda 1; Tarea 2) | JWT: miembro de la organización, con cualquier rol, o administrador de plataforma | `200` con los bytes guardados, `Content-Type` de la imagen, `Cache-Control: no-store, private` | 401 sin JWT; 403 (el mismo, DD-01); 404 `NotFound` sin logo (nunca 410) |
 
+*Nota (2026-10-31, ficha R-7, CONGELADA; plan R-7 aprobado en #162):* **perfil de la organización.** Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /organizations` (ampliado) | como antes | Además, todos opcionales: `description` (1–500 puntos de código, texto plano, sin `<` ni `>`), `website` (`https://`, hasta 200), `location: {departmentCode, municipalityCode}` (DIVIPOLA), `contactEmail`, `legalName` (1–200), `nit` (9 dígitos) y `nitCheckDigit` (DIAN), `specialTaxRegime` (solo `FOUNDATION`), `contactPhone` (10 dígitos, empieza por 3 o 60) | `201`, como antes | Además: **400** con el campo nombrado (en el log); **409 `OrganizationNitAlreadyRegistered`**, sin organización |
+| `PUT /organizations/{organizationId}/profile` | `REPRESENTATIVE` o `ADMINISTRATOR`, como el logo | `name` (obligatorio) y todos los campos de arriba; **ausente o `null` borra** el opcional | `200 {name, …perfil}`, `no-store` | 400 por campo; 403 uniforme; **409 `OrganizationProfileLocked`** (verificada: `name`, `legalName`, `nit` y `nitCheckDigit` no cambian, P1); 409 `OrganizationNitAlreadyRegistered` |
+| `POST /organizations/{organizationId}/verification/resubmit` | `REPRESENTATIVE` o `ADMINISTRATOR` | — | `200 {verificationStatus: "PENDING_VERIFICATION"}` y se borra `informationRequest` | 403; **409 `VerificationResubmitNotAllowed`** si no está en `NEEDS_MORE_INFORMATION` |
+| `GET /organizations/{organizationId}` (S-18) | como antes | — | Gana los campos del perfil | como antes |
+| `GET /platform/organizations` | como antes | — | Cada ítem gana los campos del perfil | como antes |
+| `POST /platform/organizations/{id}/verify` | como antes | — | como antes | Además: **409 `VerificationDataMissing`** sin `legalName` o sin `nit` (P2 (b)) |
+| `GET /public/campaigns/{publicCode}` (CV-07) | pública | — | Gana `organizationProfile?: {description?, website?, location?: {departmentName, municipalityName}, contactEmail?}`. Nunca NIT, razón social, teléfono ni régimen | como antes |
+| `GET /public/locations` | pública | — | `200 {catalogVersion, departments: [{code, name, municipalities: [{code, name}]}]}`, `Cache-Control: public, max-age=86400`. Catálogo DIVIPOLA del DANE (`DIVIPOLA-2026-09`): 33 departamentos y 1122 entradas, entre municipios, una isla y áreas no municipalizadas | — |
+
+- **El correo de contacto es público** (P3): el formulario debe avisarlo.
+- **Límite conocido (P-R7-3):** los términos de organización no cambian de versión en este PR, y las organizaciones existentes no vuelven a aceptar.
+
+
 *Nota (2026-10-21, ficha R-6, Bloque A; G-4b y G-5):* `GET /organizations/{organizationId}/physical-assets` lleva además **`assetType`** en cada ítem (el registrado; sigue sin `parentAssetRef`, `rootAssetRef` ni `donorRef`). `GET /organizations/{organizationId}/campaigns` lleva además **`startDate`** y **`endDate`** en cada ítem (ISO-8601 UTC, siempre presentes; las del dominio, como en CV-07). Las filas de arriba no se reescriben.
 
 *Nota (2026-10-25, ficha R-6, Enmienda 1, E2; G-9, adenda G-9 del plan B):* cada ítem de `GET /organizations/{organizationId}/physical-assets` lleva además **`lastEventAt?`** (ISO-8601 UTC): el `occurredAt` del último evento del lote **por `sequence`**, nunca por la fecha más reciente. Se omite si no hay fecha. `GET /physical-assets/{assetRef}` no lo lleva. Las filas de arriba no se reescriben.

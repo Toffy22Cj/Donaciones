@@ -3,6 +3,8 @@
 **Naturaleza:** ficha de contrato HTTP, en el formato de la ficha R-1 y la ficha S-18. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
 **Estado: CONGELADA — Carlos, 2026-10-29: P1 a P8 según la recomendación de §8; P9, no.** El código sigue un plan aparte, que aprueba Manuel con la delegación de Carlos (regla 3.4).
 **Fecha:** 2026-10-29 (UTC). **Base verificada:** `develop` `993c3e8`.
+
+> **Nota (2026-10-31): implementada** en `feat/identity-r7-perfil-organizacion`, con el plan aprobado en #162. Sin cambios de contrato. La evidencia está en `estado-fase6.md` §0.72. El catálogo DIVIPOLA real tiene 1122 entradas (1103 municipios, 1 isla y 18 áreas no municipalizadas); §6 dice "departamentos y municipios" y se entienden todas.
 **Origen:** Carlos, 2026-10-28 ("falta el perfil… el de la organización"). La pantalla 11 de los bocetos de Manuel (`paxfide-web/Documentos/paxfide-pantallas-web.html`, "Datos de la organización") estaba marcada **PROPUESTA · SIN BACKEND · DEPENDE DE ADR**.
 **Requiere enmienda o ADR:**
 - extender `POST /organizations` y `GET /organizations/{id}` es aditivo, y basta con esta ficha (como la R-6);
