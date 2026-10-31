@@ -170,11 +170,12 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 
 ## Código R-7 y Google (2026-10-31)
 - `develop` en `b0654aa` (#162, #163 y #164 fusionados).
-- **R-7** (`feat/identity-r7-perfil-organizacion`, todavía sin push):
-  - commits: `4b43bb7` (aprobación), `931fce1` (rojo), `3df49ca` (código), `19c611a` (arreglo del test 8) y `2d3862e` (documentos);
-  - `identity`: 428 en verde; `app`: 640, con 1 falla de test ya arreglada;
-  - pendientes: mutaciones (specs `scratchpad/mut-r7-*.json`), `ci-local`, §0.72 y el PR.
-- **Google** (`feat/identity-adr050-r6-google`, todavía sin push):
-  - commits: `ece5f03` (aprobación y ampliaciones), `6faec6c` (rojo) y `5bb0925` (código);
-  - tests en curso;
-  - pendientes: documentos (`referencia-api` escrita), mutaciones, `ci-local`, §0.80 y el PR.
+- **R-7** (`feat/identity-r7-perfil-organizacion`, con push), PR #165 listo (no borrador):
+  - commits: `4b43bb7` (aprobación), `931fce1` (rojo), `3df49ca` (código), `19c611a` (arreglo del test 8), `2d3862e` (documentos), `3e2a6a1` (equals del perfil vacío) y `86b9fbe` (evidencia de ci-local);
+  - mutaciones: 12 de 12 muertas;
+  - ci-local en `3e2a6a1`: BUILD SUCCESS (app 640, identity 428).
+- **Google** (`feat/identity-adr050-r6-google`, con push), PR #166 en borrador:
+  - commits: `ece5f03`, `6faec6c`, `5bb0925`, `9787e06` (referencia-api) y `91e376f` (§0.80);
+  - mutaciones: 17 de 17 muertas (la 1 se sustituyó por la 1b porque la 1 no compilaba);
+  - ci-local en `91e376f` en curso (`scratchpad/ci-g`); después: evidencia, cuerpo del PR y quitar el borrador.
+- P3: quien se fusione segundo choca en las notas de estado-fase6 (las dos van antes de §0.71); se resuelve conservando los dos lados.
