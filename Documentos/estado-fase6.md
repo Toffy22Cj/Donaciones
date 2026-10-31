@@ -229,6 +229,26 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
+
+- Numerada 0.80, en la serie de Google (0.80 a 0.84).
+- **Norma:**
+  - ADR-050 D9 (`ADR-050-cuenta-y-sesiones.md:172-184`) y los tests 27 a 29;
+  - `plan-adr050-r6-google.md`, APROBADO por Manuel con P-G-1 a P-G-14 y tres ampliaciones de D9 (#164, comentario 6544630429): `currentPassword` al vincular, desvincular con su auditoría y su aviso, y avisos por correo (amplía E2-4).
+- **Qué hace:**
+  - `POST /auth/google`: la cuenta se busca por el `sub`, nunca por el correo, y el login sigue las mismas reglas que el de contraseña (E2-3, D3 y el `iat` de E1-2);
+  - `POST` y `DELETE /account/google/link`, con `currentPassword`;
+  - verificación del `idToken` con Nimbus, con el JWKS en caché, 2 s de espera, un reintento y 503 si Google no responde;
+  - `GOOGLE_OAUTH_CLIENT_IDS` solo por entorno.
+  `contracts` no cambia (P-G-11).
+- **Evidencia:**
+  - **Rojo** (`6faec6c`, solo tests): `identity` no compila sin el código, con `cannot find symbol` en `GoogleIdTokenVerifierPort`.
+  - **Verde:** api "Tests run: 175", identity 413 y app 653, todos con "Failures: 0, Errors: 0, Skipped: 0". La ejecución dirigida a los módulos completos de `identity`, `api` y `app` pasó a la primera.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `9787e06`, con la mutación 0 de línea base VIVA): 17 de 17 muertas.
+    - La primera versión de la 1 ("sin comprobar la firma") no compilaba y no cuenta.
+    - Su versión 1b, que lee las afirmaciones sin verificar, muere con los dos tests 27.
+- *Nota (2026-10-31): `ci-local.sh`* en un clon limpio de `91e376f` (`free -g`: 15 GB en total, 14 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-91e376f-2026-10-31T16-13-52Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 175, identity 413, convocatoria 272 y app 653, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
 ### 0.72 R-7: perfil de la organización (2026-10-31, `feat/identity-r7-perfil-organizacion`, #165)
 
 - Numerada 0.72, en la serie del trabajo del 2026-10-29 (0.70 a 0.79).

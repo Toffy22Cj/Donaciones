@@ -343,6 +343,26 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - **G-2.** Dato de Manuel, **sin verificar en el código del móvil:** la app Flutter usará `google_sign_in` con `serverClientId` igual al ID web, así que el `aud` del `idToken` del móvil será normalmente el ID web. El backend acepta cualquier `aud` de la lista configurada.
 - **Qué autoriza:** escribir `plan-adr050-r6-google.md`. **No autoriza código:** el código espera el "plan aprobado" de Manuel en un comentario citable.
 
+**Nota (2026-10-31): "plan aprobado" de Manuel sobre R-6 de ADR-050 (Google), con tres ampliaciones de D9.** Fuente citable: comentario de `buelvasmanuel` en #164, 2026-10-31T14:22:58Z, https://github.com/Toffy22Cj/Donaciones/pull/164#issuecomment-6544630429. Texto literal:
+
+> Apruebo el plan (`plan-adr050-r6-google.md`) con sus nombres [Plan] y las recomendaciones de P-G-1 a P-G-14, con estos cambios:
+>
+> - **P-G-4/P-G-5:** `POST /account/google/link` exige `currentPassword` en el cuerpo, como la desactivación (Q3 de ADR-050). Si es incorrecta, se responde lo mismo que en la desactivación. Motivo: con un JWT robado se podría vincular otro Google y conservar el acceso después de un cambio de contraseña.
+> - **P-G-5:** desvincular entra en este PR: `DELETE /api/v1/account/google/link` con JWT y `{currentPassword}` → 204, con la auditoría `GOOGLE_UNLINKED` [Plan] y el aviso por correo. Necesita sus tests y sus mutaciones.
+> - **P-G-6:** sí se avisa por correo, al vincular y al desvincular. Amplía E2-4 por decisión mía.
+> - Las tres ampliaciones de D9 van en una nota fechada, "decisión de Manuel", en `decisiones-delegadas-2026-10.md` y bajo D9, sin borrar nada.
+
+- **Las tres ampliaciones de D9, decisión de Manuel:**
+  1. `POST /api/v1/account/google/link` exige `currentPassword`. Si es incorrecta o falta, la misma respuesta que la desactivación: **400 `CurrentPasswordIncorrect`**, nunca 401 (`DeactivateAccountService.java:88-89`, mapeado en `IdentityApiErrorMappings.java:79`; P-D6-1).
+  2. Desvincular entra: `DELETE /api/v1/account/google/link` con JWT y `{currentPassword}` → `204`, con la auditoría `GOOGLE_UNLINKED` [Plan] y aviso por correo.
+  3. Aviso de seguridad por correo al vincular y al desvincular. **Amplía E2-4** de la Enmienda 2 (`ADR-050-enmienda-2-verificacion-correo-y-avisos.md:104-106`).
+- **Autoriza** el código en `feat/identity-adr050-r6-google`, sin tocar `contracts` (P-G-11).
+
+
+**Nota (2026-10-31): Google, dos respuestas de Manuel ("comunicado por Manuel").**
+- **Test 27, "el mismo 401 byte a byte":** **sí vale** ignorar `instance`, que lleva la ruta (`app/src/test/java/com/traceability/app/web/auth/GoogleSignInHttpIntegrationTest.java:141-144`). El resto del cuerpo y el estado deben ser iguales, y el test lo comprueba.
+- **G-2** (el `aud` del móvil; `decisiones-delegadas-2026-10.md:343`): **sigue sin verificar**. Lo confirmará Adonis cuando cambie el `applicationId` a `com.paxfide.mobile`. **No bloquea:** el backend acepta los tres ID de la lista `GOOGLE_OAUTH_CLIENT_IDS`.
+- No cambia código ni tests (#166).
 **Nota (2026-10-31): "plan aprobado" de Manuel sobre R-7.** Fuente citable: comentario de `buelvasmanuel` en #162, 2026-10-29T19:43:27Z, https://github.com/Toffy22Cj/Donaciones/pull/162#issuecomment-6506646853. Texto literal:
 
 > **Plan aprobado — Manuel, 2026-10-29**, por la delegación de Carlos (C-5). Es la aprobación citable de `Documentos/plan-r7-perfil-organizacion.md`.

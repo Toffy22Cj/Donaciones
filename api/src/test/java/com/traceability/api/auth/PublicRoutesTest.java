@@ -14,6 +14,8 @@ class PublicRoutesTest {
                         "* /api/v1/donations/tracking/** PUBLIC",
                         "POST /api/v1/auth/login PUBLIC",
                         "POST /api/v1/auth/register PUBLIC",
+                        // ADR-050 D9: iniciar sesión con Google
+                        "POST /api/v1/auth/google PUBLIC",
                         "POST /api/v1/auth/password-reset PUBLIC",
                         "POST /api/v1/auth/password-reset/confirm PUBLIC",
                         // ADR-050 Enmienda 2, E2-2: reenviar y confirmar la verificación del correo

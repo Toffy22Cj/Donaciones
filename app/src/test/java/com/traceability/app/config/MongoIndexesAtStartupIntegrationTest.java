@@ -121,6 +121,9 @@ class MongoIndexesAtStartupIntegrationTest {
                 new Document("visibility", 1).append("status", 1).append("startDate", -1).append("publicCode", 1));
         // identidad
         unique("accounts", "email", new Document("email", 1));
+        // ADR-050 D9: un sub de Google, una cuenta (solo las vinculadas)
+        uniquePartial("accounts", "uq_google_subject", new Document("googleSubject", 1),
+                new Document("googleSubject", new Document("$exists", true)));
         unique("donor_pseudonyms", "pseudonym", new Document("pseudonym", 1));
         unique("organization_invitations", "tokenHash", new Document("tokenHash", 1));
         // ficha R-7, P5: un NIT, una organización (solo las que lo tienen)

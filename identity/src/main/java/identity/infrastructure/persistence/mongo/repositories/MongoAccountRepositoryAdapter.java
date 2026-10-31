@@ -82,6 +82,34 @@ public class MongoAccountRepositoryAdapter implements AccountRepositoryPort {
     }
 
     @Override
+    public Optional<Account> findByGoogleSubject(String googleSubject) {
+        if (googleSubject == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(mongoTemplate.findOne(Query.query(Criteria.where("googleSubject").is(googleSubject)),
+                identity.infrastructure.persistence.mongo.documents.AccountDocument.class, "accounts"))
+                .map(AccountMapper::toDomain);
+    }
+
+    @Override
+    public boolean linkGoogleIfUnlinked(AccountId accountId, String googleSubject) {
+        Query query = Query.query(Criteria.where("_id").is(accountId.value()).and("status").is("ACTIVE")
+                .and("googleSubject").is(null));
+        try {
+            return mongoTemplate.updateFirst(query, new Update().set("googleSubject", googleSubject), "accounts")
+                    .getModifiedCount() == 1L;
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            throw new identity.domain.exception.GoogleAccountAlreadyLinkedException("That Google account is linked to another account");
+        }
+    }
+
+    @Override
+    public boolean unlinkGoogleIfLinked(AccountId accountId, String googleSubject) {
+        Query query = Query.query(Criteria.where("_id").is(accountId.value()).and("googleSubject").is(googleSubject));
+        return mongoTemplate.updateFirst(query, new Update().unset("googleSubject"), "accounts").getModifiedCount() == 1L;
+    }
+
+    @Override
     public boolean revokePlatformAuthorityIfHeld(AccountId accountId) {
         Query query = Query.query(
                 Criteria.where("_id").is(accountId.value())

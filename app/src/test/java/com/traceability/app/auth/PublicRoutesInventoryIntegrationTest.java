@@ -116,6 +116,9 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/account/profile",
             "PUT /api/v1/account/profile",
             // ADR-051, Tarea 2: subir, quitar y leer (autenticado) el logo (F6, F8, Enmienda 1)
+            // ADR-050 D9 y su ampliación (Manuel, #164): vincular y desvincular Google, con JWT
+            "POST /api/v1/account/google/link",
+            "DELETE /api/v1/account/google/link",
             // ficha R-7 §4 y §5: el perfil y responder a la solicitud de información, con JWT
             "PUT /api/v1/organizations/{organizationId}/profile",
             "POST /api/v1/organizations/{organizationId}/verification/resubmit",
@@ -182,6 +185,8 @@ class PublicRoutesInventoryIntegrationTest {
                         "/api/v1/organizations/{organizationId}/logo")
                 // ADR-050 D8: las dos rutas de la recuperación existen y son públicas (PublicRoutes)
                 .contains("/api/v1/auth/password-reset", "/api/v1/auth/password-reset/confirm")
+                // ADR-050 D9: el login con Google es público; vincular y desvincular, no
+                .contains("/api/v1/auth/google", "/api/v1/account/google/link")
                 // ficha R-7 §4 y §6: el catálogo es público; el perfil y el reenvío, no
                 .contains("/api/v1/public/locations", "/api/v1/organizations/{organizationId}/profile",
                         "/api/v1/organizations/{organizationId}/verification/resubmit")
