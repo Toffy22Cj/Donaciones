@@ -357,3 +357,9 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
   2. Desvincular entra: `DELETE /api/v1/account/google/link` con JWT y `{currentPassword}` → `204`, con la auditoría `GOOGLE_UNLINKED` [Plan] y aviso por correo.
   3. Aviso de seguridad por correo al vincular y al desvincular. **Amplía E2-4** de la Enmienda 2 (`ADR-050-enmienda-2-verificacion-correo-y-avisos.md:104-106`).
 - **Autoriza** el código en `feat/identity-adr050-r6-google`, sin tocar `contracts` (P-G-11).
+
+
+**Nota (2026-10-31): Google, dos respuestas de Manuel ("comunicado por Manuel").**
+- **Test 27, "el mismo 401 byte a byte":** **sí vale** ignorar `instance`, que lleva la ruta (`app/src/test/java/com/traceability/app/web/auth/GoogleSignInHttpIntegrationTest.java:141-144`). El resto del cuerpo y el estado deben ser iguales, y el test lo comprueba.
+- **G-2** (el `aud` del móvil; `decisiones-delegadas-2026-10.md:343`): **sigue sin verificar**. Lo confirmará Adonis cuando cambie el `applicationId` a `com.paxfide.mobile`. **No bloquea:** el backend acepta los tres ID de la lista `GOOGLE_OAUTH_CLIENT_IDS`.
+- No cambia código ni tests (#166).
