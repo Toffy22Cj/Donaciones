@@ -268,9 +268,12 @@ class OrganizationProfileHttpIntegrationTest {
         assertThat(profile.get("contactEmail").asText()).isEqualTo("contacto@fundacion-r7.example.org");
         assertThat(profile.get("location")).isEqualTo(json.readTree(
                 "{\"departmentName\":\"ANTIOQUIA\",\"municipalityName\":\"MEDELLÍN\"}"));
-        for (String forbidden : List.of("nit", "nitCheckDigit", "legalName", "contactPhone", "specialTaxRegime",
-                "organizationId", "900000001", "3001234567", "Fundación R7 Ejemplo", org)) {
-            assertThat(r.body()).as(forbidden).doesNotContain(forbidden);
+        // negativa sobre el JSON completo: ni las claves ni los valores de verificación ni el id de la organización
+        for (String key : List.of("nit", "nitCheckDigit", "legalName", "contactPhone", "specialTaxRegime", "organizationId")) {
+            assertThat(r.body()).as(key).doesNotContain("\"" + key + "\":");
+        }
+        for (String value : List.of("900000001", "3001234567", "Fundación R7 Ejemplo", org)) {
+            assertThat(r.body()).as(value).doesNotContain(value);
         }
     }
 
