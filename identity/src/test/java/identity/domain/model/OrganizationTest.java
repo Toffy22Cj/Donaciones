@@ -492,4 +492,97 @@ class OrganizationTest {
                 Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, VerificationStatus.REJECTED, msg)
         );
     }
+
+    // --- Ficha R-7 (§9, tests 2 a 4) ---
+
+    /** Razón social y NIT sintético (P-R7-5), lo que P2 (b) exige para verificar. */
+    static OrganizationProfile verificationData() {
+        return OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null, null, null,
+                "Fundación Ejemplo", "900000006", "9", null, null));
+    }
+
+    private static Organization withStatus(VerificationStatus status) {
+        Organization o = Organization.createOrganization(OrganizationType.FOUNDATION, AccountId.generate(), "Fundación");
+        o.updateProfile("Fundación", verificationData());
+        switch (status) {
+            case VERIFIED -> o.verify();
+            case REJECTED -> o.reject();
+            case NEEDS_MORE_INFORMATION -> o.requestInformation(new InformationRequestMessage("Falta el RUT"));
+            default -> { }
+        }
+        return o;
+    }
+
+    @Test
+    void r7_resubmit_fromNeedsMoreInformation_goesBackToPending_andClearsTheRequest() {
+        Organization o = withStatus(VerificationStatus.NEEDS_MORE_INFORMATION);
+
+        o.resubmitForVerification();
+
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, o.getVerificationStatus());
+        assertNull(o.getVerificationInformationRequest());
+    }
+
+    @Test
+    void r7_resubmit_fromTheOtherThreeStates_isNotAllowed() {
+        for (VerificationStatus status : new VerificationStatus[] {VerificationStatus.PENDING_VERIFICATION,
+                VerificationStatus.VERIFIED, VerificationStatus.REJECTED}) {
+            Organization o = withStatus(status);
+            assertThrows(identity.domain.exception.VerificationResubmitNotAllowedException.class,
+                    o::resubmitForVerification, status.name());
+            assertEquals(status, o.getVerificationStatus());
+        }
+    }
+
+    @Test
+    void r7_verify_withoutLegalNameOrNit_isVerificationDataMissing_andWithBothItVerifies() {
+        Organization none = Organization.createOrganization(OrganizationType.FOUNDATION, AccountId.generate(), "F");
+        assertThrows(identity.domain.exception.VerificationDataMissingException.class, none::verify);
+        assertEquals(VerificationStatus.PENDING_VERIFICATION, none.getVerificationStatus());
+
+        Organization onlyName = Organization.createOrganization(OrganizationType.FOUNDATION, AccountId.generate(), "F");
+        onlyName.updateProfile("F", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null, null, null,
+                "Fundación", null, null, null, null)));
+        assertThrows(identity.domain.exception.VerificationDataMissingException.class, onlyName::verify);
+
+        Organization onlyNit = Organization.createOrganization(OrganizationType.FOUNDATION, AccountId.generate(), "F");
+        onlyNit.updateProfile("F", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null, null, null,
+                null, "900000006", "9", null, null)));
+        assertThrows(identity.domain.exception.VerificationDataMissingException.class, onlyNit::verify);
+
+        Organization both = withStatus(VerificationStatus.PENDING_VERIFICATION);
+        both.verify();
+        assertEquals(VerificationStatus.VERIFIED, both.getVerificationStatus());
+    }
+
+    @Test
+    void r7_aVerifiedOrganization_cannotChangeItsIdentity_butCanChangeThePublicFields() {
+        Organization o = withStatus(VerificationStatus.VERIFIED);
+        OrganizationProfile base = o.getProfile();
+
+        assertThrows(identity.domain.exception.OrganizationProfileLockedException.class,
+                () -> o.updateProfile("Otro nombre", base));
+        assertThrows(identity.domain.exception.OrganizationProfileLockedException.class,
+                () -> o.updateProfile("Fundación", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null,
+                        null, null, "Otra razón", "900000006", "9", null, null))));
+        assertThrows(identity.domain.exception.OrganizationProfileLockedException.class,
+                () -> o.updateProfile("Fundación", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null,
+                        null, null, "Fundación Ejemplo", "900000014", "8", null, null))));
+        assertEquals(base, o.getProfile());
+
+        java.util.List<String> changed = o.updateProfile("Fundación", OrganizationProfile.from(new OrganizationProfile.Draft(
+                "Nueva descripción", "https://f.example.org", null, null, null, "Fundación Ejemplo", "900000006", "9",
+                null, null)));
+        assertEquals(java.util.List.of("description", "website"), changed);
+    }
+
+    @Test
+    void r7_specialTaxRegime_onlyForAFoundation() {
+        Organization company = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate(), "E");
+        identity.domain.exception.InvalidOrganizationProfileFieldException e = assertThrows(
+                identity.domain.exception.InvalidOrganizationProfileFieldException.class,
+                () -> company.updateProfile("E", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null,
+                        null, null, null, null, null, Boolean.TRUE, null))));
+        assertEquals("specialTaxRegime", e.getField());
+    }
 }

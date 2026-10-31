@@ -21,6 +21,8 @@ class PublicRoutesTest {
                         "POST /api/v1/auth/email-verification/confirm PUBLIC",
                         "GET /api/v1/public/campaigns/{publicCode} PUBLIC",
                         "GET /api/v1/public/campaigns PUBLIC",
+                        // ficha R-7 §6: el catálogo DIVIPOLA
+                        "GET /api/v1/public/locations PUBLIC",
                         "POST /api/v1/public/campaigns/{publicCode}/donation-intents OPTIONAL_JWT",
                         "GET /api/v1/public/campaigns/{publicCode}/narrative PUBLIC",
                         // ADR-051 F6, Enmienda 1: el logo público, por el código de la convocatoria (Tarea 2)

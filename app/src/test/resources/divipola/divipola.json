@@ -1,0 +1,20 @@
+{
+ "catalogVersion": "test-sample",
+ "departments": [
+  {
+   "code": "05",
+   "name": "ANTIOQUIA",
+   "municipalities": [
+    {"code": "05001", "name": "MEDELLÍN"},
+    {"code": "05002", "name": "ABEJORRAL"}
+   ]
+  },
+  {
+   "code": "11",
+   "name": "BOGOTÁ, D.C.",
+   "municipalities": [
+    {"code": "11001", "name": "BOGOTÁ, D.C."}
+   ]
+  }
+ ]
+}

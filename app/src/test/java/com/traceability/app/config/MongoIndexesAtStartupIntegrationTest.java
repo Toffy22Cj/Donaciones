@@ -123,6 +123,9 @@ class MongoIndexesAtStartupIntegrationTest {
         unique("accounts", "email", new Document("email", 1));
         unique("donor_pseudonyms", "pseudonym", new Document("pseudonym", 1));
         unique("organization_invitations", "tokenHash", new Document("tokenHash", 1));
+        // ficha R-7, P5: un NIT, una organización (solo las que lo tienen)
+        uniquePartial("organizations", "uq_organization_nit", new Document("nit", 1),
+                new Document("nit", new Document("$exists", true)));
         // anclaje
         unique("merkle_batches", "batchId", new Document("batchId", 1));
         // imágenes (ADR-051 F9): una clave por objeto, y una evidencia por (organización, huella)
