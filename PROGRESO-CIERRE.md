@@ -189,4 +189,4 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - P3: #165 no se fusionó en las 3 h (18:50Z a 21:50Z). En cambio, Manuel fusionó **#166 y #167** (develop `265764a`), y #165 quedó con conflictos.
   - Regla P3 de la tanda anterior: merge normal de develop en #165 (`0b0fb56`), conservando los dos lados y con lo de develop primero.
   - Conflictos: notas, AuditAction, IdentityApiErrorMappings y PublicRoutesInventory, todos de tipo "añadir". 0 líneas de Documentos borradas frente a cualquiera de los dos lados.
-  - ci-local en curso en `scratchpad/ci-r7m`.
+  - ci-local en `0b0fb56`: BUILD SUCCESS (identity 429, app 663). Evidencia y nota en §0.72 en `c1a8168`. Cuerpo de #165 actualizado. #165 queda listo y fusionable (clean).
