@@ -174,8 +174,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - commits: `4b43bb7` (aprobación), `931fce1` (rojo), `3df49ca` (código), `19c611a` (arreglo del test 8), `2d3862e` (documentos), `3e2a6a1` (equals del perfil vacío) y `86b9fbe` (evidencia de ci-local);
   - mutaciones: 12 de 12 muertas;
   - ci-local en `3e2a6a1`: BUILD SUCCESS (app 640, identity 428).
-- **Google** (`feat/identity-adr050-r6-google`, con push), PR #166 en borrador:
-  - commits: `ece5f03`, `6faec6c`, `5bb0925`, `9787e06` (referencia-api) y `91e376f` (§0.80);
-  - mutaciones: 17 de 17 muertas (la 1 se sustituyó por la 1b porque la 1 no compilaba);
-  - ci-local en `91e376f` en curso (`scratchpad/ci-g`); después: evidencia, cuerpo del PR y quitar el borrador.
-- P3: quien se fusione segundo choca en las notas de estado-fase6 (las dos van antes de §0.71); se resuelve conservando los dos lados.
+- **Google** (`feat/identity-adr050-r6-google`, con push), PR #166 listo (no borrador), cabeza `098e8b0`:
+  - commits: `ece5f03`, `6faec6c`, `5bb0925`, `9787e06`, `91e376f` y `098e8b0` (evidencia de ci-local);
+  - mutaciones: 17 de 17 muertas (con la 1b);
+  - ci-local en `91e376f`: BUILD SUCCESS (api 175, identity 413, app 653).
+- Estado al cierre (2026-10-31): `develop` sigue en `b0654aa` y no hay que hacer P3. Los dos PR están abiertos y son fusionables; el orden es #165 y después #166. El segundo necesita un merge de develop (conflicto de notas en estado-fase6) y repetir ci-local.
