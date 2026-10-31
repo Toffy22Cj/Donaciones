@@ -362,3 +362,8 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 > Hay que registrar esta aprobación con una nota fechada en `decisiones-delegadas-2026-10.md` y en el plan, en el primer commit del PR de código. Se puede empezar el código de R-7.
 
 - **Anotado al registrarlo:** el plan (§2, P-R7-1 y P-R7-2) habla de "municipios". El archivo trae además 1 isla y 18 áreas no municipalizadas, que se incluyen todas como entradas del catálogo, igual que los municipios.
+
+**Nota (2026-10-31): R-7, la descripción como texto plano. Respuesta de Manuel, "comunicado por Manuel".**
+- **Pregunta:** la ficha pide la descripción en texto plano, sin HTML ni Markdown (`ficha-R7-perfil-organizacion.md:40`). La implementación rechaza `<` y `>` y guarda el Markdown tal cual, sin interpretarlo (`identity/src/main/java/identity/domain/model/OrganizationProfile.java:18-19`).
+- **Respuesta:** **sí vale** rechazar `<` y `>` y guardar el Markdown tal cual, sin interpretarlo. El front lo muestra como texto plano.
+- No cambia código ni tests (#165).
