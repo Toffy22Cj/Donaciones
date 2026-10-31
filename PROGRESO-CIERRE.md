@@ -179,3 +179,7 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - mutaciones: 17 de 17 muertas (con la 1b);
   - ci-local en `91e376f`: BUILD SUCCESS (api 175, identity 413, app 653).
 - Estado al cierre (2026-10-31): `develop` sigue en `b0654aa` y no hay que hacer P3. Los dos PR están abiertos y son fusionables; el orden es #165 y después #166. El segundo necesita un merge de develop (conflicto de notas en estado-fase6) y repetir ci-local.
+
+## Cierre R-7 y Google (2026-10-31)
+- P0: el pie de #166 está corregido (termina en la línea 🤖), y el cuerpo incluye las respuestas de Manuel. `gh pr edit` no sirve porque GraphQL da 403, y el proxy REST reescribe el pie; se usó la herramienta MCP `update_pull_request`.
+- P1 (notas de las tres respuestas): en curso.
