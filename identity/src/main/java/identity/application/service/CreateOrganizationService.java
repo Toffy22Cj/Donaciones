@@ -72,13 +72,13 @@ public class CreateOrganizationService {
             throw new identity.domain.exception.LegalVersionNotCurrentException("acceptedOrganizationTermsVersion");
         }
         Objects.requireNonNull(profile, "profile must not be null");
-        if (profile != identity.domain.model.OrganizationProfile.EMPTY) {
+        if (!identity.domain.model.OrganizationProfile.EMPTY.equals(profile)) {
             profileRules.getObject().requireKnownLocation(profile);
         }
         return create(actor, type, initialRepresentativeAccountId, name, organization -> {
             organization.acceptOrganizationTerms(acceptedOrganizationTermsVersion, initialRepresentativeAccountId,
                     clock.instant());
-            if (profile != identity.domain.model.OrganizationProfile.EMPTY) {
+            if (!identity.domain.model.OrganizationProfile.EMPTY.equals(profile)) {
                 organization.applyProfileAtCreation(profile);
             }
         });
