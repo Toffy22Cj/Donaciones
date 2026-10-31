@@ -229,6 +229,58 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.71 R-1: búsqueda, filtro y orden en el descubrimiento público (2026-10-29, `feat/convocatoria-r1-busqueda-descubrimiento`, #159)
+
+- Numerada 0.71, en la serie del trabajo del 2026-10-29 (0.70 a 0.79). La 0.70 queda para la Enmienda 2 de ADR-050 (`plan-adr050-enmienda-2.md`, P-E2V-12).
+- **Norma:**
+  - `ficha-R1-busqueda-descubrimiento-convocatorias.md` (CONGELADA, B1 a B7);
+  - `plan-r1-busqueda-descubrimiento.md`, APROBADO por Carlos (C-2, `decisiones-delegadas-2026-10.md`, nota del 2026-10-29);
+  - el plan §2 autoriza sustituir `findPublicOpenAfter` por `findPublicOpenPage` en `ConvocatoriaRepositoryPort` (regla 3.5).
+- **Qué hace:**
+  - `GET /public/campaigns?q=&donationType=&sort=&cursor=`;
+  - `titleSearch` normalizado, con su relleno al arrancar;
+  - los índices `idx_discovery_ending_soon` e `idx_discovery_recent`;
+  - el cursor v2 cifrado, con el códec en UTF-8.
+  La forma de la respuesta no cambia. Los archivos son exactamente los del plan §2.
+- **Evidencia:**
+  - **Línea base** (clon limpio de `546f505`, `mvn -B clean test -fae`): core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 260 y app 607, todos con "Failures: 0, Errors: 0, Skipped: 0".
+  - **Rojo** (compilación):
+    - tests de `convocatoria` sin el código: `cannot find symbol` en `ConvocatoriaTitleSearchBackfill`, `Criteria`, `Position`, `Sort`, `nextPosition()` y `SearchTextNormalizer`;
+    - `app` con el `convocatoria` nuevo y el controlador anterior: `PublicCampaignDiscoveryController.java:[58,21] cannot find symbol ... method lastPublicCode()`.
+  - **Verde por capas:**
+    - `mvn test -pl convocatoria -am`: "Tests run: 272, Failures: 0, Errors: 0, Skipped: 0";
+    - `app` en dirigido (los 5 tests del descubrimiento): "Tests run: 41, Failures: 0, Errors: 0, Skipped: 0";
+    - el reactor completo, en `ci-local.sh` (nota de abajo).
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `7ef2625`, con la mutación 0 de línea base VIVA):
+    - `convocatoria`: 11 de 11 muertas (C1 a C11);
+    - `app`: 12 de 12 muertas (A1 a A12).
+    El PR #159 dice qué test mata cada una.
+- *Nota (2026-10-29): `ci-local.sh`* en un clon limpio de `7814d8d` (`free -g`: 15 GB en total, 14 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-7814d8d-2026-10-29T17-47-44Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 272 y app 622, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Respecto de la línea base: convocatoria +12 y app +15.
+- *Nota (2026-10-29, más tarde):* se integró `develop` `d313bc6` (#157 y #160) con un merge normal (`94de436`), sin conflictos. Se añadieron en la ficha R-1 las dos notas de las observaciones que aceptó Manuel (#159, comentario 6504628005).
+  - `ci-local.sh` en un clon limpio de `6dc17f5` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 174, identity 396, convocatoria 272 y app 622, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Evidencia: `evidencia-ci/ci-local-6dc17f5-2026-10-29T18-52-26Z.txt`.
+
+### 0.70 ADR-050 Enmienda 2: verificar el correo y avisos de seguridad (2026-10-29, `feat/identity-adr050-e2-verificacion-correo`, #163)
+
+- Numerada 0.70, en la serie del trabajo del 2026-10-29 (0.70 a 0.79), como dice P-E2V-12.
+- **Norma:**
+  - `ADR-050-enmienda-2-verificacion-correo-y-avisos.md` (E2-1 a E2-5), con Q1 a Q5 cerradas por Manuel (C-3);
+  - `plan-adr050-enmienda-2.md`, APROBADO por Manuel (#158, comentario 6504627552).
+- **Estado: BLOQUEADO por P-E2V-13.** La Enmienda 2 pide auditar `EMAIL_VERIFIED` (E2-2). ADR-038 §2.2, que vigila `identity/src/test/java/identity/architecture/ArchitectureTest.java:67-88`, solo deja construir los dos tipos de actor de auditoría en clases concretas, y `EmailVerificationService` no está entre ellas. El test no se toca; lo decide Manuel.
+- **Evidencia hasta ahora:**
+  - **Rojo** (`59d25c0`, solo tests): no compilan sin el código (`cannot find symbol` en `EmailNotVerifiedException`, `EmailVerificationService`, `EmailVerificationTokenDocument`, `SecurityNoticeMailPort`...).
+  - **`identity`** (`mvn test -pl identity -am`): "Tests run: 411, Failures: 1, Errors: 0, Skipped: 0". La única falla es la regla de P-E2V-13.
+  - **`app`:** los tests nuevos y los adaptados, en verde (#163).
+- *Nota (2026-10-30): desbloqueado y terminado.*
+  - **P-E2V-13:** Manuel eligió la opción (a) (#163, comentario 6506647217). `EmailVerificationService` entra en la regla de `ArchitectureTest.java:67-88` (`31c2a56`).
+  - **Merge** de `develop` `6375c40`, con conflictos solo en notas, resueltos conservando los dos lados.
+  - **Mutaciones** (`scripts/mutaciones.py`, clones limpios; la mutación 0 de línea base sale VIVA en cada ejecución):
+    - 13 de 13 muertas;
+    - la 4 (`markUsedIfPending` sin `PENDING`) sobrevivió primero, porque la transacción ya serializa las confirmaciones. Se añadió `test5_markUsedIfPending_isConditional_…` (`dfc4768`), que la mata.
+  - **`ci-local.sh`** en un clon limpio de `dfc4768` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 175, identity 412, convocatoria 272 y app 630, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-dfc4768-2026-10-30T05-59-02Z.txt`. También está la de `31c2a56`.
+
 ### 0.64 ADR-051, Tarea 5: leer la evidencia, retirarla por la plataforma y la huella en el seguimiento (2026-10-25, `feat/adr051-t5-evidencia-lectura`)
 
 - Numerada 0.64, en la serie del cierre del backend (0.60 a 0.69).

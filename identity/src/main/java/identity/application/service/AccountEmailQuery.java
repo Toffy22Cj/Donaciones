@@ -21,4 +21,13 @@ public class AccountEmailQuery {
     public String emailOf(String accountId) {
         return accounts.findById(new AccountId(accountId)).getEmail().value();
     }
+
+    /** [Plan] ADR-050 Enmienda 2, E2-1: el correo y si está verificado, para {@code GET /account}. */
+    public AccountEmail account(String accountId) {
+        identity.domain.model.Account account = accounts.findById(new AccountId(accountId));
+        return new AccountEmail(account.getEmail().value(), account.isEmailVerified());
+    }
+
+    /** [Plan] */
+    public record AccountEmail(String email, boolean emailVerified) {}
 }

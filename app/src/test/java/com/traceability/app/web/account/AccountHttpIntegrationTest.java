@@ -101,10 +101,17 @@ class AccountHttpIntegrationTest {
         return json.readTree(r.body());
     }
 
+    /** Las cuentas del test las crea el sistema y nacen verificadas (ADR-050 Enmienda 2, P-E2V-2). */
     private void assertExactlyTheEmail(HttpResponse<String> r, String email) throws Exception {
+        assertExactlyTheEmail(r, email, true);
+    }
+
+    /** ADR-050 Enmienda 2, E2-1: {@code GET /account} lleva además {@code emailVerified}. */
+    private void assertExactlyTheEmail(HttpResponse<String> r, String email, boolean emailVerified) throws Exception {
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
         assertThat(r.headers().firstValue("Cache-Control")).hasValue("no-store");
-        assertThat(json.readTree(r.body())).isEqualTo(json.createObjectNode().put("email", email));
+        assertThat(json.readTree(r.body()))
+                .isEqualTo(json.createObjectNode().put("email", email).put("emailVerified", emailVerified));
     }
 
     // --- 200: la propia cuenta, con y sin organización ---
@@ -142,7 +149,8 @@ class AccountHttpIntegrationTest {
         assertThat(registered.statusCode()).as(registered.body()).isEqualTo(201);
         String accountId = json.readTree(registered.body()).get("accountId").asText();
 
-        assertExactlyTheEmail(readAccount(accountId), local.toLowerCase(java.util.Locale.ROOT) + "@ejemplo.org");
+        // registrada por la ruta pública: todavía sin verificar (E2-1)
+        assertExactlyTheEmail(readAccount(accountId), local.toLowerCase(java.util.Locale.ROOT) + "@ejemplo.org", false);
     }
 
     @Test

@@ -12,6 +12,8 @@
 > - `title` sigue sin poder editarse (`Convocatoria.java:42`, `final`). Las escrituras posteriores a la creación son `$set` de campos concretos (`MongoConvocatoriaRepositoryAdapter.java:47-80`), así que no borran `titleSearch`.
 >
 > **El §6 (evidencia pegada por un humano) queda superado.** La evidencia sigue el ciclo del encargo del 2026-10-29: rojo primero con la salida literal, verde por capas con el módulo completo y el resumen literal de Surefire, mutaciones con `scripts/mutaciones.py` y `scripts/ci-local.sh` en un clon limpio, con la salida en `Documentos/evidencia-ci/`. El §6 se conserva.
+
+> **Nota (2026-10-29): implementado** en #159 (`feat/convocatoria-r1-busqueda-descubrimiento`), con los archivos del §2 y los tests del §3. La evidencia está en `estado-fase6.md` §0.71.
 **Fecha:** 2026-10-18 (UTC).
 **Contrato:** `ficha-R1-busqueda-descubrimiento-convocatorias.md` (CONGELADA). Este plan no decide nada que la ficha no fije; si al implementar aparece un caso no cubierto, se detiene y se pregunta (regla 2.1).
 **Base:** `develop` en `4bef7be`. **Rama:** `feat/convocatoria-r1-busqueda-descubrimiento`.

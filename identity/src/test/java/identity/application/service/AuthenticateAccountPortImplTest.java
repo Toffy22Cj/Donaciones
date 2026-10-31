@@ -68,9 +68,48 @@ class AuthenticateAccountPortImplTest {
         return withAcceptances(status, ACCEPTED_V1, ACCEPTED_V1);
     }
 
+    /** Con el correo verificado (ADR-050 Enmienda 2, E2-3): así estos tests prueban lo que probaban antes. */
     private Account withAcceptances(AccountStatus status, LegalAcceptance terms, LegalAcceptance dataPolicy) {
         return Account.reconstitute(new AccountId("acc-1"), new Email(EMAIL), storedHash, status, null, null, null, null,
-                null, terms, dataPolicy);
+                null, terms, dataPolicy, VERIFIED_AT);
+    }
+
+    private static final Instant VERIFIED_AT = Instant.parse("2026-10-01T09:05:00Z");
+
+    private Account unverified(AccountStatus status, LegalAcceptance terms, LegalAcceptance dataPolicy) {
+        return Account.reconstitute(new AccountId("acc-1"), new Email(EMAIL), storedHash, status, null, null, null, null,
+                null, terms, dataPolicy, null);
+    }
+
+    // --- ADR-050 Enmienda 2, E2-3: contraseña → estado → correo verificado → aceptaciones ---
+
+    @Test
+    void e2_anUnverifiedAccountWithTheRightPassword_isEmailNotVerified() {
+        when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(unverified(AccountStatus.ACTIVE, ACCEPTED_V1, ACCEPTED_V1)));
+
+        assertThatThrownBy(() -> port(hasher).authenticate(EMAIL, PASSWORD, AcceptedLegalVersions.NONE))
+                .isExactlyInstanceOf(com.traceability.contracts.authentication.EmailNotVerifiedException.class);
+    }
+
+    @Test
+    void e2_anUnverifiedAccountWithAWrongPasswordOrInactive_isTheUsualFailure() {
+        when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(unverified(AccountStatus.ACTIVE, ACCEPTED_V1, ACCEPTED_V1)));
+        assertThatThrownBy(() -> port(hasher).authenticate(EMAIL, "wrong", AcceptedLegalVersions.NONE))
+                .isExactlyInstanceOf(AuthenticationFailedException.class);
+
+        when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(unverified(AccountStatus.INACTIVE, ACCEPTED_V1, ACCEPTED_V1)));
+        assertThatThrownBy(() -> port(hasher).authenticate(EMAIL, PASSWORD, AcceptedLegalVersions.NONE))
+                .isExactlyInstanceOf(AuthenticationFailedException.class);
+    }
+
+    @Test
+    void e2_theVerificationGoesBeforeTheAcceptances_andWritesNothing() {
+        when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(unverified(AccountStatus.ACTIVE, null, null)));
+
+        assertThatThrownBy(() -> port(hasher).authenticate(EMAIL, PASSWORD, new AcceptedLegalVersions(V1, V1)))
+                .isExactlyInstanceOf(com.traceability.contracts.authentication.EmailNotVerifiedException.class);
+        org.mockito.Mockito.verify(accounts, org.mockito.Mockito.never())
+                .recordLegalAcceptancesIfUnchanged(any(), any(), any(), any());
     }
 
     @Test
@@ -86,7 +125,7 @@ class AuthenticateAccountPortImplTest {
     void correctCredentials_returnTheCredentialsNotBeforeOfThatSameAccount() {
         java.time.Instant cnb = java.time.Instant.parse("2026-10-25T10:00:03Z");
         Account withCnb = Account.reconstitute(new AccountId("acc-1"), new Email(EMAIL), storedHash, AccountStatus.ACTIVE,
-                null, null, cnb, null, null, ACCEPTED_V1, ACCEPTED_V1);
+                null, null, cnb, null, null, ACCEPTED_V1, ACCEPTED_V1, VERIFIED_AT);
         when(accounts.findByEmail(new Email(EMAIL))).thenReturn(Optional.of(withCnb));
 
         assertThat(port(hasher).authenticate(EMAIL, PASSWORD, AcceptedLegalVersions.NONE))

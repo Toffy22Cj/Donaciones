@@ -71,6 +71,17 @@ public class MongoAccountRepositoryAdapter implements AccountRepositoryPort {
     }
 
     @Override
+    public boolean markEmailVerifiedIfUnverified(AccountId accountId, java.time.Instant verifiedAt) {
+        Query query = Query.query(
+                Criteria.where("_id").is(accountId.value())
+                        .and("status").is("ACTIVE")
+                        .and("emailVerifiedAt").is(null)
+        );
+        Update update = new Update().set("emailVerifiedAt", verifiedAt);
+        return mongoTemplate.updateFirst(query, update, "accounts").getModifiedCount() == 1L;
+    }
+
+    @Override
     public boolean revokePlatformAuthorityIfHeld(AccountId accountId) {
         Query query = Query.query(
                 Criteria.where("_id").is(accountId.value())

@@ -27,6 +27,8 @@ public class Account {
     /** ADR-050 D2: versión y fecha de los términos y de la autorización de datos aceptados. Nulas en cuentas existentes. */
     private LegalAcceptance termsAcceptance;
     private LegalAcceptance dataPolicyAcceptance;
+    /** ADR-050 Enmienda 2, E2-1: cuándo se verificó el correo; nulo mientras no se verifica (y en las cuentas existentes, Q2 (a)). */
+    private Instant emailVerifiedAt;
 
     public static final int PROFILE_FIELD_MAX_CODE_POINTS = 100;
 
@@ -59,6 +61,18 @@ public class Account {
         account.familyName = familyName;
         account.termsAcceptance = termsAcceptance;
         account.dataPolicyAcceptance = dataPolicyAcceptance;
+        return account;
+    }
+
+    /** Con la verificación del correo (ADR-050 Enmienda 2, E2-1). Uso exclusivo de adaptadores de persistencia. */
+    public static Account reconstitute(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status,
+                                       OrganizationId organizationId, PlatformAuthority platformAuthority,
+                                       Instant credentialsNotBefore, String givenName, String familyName,
+                                       LegalAcceptance termsAcceptance, LegalAcceptance dataPolicyAcceptance,
+                                       Instant emailVerifiedAt) {
+        Account account = reconstitute(accountId, email, passwordHash, status, organizationId, platformAuthority,
+                credentialsNotBefore, givenName, familyName, termsAcceptance, dataPolicyAcceptance);
+        account.emailVerifiedAt = emailVerifiedAt;
         return account;
     }
 
@@ -115,6 +129,27 @@ public class Account {
     public void acceptLegalTerms(String termsVersion, String dataPolicyVersion, Instant now) {
         this.termsAcceptance = new LegalAcceptance(termsVersion, now);
         this.dataPolicyAcceptance = new LegalAcceptance(dataPolicyVersion, now);
+    }
+
+    /** ADR-050 Enmienda 2, E2-1. */
+    public boolean isEmailVerified() {
+        return this.emailVerifiedAt != null;
+    }
+
+    /**
+     * ADR-050 Enmienda 2, E2-1 y E2-2: fija {@code emailVerifiedAt}. Una cuenta ya verificada no cambia.
+     *
+     * @return si cambió
+     */
+    public boolean markEmailVerified(Instant now) {
+        if (now == null) {
+            throw new IllegalArgumentException("now cannot be null");
+        }
+        if (this.emailVerifiedAt != null) {
+            return false;
+        }
+        this.emailVerifiedAt = now;
+        return true;
     }
 
     /** Cambia el hash y revoca todos los tokens anteriores (ADR-050 D4). */

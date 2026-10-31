@@ -110,6 +110,24 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
 - **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
+*Nota (2026-10-29, ADR-050 Enmienda 2; plan aprobado en #158; #163):* **verificación del correo y avisos de seguridad.** Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/register` | como antes | como antes | `201`, como antes. La cuenta nace **sin verificar** y se envía un correo con `{TRACEABILITY_WEB_BASE_URL}/verificar-correo#token=…` (válido 24 h, un solo uso). La respuesta no espera al envío | como antes |
+| `POST /auth/login` | como antes | como antes | Con la contraseña correcta, la cuenta activa y **el correo sin verificar** → **`403` `application/problem+json`, `title` `EmailNotVerified`**, sin token. Va antes que `AcceptanceRequired`. Con una contraseña errónea, el 401 de siempre, sin revelar nada | como antes |
+| `POST /auth/email-verification` | pública | `{email}` | **Siempre el mismo `202` sin cuerpo**, `no-store`, exista o no la cuenta y esté o no verificada. Solo una cuenta `ACTIVE` sin verificar, fuera del enfriamiento de 5 minutos, recibe un correo nuevo; el anterior queda sustituido | 400 `email` vacío |
+| `POST /auth/email-verification/confirm` | pública | `{token}` | `204`, `no-store`. **No inicia sesión.** Una cuenta ya verificada con un token todavía pendiente → `204` sin cambios | 400 `token` vacío; **el mismo 400 `EmailVerificationTokenInvalid`** para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva |
+| `GET /account` | como antes | — | `200 {email, emailVerified}`: gana `emailVerified` (booleano) | como antes |
+
+- **Cuentas que ya existían** al desplegar (Q2 (a)): quedan sin verificar y deben verificar en su siguiente login, con "Reenviar". Las cuentas de la semilla y el administrador de plataforma inicial nacen verificados.
+- **Confirmar una recuperación** (`/auth/password-reset/confirm`) también verifica el correo.
+- **Avisos por correo, sin enlace con token:**
+  - al cambiar la contraseña: "Tu contraseña de PaxFide cambió";
+  - al confirmar una recuperación: "Restableciste tu contraseña de PaxFide";
+  - al desactivar la propia cuenta: "Desactivaste tu cuenta de PaxFide".
+  Llevan la fecha y hora de Bogotá; nunca la contraseña, un token, la IP ni el dispositivo. Un fallo de envío no cambia la respuesta.
+
 ## 2. Plataforma
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
@@ -208,6 +226,22 @@ Todas con JWT + `ADMINISTRATOR` de la organización de la convocatoria y `Comman
 *Nota (2026-10-21, ADR-051 Tarea 2; enmiendas de contrato del plan de la Tarea 2 §2):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`organizationLogoUrl?`** (`/api/v1/public/campaigns/{publicCode}/organization-logo`), solo si la organización tiene logo. Ninguna respuesta pública lleva el `organizationId` (Enmienda 1). Nombre, verificación y logo salen de una sola lectura de la organización (P-T2-7). Tras reemplazar un logo, el anterior puede seguir en cachés hasta 1 h (R-T2-5, aceptado). `coverImageUrl?` llega con la Tarea 3. Las filas de arriba no se reescriben.
 
 *Nota (2026-10-25, ADR-051 Tarea 3):* `GET /public/campaigns` (cada ítem) y `GET /public/campaigns/{publicCode}` llevan además **`coverImageUrl?`** (`/api/v1/public/campaigns/{publicCode}/cover`), solo si la convocatoria tiene portada. Ninguna respuesta pública lleva el `campaignRef`, el `organizationId` ni la `objectKey`.
+
+*Nota (2026-10-29, ficha R-1, `ficha-R1-busqueda-descubrimiento-convocatorias.md`; plan R-1 aprobado por Carlos):* `GET /public/campaigns` acepta además, todos opcionales, **`?q=&donationType=&sort=&cursor=`**. **La forma de la respuesta no cambia.**
+- **`q`:** se recorta y debe tener de 2 a 100 puntos de código. Busca por subcadena en el título, sin distinguir mayúsculas ni tildes; ningún carácter actúa como operador. `?q=` vacío o de solo espacios → 400.
+- **`donationType`:** `MONETARY` o `IN_KIND`. La convocatoria debe aceptar ese tipo.
+- **`sort`:**
+  - `ending_soon`: `endDate` ascendente;
+  - `recent`: `startDate` descendente;
+  - sin `sort`, `publicCode` ascendente, como antes;
+  - el desempate es siempre `publicCode` ascendente.
+- **Errores:** un valor fuera de esos → 400 `BadRequest`, con el cuerpo fijo de siempre. Se valida en el orden `q`, `donationType`, `sort`, `cursor`, y cada error corresponde a un solo campo, el primero que falla.
+- **`cursor` (versión 2):**
+  - lleva dentro los filtros y el orden de la petición que lo emitió;
+  - usarlo con otros → 400 `cursor`;
+  - un cursor del formato anterior solo vale sin `q`, sin `donationType` y sin `sort`.
+- Sigue sin listar nunca `PRIVATE_LINK` ni `CLOSED`.
+- Las filas de arriba no se reescriben.
 
 ## 6. Activos físicos
 

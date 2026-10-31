@@ -322,3 +322,23 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - **Aprobaciones de Manuel ya publicadas,** que se registran aquí:
   - el plan de la Enmienda 2 (#158, https://github.com/Toffy22Cj/Donaciones/pull/158#issuecomment-6504627552), con P-E2V-1 a 12 como se recomiendan;
   - las dos observaciones de R-1 (#159, https://github.com/Toffy22Cj/Donaciones/pull/159#issuecomment-6504628005).
+
+**Nota (2026-10-29): "plan aprobado" de Manuel sobre la Enmienda 2 de ADR-050.** Fuente citable: comentario de `buelvasmanuel` en #158, 2026-10-29T18:09:13Z, https://github.com/Toffy22Cj/Donaciones/pull/158#issuecomment-6504627552. Aprueba `plan-adr050-enmienda-2.md`.
+- **P-E2V-1 a P-E2V-12:** aprobados tal como los recomienda el plan.
+- **P-E2V-2:** las cuentas que crea el sistema (semilla y tests, `CreateAccountService`) nacen verificadas.
+- **P-E2V-3:** se acepta el riesgo. Los administradores de plataforma que ya existen **no** se marcan como verificados al desplegar, por coherencia con Q2 (a): recuperan el acceso con "Reenviar" o con la recuperación. **Condición:** antes de desplegar, el SMTP de producción tiene que estar comprobado. Va en el aviso del PR de código.
+- **P-E2V-10:** los avisos llevan la hora de America/Bogota; el correo de recuperación (D8) no se toca.
+- **Autoriza** el código, en un PR que sale de la rama de #158 ("depende de #158"), con el cambio de `AuthenticateAccountPort` (E2-3, regla 3.5).
+
+**Nota (2026-10-29): P-E2V-13 decidido por Manuel, opción (a).** Fuente citable: comentario de `buelvasmanuel` en #163, 2026-10-29T19:43:28Z, https://github.com/Toffy22Cj/Donaciones/pull/163#issuecomment-6506647217.
+- El actor de `EMAIL_VERIFIED` es la propia cuenta (`AccountAuditActor`).
+- Se añade `EmailVerificationService` a la regla de `identity/src/test/java/identity/architecture/ArchitectureTest.java:67-88` que fija quién puede construir ese actor, con el precedente de `ChangeCredentialsService` (Enmienda 1 de ADR-050, parte 2). La regla cita esta decisión y E2-2.
+- **Es una ampliación de ADR-038 §2.2** para esta clase. No se relaja ninguna otra regla.
+
+**Nota (2026-10-30): se retoma R-6 de ADR-050, el login con Google, "comunicado por Manuel".**
+- **G-0.** Se retoma R-6 (D9 y los tests 27 a 29). **Sustituye a la decisión 2 del 2026-10-25** ("El login con Google se pospone, fuera de este corte", línea 200 de este archivo), que se conserva.
+- **G-1.** Los ID de cliente ya existen en Google Cloud: web, Android `com.paxfide.mobile` y Android demo `com.paxfide.mobile.demo`.
+  - **No van con valores reales en el repositorio,** ni en `application.yml` ni en los tests: `GOOGLE_OAUTH_CLIENT_IDS` se pone por entorno al desplegar (ADR-050 D9; `plan-ejecucion-cierre-manuel-2026-10-24.md:287`).
+  - El secreto del cliente no se usa ni se configura.
+- **G-2.** Dato de Manuel, **sin verificar en el código del móvil:** la app Flutter usará `google_sign_in` con `serverClientId` igual al ID web, así que el `aud` del `idToken` del móvil será normalmente el ID web. El backend acepta cualquier `aud` de la lista configurada.
+- **Qué autoriza:** escribir `plan-adr050-r6-google.md`. **No autoriza código:** el código espera el "plan aprobado" de Manuel en un comentario citable.

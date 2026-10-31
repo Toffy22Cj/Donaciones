@@ -1,5 +1,6 @@
 package com.traceability.convocatoria.application.port.out;
 
+import com.traceability.convocatoria.application.query.PublicCampaignDiscoveryQuery;
 import com.traceability.convocatoria.domain.model.Convocatoria;
 
 import java.util.Optional;
@@ -35,11 +36,12 @@ public interface ConvocatoriaRepositoryPort {
     java.util.List<Convocatoria> findByOrganizationRef(String organizationRef, int limit);
 
     /**
-     * Descubrimiento (P2.6): convocatorias {@code PUBLIC} y {@code OPEN}, ordenadas por {@code publicCode}, posteriores
-     * a {@code afterPublicCode} (o desde el principio si es {@code null}), como mucho {@code limit}. Nunca
-     * {@code PRIVATE_LINK}.
+     * Descubrimiento (P2.6; ficha R-1, que sustituye a {@code findPublicOpenAfter} según el plan R-1 §2): convocatorias
+     * {@code PUBLIC} y {@code OPEN} que cumplen los filtros de {@code criteria}, en su orden, estrictamente después de
+     * {@code criteria.after()} (o desde el principio si es {@code null}), como mucho {@code limit}. Nunca
+     * {@code PRIVATE_LINK} ni {@code CLOSED}.
      */
-    java.util.List<Convocatoria> findPublicOpenAfter(String afterPublicCode, int limit);
+    java.util.List<Convocatoria> findPublicOpenPage(PublicCampaignDiscoveryQuery.Criteria criteria, int limit);
 
     /** Convocatorias de la organización que empezaron antes de {@code before} (variable del predictor, P3). */
     long countByOrganizationStartedBefore(String organizationRef, java.time.Instant before);

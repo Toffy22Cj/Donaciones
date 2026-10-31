@@ -14,6 +14,8 @@ public interface AuthenticateAccountPort {
      * @throws AuthenticationFailedException si el email no existe, la contraseña no coincide o la cuenta está
      *         {@code INACTIVE}. Los tres casos son indistinguibles para el llamador (ID01-D1), y se comprueban
      *         <b>antes</b> que las aceptaciones (E3-2)
+     * @throws EmailNotVerifiedException si la contraseña es correcta y la cuenta está activa, pero su correo no está
+     *         verificado (ADR-050 Enmienda 2, E2-3). El orden es contraseña → estado → correo verificado → aceptaciones
      * @throws AcceptanceRequiredException si la contraseña es correcta pero faltan versiones vigentes y
      *         {@code accepted} no trae exactamente esas (E3-2)
      */

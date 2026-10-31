@@ -33,6 +33,9 @@ public final class PublicRoutes {
             // ADR-050 D8: pedir y confirmar la recuperación de la contraseña, sin JWT
             new Route("POST", "/api/v1/auth/password-reset", Access.PUBLIC),
             new Route("POST", "/api/v1/auth/password-reset/confirm", Access.PUBLIC),
+            // ADR-050 Enmienda 2, E2-2: reenviar y confirmar la verificación del correo
+            new Route("POST", "/api/v1/auth/email-verification", Access.PUBLIC),
+            new Route("POST", "/api/v1/auth/email-verification/confirm", Access.PUBLIC),
             new Route("GET", "/api/v1/public/campaigns", Access.PUBLIC),
             new Route("GET", "/api/v1/public/campaigns/{publicCode}", Access.PUBLIC),
             new Route("POST", "/api/v1/public/campaigns/{publicCode}/donation-intents", Access.OPTIONAL_JWT),

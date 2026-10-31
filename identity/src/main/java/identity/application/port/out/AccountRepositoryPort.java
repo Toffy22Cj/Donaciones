@@ -70,4 +70,12 @@ public interface AccountRepositoryPort {
     boolean recordLegalAcceptancesIfUnchanged(AccountId accountId, identity.domain.model.PasswordHash validatedHash,
                                               identity.domain.model.LegalAcceptance terms,
                                               identity.domain.model.LegalAcceptance dataPolicy);
+
+    /**
+     * [Plan] ADR-050 Enmienda 2, E2-2: {@code $set} de {@code emailVerifiedAt} solo si la cuenta sigue {@code ACTIVE} y
+     * sin verificar. Nunca {@link #save}.
+     *
+     * @return true si escribió; false si la cuenta ya estaba verificada, no está activa o no existe
+     */
+    boolean markEmailVerifiedIfUnverified(AccountId accountId, java.time.Instant verifiedAt);
 }

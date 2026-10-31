@@ -29,6 +29,7 @@ public class CreateAccountService {
     private final AuditLogPort auditLogPort;
     private final MongoTransactionRetryHelper retryHelper;
     private final ObjectProvider<LegalVersions> legalVersions;
+    private final EmailVerificationService verifications;
     private final Clock clock;
 
     public CreateAccountService(AccountRepositoryPort accountRepository, 
@@ -36,12 +37,14 @@ public class CreateAccountService {
                                 AuditLogPort auditLogPort,
                                 MongoTransactionRetryHelper retryHelper,
                                 ObjectProvider<LegalVersions> legalVersions,
+                                EmailVerificationService verifications,
                                 ObjectProvider<Clock> clock) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.auditLogPort = auditLogPort;
         this.retryHelper = retryHelper;
         this.legalVersions = legalVersions;
+        this.verifications = verifications;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
@@ -49,6 +52,9 @@ public class CreateAccountService {
      * Registro público (ADR-050 D1, D2): exige las dos versiones vigentes, la de los términos y la de la autorización de
      * datos. Una ausente o distinta de la vigente → {@link LegalVersionNotCurrentException} con el campo, antes de leer
      * nada: sin cuenta y sin auditoría. Las dos se guardan con la fecha del alta.
+     * <p>
+     * ADR-050 Enmienda 2, E2-1 y E2-2: la cuenta nace sin verificar. El primer token de verificación se emite en la
+     * misma transacción del alta y el correo se entrega después de confirmarla; la respuesta no espera al envío.
      */
     public Account createAccount(Email email, String plainPassword, String acceptedTermsVersion,
                                  String acceptedDataPolicyVersion) {
@@ -59,19 +65,25 @@ public class CreateAccountService {
         if (!current.dataPolicy().equals(acceptedDataPolicyVersion)) {
             throw new LegalVersionNotCurrentException("acceptedDataPolicyVersion");
         }
-        return create(email, plainPassword, account -> account.acceptLegalTerms(acceptedTermsVersion,
+        Created created = create(email, plainPassword, true, account -> account.acceptLegalTerms(acceptedTermsVersion,
                 acceptedDataPolicyVersion, clock.instant()));
+        verifications.dispatch(created.verification(), created.account().getEmail());
+        return created.account();
     }
 
     /**
      * Alta sin aceptaciones, para la semilla de la demo y los tests (plan R-5 [Plan]). La cuenta queda sin versiones
-     * aceptadas; con D3, su primer inicio de sesión las exigirá.
+     * aceptadas; con D3, su primer inicio de sesión las exigirá. ADR-050 Enmienda 2, E2-1 y P-E2V-2: la crea el
+     * sistema, así que nace con el correo verificado y sin correo de verificación.
      */
     public Account createAccount(Email email, String plainPassword) {
-        return create(email, plainPassword, account -> {});
+        return create(email, plainPassword, false, account -> account.markEmailVerified(clock.instant())).account();
     }
 
-    private Account create(Email email, String plainPassword, java.util.function.Consumer<Account> beforeSave) {
+    private record Created(Account account, EmailVerificationService.Issued verification) {}
+
+    private Created create(Email email, String plainPassword, boolean selfRegistration,
+                           java.util.function.Consumer<Account> beforeSave) {
         // H-P2-1: la política se comprueba antes de leer nada
         PlainPassword password = new PlainPassword(plainPassword);
         return retryHelper.executeWithRetry(() -> {
@@ -98,7 +110,8 @@ public class CreateAccountService {
             );
             auditLogPort.record(auditLog);
 
-            return newAccount;
+            return new Created(newAccount, selfRegistration
+                    ? verifications.issueWithinTransaction(newAccount.getAccountId(), clock.instant()) : null);
         });
     }
 }
