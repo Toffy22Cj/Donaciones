@@ -186,4 +186,4 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - R-7: nota en `decisiones-delegadas` en la rama de #165 (`1ed060e`). Solo toca Documentos, así que no hace falta repetir ci-local;
   - Google: notas en `decisiones-delegadas` y en el plan, en la rama de #166 (`c569d84`).
 - P2, hecho: #167 (`chore/docs-despliegue-backend-2026-10`, `4477e10`), `Documentos/despliegue-backend-2026-10.md`.
-- P3: esperando a que se fusione #165; se comprueba cada 10 min, como mucho 3 h (empezó hacia las 17:00Z).
+- P3: esperando a que se fusione #165; se comprueba cada 10 min, como mucho 3 h (empezó a las 18:50Z; límite: 21:50Z).
