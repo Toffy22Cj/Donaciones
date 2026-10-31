@@ -304,3 +304,5 @@ Nada de esto toca payloads de eventos de `core`, versiones de esquema, canonical
 - **Fila 4, D7: entra en este corte** (decisión 1), tal como lo define D7. Lo implementa un PR propio, con su sección en `plan-cierre-backend-2026-10-25.md`. D6 ya está en `develop` (#146, `f5191c6`).
 
 La tabla de arriba se conserva.
+
+*Nota (2026-10-30), G-0 de Manuel (`decisiones-delegadas-2026-10.md`, nota del 2026-10-30, "comunicado por Manuel"):* **la fila 5 (R-6, Google) se retoma.** Sustituye a "se pospone, fuera de este corte" de la nota del 2026-10-25, que se conserva. D9 y los tests 27 a 29 no cambian. El cómo va en `plan-adr050-r6-google.md`, que espera el plan aprobado de Manuel.
