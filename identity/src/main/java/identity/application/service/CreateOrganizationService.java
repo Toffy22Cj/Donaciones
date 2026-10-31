@@ -28,19 +28,22 @@ public class CreateOrganizationService {
     private final MongoTransactionRetryHelper retryHelper;
     private final ObjectProvider<identity.domain.model.LegalVersions> legalVersions;
     private final java.time.Clock clock;
+    private final ObjectProvider<OrganizationProfileRules> profileRules;
 
     public CreateOrganizationService(AccountRepositoryPort accountRepository, 
                                      OrganizationRepositoryPort organizationRepository, 
                                      AuditLogPort auditLogPort,
                                      MongoTransactionRetryHelper retryHelper,
                                      ObjectProvider<identity.domain.model.LegalVersions> legalVersions,
-                                     ObjectProvider<java.time.Clock> clock) {
+                                     ObjectProvider<java.time.Clock> clock,
+                                     ObjectProvider<OrganizationProfileRules> profileRules) {
         this.accountRepository = accountRepository;
         this.organizationRepository = organizationRepository;
         this.auditLogPort = auditLogPort;
         this.retryHelper = retryHelper;
         this.legalVersions = legalVersions;
         this.clock = clock.getIfAvailable(java.time.Clock::systemUTC);
+        this.profileRules = profileRules;
     }
 
     /**
@@ -55,6 +58,30 @@ public class CreateOrganizationService {
         }
         return create(actor, type, initialRepresentativeAccountId, name, organization -> organization
                 .acceptOrganizationTerms(acceptedOrganizationTermsVersion, initialRepresentativeAccountId, clock.instant()));
+    }
+
+    /**
+     * Ficha R-7 §4: el alta por HTTP con el perfil opcional, validado (con la ubicación en el catálogo) antes de escribir.
+     * Un NIT ya registrado → {@link identity.domain.exception.OrganizationNitAlreadyRegisteredException} y la transacción
+     * se revierte entera: ni organización ni cuenta vinculada.
+     */
+    public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId,
+                                           String name, String acceptedOrganizationTermsVersion,
+                                           identity.domain.model.OrganizationProfile profile) {
+        if (!legalVersions.getObject().organizationTerms().equals(acceptedOrganizationTermsVersion)) {
+            throw new identity.domain.exception.LegalVersionNotCurrentException("acceptedOrganizationTermsVersion");
+        }
+        Objects.requireNonNull(profile, "profile must not be null");
+        if (profile != identity.domain.model.OrganizationProfile.EMPTY) {
+            profileRules.getObject().requireKnownLocation(profile);
+        }
+        return create(actor, type, initialRepresentativeAccountId, name, organization -> {
+            organization.acceptOrganizationTerms(acceptedOrganizationTermsVersion, initialRepresentativeAccountId,
+                    clock.instant());
+            if (profile != identity.domain.model.OrganizationProfile.EMPTY) {
+                organization.applyProfileAtCreation(profile);
+            }
+        });
     }
 
     public Organization createOrganization(AuditActor actor, OrganizationType type, AccountId initialRepresentativeAccountId) {

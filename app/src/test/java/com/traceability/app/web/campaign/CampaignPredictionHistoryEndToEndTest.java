@@ -101,6 +101,7 @@ class CampaignPredictionHistoryEndToEndTest {
     }
 
     @LocalServerPort private int port;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     @Autowired private TokenIssuerPort tokens;
     @Autowired private CreateAccountService accounts;
     @Autowired private CreateOrganizationService organizations;
@@ -161,6 +162,8 @@ class CampaignPredictionHistoryEndToEndTest {
         employees.addEmployee(setup, org.getOrganizationId(), new AccountId(admin));
         administrators.assignAdministrator(setup, org.getOrganizationId(), new AccountId(admin));
         String orgId = org.getOrganizationId().value();
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, orgId);
         ok(send("POST", "/api/v1/platform/organizations/" + orgId + "/verify", platform, null), 200);
 
         // 40 días; la hora real de las donaciones (ahora) cae en t = 0,20 (día 8)

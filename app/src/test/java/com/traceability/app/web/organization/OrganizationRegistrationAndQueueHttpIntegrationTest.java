@@ -67,6 +67,7 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
     }
 
     @LocalServerPort private int port;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     @Autowired private TokenIssuerPort tokens;
     @Autowired private CreateAccountService accounts;
     @Autowired private CreateOrganizationService organizations;
@@ -172,6 +173,8 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
         List<String> created = new ArrayList<>();
         for (int i = 0; i < 23; i++) created.add(createdBy(account(), "Cola " + i));
         String verified = createdBy(account(), "Verificada");
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, verified);
         ok(send("POST", "/api/v1/platform/organizations/" + verified + "/verify", platformAdmin, null), 200);
 
         List<String> seen = new ArrayList<>();

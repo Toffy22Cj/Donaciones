@@ -68,6 +68,7 @@ class OrganizationVerificationStatusHttpIntegrationTest {
     }
 
     @LocalServerPort private int port;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     @Autowired private TokenIssuerPort tokens;
     @Autowired private CreateAccountService accounts;
     @Autowired private CreateOrganizationService organizations;
@@ -154,6 +155,8 @@ class OrganizationVerificationStatusHttpIntegrationTest {
         assertThat(needsInfo.get("verificationStatus").asText()).isEqualTo("NEEDS_MORE_INFORMATION");
         assertThat(needsInfo.get("informationRequest").asText()).isEqualTo("Adjunte el RUT y el acta de constitución");
 
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org);
         ok(send("POST", "/api/v1/platform/organizations/" + org + "/verify", platformAdmin, null), 200);
 
         JsonNode verified = ok(read(org, representative), 200);

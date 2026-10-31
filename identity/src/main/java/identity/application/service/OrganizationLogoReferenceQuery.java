@@ -25,7 +25,18 @@ public class OrganizationLogoReferenceQuery {
      * Lo público de una organización en una sola lectura (P-T2-7): nombre (DD-04), si está {@code VERIFIED} (como
      * {@code OrganizationVerificationPort}) y si tiene logo. Sin {@code organizationId}.
      */
-    public record PublicOrganization(String name, boolean verified, boolean hasLogo) {}
+    public record PublicOrganization(String name, boolean verified, boolean hasLogo, PublicProfile publicProfile) {
+        public PublicOrganization(String name, boolean verified, boolean hasLogo) {
+            this(name, verified, hasLogo, null);
+        }
+    }
+
+    /**
+     * [Plan] Ficha R-7 §4 y P7 (a): solo los campos públicos del perfil; nulo si no tiene ninguno. Nunca NIT, razón
+     * social, teléfono ni régimen (P-R7-6).
+     */
+    public record PublicProfile(String description, String website, identity.domain.model.OrganizationLocation location,
+                                String contactEmail) {}
 
     private final OrganizationRepositoryPort organizations;
     private final PlatformAuthorizationPolicy platformPolicy;
@@ -63,8 +74,15 @@ public class OrganizationLogoReferenceQuery {
     public PublicOrganization publicOrganization(String organizationId) {
         return find(organizationId)
                 .map(o -> new PublicOrganization(o.getName(), o.getVerificationStatus() == VerificationStatus.VERIFIED,
-                        o.getLogoObjectKey() != null))
+                        o.getLogoObjectKey() != null, publicProfile(o.getProfile())))
                 .orElse(new PublicOrganization(null, false, false));
+    }
+
+    private static PublicProfile publicProfile(identity.domain.model.OrganizationProfile p) {
+        if (p.description() == null && p.website() == null && p.location() == null && p.contactEmail() == null) {
+            return null;
+        }
+        return new PublicProfile(p.description(), p.website(), p.location(), p.contactEmail());
     }
 
     private Optional<Organization> find(String organizationId) {

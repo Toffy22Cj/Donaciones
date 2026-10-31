@@ -134,6 +134,8 @@ class DonationPaymentHttpIntegrationTest {
         String admin = account();
         employees.addEmployee(SETUP, org.getOrganizationId(), new AccountId(admin));
         administrators.assignAdministrator(SETUP, org.getOrganizationId(), new AccountId(admin));
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org.getOrganizationId());
         verifications.verifyOrganization(principals.resolvePrincipal(platformAdmin), org.getOrganizationId());
         organizationId = org.getOrganizationId().value();
         organizationAdmin = admin;

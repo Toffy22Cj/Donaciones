@@ -134,6 +134,13 @@ class OrganizationVerificationApplicationServiceIntegrationTest extends BaseMong
         Organization created = createOrganizationService.createOrganization(systemActor, OrganizationType.COMPANY, repId);
         OrganizationId organizationId = created.getOrganizationId();
 
+        // ficha R-7, P2 (b) y P-R7-4: razón social y NIT sintético (P-R7-5), para que la plataforma pueda verificarla
+        String syntheticNit = "9" + String.format("%08d", java.util.concurrent.ThreadLocalRandom.current().nextInt(100_000_000));
+        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(organizationId.value())),
+                new Update().set("legalName", "Organización de prueba (sintético)").set("nit", syntheticNit)
+                        .set("nitCheckDigit", String.valueOf(identity.domain.model.Nit.checkDigitOf(syntheticNit))),
+                "organizations");
+
         if (status != null && !VerificationStatus.PENDING_VERIFICATION.name().equals(status)) {
             Update update = new Update().set("verificationStatus", status);
             if (message != null) {

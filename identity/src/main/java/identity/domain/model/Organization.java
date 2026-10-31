@@ -4,11 +4,15 @@ import identity.domain.exception.AccountAlreadyBelongsToOrganizationException;
 import identity.domain.exception.AccountNotMemberOfOrganizationException;
 import identity.domain.exception.AccountNotRepresentativeException;
 import identity.domain.exception.InvalidMemberRoleException;
+import identity.domain.exception.InvalidOrganizationProfileFieldException;
 import identity.domain.exception.InvalidVerificationTransitionException;
 import identity.domain.exception.MemberAlreadyHasRoleException;
+import identity.domain.exception.OrganizationProfileLockedException;
 import identity.domain.exception.RepresentativeTransferRequiredException;
 import identity.domain.exception.SelfTransferNotAllowedException;
 import identity.domain.exception.TransferTargetNotMemberException;
+import identity.domain.exception.VerificationDataMissingException;
+import identity.domain.exception.VerificationResubmitNotAllowedException;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -30,6 +34,8 @@ public class Organization {
     private String logoObjectKey;
     /** ADR-050 D2: los términos de organización aceptados al crearla. Nulo en las organizaciones existentes. */
     private OrganizationTermsAcceptance organizationTermsAcceptance;
+    /** Ficha R-7 §3: el perfil público y de verificación; vacío (nunca nulo) en las organizaciones existentes. */
+    private OrganizationProfile profile = OrganizationProfile.EMPTY;
 
     /** Longitud máxima del nombre público (DD-04). */
     public static final int NAME_MAX_LENGTH = 200;
@@ -107,6 +113,22 @@ public class Organization {
         return organization;
     }
 
+    /** Igual que el anterior, con el perfil (ficha R-7). Uso exclusivo de adaptadores de persistencia. */
+    public static Organization reconstitute(OrganizationId organizationId,
+                                            OrganizationType type,
+                                            List<Membership> members,
+                                            VerificationStatus verificationStatus,
+                                            InformationRequestMessage verificationInformationRequest,
+                                            String name,
+                                            String logoObjectKey,
+                                            OrganizationTermsAcceptance organizationTermsAcceptance,
+                                            OrganizationProfile profile) {
+        Organization organization = reconstitute(organizationId, type, members, verificationStatus,
+                verificationInformationRequest, name, logoObjectKey, organizationTermsAcceptance);
+        organization.profile = profile == null ? OrganizationProfile.EMPTY : profile;
+        return organization;
+    }
+
     public static Organization createOrganization(OrganizationType type, AccountId initialRepresentativeAccountId) {
         if (type == null) {
             throw new IllegalArgumentException("OrganizationType cannot be null");
@@ -134,6 +156,77 @@ public class Organization {
 
     public String getName() {
         return name;
+    }
+
+    public OrganizationProfile getProfile() {
+        return profile;
+    }
+
+    /**
+     * Ficha R-7 §4 ({@code PUT /profile}): sustituye el nombre y el perfil completos.
+     * <ul>
+     *   <li>{@code name}: de 1 a {@link #NAME_MAX_LENGTH} caracteres (P-R7-7, como al crear), o
+     *       {@link InvalidOrganizationProfileFieldException} ({@code name});</li>
+     *   <li>{@code specialTaxRegime} solo para una {@code FOUNDATION} (§3);</li>
+     *   <li>P1 (b): con {@code VERIFIED}, si cambian {@code name}, {@code legalName}, {@code nit} o {@code nitCheckDigit}
+     *       → {@link OrganizationProfileLockedException} y nada cambia.</li>
+     * </ul>
+     *
+     * @return los nombres de los campos que cambiaron ({@code name} y los de {@link OrganizationProfile#changedFields})
+     */
+    public List<String> updateProfile(String newName, OrganizationProfile newProfile) {
+        Objects.requireNonNull(newProfile, "profile must not be null");
+        String stripped = newName == null ? null : newName.strip();
+        if (stripped == null || stripped.isEmpty() || stripped.length() > NAME_MAX_LENGTH) {
+            throw new InvalidOrganizationProfileFieldException("name");
+        }
+        if (newProfile.specialTaxRegime() != null && this.type != OrganizationType.FOUNDATION) {
+            throw new InvalidOrganizationProfileFieldException("specialTaxRegime");
+        }
+        List<String> changed = new ArrayList<>();
+        if (!Objects.equals(this.name, stripped)) {
+            changed.add("name");
+        }
+        changed.addAll(this.profile.changedFields(newProfile));
+        if (this.verificationStatus == VerificationStatus.VERIFIED && changed.stream().anyMatch(LOCKED_WHEN_VERIFIED::contains)) {
+            throw new OrganizationProfileLockedException("A verified organization cannot change " + LOCKED_WHEN_VERIFIED);
+        }
+        this.name = stripped;
+        this.profile = newProfile;
+        return changed;
+    }
+
+    /**
+     * [Plan] Ficha R-7 §4 ({@code POST /organizations} ampliado): el perfil inicial de una organización recién creada,
+     * con el nombre opcional de siempre (B6-a). Solo en {@code PENDING_VERIFICATION} y con la regla de
+     * {@code specialTaxRegime}.
+     */
+    public void applyProfileAtCreation(OrganizationProfile initialProfile) {
+        Objects.requireNonNull(initialProfile, "profile must not be null");
+        if (this.verificationStatus != VerificationStatus.PENDING_VERIFICATION) {
+            throw new IllegalStateException("The initial profile is only set at creation");
+        }
+        if (initialProfile.specialTaxRegime() != null && this.type != OrganizationType.FOUNDATION) {
+            throw new InvalidOrganizationProfileFieldException("specialTaxRegime");
+        }
+        this.profile = initialProfile;
+    }
+
+    /** Ficha R-7, P1 (b): lo que identifica a la organización verificada. */
+    public static final Set<String> LOCKED_WHEN_VERIFIED = Set.of("name", "legalName", "nit", "nitCheckDigit");
+
+    /**
+     * Ficha R-7 §5 (P8 (a)): la organización responde a la solicitud de información. {@code NEEDS_MORE_INFORMATION →
+     * PENDING_VERIFICATION} y se borra la solicitud; desde cualquier otro estado, {@link
+     * VerificationResubmitNotAllowedException}.
+     */
+    public void resubmitForVerification() {
+        if (this.verificationStatus != VerificationStatus.NEEDS_MORE_INFORMATION) {
+            throw new VerificationResubmitNotAllowedException("Resubmit requires NEEDS_MORE_INFORMATION, not "
+                    + this.verificationStatus);
+        }
+        this.verificationStatus = VerificationStatus.PENDING_VERIFICATION;
+        this.verificationInformationRequest = null;
     }
 
     public String getLogoObjectKey() {
@@ -342,6 +435,10 @@ public class Organization {
     public void verify() {
         if (this.verificationStatus == VerificationStatus.VERIFIED || this.verificationStatus == VerificationStatus.REJECTED) {
             throw new InvalidVerificationTransitionException(this.verificationStatus, VerificationCommand.VERIFY);
+        }
+        // ficha R-7, P2 (b): la plataforma no verifica sin razón social y NIT con que comprobarla
+        if (this.profile.legalName() == null || this.profile.nit() == null) {
+            throw new VerificationDataMissingException("Verification requires legalName and nit");
         }
         this.verificationStatus = VerificationStatus.VERIFIED;
         this.verificationInformationRequest = null;

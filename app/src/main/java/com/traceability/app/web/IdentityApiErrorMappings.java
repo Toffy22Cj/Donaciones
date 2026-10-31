@@ -101,6 +101,11 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(RepresentativeTransferRequiredException.class, HttpStatus.CONFLICT, null),
                 // ADR-050 D6 (plan D6, P-D6-3): el administrador de plataforma no puede desactivar su cuenta; antes no
                 // estaba mapeada y salía como 500
-                new ApiErrorMapping(PlatformAdministratorDeactivationException.class, HttpStatus.CONFLICT, null));
+                new ApiErrorMapping(PlatformAdministratorDeactivationException.class, HttpStatus.CONFLICT, null),
+                // ficha R-7 §4 y §5 (P1, P2 (b), P5 y P8)
+                new ApiErrorMapping(identity.domain.exception.OrganizationProfileLockedException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(identity.domain.exception.OrganizationNitAlreadyRegisteredException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(identity.domain.exception.VerificationResubmitNotAllowedException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(identity.domain.exception.VerificationDataMissingException.class, HttpStatus.CONFLICT, null));
     }
 }

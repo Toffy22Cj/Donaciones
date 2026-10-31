@@ -152,8 +152,12 @@ public class DemoScenarioSeeder {
 
         // 2. Organizaciones: una verificada con su equipo y otra pendiente, en la cola de la plataforma
         String org = api.post("crear organización", "/api/v1/organizations",
+                // ficha R-7, P2 (b) y P-R7-4: razón social y un NIT de prueba sintético (P-R7-5), con su dígito
+                // calculado (900000006-9), para que la plataforma pueda verificarla
                 Map.of("type", "FOUNDATION", "name", "Fundación Demo PaxFide",
-                        "acceptedOrganizationTermsVersion", legalVersions.organizationTerms()), token.get(REPRESENTATIVE), false, 201)
+                        "acceptedOrganizationTermsVersion", legalVersions.organizationTerms(),
+                        "legalName", "Fundación Demo PaxFide (sintético)", "nit", "900000006", "nitCheckDigit", "9"),
+                token.get(REPRESENTATIVE), false, 201)
                 .get("organizationId").asText();
         String pendingOrg = api.post("crear organización pendiente", "/api/v1/organizations",
                 Map.of("type", "COMPANY", "name", "Empresa Aliada Demo",

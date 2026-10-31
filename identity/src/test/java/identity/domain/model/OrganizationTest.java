@@ -299,6 +299,7 @@ class OrganizationTest {
     @Test
     void transition_fromPendingVerification_toVerified_viaVerify() {
         Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.applyProfileAtCreation(verificationData()); // ficha R-7, P2 (b)
         organization.verify();
 
         assertEquals(VerificationStatus.VERIFIED, organization.getVerificationStatus());
@@ -327,6 +328,7 @@ class OrganizationTest {
     @Test
     void transition_fromNeedsMoreInformation_toVerified_viaVerify_clearsMessage() {
         Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.applyProfileAtCreation(verificationData()); // ficha R-7, P2 (b)
         organization.requestInformation(new InformationRequestMessage("Falta RUT"));
         organization.verify();
 
@@ -361,6 +363,7 @@ class OrganizationTest {
     @Test
     void invalidTransition_fromVerified_onVerify_throwsExceptionAndStateIntact() {
         Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.applyProfileAtCreation(verificationData()); // ficha R-7, P2 (b)
         organization.verify();
 
         InvalidVerificationTransitionException ex = assertThrows(
@@ -376,6 +379,7 @@ class OrganizationTest {
     @Test
     void invalidTransition_fromVerified_onReject_throwsExceptionAndStateIntact() {
         Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.applyProfileAtCreation(verificationData()); // ficha R-7, P2 (b)
         organization.verify();
 
         InvalidVerificationTransitionException ex = assertThrows(
@@ -391,6 +395,7 @@ class OrganizationTest {
     @Test
     void invalidTransition_fromVerified_onRequestInformation_throwsExceptionAndStateIntact() {
         Organization organization = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        organization.applyProfileAtCreation(verificationData()); // ficha R-7, P2 (b)
         organization.verify();
 
         InformationRequestMessage message = new InformationRequestMessage("Falta poder notarial");

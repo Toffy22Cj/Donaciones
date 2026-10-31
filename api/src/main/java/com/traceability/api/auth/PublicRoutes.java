@@ -37,6 +37,8 @@ public final class PublicRoutes {
             new Route("POST", "/api/v1/auth/email-verification", Access.PUBLIC),
             new Route("POST", "/api/v1/auth/email-verification/confirm", Access.PUBLIC),
             new Route("GET", "/api/v1/public/campaigns", Access.PUBLIC),
+            // ficha R-7 §6: el catálogo DIVIPOLA
+            new Route("GET", "/api/v1/public/locations", Access.PUBLIC),
             new Route("GET", "/api/v1/public/campaigns/{publicCode}", Access.PUBLIC),
             new Route("POST", "/api/v1/public/campaigns/{publicCode}/donation-intents", Access.OPTIONAL_JWT),
             new Route("GET", "/api/v1/public/campaigns/{publicCode}/narrative", Access.PUBLIC),

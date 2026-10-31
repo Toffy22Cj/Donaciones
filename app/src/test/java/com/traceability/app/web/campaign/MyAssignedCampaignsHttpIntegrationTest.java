@@ -66,6 +66,7 @@ class MyAssignedCampaignsHttpIntegrationTest {
     }
 
     @LocalServerPort private int port;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     @Autowired private TokenIssuerPort tokens;
     @Autowired private CreateAccountService accounts;
     @Autowired private CreateOrganizationService organizations;
@@ -126,6 +127,8 @@ class MyAssignedCampaignsHttpIntegrationTest {
         String rep = account();
         OrganizationId org = organizations.createOrganization(SETUP, OrganizationType.FOUNDATION, new AccountId(rep), "Mías")
                 .getOrganizationId();
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org);
         ok(send("POST", "/api/v1/platform/organizations/" + org.value() + "/verify", platform, null), 200);
         String admin = member(org, true);
         String admin2 = member(org, true);

@@ -148,8 +148,12 @@ class CampaignHttpIntegrationTest {
         unverifiedOrg = organization("Sin verificar", out);
         unverifiedAdmin = out[0];
 
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org);
         assertThat(send("POST", "/api/v1/platform/organizations/" + org + "/verify", platformAdmin, null, null).statusCode())
                 .isEqualTo(200);
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, otherOrg);
         assertThat(send("POST", "/api/v1/platform/organizations/" + otherOrg + "/verify", platformAdmin, null, null).statusCode())
                 .isEqualTo(200);
     }
@@ -213,6 +217,8 @@ class CampaignHttpIntegrationTest {
         String[] out = new String[1];
         String fresh = organization("Nueva", out);
 
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, fresh);
         HttpResponse<String> r = send("POST", "/api/v1/platform/organizations/" + fresh + "/verify", platformAdmin, null, null);
 
         assertThat(r.statusCode()).isEqualTo(200);
@@ -457,6 +463,8 @@ class CampaignHttpIntegrationTest {
     private String[] verifiedOrganizationWithAPublicCampaign(String name) throws Exception {
         String[] out = new String[1];
         String organization = organization(name, out);
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, organization);
         assertThat(send("POST", "/api/v1/platform/organizations/" + organization + "/verify", platformAdmin, null, null)
                 .statusCode()).isEqualTo(200);
         HttpResponse<String> r = createCampaign(organization, out[0], newId(), monetaryBody("PUBLIC"));

@@ -171,6 +171,10 @@ class IdentityPersistenceIntegrationTest extends BaseMongoIntegrationTest {
 
         // 3. VERIFIED
         Organization organizationVerified = Organization.createOrganization(OrganizationType.COMPANY, AccountId.generate());
+        // ficha R-7, P2 (b): razón social y NIT sintético (P-R7-5)
+        organizationVerified.applyProfileAtCreation(identity.domain.model.OrganizationProfile.from(
+                new identity.domain.model.OrganizationProfile.Draft(null, null, null, null, null,
+                        "Organización de prueba (sintético)", "900000006", "9", null, null)));
         organizationVerified.verify();
         organizationRepository.save(organizationVerified);
         Organization reloadedVerified = organizationRepository.findById(organizationVerified.getOrganizationId());

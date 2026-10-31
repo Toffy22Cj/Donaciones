@@ -18,7 +18,13 @@ public class MongoOrganizationRepositoryAdapter implements OrganizationRepositor
 
     @Override
     public void save(Organization organization) {
-        repository.save(OrganizationMapper.toDocument(organization));
+        try {
+            repository.save(OrganizationMapper.toDocument(organization));
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // ficha R-7, P5: el único índice único de organizations además de _id
+            throw new identity.domain.exception.OrganizationNitAlreadyRegisteredException(
+                    "The NIT is already registered by another organization");
+        }
     }
 
     @Override

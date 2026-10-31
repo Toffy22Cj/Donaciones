@@ -99,6 +99,8 @@ class CampaignPredictionHttpIntegrationTest {
         String e = account();
         employees.addEmployee(SETUP, o.getOrganizationId(), new AccountId(e));
         String id = o.getOrganizationId().value();
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, id);
         assertThat(send("POST", "/api/v1/platform/organizations/" + id + "/verify", platformAdmin, null).statusCode())
                 .isEqualTo(200);
         return new String[] {id, a, rep.getAccountId().value(), e};

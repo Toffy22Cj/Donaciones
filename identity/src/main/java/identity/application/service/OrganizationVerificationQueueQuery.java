@@ -26,7 +26,14 @@ public class OrganizationVerificationQueueQuery {
             EnumSet.of(VerificationStatus.PENDING_VERIFICATION, VerificationStatus.NEEDS_MORE_INFORMATION);
 
     public record QueueItem(String organizationId, String name, String type, String verificationStatus,
-                            String informationRequest) {}
+                            String informationRequest,
+                            /** Ficha R-7 §4: el perfil completo, solo para la plataforma. */
+                            identity.domain.model.OrganizationProfile profile) {
+        public QueueItem(String organizationId, String name, String type, String verificationStatus,
+                            String informationRequest) {
+            this(organizationId, name, type, verificationStatus, informationRequest, identity.domain.model.OrganizationProfile.EMPTY);
+        }
+    }
 
     /** {@code next}: el id de la última organización si puede haber más; vacío en la última página. */
     public record QueuePage(List<QueueItem> items, String next) {}
@@ -65,6 +72,7 @@ public class OrganizationVerificationQueueQuery {
     private static QueueItem item(Organization o) {
         return new QueueItem(o.getOrganizationId().value(), o.getName(), o.getType().name(),
                 o.getVerificationStatus().name(),
-                o.getVerificationInformationRequest() == null ? null : o.getVerificationInformationRequest().value());
+                o.getVerificationInformationRequest() == null ? null : o.getVerificationInformationRequest().value(),
+                o.getProfile());
     }
 }
