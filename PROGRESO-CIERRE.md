@@ -167,3 +167,14 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - mutaciones 13 de 13 (la 4 necesitó el test `test5_markUsedIfPending_isConditional_…`, `dfc4768`);
   - `ci-local` en `dfc4768`: identity 412 y app 630, BUILD SUCCESS (`b632154`).
 - **#164:** sin comentario de aprobación todavía. P1 (código de Google) detenido.
+
+## Código R-7 y Google (2026-10-31)
+- `develop` en `b0654aa` (#162, #163 y #164 fusionados).
+- **R-7** (`feat/identity-r7-perfil-organizacion`, todavía sin push):
+  - commits: `4b43bb7` (aprobación), `931fce1` (rojo), `3df49ca` (código), `19c611a` (arreglo del test 8) y `2d3862e` (documentos);
+  - `identity`: 428 en verde; `app`: 640, con 1 falla de test ya arreglada;
+  - pendientes: mutaciones (specs `scratchpad/mut-r7-*.json`), `ci-local`, §0.72 y el PR.
+- **Google** (`feat/identity-adr050-r6-google`, todavía sin push):
+  - commits: `ece5f03` (aprobación y ampliaciones), `6faec6c` (rojo) y `5bb0925` (código);
+  - tests en curso;
+  - pendientes: documentos (`referencia-api` escrita), mutaciones, `ci-local`, §0.80 y el PR.
