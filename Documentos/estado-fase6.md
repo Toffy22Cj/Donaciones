@@ -229,6 +229,30 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.72 R-7: perfil de la organización (2026-10-31, `feat/identity-r7-perfil-organizacion`, #165)
+
+- Numerada 0.72, en la serie del trabajo del 2026-10-29 (0.70 a 0.79).
+- **Norma:**
+  - `ficha-R7-perfil-organizacion.md` (CONGELADA, P1 a P8, P9 no);
+  - `plan-r7-perfil-organizacion.md`, APROBADO por Manuel (#162, comentario 6506646853);
+  - la enmienda de la ficha S-18 (P-R7-11), en este PR.
+- **Qué hace:**
+  - el perfil público y de verificación de la organización, con el NIT y su dígito de la DIAN, el índice único parcial `uq_organization_nit` y la ubicación DIVIPOLA;
+  - `PUT /profile` (P1 (b));
+  - `POST /verification/resubmit` (§5);
+  - `verify` exige razón social y NIT (P2 (b));
+  - `GET /public/locations`;
+  - `organizationProfile` en el detalle público.
+- **El catálogo DIVIPOLA** real lo aportó Manuel y se copió tal cual (`DIVIPOLA-2026-09`: 33 departamentos y 1122 entradas). Los tests usan una muestra de test (`catalogVersion` `test-sample`), y `DivipolaCatalogFileTest` comprueba el archivo real.
+- **P-R7-4:** los 24 archivos de test que verifican una organización le ponen antes razón social y un NIT sintético, sin perder aserciones. La semilla, también.
+- **Evidencia:**
+  - **Rojo** (`931fce1`, solo tests): `identity` no compila sin el código, con `cannot find symbol` en `OrganizationProfile` e `InvalidOrganizationProfileFieldException`.
+  - **Verde por capas:**
+    - `mvn test -pl identity -am`: "Tests run: 428, Failures: 0, Errors: 0, Skipped: 0";
+    - `app`: 640, con 1 falla de test (el test 8 buscaba la subcadena "nit", que está en "comunitarios"), arreglada en `19c611a`.
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `2d3862e`, con la mutación 0 de línea base VIVA): 12 de 12 muertas, 7 en `identity` y 5 en `app`.
+  - **`ci-local.sh`** en un clon limpio de `3e2a6a1` (`free -g`: 15 GB disponibles): salida 0, con core "Tests run: 379", crypto 57, ai 47, api 175, identity 428, convocatoria 272 y app 640, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-3e2a6a1-2026-10-31T15-53-16Z.txt`.
+
 ### 0.71 R-1: búsqueda, filtro y orden en el descubrimiento público (2026-10-29, `feat/convocatoria-r1-busqueda-descubrimiento`, #159)
 
 - Numerada 0.71, en la serie del trabajo del 2026-10-29 (0.70 a 0.79). La 0.70 queda para la Enmienda 2 de ADR-050 (`plan-adr050-enmienda-2.md`, P-E2V-12).
