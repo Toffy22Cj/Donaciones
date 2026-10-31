@@ -29,6 +29,8 @@ public class Account {
     private LegalAcceptance dataPolicyAcceptance;
     /** ADR-050 Enmienda 2, E2-1: cuándo se verificó el correo; nulo mientras no se verifica (y en las cuentas existentes, Q2 (a)). */
     private Instant emailVerifiedAt;
+    /** ADR-050 D9: el {@code sub} de la cuenta de Google vinculada; nulo si no hay vínculo. Nunca se elige por correo. */
+    private String googleSubject;
 
     public static final int PROFILE_FIELD_MAX_CODE_POINTS = 100;
 
@@ -73,6 +75,18 @@ public class Account {
         Account account = reconstitute(accountId, email, passwordHash, status, organizationId, platformAuthority,
                 credentialsNotBefore, givenName, familyName, termsAcceptance, dataPolicyAcceptance);
         account.emailVerifiedAt = emailVerifiedAt;
+        return account;
+    }
+
+    /** Con el vínculo de Google (ADR-050 D9). Uso exclusivo de adaptadores de persistencia. */
+    public static Account reconstitute(AccountId accountId, Email email, PasswordHash passwordHash, AccountStatus status,
+                                       OrganizationId organizationId, PlatformAuthority platformAuthority,
+                                       Instant credentialsNotBefore, String givenName, String familyName,
+                                       LegalAcceptance termsAcceptance, LegalAcceptance dataPolicyAcceptance,
+                                       Instant emailVerifiedAt, String googleSubject) {
+        Account account = reconstitute(accountId, email, passwordHash, status, organizationId, platformAuthority,
+                credentialsNotBefore, givenName, familyName, termsAcceptance, dataPolicyAcceptance, emailVerifiedAt);
+        account.googleSubject = googleSubject;
         return account;
     }
 

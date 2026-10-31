@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 /**
  * {@code POST /api/v1/auth/login} (ficha ID-01; ADR-038 §2.7; ADR-047):
@@ -47,7 +45,6 @@ import java.time.temporal.ChronoUnit;
 public class LoginController {
 
     private static final Logger log = LoggerFactory.getLogger(LoginController.class);
-    private static final MediaType PROBLEM_JSON = MediaType.APPLICATION_PROBLEM_JSON;
 
     /** Las dos versiones son opcionales: solo hacen falta cuando la cuenta tiene alguna pendiente (ADR-050 D3). */
     public record LoginRequest(String email, String password, String acceptedTermsVersion,
@@ -101,37 +98,20 @@ public class LoginController {
         }
     }
 
-    /** ADR-050 Enmienda 1, E1-2: {@code max(segundo actual truncado, credentialsNotBefore)}; sin este, el segundo actual. */
+    /** ADR-050 Enmienda 1, E1-2, en {@link LoginIssuedAt}: la misma regla que el login con Google (P-G-3). */
     private Instant issuedAt(AuthenticatedAccount account) {
-        Instant now = clock.instant().truncatedTo(ChronoUnit.SECONDS);
-        Instant credentialsNotBefore = account.credentialsNotBefore();
-        return credentialsNotBefore != null && credentialsNotBefore.isAfter(now) ? credentialsNotBefore : now;
+        return LoginIssuedAt.of(clock, account);
     }
 
-    /** E3-4 (P-R5-5): {@code title = AcceptanceRequired} y solo las versiones pendientes; nunca el texto ni un token. */
-    private static ResponseEntity<ProblemDetail> acceptanceRequired(AcceptanceRequiredException e) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,
-                "The current legal versions must be accepted");
-        problem.setTitle("AcceptanceRequired");
-        if (e.pendingTermsVersion() != null) {
-            problem.setProperty("pendingTermsVersion", e.pendingTermsVersion());
-        }
-        if (e.pendingDataPolicyVersion() != null) {
-            problem.setProperty("pendingDataPolicyVersion", e.pendingDataPolicyVersion());
-        }
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(PROBLEM_JSON).body(problem);
-    }
-
-    /** ADR-050 Enmienda 2, E2-3: {@code title = EmailNotVerified}, sin token ni datos de la cuenta. */
     private static ResponseEntity<ProblemDetail> emailNotVerified() {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "The email must be verified");
-        problem.setTitle("EmailNotVerified");
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).contentType(PROBLEM_JSON).body(problem);
+        return LoginProblems.emailNotVerified();
+    }
+
+    private static ResponseEntity<ProblemDetail> acceptanceRequired(AcceptanceRequiredException e) {
+        return LoginProblems.acceptanceRequired(e);
     }
 
     private static ResponseEntity<ProblemDetail> problem(HttpStatus status, String detail) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
-        problem.setTitle(status.getReasonPhrase());
-        return ResponseEntity.status(status).contentType(PROBLEM_JSON).body(problem);
+        return LoginProblems.problem(status, detail);
     }
 }

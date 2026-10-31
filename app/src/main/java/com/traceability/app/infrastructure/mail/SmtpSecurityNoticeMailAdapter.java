@@ -18,7 +18,7 @@ import java.util.Locale;
 
 /**
  * [Plan] Avisos de seguridad por SMTP (ADR-050 Enmienda 2, E2-4): cambio de contraseña, recuperación confirmada y
- * desactivación propia. <b>Sin enlace con token</b>, sin contraseñas, sin IP ni dispositivo (Q5); la hora en
+ * desactivación propia; y, por la ampliación de Manuel en #164, vincular y desvincular Google. <b>Sin enlace con token</b>, sin contraseñas, sin IP ni dispositivo (Q5); la hora en
  * America/Bogota (P-E2V-10). Mismo ejecutor que la recuperación, sin reintentos (Q5 (a) de ADR-050). Un fallo no
  * cambia la operación, ya confirmada: se registran el {@code accountId} y el tipo de aviso, nunca el correo.
  */
@@ -75,6 +75,8 @@ public class SmtpSecurityNoticeMailAdapter implements SecurityNoticeMailPort {
             case PASSWORD_CHANGED -> "Tu contraseña de PaxFide cambió";
             case PASSWORD_RESET -> "Restableciste tu contraseña de PaxFide";
             case ACCOUNT_DEACTIVATED -> "Desactivaste tu cuenta de PaxFide";
+            case GOOGLE_LINKED -> "Vinculaste tu cuenta de Google a PaxFide";
+            case GOOGLE_UNLINKED -> "Desvinculaste tu cuenta de Google de PaxFide";
         };
     }
 
@@ -96,6 +98,16 @@ public class SmtpSecurityNoticeMailAdapter implements SecurityNoticeMailPort {
 
                     Para volver a activarla, escribe a la plataforma.
                     """.formatted(when);
+            case GOOGLE_LINKED -> """
+                    Vinculaste una cuenta de Google a tu cuenta de PaxFide el %s. Desde ahora puedes iniciar sesión con ella.
+
+                    Si no fuiste tú, recupera tu contraseña aquí: %s/recuperar y desvincula Google desde tu perfil.
+                    """.formatted(when, baseUrl);
+            case GOOGLE_UNLINKED -> """
+                    Desvinculaste la cuenta de Google de tu cuenta de PaxFide el %s. Ya no puedes iniciar sesión con ella.
+
+                    Si no fuiste tú, recupera tu contraseña aquí: %s/recuperar
+                    """.formatted(when, baseUrl);
         };
     }
 }

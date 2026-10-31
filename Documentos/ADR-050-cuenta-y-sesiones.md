@@ -183,6 +183,11 @@ Dueño: Identidad. Cubre, por la regla 3.5:
 - Consecuencias: una conexión saliente nueva desde el backend hacia Google; si no responde, el login con Google falla y el de contraseña sigue funcionando.
 - R-6 es la última prioridad: si el plazo no alcanza, este apartado se queda sin implementar sin afectar al resto.
 
+> **Nota (2026-10-31): tres ampliaciones de D9, decisión de Manuel** (#164, comentario 6544630429; `decisiones-delegadas-2026-10.md`, nota del 2026-10-31). D9 de arriba no se reescribe.
+> 1. `POST /api/v1/account/google/link` exige además `{currentPassword}`, como la desactivación (Q3). Si es incorrecta: 400 `CurrentPasswordIncorrect`, la misma respuesta que la desactivación.
+> 2. **Desvincular:** `DELETE /api/v1/account/google/link` con JWT y `{currentPassword}` → `204`, con la auditoría `GOOGLE_UNLINKED` y aviso por correo.
+> 3. Aviso de seguridad por correo al vincular y al desvincular (amplía E2-4 de la Enmienda 2).
+
 ### D10. Ley 1581: desactivación, supresión y auditoría [Carlos]
 
 - **Desactivar no es suprimir [Carlos].** La desactivación es un cambio de estado; los datos de la cuenta siguen.

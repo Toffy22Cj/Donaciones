@@ -16,6 +16,11 @@ traceability:
     terms-version: v1-2026-10
     data-policy-version: v1-2026-10
     organization-terms-version: v1-2026-10
+  # ADR-050 D9: ID de cliente ficticios (G-1: nunca los reales) y un JWKS al que nadie responde; los tests de Google
+  # levantan el suyo, local, y nunca llaman a Google
+  google:
+    client-ids: client-web-test,client-android-test
+    jwks-uri: http://127.0.0.1:1/jwks-de-test
   mail:
     from: no-reply@tests.paxfide.local
   web:

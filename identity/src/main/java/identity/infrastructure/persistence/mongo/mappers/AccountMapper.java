@@ -39,6 +39,7 @@ public class AccountMapper {
             doc.setDataPolicyAcceptedAt(account.getDataPolicyAcceptance().acceptedAt());
         }
         doc.setEmailVerifiedAt(account.getEmailVerifiedAt());
+        doc.setGoogleSubject(account.getGoogleSubject());
         return doc;
     }
 
@@ -70,7 +71,8 @@ public class AccountMapper {
             doc.getTermsVersion() == null ? null : new LegalAcceptance(doc.getTermsVersion(), doc.getTermsAcceptedAt()),
             doc.getDataPolicyVersion() == null ? null
                     : new LegalAcceptance(doc.getDataPolicyVersion(), doc.getDataPolicyAcceptedAt()),
-            doc.getEmailVerifiedAt()
+            doc.getEmailVerifiedAt(),
+            doc.getGoogleSubject()
         );
     }
 }

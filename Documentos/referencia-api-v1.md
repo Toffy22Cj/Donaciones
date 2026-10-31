@@ -110,6 +110,18 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
 - **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
+*Nota (2026-10-31, ADR-050 D9 y sus tres ampliaciones, decisión de Manuel en #164; plan de Google aprobado):* **iniciar sesión con Google y vincularlo.** Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/google` | pública | `{idToken, acceptedTermsVersion?, acceptedDataPolicyVersion?}` | `200 {token}`, el mismo token que el login (con el `iat` de E1-2) | **401**, el mismo cuerpo que una contraseña errónea: `idToken` inválido o caducado, `aud` no configurado, cuenta no vinculada o `INACTIVE`, o Google sin configurar; **403 `EmailNotVerified`**; **403 `AcceptanceRequired`** (repetir con el mismo `idToken` y las versiones); **503 `GoogleSignInUnavailable`** si no se pueden obtener las llaves de Google (ofrecer la contraseña); 400 sin `idToken` |
+| `POST /account/google/link` | JWT | `{idToken, currentPassword}` | `204`. Si el correo de Google coincide con el de la cuenta, la cuenta queda verificada. Repetir la misma vinculación → `204` sin cambios | **400 `CurrentPasswordIncorrect`** (incorrecta o ausente; la misma respuesta que la desactivación, y se comprueba antes del `idToken`); **400 `GoogleIdTokenInvalid`**; **409 `GoogleAccountAlreadyLinked`** (ese Google está en otra cuenta); **409 `AccountAlreadyLinkedToGoogle`** (esta cuenta tiene otro); 503 `GoogleSignInUnavailable`; 401 sin sesión |
+| `DELETE /account/google/link` | JWT | `{currentPassword}` | `204`; sin vínculo, `204` sin cambios | 400 `CurrentPasswordIncorrect`; 401 sin sesión |
+
+- **Nunca se elige la cuenta por el correo de Google:** solo por el `sub` vinculado. No hay registro con Google (Q2 (a)).
+- **Avisos por correo** al vincular ("Vinculaste tu cuenta de Google a PaxFide") y al desvincular ("Desvinculaste tu cuenta de Google de PaxFide"), sin el `sub` ni el `idToken`.
+- **Despliegue:** `GOOGLE_OAUTH_CLIENT_IDS` con los ID de cliente web, Android y Android demo, separados por comas. Los valores los da Manuel y nunca van al repositorio. Sin la variable, la aplicación arranca y `POST /auth/google` responde 401. El secreto del cliente no se usa.
+
 *Nota (2026-10-29, ADR-050 Enmienda 2; plan aprobado en #158; #163):* **verificación del correo y avisos de seguridad.** Las filas de arriba no se reescriben.
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |

@@ -78,4 +78,19 @@ public interface AccountRepositoryPort {
      * @return true si escribió; false si la cuenta ya estaba verificada, no está activa o no existe
      */
     boolean markEmailVerifiedIfUnverified(AccountId accountId, java.time.Instant verifiedAt);
+
+    /** [Plan] ADR-050 D9: la cuenta vinculada a ese {@code sub} de Google. Nunca se busca por correo. */
+    Optional<Account> findByGoogleSubject(String googleSubject);
+
+    /**
+     * [Plan] ADR-050 D9: {@code $set} de {@code googleSubject} solo si la cuenta sigue {@code ACTIVE} y sin vínculo.
+     *
+     * @return true si escribió
+     * @throws identity.domain.exception.GoogleAccountAlreadyLinkedException si otra cuenta ya tiene ese {@code sub}
+     *         (índice único {@code uq_google_subject})
+     */
+    boolean linkGoogleIfUnlinked(AccountId accountId, String googleSubject);
+
+    /** [Plan] Ampliación de D9 (Manuel, #164): quita el vínculo si es ese {@code sub}; true si quitó algo. */
+    boolean unlinkGoogleIfLinked(AccountId accountId, String googleSubject);
 }
