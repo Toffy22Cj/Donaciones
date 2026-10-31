@@ -247,6 +247,8 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `9787e06`, con la mutación 0 de línea base VIVA): 17 de 17 muertas.
     - La primera versión de la 1 ("sin comprobar la firma") no compilaba y no cuenta.
     - Su versión 1b, que lee las afirmaciones sin verificar, muere con los dos tests 27.
+- *Nota (2026-10-31): `ci-local.sh`* en un clon limpio de `91e376f` (`free -g`: 15 GB en total, 14 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-91e376f-2026-10-31T16-13-52Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 175, identity 413, convocatoria 272 y app 653, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
 
 ### 0.71 R-1: búsqueda, filtro y orden en el descubrimiento público (2026-10-29, `feat/convocatoria-r1-busqueda-descubrimiento`, #159)
 
