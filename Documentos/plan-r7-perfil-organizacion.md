@@ -2,6 +2,12 @@
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. Un solo mensaje aprueba el plan, sus nombres **[Plan]** y los puntos P-R7-1 a P-R7-12. Si Manuel responde a un punto, su respuesta sustituye a la recomendación. **No hay código antes de esa aprobación** (regla 3.4).
 
+> **Nota (2026-10-31): APROBADO por Manuel**, por la delegación de Carlos (comentario de `buelvasmanuel` en #162, https://github.com/Toffy22Cj/Donaciones/pull/162#issuecomment-6506646853; texto literal en `decisiones-delegadas-2026-10.md`, nota del 2026-10-31). P-R7-1 a P-R7-12 se aprueban como se recomiendan, con dos precisiones:
+> - **P-R7-1:** el archivo DIVIPOLA real ya existe (`wip/fuentes-carlos-2026-10-29:fuentes-carlos/divipola/divipola.json`, `catalogVersion` `DIVIPOLA-2026-09`). Se copia tal cual. Trae 33 departamentos y 1122 entradas: 1103 municipios, 1 isla y 18 áreas no municipalizadas. Donde este plan dice "municipios", se entienden las 1122.
+> - **P-R7-5:** NIT sintéticos con el dígito bien calculado y marcados "sintético".
+>
+> "PROPUESTO" se conserva; esta nota lo supera.
+
 **Qué entra** lo fija `ficha-R7-perfil-organizacion.md` (CONGELADA por Carlos el 2026-10-29: P1 a P8 según la recomendación, P9 no). Carlos confirmó que R-7 se puede empezar (C-5, `decisiones-delegadas-2026-10.md`, nota del 2026-10-29 "texto literal de C-1 y C-5"). Este plan fija el **cómo**.
 
 **Base verificada:** `develop` `d313bc6`. Cada ruta:línea de este plan se abrió sobre esa base. **Depende del PR de `chore/docs-r7-y-c1`**, que trae la ficha.

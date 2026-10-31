@@ -342,3 +342,23 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
   - El secreto del cliente no se usa ni se configura.
 - **G-2.** Dato de Manuel, **sin verificar en el código del móvil:** la app Flutter usará `google_sign_in` con `serverClientId` igual al ID web, así que el `aud` del `idToken` del móvil será normalmente el ID web. El backend acepta cualquier `aud` de la lista configurada.
 - **Qué autoriza:** escribir `plan-adr050-r6-google.md`. **No autoriza código:** el código espera el "plan aprobado" de Manuel en un comentario citable.
+
+**Nota (2026-10-31): "plan aprobado" de Manuel sobre R-7.** Fuente citable: comentario de `buelvasmanuel` en #162, 2026-10-29T19:43:27Z, https://github.com/Toffy22Cj/Donaciones/pull/162#issuecomment-6506646853. Texto literal:
+
+> **Plan aprobado — Manuel, 2026-10-29**, por la delegación de Carlos (C-5). Es la aprobación citable de `Documentos/plan-r7-perfil-organizacion.md`.
+>
+> - **P-R7-1:** aprobado, con fail-fast si falta el archivo. El archivo **ya está**: lo aportó Manuel, descargado del DANE. Está en la rama `wip/fuentes-carlos-2026-10-29`:
+>   - `fuentes-carlos/divipola/divipola.json`, ya en el formato de P-R7-2, con `catalogVersion` `DIVIPOLA-2026-09`;
+>   - el original, `DIVIPOLA_Municipios.xlsx` ("DIVIPOLA septiembre 2026");
+>   - un `LEEME.txt`.
+>
+>   Copia el JSON tal cual a `app/src/main/resources/divipola/divipola.json`. Trae 33 departamentos y 1122 entradas: 1103 municipios, 1 isla y 18 áreas no municipalizadas. Se incluyen todas, porque son parte de la DIVIPOLA. Si el plan solo contaba "municipios", anótalo.
+> - **P-R7-2:** aprobado.
+> - **P-R7-3:** aprobado. Las organizaciones existentes conservan su aceptación anterior; queda como límite conocido anotado. Este PR no cambia la versión de los términos de organización.
+> - **P-R7-4:** aprobado, con el ayudante de test y la semilla con un NIT de prueba válido.
+> - **P-R7-5:** NIT sintéticos con el dígito de verificación bien calculado y marcados "sintético". No hace falta esperar la comprobación en el RUES.
+> - **P-R7-6 a P-R7-12:** aprobados tal como los recomienda el plan.
+>
+> Hay que registrar esta aprobación con una nota fechada en `decisiones-delegadas-2026-10.md` y en el plan, en el primer commit del PR de código. Se puede empezar el código de R-7.
+
+- **Anotado al registrarlo:** el plan (§2, P-R7-1 y P-R7-2) habla de "municipios". El archivo trae además 1 isla y 18 áreas no municipalizadas, que se incluyen todas como entradas del catálogo, igual que los municipios.
