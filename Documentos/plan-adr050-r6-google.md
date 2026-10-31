@@ -2,6 +2,31 @@
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. Un solo mensaje aprueba el plan, sus nombres **[Plan]** y los puntos P-G-1 a P-G-14. Si Manuel responde a un punto, su respuesta sustituye a la recomendación. **No hay código antes de esa aprobación** (regla 3.4).
 
+> **Nota (2026-10-31): APROBADO por Manuel**, con P-G-1 a P-G-14 como se recomiendan y tres ampliaciones de D9 (#164, comentario 6544630429; texto literal en `decisiones-delegadas-2026-10.md`, nota del 2026-10-31). "PROPUESTO" se conserva; esta nota lo supera.
+> - **`POST /account/google/link`** lleva `{idToken, currentPassword}`. Una contraseña incorrecta o ausente → **400 `CurrentPasswordIncorrect`**, como la desactivación (`DeactivateAccountService.java:88-89`; `IdentityApiErrorMappings.java:79`). Se comprueba **antes** del `idToken`, para que un token robado sin la contraseña no revele nada de Google.
+> - **`DELETE /account/google/link`** con `{currentPassword}` → `204`; auditoría `GOOGLE_UNLINKED` **[Plan]**; aviso por correo. Sin vínculo → `204` sin cambios, sin auditoría ni aviso. Contraseña incorrecta → el mismo 400.
+> - **Avisos (E2-4 ampliado):** `GOOGLE_LINKED` ("Vinculaste tu cuenta de Google a PaxFide") y `GOOGLE_UNLINKED` ("Desvinculaste tu cuenta de Google de PaxFide") **[Plan]**, como los demás: sin token, IP ni dispositivo, con la hora de Bogotá, y un fallo de envío no cambia la respuesta.
+>
+> **Tests nuevos** (se añaden a §3):
+>
+> | # | Test | Rojo esperado |
+> |---|---|---|
+> | G-14 | Vincular con `currentPassword` incorrecta o ausente → 400 `CurrentPasswordIncorrect`, el mismo cuerpo que la desactivación, sin vincular y sin verificar el `idToken` (el JWKS local no recibe ninguna petición) | 204 |
+> | G-15 | Desvincular con la contraseña correcta → 204, `googleSubject` borrado y auditoría `GOOGLE_UNLINKED`; después, `POST /auth/google` con ese `idToken` → 401 | 404 |
+> | G-16 | Desvincular con la contraseña incorrecta → 400 y el vínculo sigue; sin JWT → 401; sin vínculo → 204 sin auditoría ni aviso | 404 |
+> | G-17 | Vincular y desvincular envían un aviso cada uno, con su asunto, sin el `sub`, el `idToken` ni `#token=` | sin aviso |
+> | G-18 | Tras desvincular, el mismo Google se puede vincular a **otra** cuenta (el índice único ya no lo bloquea) | 409 |
+>
+> **Mutaciones nuevas** (se añaden a §4):
+>
+> | # | Mutación | Debe matarla |
+> |---|---|---|
+> | 13 | Vincular sin comprobar `currentPassword` | G-14 |
+> | 14 | Desvincular sin comprobar `currentPassword` | G-16 |
+> | 15 | Desvincular no borra `googleSubject` | G-15, G-18 |
+> | 16 | Vincular no avisa | G-17 |
+> | 17 | Desvincular no audita | G-15 |
+
 **Qué entra** lo fija ADR-050 D9 (`ADR-050-cuenta-y-sesiones.md:172-184`) y sus tests 27 a 29 (`:284-287`). G-0 retoma R-6 y G-1 y G-2 fijan la configuración (`decisiones-delegadas-2026-10.md`, nota del 2026-10-30). Este plan fija el **cómo**.
 
 **Base verificada:** la rama de #163 (Enmienda 2 de ADR-050, `31c2a56`), con `develop` `6375c40` integrado. **Depende de #163**, porque la Enmienda 2 cambia el login (E2-3) y `AuthenticateAccountPort`. Cada ruta:línea de este plan es de esa base.
