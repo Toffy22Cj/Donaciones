@@ -62,6 +62,11 @@ traceability:
     terms-version: ${TRACEABILITY_LEGAL_TERMS_VERSION}
     data-policy-version: ${TRACEABILITY_LEGAL_DATA_POLICY_VERSION}
     organization-terms-version: ${TRACEABILITY_LEGAL_ORGANIZATION_TERMS_VERSION}
+  # ADR-050 D9 (G-1): los ID de cliente de Google, separados por comas, solo por entorno y nunca con valores reales en
+  # el repositorio; el secreto del cliente no se usa. Vacío: la aplicación arranca y el login con Google da 401 (P-G-8)
+  google:
+    client-ids: ${GOOGLE_OAUTH_CLIENT_IDS:}
+    jwks-uri: https://www.googleapis.com/oauth2/v3/certs
   # ADR-049 D1 (DD-61): remitente de los correos y base de los enlaces de la web, sin valor por defecto fuera de dev
   mail:
     from: ${TRACEABILITY_MAIL_FROM}

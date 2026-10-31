@@ -12,7 +12,6 @@ import identity.domain.exception.InvalidEmailFormatException;
 import identity.domain.model.Account;
 import identity.domain.model.AccountStatus;
 import identity.domain.model.Email;
-import identity.domain.model.LegalAcceptance;
 import identity.domain.model.LegalVersions;
 import identity.domain.model.PasswordHash;
 import org.springframework.beans.factory.ObjectProvider;
@@ -20,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -84,32 +82,9 @@ public class AuthenticateAccountPortImpl implements AuthenticateAccountPort {
         return new AuthenticatedAccount(account.get().getAccountId().value(), account.get().getCredentialsNotBefore());
     }
 
-    /** E3-2 (pasos 2 a 4) y E3-3. Una cuenta al día no escribe nada. */
+    /** E3-2 (pasos 2 a 4) y E3-3, en {@link LoginAcceptances}, la misma regla que el login con Google. */
     private void requireCurrentAcceptances(Account account, AcceptedLegalVersions accepted) {
-        LegalVersions current = legalVersions.get();
-        String pendingTerms = isCurrent(account.getTermsAcceptance(), current.terms()) ? null : current.terms();
-        String pendingDataPolicy = isCurrent(account.getDataPolicyAcceptance(), current.dataPolicy())
-                ? null : current.dataPolicy();
-        if (pendingTerms == null && pendingDataPolicy == null) {
-            return;
-        }
-        boolean acceptsThem = (pendingTerms == null || pendingTerms.equals(accepted.termsVersion()))
-                && (pendingDataPolicy == null || pendingDataPolicy.equals(accepted.dataPolicyVersion()));
-        if (!acceptsThem) {
-            throw new AcceptanceRequiredException(pendingTerms, pendingDataPolicy);
-        }
-        Instant now = clock.instant();
-        boolean written = accountRepositoryPort.recordLegalAcceptancesIfUnchanged(account.getAccountId(),
-                account.getPasswordHash(),
-                pendingTerms == null ? null : new LegalAcceptance(pendingTerms, now),
-                pendingDataPolicy == null ? null : new LegalAcceptance(pendingDataPolicy, now));
-        if (!written) {
-            throw new AuthenticationFailedException();
-        }
-    }
-
-    private static boolean isCurrent(LegalAcceptance acceptance, String currentVersion) {
-        return acceptance != null && currentVersion.equals(acceptance.version());
+        LoginAcceptances.require(accountRepositoryPort, legalVersions.get(), clock, account, accepted);
     }
 
     private Optional<Account> findByEmail(String email) {

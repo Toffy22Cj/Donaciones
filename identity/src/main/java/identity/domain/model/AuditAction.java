@@ -25,5 +25,8 @@ public enum AuditAction {
     // ADR-050 D1: perfil (nombre y apellido); los datos solo nombran los campos que cambiaron, nunca sus valores
     PROFILE_UPDATED,
     // ADR-050 Enmienda 2, E2-2: correo verificado; los datos nunca llevan el correo
-    EMAIL_VERIFIED
+    EMAIL_VERIFIED,
+    // ADR-050 D9 y su ampliación (Manuel, #164): vincular y desvincular Google; los datos no llevan el sub ni el correo
+    GOOGLE_LINKED,
+    GOOGLE_UNLINKED
 }

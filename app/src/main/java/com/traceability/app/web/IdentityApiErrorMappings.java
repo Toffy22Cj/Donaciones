@@ -101,6 +101,11 @@ public class IdentityApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(RepresentativeTransferRequiredException.class, HttpStatus.CONFLICT, null),
                 // ADR-050 D6 (plan D6, P-D6-3): el administrador de plataforma no puede desactivar su cuenta; antes no
                 // estaba mapeada y salía como 500
-                new ApiErrorMapping(PlatformAdministratorDeactivationException.class, HttpStatus.CONFLICT, null));
+                new ApiErrorMapping(PlatformAdministratorDeactivationException.class, HttpStatus.CONFLICT, null),
+                // ADR-050 D9 (plan de Google, P-G-4 y P-G-9)
+                new ApiErrorMapping(identity.domain.exception.GoogleIdTokenInvalidException.class, HttpStatus.BAD_REQUEST, null),
+                new ApiErrorMapping(identity.domain.exception.GoogleAccountAlreadyLinkedException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(identity.domain.exception.AccountAlreadyLinkedToGoogleException.class, HttpStatus.CONFLICT, null),
+                new ApiErrorMapping(identity.domain.exception.GoogleSignInUnavailableException.class, HttpStatus.SERVICE_UNAVAILABLE, null));
     }
 }
