@@ -318,6 +318,8 @@ class GoldenPathHttpIntegrationTest {
         employees.addEmployee(SETUP, org.getOrganizationId(), new AccountId(employee));
 
         // Paso 1 (criterio 1): la plataforma verifica la organización
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, orgId);
         assertThat(ok(send("POST", "/api/v1/platform/organizations/" + orgId + "/verify", platformAdmin, null), 200)
                 .get("verificationStatus").asText()).isEqualTo("VERIFIED");
 

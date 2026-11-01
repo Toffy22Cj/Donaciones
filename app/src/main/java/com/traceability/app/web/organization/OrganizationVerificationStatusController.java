@@ -23,7 +23,10 @@ public class OrganizationVerificationStatusController {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record OrganizationStatus(String organizationId, String name, String type, String verificationStatus,
-                                     String informationRequest, String logoUrl) {}
+                                     String informationRequest, String logoUrl,
+                                     /** Ficha R-7 §4 y test 9: los campos del perfil, planos. */
+                                     @com.fasterxml.jackson.annotation.JsonUnwrapped
+                                     OrganizationProfileJson.ProfileFields profile) {}
 
     private final OrganizationVerificationStatusQuery query;
 
@@ -37,6 +40,7 @@ public class OrganizationVerificationStatusController {
         OrganizationVerificationStatusQuery.StatusView v = query.status(principal, organizationId);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new OrganizationStatus(
                 v.organizationId(), v.name(), v.type(), v.verificationStatus(), v.informationRequest(),
-                v.hasLogo() ? OrganizationLogoService.logoUrl(v.organizationId()) : null));
+                v.hasLogo() ? OrganizationLogoService.logoUrl(v.organizationId()) : null,
+                OrganizationProfileJson.ProfileFields.of(v.profile())));
     }
 }

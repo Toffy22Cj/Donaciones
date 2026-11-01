@@ -40,7 +40,10 @@ public class OrganizationVerificationQueueController {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Item(String organizationId, String name, String type, String verificationStatus,
-                       String informationRequest) {}
+                       String informationRequest,
+                       /** Ficha R-7 §4: los campos del perfil, planos, solo para la plataforma. */
+                       @com.fasterxml.jackson.annotation.JsonUnwrapped
+                       com.traceability.app.web.organization.OrganizationProfileJson.ProfileFields profile) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Page(List<Item> items, String nextCursor) {}
@@ -63,7 +66,8 @@ public class OrganizationVerificationQueueController {
         String after = cursor == null ? null : decode(cursor);
         OrganizationVerificationQueueQuery.QueuePage page = queue.page(principal, statuses, after, PAGE_SIZE);
         List<Item> items = page.items().stream().map(i -> new Item(i.organizationId(), i.name(), i.type(),
-                i.verificationStatus(), i.informationRequest())).toList();
+                i.verificationStatus(), i.informationRequest(),
+                com.traceability.app.web.organization.OrganizationProfileJson.ProfileFields.of(i.profile()))).toList();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(new Page(items, page.next() == null ? null : cursors.encode(CURSOR_PURPOSE + page.next())));
     }

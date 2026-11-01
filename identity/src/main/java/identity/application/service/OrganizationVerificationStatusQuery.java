@@ -21,7 +21,15 @@ public class OrganizationVerificationStatusQuery {
 
     /** {@code hasLogo}: si la organización tiene logo (ADR-051 F6; ficha S-18, nota del 2026-10-21). */
     public record StatusView(String organizationId, String name, String type, String verificationStatus,
-                             String informationRequest, boolean hasLogo) {}
+                             String informationRequest, boolean hasLogo,
+                             /** Ficha R-7 §4 y test 9: el perfil completo, porque solo lo leen REPRESENTATIVE y ADMINISTRATOR. */
+                             identity.domain.model.OrganizationProfile profile) {
+        public StatusView(String organizationId, String name, String type, String verificationStatus,
+                          String informationRequest, boolean hasLogo) {
+            this(organizationId, name, type, verificationStatus, informationRequest, hasLogo,
+                    identity.domain.model.OrganizationProfile.EMPTY);
+        }
+    }
 
     private final OrganizationRepositoryPort organizations;
 
@@ -44,6 +52,6 @@ public class OrganizationVerificationStatusQuery {
         return new StatusView(o.getOrganizationId().value(), o.getName(), o.getType().name(),
                 o.getVerificationStatus().name(),
                 o.getVerificationInformationRequest() == null ? null : o.getVerificationInformationRequest().value(),
-                o.getLogoObjectKey() != null);
+                o.getLogoObjectKey() != null, o.getProfile());
     }
 }

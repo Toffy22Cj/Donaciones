@@ -25,14 +25,23 @@ import org.springframework.web.bind.annotation.RestController;
  *   <li>{@code type} distinto de {@code FOUNDATION}/{@code COMPANY}, o {@code name} vacío o de más de 200 caracteres →
  *   400, sin llamar al dominio;</li>
  *   <li>la cuenta ya pertenece a una organización → 409 ({@code AccountAlreadyBelongsToOrganization}).</li>
+ *   <li>ficha R-7: un campo del perfil inválido → 400 con el campo; un NIT ya registrado → 409
+ *   ({@code OrganizationNitAlreadyRegistered}), sin organización.</li>
  * </ul>
  * Sin {@code Command-Id}: Identity no lo usa (DH-34, DD-56); un reintento recibe 409.
  */
 @RestController
 public class OrganizationRegistrationController {
 
-    /** {@code acceptedOrganizationTermsVersion}: la versión vigente de los términos de organización (ADR-050 D2). */
-    public record CreateOrganizationRequest(String type, String name, String acceptedOrganizationTermsVersion) {}
+    /**
+     * {@code acceptedOrganizationTermsVersion}: la versión vigente de los términos de organización (ADR-050 D2). Ficha
+     * R-7 §4: además, todos los campos del perfil (§3), opcionales.
+     */
+    public record CreateOrganizationRequest(String type, String name, String acceptedOrganizationTermsVersion,
+                                            String description, String website,
+                                            OrganizationProfileJson.LocationCodes location, String contactEmail,
+                                            String legalName, String nit, String nitCheckDigit,
+                                            Boolean specialTaxRegime, String contactPhone) {}
 
     public record CreateOrganizationResponse(String organizationId, String verificationStatus) {}
 
@@ -65,9 +74,16 @@ public class OrganizationRegistrationController {
         // ADR-050 D2: ausente o distinta de la vigente → 400 con el campo nombrado (en el log), sin organización
         Organization created;
         try {
+            identity.domain.model.OrganizationProfile profile = OrganizationProfileJson.profile(request.description(),
+                    request.website(), request.location(), request.contactEmail(), request.legalName(), request.nit(),
+                    request.nitCheckDigit(), request.specialTaxRegime(), request.contactPhone());
             created = organizations.createOrganization(auditActors.toAuditActor(principal), type,
-                    new AccountId(principal.accountId()), request.name(), request.acceptedOrganizationTermsVersion());
+                    new AccountId(principal.accountId()), request.name(), request.acceptedOrganizationTermsVersion(),
+                    profile);
         } catch (LegalVersionNotCurrentException e) {
+            throw new InvalidRequestFieldException(e.getField());
+        } catch (identity.domain.exception.InvalidOrganizationProfileFieldException e) {
+            // ficha R-7 §3: una ubicación fuera del catálogo o specialTaxRegime en una COMPANY → 400 con el campo
             throw new InvalidRequestFieldException(e.getField());
         }
         return new CreateOrganizationResponse(created.getOrganizationId().value(),

@@ -1,15 +1,20 @@
 package identity.infrastructure.persistence.mongo.documents;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
 @Document("organizations")
+// ficha R-7, P5: un NIT, una organización; parcial, porque las que no lo tienen no lo guardan
+@CompoundIndex(name = OrganizationDocument.NIT_INDEX, def = "{'nit': 1}", unique = true, partialFilter = "{'nit': {'$exists': true}}")
 @Getter
 @Setter
 public class OrganizationDocument {
+    public static final String NIT_INDEX = "uq_organization_nit";
+
     @Id
     private String organizationId;
     private String type;
@@ -24,4 +29,15 @@ public class OrganizationDocument {
     private String organizationTermsVersion;
     private String organizationTermsAcceptedBy;
     private java.time.Instant organizationTermsAcceptedAt;
+    // ficha R-7 §3: el perfil, ausente en las existentes (un campo nulo no se escribe)
+    private String description;
+    private String website;
+    private String departmentCode;
+    private String municipalityCode;
+    private String contactEmail;
+    private String legalName;
+    private String nit;
+    private String nitCheckDigit;
+    private Boolean specialTaxRegime;
+    private String contactPhone;
 }

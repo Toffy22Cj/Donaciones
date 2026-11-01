@@ -111,6 +111,8 @@ class AccountDeactivationHttpIntegrationTest {
         admin = account(email());
         employees.addEmployee(SETUP, o, new AccountId(admin));
         administrators.assignAdministrator(SETUP, o, new AccountId(admin));
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org);
         ok(send("POST", "/api/v1/platform/organizations/" + org + "/verify", tokens.issue(platformAdmin), null), 200);
     }
 

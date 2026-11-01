@@ -28,5 +28,8 @@ public enum AuditAction {
     EMAIL_VERIFIED,
     // ADR-050 D9 y su ampliación (Manuel, #164): vincular y desvincular Google; los datos no llevan el sub ni el correo
     GOOGLE_LINKED,
-    GOOGLE_UNLINKED
+    GOOGLE_UNLINKED,
+    // ficha R-7: perfil de la organización (los datos solo nombran los campos que cambiaron) y responder a la solicitud
+    ORGANIZATION_PROFILE_UPDATED,
+    ORGANIZATION_VERIFICATION_RESUBMITTED
 }

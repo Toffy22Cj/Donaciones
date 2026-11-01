@@ -36,6 +36,19 @@ public class OrganizationMapper {
             doc.setOrganizationTermsAcceptedBy(org.getOrganizationTermsAcceptance().acceptedBy().value());
             doc.setOrganizationTermsAcceptedAt(org.getOrganizationTermsAcceptance().acceptedAt());
         }
+        identity.domain.model.OrganizationProfile profile = org.getProfile();
+        doc.setDescription(profile.description());
+        doc.setWebsite(profile.website());
+        if (profile.location() != null) {
+            doc.setDepartmentCode(profile.location().departmentCode());
+            doc.setMunicipalityCode(profile.location().municipalityCode());
+        }
+        doc.setContactEmail(profile.contactEmail());
+        doc.setLegalName(profile.legalName());
+        doc.setNit(profile.nitNumber());
+        doc.setNitCheckDigit(profile.nitCheckDigit());
+        doc.setSpecialTaxRegime(profile.specialTaxRegime());
+        doc.setContactPhone(profile.contactPhone());
         doc.setVerificationInformationRequest(
             org.getVerificationInformationRequest() != null
                 ? org.getVerificationInformationRequest().value()
@@ -103,8 +116,19 @@ public class OrganizationMapper {
             doc.getLogoObjectKey(),
             doc.getOrganizationTermsVersion() == null ? null : new identity.domain.model.OrganizationTermsAcceptance(
                     doc.getOrganizationTermsVersion(), new identity.domain.model.AccountId(doc.getOrganizationTermsAcceptedBy()),
-                    doc.getOrganizationTermsAcceptedAt())
+                    doc.getOrganizationTermsAcceptedAt()),
+            profileOf(doc)
         );
+    }
+
+    /** Ficha R-7: lo guardado ya pasó la validación al escribirse; se reconstruye sin volver a consultar el catálogo. */
+    private static identity.domain.model.OrganizationProfile profileOf(OrganizationDocument doc) {
+        return new identity.domain.model.OrganizationProfile(doc.getDescription(), doc.getWebsite(),
+                doc.getDepartmentCode() == null ? null
+                        : new identity.domain.model.OrganizationLocation(doc.getDepartmentCode(), doc.getMunicipalityCode()),
+                doc.getContactEmail(), doc.getLegalName(),
+                doc.getNit() == null ? null : new identity.domain.model.Nit(doc.getNit(), doc.getNitCheckDigit()),
+                doc.getSpecialTaxRegime(), doc.getContactPhone());
     }
 
     private static MembershipDocument toMembershipDocument(Membership membership) {

@@ -71,6 +71,7 @@ class P2EndpointsHttpIntegrationTest {
     }
 
     @LocalServerPort private int port;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     @Autowired private TokenIssuerPort tokens;
     @Autowired private CreateAccountService accounts;
     @Autowired private CreateOrganizationService organizations;
@@ -130,7 +131,11 @@ class P2EndpointsHttpIntegrationTest {
         String[] other = organization("Otra");
         otherOrg = other[1];
         otherAdmin = administratorOf(otherOrg);
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org);
         ok(send("POST", "/api/v1/platform/organizations/" + org + "/verify", platformAdmin, null), 200);
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, otherOrg);
         ok(send("POST", "/api/v1/platform/organizations/" + otherOrg + "/verify", platformAdmin, null), 200);
     }
 
@@ -455,6 +460,8 @@ class P2EndpointsHttpIntegrationTest {
         assertThat(ok(send("POST", platform + toAsk + "/request-information", platformAdmin,
                 "{\"message\":\"Falta el certificado de existencia\"}"), 200).get("verificationStatus").asText())
                 .isEqualTo("NEEDS_MORE_INFORMATION");
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, toAsk);
         ok(send("POST", platform + toAsk + "/verify", platformAdmin, null), 200);
         assertThat(send("POST", platform + "no-such-org/reject", platformAdmin, null).statusCode()).isEqualTo(404);
     }

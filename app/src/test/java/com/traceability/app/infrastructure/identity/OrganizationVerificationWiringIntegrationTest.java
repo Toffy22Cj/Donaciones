@@ -65,6 +65,8 @@ class OrganizationVerificationWiringIntegrationTest {
 
     private final AuditActor testActor = new AuditActor.AccountAuditActor(AccountId.generate());
 
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
     @Autowired private ApplicationContext context;
     @Autowired private OrganizationVerificationPort organizationVerificationPort;
     @Autowired private ConvocatoriaLifecycleService convocatoriaLifecycleService;
@@ -116,6 +118,8 @@ class OrganizationVerificationWiringIntegrationTest {
         OrganizationId orgId = newOrganization();
         assertThat(organizationVerificationPort.isVerified(orgId.value())).isFalse();
 
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, orgId);
         verifyOrganizationService.verifyOrganization(platformAdmin, orgId);
 
         assertThat(organizationVerificationPort.isVerified(orgId.value())).isTrue();

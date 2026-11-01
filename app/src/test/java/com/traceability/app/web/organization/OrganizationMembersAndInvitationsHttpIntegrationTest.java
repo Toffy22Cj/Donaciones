@@ -172,6 +172,8 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
         otherAdmin = account(email());
         employees.addEmployee(SETUP, other, new AccountId(otherAdmin));
         administrators.assignAdministrator(SETUP, other, new AccountId(otherAdmin));
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, org);
         ok(send("POST", "/api/v1/platform/organizations/" + org + "/verify", platformAdmin, null), 200);
     }
 

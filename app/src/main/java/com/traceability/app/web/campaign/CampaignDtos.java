@@ -53,5 +53,15 @@ public final class CampaignDtos {
                                          String description, String status,
                                          String startDate, String endDate, Set<String> acceptedDonationTypes,
                                          Set<String> acceptedPaymentMethods, String currency, String targetAmount,
-                                         String clearedAmount, String organizationLogoUrl, String coverImageUrl) {}
+                                         String clearedAmount, String organizationLogoUrl, String coverImageUrl,
+                                         /** Ficha R-7 §4 y P7 (a): solo lo público del perfil; ausente si no hay. */
+                                         OrganizationProfileView organizationProfile) {}
+
+    /** [Plan] Ficha R-7: lo público del perfil de la organización, con los nombres DIVIPOLA. */
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public record OrganizationProfileView(String description, String website, LocationNamesView location,
+                                          String contactEmail) {}
+
+    /** [Plan] */
+    public record LocationNamesView(String departmentName, String municipalityName) {}
 }

@@ -166,6 +166,8 @@ class CampaignCoverHttpIntegrationTest {
         administrators.assignAdministrator(SETUP, id, new AccountId(admin));
         String employee = account();
         employees.addEmployee(SETUP, id, new AccountId(employee));
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, id);
         verifications.verifyOrganization(principals.resolvePrincipal(platformAdmin), id);
         ConvocatoriaConfiguration config = new ConvocatoriaConfiguration(EnumSet.of(DonationType.MONETARY),
                 Set.of(PaymentMethod.GATEWAY), "COP", 1_000_000L, TargetPolicy.FLEXIBLE, null);

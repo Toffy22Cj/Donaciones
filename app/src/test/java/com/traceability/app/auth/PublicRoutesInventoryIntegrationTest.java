@@ -119,6 +119,9 @@ class PublicRoutesInventoryIntegrationTest {
             // ADR-050 D9 y su ampliación (Manuel, #164): vincular y desvincular Google, con JWT
             "POST /api/v1/account/google/link",
             "DELETE /api/v1/account/google/link",
+            // ficha R-7 §4 y §5: el perfil y responder a la solicitud de información, con JWT
+            "PUT /api/v1/organizations/{organizationId}/profile",
+            "POST /api/v1/organizations/{organizationId}/verification/resubmit",
             "PUT /api/v1/organizations/{organizationId}/logo",
             "DELETE /api/v1/organizations/{organizationId}/logo",
             "GET /api/v1/organizations/{organizationId}/logo",
@@ -184,6 +187,9 @@ class PublicRoutesInventoryIntegrationTest {
                 .contains("/api/v1/auth/password-reset", "/api/v1/auth/password-reset/confirm")
                 // ADR-050 D9: el login con Google es público; vincular y desvincular, no
                 .contains("/api/v1/auth/google", "/api/v1/account/google/link")
+                // ficha R-7 §4 y §6: el catálogo es público; el perfil y el reenvío, no
+                .contains("/api/v1/public/locations", "/api/v1/organizations/{organizationId}/profile",
+                        "/api/v1/organizations/{organizationId}/verification/resubmit")
                 // ADR-050 Enmienda 2, E2-2: las dos rutas de la verificación del correo existen y son públicas
                 .contains("/api/v1/auth/email-verification", "/api/v1/auth/email-verification/confirm")
                 .contains("/api/v1/auth/login", "/api/v1/donations/tracking",

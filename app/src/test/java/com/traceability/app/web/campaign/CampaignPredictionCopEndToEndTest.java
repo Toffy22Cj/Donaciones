@@ -99,6 +99,7 @@ class CampaignPredictionCopEndToEndTest {
     }
 
     @LocalServerPort private int port;
+    @Autowired private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
     @Autowired private TokenIssuerPort tokens;
     @Autowired private CreateAccountService accounts;
     @Autowired private CreateOrganizationService organizations;
@@ -160,6 +161,8 @@ class CampaignPredictionCopEndToEndTest {
         employees.addEmployee(setup, org.getOrganizationId(), new AccountId(admin));
         administrators.assignAdministrator(setup, org.getOrganizationId(), new AccountId(admin));
         String orgId = org.getOrganizationId().value();
+        // ficha R-7, P2 (b): razón social y NIT sintético antes de verificar (P-R7-4)
+        com.traceability.app.support.OrganizationVerificationData.prepare(mongoTemplate, orgId);
         ok(send("POST", "/api/v1/platform/organizations/" + orgId + "/verify", platform, null), 200);
 
         // CV-01: meta de 8 000 000 COP = 800 000 000 unidades mínimas; 40 días desde C0 + 1 día

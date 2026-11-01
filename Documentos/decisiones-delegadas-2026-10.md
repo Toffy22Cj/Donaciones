@@ -363,3 +363,27 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - **Test 27, "el mismo 401 byte a byte":** **sí vale** ignorar `instance`, que lleva la ruta (`app/src/test/java/com/traceability/app/web/auth/GoogleSignInHttpIntegrationTest.java:141-144`). El resto del cuerpo y el estado deben ser iguales, y el test lo comprueba.
 - **G-2** (el `aud` del móvil; `decisiones-delegadas-2026-10.md:343`): **sigue sin verificar**. Lo confirmará Adonis cuando cambie el `applicationId` a `com.paxfide.mobile`. **No bloquea:** el backend acepta los tres ID de la lista `GOOGLE_OAUTH_CLIENT_IDS`.
 - No cambia código ni tests (#166).
+**Nota (2026-10-31): "plan aprobado" de Manuel sobre R-7.** Fuente citable: comentario de `buelvasmanuel` en #162, 2026-10-29T19:43:27Z, https://github.com/Toffy22Cj/Donaciones/pull/162#issuecomment-6506646853. Texto literal:
+
+> **Plan aprobado — Manuel, 2026-10-29**, por la delegación de Carlos (C-5). Es la aprobación citable de `Documentos/plan-r7-perfil-organizacion.md`.
+>
+> - **P-R7-1:** aprobado, con fail-fast si falta el archivo. El archivo **ya está**: lo aportó Manuel, descargado del DANE. Está en la rama `wip/fuentes-carlos-2026-10-29`:
+>   - `fuentes-carlos/divipola/divipola.json`, ya en el formato de P-R7-2, con `catalogVersion` `DIVIPOLA-2026-09`;
+>   - el original, `DIVIPOLA_Municipios.xlsx` ("DIVIPOLA septiembre 2026");
+>   - un `LEEME.txt`.
+>
+>   Copia el JSON tal cual a `app/src/main/resources/divipola/divipola.json`. Trae 33 departamentos y 1122 entradas: 1103 municipios, 1 isla y 18 áreas no municipalizadas. Se incluyen todas, porque son parte de la DIVIPOLA. Si el plan solo contaba "municipios", anótalo.
+> - **P-R7-2:** aprobado.
+> - **P-R7-3:** aprobado. Las organizaciones existentes conservan su aceptación anterior; queda como límite conocido anotado. Este PR no cambia la versión de los términos de organización.
+> - **P-R7-4:** aprobado, con el ayudante de test y la semilla con un NIT de prueba válido.
+> - **P-R7-5:** NIT sintéticos con el dígito de verificación bien calculado y marcados "sintético". No hace falta esperar la comprobación en el RUES.
+> - **P-R7-6 a P-R7-12:** aprobados tal como los recomienda el plan.
+>
+> Hay que registrar esta aprobación con una nota fechada en `decisiones-delegadas-2026-10.md` y en el plan, en el primer commit del PR de código. Se puede empezar el código de R-7.
+
+- **Anotado al registrarlo:** el plan (§2, P-R7-1 y P-R7-2) habla de "municipios". El archivo trae además 1 isla y 18 áreas no municipalizadas, que se incluyen todas como entradas del catálogo, igual que los municipios.
+
+**Nota (2026-10-31): R-7, la descripción como texto plano. Respuesta de Manuel, "comunicado por Manuel".**
+- **Pregunta:** la ficha pide la descripción en texto plano, sin HTML ni Markdown (`ficha-R7-perfil-organizacion.md:40`). La implementación rechaza `<` y `>` y guarda el Markdown tal cual, sin interpretarlo (`identity/src/main/java/identity/domain/model/OrganizationProfile.java:18-19`).
+- **Respuesta:** **sí vale** rechazar `<` y `>` y guardar el Markdown tal cual, sin interpretarlo. El front lo muestra como texto plano.
+- No cambia código ni tests (#165).

@@ -53,6 +53,13 @@ Consecuencia operativa: un representante no puede saber si ya puede crear convoc
 
 **Sin reglas nuevas.** Lectura sin transacción sobre `Organization`, como `OrganizationMembersQuery` y `OrganizationVerificationQueueQuery`. No cambia ningún aggregate, puerto ni evento. No toca el Event Store (identity no es event-sourced).
 
+> **Nota (2026-10-31): enmienda por la ficha R-7** (`ficha-R7-perfil-organizacion.md` §5, CONGELADA; plan R-7, P-R7-11, aprobado en #162).
+> - **Transición nueva** `NEEDS_MORE_INFORMATION → PENDING_VERIFICATION`. La dispara la organización (`REPRESENTATIVE` o `ADMINISTRATOR`) con `POST /organizations/{id}/verification/resubmit`, y borra `informationRequest`, como `verify` y `reject`.
+> - Desde cualquier otro estado, **409 `VerificationResubmitNotAllowed`**. `VERIFIED` y `REJECTED` siguen terminales (H-S18-2 aparte).
+> - **Respuesta de esta ficha:** gana los campos del perfil (ficha R-7 §3), porque solo la leen `REPRESENTATIVE` y `ADMINISTRATOR`.
+>
+> El contrato de arriba no se reescribe.
+
 ## 4. Lo que esta ficha NO decide
 
 - Un canal para que la organización **responda** a la petición de información (ver H-S18-1).

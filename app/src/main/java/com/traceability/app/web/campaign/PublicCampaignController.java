@@ -22,10 +22,13 @@ public class PublicCampaignController {
 
     private final ConvocatoriaReadPort campaigns;
     private final OrganizationLogoReferenceQuery organizations;
+    private final identity.application.port.out.LocationCatalogPort locations;
 
-    public PublicCampaignController(ConvocatoriaReadPort campaigns, OrganizationLogoReferenceQuery organizations) {
+    public PublicCampaignController(ConvocatoriaReadPort campaigns, OrganizationLogoReferenceQuery organizations,
+                                    identity.application.port.out.LocationCatalogPort locations) {
         this.campaigns = campaigns;
         this.organizations = organizations;
+        this.locations = locations;
     }
 
     @GetMapping("/api/v1/public/campaigns/{publicCode}")
@@ -38,6 +41,17 @@ public class PublicCampaignController {
                 v.targetAmount() == null ? null : v.targetAmount().toString(),
                 v.clearedAmount() == null ? null : v.clearedAmount().toString(),
                 o.hasLogo() ? OrganizationLogoService.publicLogoUrl(publicCode) : null,
-                v.coverObjectKey() == null ? null : CampaignCoverService.coverUrl(publicCode));
+                v.coverObjectKey() == null ? null : CampaignCoverService.coverUrl(publicCode),
+                profileView(o.publicProfile()));
+    }
+
+    /** Ficha R-7 §4: los nombres DIVIPOLA se resuelven al leer; un código que ya no esté en el catálogo no sale. */
+    private CampaignDtos.OrganizationProfileView profileView(OrganizationLogoReferenceQuery.PublicProfile p) {
+        if (p == null) {
+            return null;
+        }
+        CampaignDtos.LocationNamesView location = p.location() == null ? null : locations.names(p.location())
+                .map(n -> new CampaignDtos.LocationNamesView(n.departmentName(), n.municipalityName())).orElse(null);
+        return new CampaignDtos.OrganizationProfileView(p.description(), p.website(), location, p.contactEmail());
     }
 }
