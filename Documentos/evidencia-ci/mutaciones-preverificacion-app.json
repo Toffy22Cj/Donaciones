@@ -1,0 +1,130 @@
+{
+ "module": "app",
+ "tests": "OrganizationPreverificationHttpIntegrationTest,OrganizationRegistrationAndQueueHttpIntegrationTest,OrganizationProfileHttpIntegrationTest",
+ "args": [
+  "-am",
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "0 linea base (comentario)",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "    public List<String> missingForVerification() {\n",
+     "new": "    public List<String> missingForVerification() { // mutación 0\n"
+    }
+   ]
+  },
+  {
+   "name": "1 quitar \"nit\" de la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "        if (this.profile.nit() == null) {\n            missing.add(\"nit\");\n        }\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "2 quitar \"legalName\" de la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "        if (this.profile.legalName() == null) {\n            missing.add(\"legalName\");\n        }\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "3 invertir la condicion en verify()",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "if (!missingForVerification().isEmpty()) {",
+     "new": "if (missingForVerification().isEmpty()) {"
+    }
+   ]
+  },
+  {
+   "name": "6 invertir el orden de la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "        if (this.profile.legalName() == null) {\n            missing.add(\"legalName\");\n        }\n        if (this.profile.nit() == null) {\n            missing.add(\"nit\");\n        }\n",
+     "new": "        if (this.profile.nit() == null) {\n            missing.add(\"nit\");\n        }\n        if (this.profile.legalName() == null) {\n            missing.add(\"legalName\");\n        }\n"
+    }
+   ]
+  },
+  {
+   "name": "7 exponer el campo en GET /organizations/{id}",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/web/organization/OrganizationVerificationStatusController.java",
+     "old": "String informationRequest, String logoUrl,",
+     "new": "String informationRequest, String logoUrl, java.util.List<String> missingForVerification,"
+    },
+    {
+     "file": "app/src/main/java/com/traceability/app/web/organization/OrganizationVerificationStatusController.java",
+     "old": "v.hasLogo() ? OrganizationLogoService.logoUrl(v.organizationId()) : null,",
+     "new": "v.hasLogo() ? OrganizationLogoService.logoUrl(v.organizationId()) : null, java.util.List.<String>of(),"
+    }
+   ]
+  },
+  {
+   "name": "8 exponer el campo en ProfileFields",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/web/organization/OrganizationProfileJson.java",
+     "old": "String contactPhone) {\n\n        public static ProfileFields of",
+     "new": "String contactPhone, java.util.List<String> missingForVerification) {\n\n        public static ProfileFields of"
+    },
+    {
+     "file": "app/src/main/java/com/traceability/app/web/organization/OrganizationProfileJson.java",
+     "old": "                    p.contactPhone());\n        }",
+     "new": "                    p.contactPhone(), java.util.List.<String>of());\n        }"
+    }
+   ]
+  },
+  {
+   "name": "9 la bandeja ordena por la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/OrganizationVerificationQueueQuery.java",
+     "old": "found.stream().limit(limit).map(OrganizationVerificationQueueQuery::item).toList();",
+     "new": "found.stream().limit(limit).map(OrganizationVerificationQueueQuery::item).sorted(java.util.Comparator.comparingInt(i -> i.missingForVerification().size())).toList();"
+    }
+   ]
+  },
+  {
+   "name": "10 quitar queue.authorize del controlador",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/web/platform/OrganizationVerificationQueueController.java",
+     "old": "        queue.authorize(principal);\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "11 NON_EMPTY en Item",
+   "edits": [
+    {
+     "file": "app/src/main/java/com/traceability/app/web/platform/OrganizationVerificationQueueController.java",
+     "old": "@JsonInclude(JsonInclude.Include.NON_NULL)\n    public record Item(",
+     "new": "@JsonInclude(JsonInclude.Include.NON_EMPTY)\n    public record Item("
+    }
+   ]
+  },
+  {
+   "name": "12 item() calcula la lista por su cuenta",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/application/service/OrganizationVerificationQueueQuery.java",
+     "old": "                o.missingForVerification());",
+     "new": "                o.getProfile().legalName() == null ? java.util.List.of(\"legalName\") : java.util.List.<String>of());"
+    }
+   ]
+  }
+ ]
+}

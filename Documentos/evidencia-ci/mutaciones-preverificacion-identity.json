@@ -1,0 +1,80 @@
+{
+ "module": "identity",
+ "tests": "OrganizationTest,ArchitectureTest,ArchitectureRulesBiteTest",
+ "args": [
+  "-am",
+  "-Dsurefire.failIfNoSpecifiedTests=false"
+ ],
+ "mutations": [
+  {
+   "name": "0 linea base (comentario)",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "    public List<String> missingForVerification() {\n",
+     "new": "    public List<String> missingForVerification() { // mutación 0\n"
+    }
+   ]
+  },
+  {
+   "name": "1 quitar \"nit\" de la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "        if (this.profile.nit() == null) {\n            missing.add(\"nit\");\n        }\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "2 quitar \"legalName\" de la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "        if (this.profile.legalName() == null) {\n            missing.add(\"legalName\");\n        }\n",
+     "new": ""
+    }
+   ]
+  },
+  {
+   "name": "3 invertir la condicion en verify()",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "if (!missingForVerification().isEmpty()) {",
+     "new": "if (missingForVerification().isEmpty()) {"
+    }
+   ]
+  },
+  {
+   "name": "4 datos antes que estado en verify()",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "    public void verify() {\n        if (this.verificationStatus",
+     "new": "    public void verify() {\n        if (!missingForVerification().isEmpty()) {\n            throw new VerificationDataMissingException(\"Verification requires legalName and nit\");\n        }\n        if (this.verificationStatus"
+    }
+   ]
+  },
+  {
+   "name": "5 otro mensaje del 409",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "\"Verification requires legalName and nit\"",
+     "new": "\"Verification requires legal data\""
+    }
+   ]
+  },
+  {
+   "name": "6 invertir el orden de la lista",
+   "edits": [
+    {
+     "file": "identity/src/main/java/identity/domain/model/Organization.java",
+     "old": "        if (this.profile.legalName() == null) {\n            missing.add(\"legalName\");\n        }\n        if (this.profile.nit() == null) {\n            missing.add(\"nit\");\n        }\n",
+     "new": "        if (this.profile.nit() == null) {\n            missing.add(\"nit\");\n        }\n        if (this.profile.legalName() == null) {\n            missing.add(\"legalName\");\n        }\n"
+    }
+   ]
+  }
+ ]
+}
