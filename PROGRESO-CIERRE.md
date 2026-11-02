@@ -220,3 +220,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - P1: rama `chore/docs-adr029-enmienda-2-y-plan-zona` desde `01ff5c3`, PR #170 (depende de #169): `ADR-029-enmienda-2-zona-publica.md` (PROPUESTA), `plan-zona-en-cada-paso.md` (PROPUESTO) y notas en ADR-029 y su enmienda 1 (`0054a55`).
   - Pie de #170 corregido con la herramienta MCP.
   - Pendiente de Manuel: aprobar la enmienda, decidir E-1 (recomendado: (a), campos en null y respaldo) y aprobar el plan. DETENIDO, sin código.
+
+## Código zona en cada paso (2026-11-02)
+- Arranque: `develop` en `4a2c736` (#168 y #169). Abiertos: #170 (mío) y #171 (otra sesión, preverificación; no tocar).
+- P0, hecho: merge de develop en #170 (`d24803d`), sin conflictos. Notas de APROBADA y APROBADO con el texto literal de 6589733853 y E-1 = (a), también en `decisiones-delegadas`; push.
+- P1: en curso, rama `feat/core-zona-en-cada-paso` desde la punta de #170.
