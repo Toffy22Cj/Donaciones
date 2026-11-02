@@ -2,6 +2,16 @@
 
 **Naturaleza:** ficha de contrato HTTP y de evento, en el formato de la ficha R-7. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel cuando la ficha esté congelada.
 **Estado: PROPUESTA.** La congela Manuel, a quien Carlos delegó el tema (D-4).
+
+> **Nota (2026-11-02): CONGELADA 2026-11-02 por Manuel**, como dueño del backend (Carlos le delegó el tema el 2026-11-02), sobre la cabeza `71cea48`. Fuente citable: comentario de `buelvasmanuel` en #169, 2026-11-02T21:57:03Z, https://github.com/Toffy22Cj/Donaciones/pull/169#issuecomment-6589479007. "PROPUESTA" se conserva; esta nota lo supera. D-4 (1 a 7) queda como está. Respuestas, todas según la recomendación de §7:
+> - **P1:** enmienda corta de ADR-029, escrita a partir de esta ficha. La aprueba Manuel antes del plan.
+> - **P2:** el despacho sella la zona del paso anterior, que el sistema copia del estado del activo. El empleado no manda nada nuevo.
+> - **P3:** el sublote hereda la zona sellada, igual que hereda la convocatoria.
+> - **P4:** la validación va en `core`, con un puerto nuevo en `contracts` que implementa `app`, como el de la convocatoria.
+> - **P5:** se sella el texto tal cual viene del catálogo, con Bogotá una sola vez ("BOGOTÁ, D.C."). La presentación la decide el front.
+> - **P6:** la respuesta operativa del empleado gana el municipio, como campo nuevo que no rompe nada.
+>
+> Siguiente paso: la enmienda de ADR-029 y después el plan. No se escribe código antes de que se aprueben los dos.
 **Fecha:** 2026-11-02 (UTC). **Base verificada:** `develop` `3726414`. Cada ruta:línea es de esa base.
 **Origen:**
 - **D-3** (Carlos, 2026-11-02): "Eso debe venir en los mismos datos".
