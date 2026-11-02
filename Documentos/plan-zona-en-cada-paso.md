@@ -2,6 +2,12 @@
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. **Antes, Manuel aprueba la enmienda** `ADR-029-enmienda-2-zona-publica.md`, que va en el mismo PR (ficha P1: "La apruebo yo antes del plan").
 
+> **Nota (2026-11-02): implementado** en `feat/core-zona-en-cada-paso`; la evidencia está en `estado-fase6.md` §0.73. Diferencias con este plan, que se dicen en el PR:
+> - `SealedZone.of` recibe `(municipalityCode, municipalityName, departmentName, catalogVersion)` en lugar de `MunicipalityEntry`: el dominio de `core` sigue sin importar `contracts`, y el servicio hace la traducción.
+> - Hay cuatro mutaciones sustituidas (5, 10, 11 y 15); el motivo está en §0.73.
+> - El test 12 está en `core`.
+> - Además: `PhysicalAsset.getFinalEvidenceRef()` (la evidencia de entrega se lee de cualquier versión) y `municipalityCode` en la semilla de la demo y en `scripts/demo/recorrido.py`.
+
 > **Nota (2026-11-02): APROBADO por Manuel** (comentario de `buelvasmanuel` en #170, 2026-11-02T22:10:26Z, https://github.com/Toffy22Cj/Donaciones/pull/170#issuecomment-6589733853), con E-1 en (a). "PROPUESTO" se conserva; esta nota lo supera. El texto literal está en `ADR-029-enmienda-2-zona-publica.md` y en `decisiones-delegadas-2026-10.md` (nota del 2026-11-02, más tarde).
 
 **Norma:**

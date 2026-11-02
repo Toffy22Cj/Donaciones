@@ -245,6 +245,33 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **Hash de los eventos viejos:** los cuatro valores de `ZoneEventHashCompatibilityTest` se calcularon con el código anterior a la enmienda, sobre `6ad03ff`, y siguen iguales después.
   - **Verde por capas**, con cada módulo completo: core "Tests run: 393", api 177 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0".
     - Antes de llegar ahí fallaron 5 tests de core, el contexto de 3 tests de api y 3 tests de app. Todo eran fixtures que esperaban la versión vieja, el contexto sin `PublicZoneResolver`, o un conteo frágil de eventos de Fund asíncronos en el test 10 nuevo. Se adaptaron sin quitar aserciones (`36aae2a`, `22c8b91` y `96fbf72`).
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `96fbf72`, tres tandas, cada una con su mutación 0 VIVA): **15 de 15 muertas.**
+    - La primera tanda de core salió con la mutación 0 MUERTA: compilaba sin `-am` contra un `contracts` viejo. Se descartó y se repitió con `-am`.
+
+    | # | Mutación | La mata |
+    |---|---|---|
+    | 1 | recibir escribe la 1.0 | `registerReceiveAndDeliver_…`, `test5and12_…` y `theZone_survivesRehydration_…` |
+    | 2 | `zoneName` sin el municipio | `test3_…`, `pathB_sealsTheZoneToo` y otros 3 |
+    | 3 | Bogotá repetido | `test3_…` y otros 2 |
+    | 4 | un código desconocido se acepta | `test4_…_theFourCommandsFail_andWriteNothing` |
+    | 5 | validar el municipio antes de autorizar | `anActorOfAnotherOrganization_isRejectedBeforeTheCatalogIsQueried` |
+    | 6 | el despacho no copia la zona | `registerReceiveAndDeliver_…`, `test5and12_…` y `theZone_survivesRehydration_…` |
+    | 7 | el hijo no hereda la zona | `test6_theSublotInheritsTheSealedZone` |
+    | 8 | la entrega idempotente no compara el municipio | `test7_…` |
+    | 9 | `PublicZoneResolver` lee primero `location_reference` | `test8_theSealedZoneWins_…` |
+    | 10 | la proyección no copia la zona del despacho | `test11_13_14_15_…` (HTTP) |
+    | 11 | el municipio desconocido no es 400 | `test10_…` (HTTP) |
+    | 12 | la historia sin la zona sellada | `zone_aNewStepShowsItsSealedZone_…` (api) |
+    | 13 | la logística sin la zona sellada | `zone_theLogisticsShowTheSealedZone_…` (api) |
+    | 14 | la vista operativa sin `zoneName` | `pathB_registersWithItsZone` y `test11_13_14_15_…` |
+    | 15 | una clase vieja gana un campo serializado | `test1_theHashOfOldEvents_…`, `theIntegrityCheckOfAMixedChain_…` y `aTamperedZone…` |
+
+  - **Cuatro mutaciones del plan (§5) se sustituyeron**, porque la del plan no se podía escribir tal cual o era equivalente:
+    - **5:** "validar después de persistir" se revierte dentro de la transacción; se usa "validar antes de autorizar".
+    - **10:** el resolutor no tiene acceso al catálogo; se usa que la proyección no copie la zona del despacho.
+    - **11:** quitar la comprobación de `api` es equivalente, porque `core` también valida; se usa el mapeo a un estado distinto de 400.
+    - **15:** un campo nuevo en un record no compila en sus llamadores; se usa un *getter* que se serializa.
+  - **El test 12** (lo sellado gana al catálogo) va en `core`, con el stub que cambia el nombre, en lugar de en `app`.
 
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 

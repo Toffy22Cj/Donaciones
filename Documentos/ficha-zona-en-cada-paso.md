@@ -3,6 +3,8 @@
 **Naturaleza:** ficha de contrato HTTP y de evento, en el formato de la ficha R-7. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel cuando la ficha esté congelada.
 **Estado: PROPUESTA.** La congela Manuel, a quien Carlos delegó el tema (D-4).
 
+> **Nota (2026-11-02): implementada** en `feat/core-zona-en-cada-paso`, con el plan aprobado en #170. La evidencia está en `estado-fase6.md` §0.73.
+
 > **Nota (2026-11-02): CONGELADA 2026-11-02 por Manuel**, como dueño del backend (Carlos le delegó el tema el 2026-11-02), sobre la cabeza `71cea48`. Fuente citable: comentario de `buelvasmanuel` en #169, 2026-11-02T21:57:03Z, https://github.com/Toffy22Cj/Donaciones/pull/169#issuecomment-6589479007. "PROPUESTA" se conserva; esta nota lo supera. D-4 (1 a 7) queda como está. Respuestas, todas según la recomendación de §7:
 > - **P1:** enmienda corta de ADR-029, escrita a partir de esta ficha. La aprueba Manuel antes del plan.
 > - **P2:** el despacho sella la zona del paso anterior, que el sistema copia del estado del activo. El empleado no manda nada nuevo.

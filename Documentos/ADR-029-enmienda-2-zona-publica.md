@@ -2,6 +2,8 @@
 
 **Estado:** **PROPUESTA.** La aprueba Manuel, dueño del backend (Carlos le delegó el tema el 2026-11-02), con un comentario en el PR. La implementación necesita además su plan aprobado (`plan-zona-en-cada-paso.md`, regla 3.4).
 
+> **Nota (2026-11-02): implementada** en `feat/core-zona-en-cada-paso`, con el plan aprobado en #170. La evidencia está en `estado-fase6.md` §0.73.
+
 > **Nota (2026-11-02): APROBADA por Manuel**, dueño del backend (comentario de `buelvasmanuel` en #170, 2026-11-02T22:10:26Z, https://github.com/Toffy22Cj/Donaciones/pull/170#issuecomment-6589733853). "PROPUESTA" se conserva; esta nota lo supera. **E-1 queda en (a).** Texto literal:
 >
 > Apruebo la enmienda `Documentos/ADR-029-enmienda-2-zona-publica.md` y el plan `Documentos/plan-zona-en-cada-paso.md` (cabeza `0054a55`), como dueño del backend.
