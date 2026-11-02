@@ -200,6 +200,13 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - Pie de #168 corregido con la herramienta MCP `update_pull_request` (el proxy lo había reescrito).
 - DETENIDO, como pide el encargo: la ficha la congela Carlos y el plan lo aprueba Manuel. Sin plan ni código.
 
+### Preverificación (2026-11-01): congelación y plan (2026-11-02)
+- Arranque: `develop` en `3726414`. Comentario de congelación de Manuel en #168 presente (https://github.com/Toffy22Cj/Donaciones/pull/168#issuecomment-6589529148, sobre `edb7305`).
+- P0, hecho: en la rama de #168, `e9b803b`: línea "CONGELADA 2026-11-02" bajo PROPUESTA y §11, nota de congelación con P1 a P7 y las dos condiciones. 0 líneas borradas.
+- P1, hecho: rama `chore/docs-plan-preverificacion` (`11f24ba`, desde la punta de #168), PR #171 contra develop ("depende de #168"). `plan-preverificacion-organizaciones.md`: hechos H-PV-1 a 17, `Organization.missingForVerification()` [Plan], tests a a g, 12 mutaciones, P-PV-1 a 8, referencia-api y aviso a la web.
+- Pie de #171 corregido con la herramienta MCP `update_pull_request`.
+- DETENIDO: Manuel aprueba el plan en #171; sin código.
+
 ## Zona en cada paso (2026-11-02)
 - Arranque: `develop` en `3726414`; solo #168 abierto.
 - P0, hecho: rama `chore/docs-ficha-zona-en-cada-paso` (`71cea48`), PR #169, solo documentos:
