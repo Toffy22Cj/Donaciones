@@ -45,4 +45,23 @@ class ArchitectureRulesBiteTest {
                 ArchitectureTest.domain_should_not_depend_on_application_or_infrastructure.check(classes)
         );
     }
+
+    @Test
+    void queries_must_not_decide_the_verification_bites() {
+        JavaClasses classes = new ClassFileImporter().importClasses(
+                identity.application.archfixture.ArchfixtureDecidingQuery.class);
+        assertThrows(AssertionError.class, () ->
+                ArchitectureTest.queries_must_not_decide_the_verification.check(classes)
+        );
+    }
+
+    @Test
+    void no_scheduled_methods_in_identity_application_bites() {
+        JavaClasses classes = new ClassFileImporter().importClasses(
+                identity.application.archfixture.ArchfixtureScheduledCheck.class);
+        assertThrows(AssertionError.class, () ->
+                ArchitectureTest.no_scheduled_methods_in_identity_application.check(classes)
+        );
+    }
 }
+
