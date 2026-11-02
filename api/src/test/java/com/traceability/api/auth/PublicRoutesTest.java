@@ -21,6 +21,7 @@ class PublicRoutesTest {
                         // ADR-050 Enmienda 2, E2-2: reenviar y confirmar la verificación del correo
                         "POST /api/v1/auth/email-verification PUBLIC",
                         "POST /api/v1/auth/email-verification/confirm PUBLIC",
+                        "POST /api/v1/auth/device-login PUBLIC",
                         "GET /api/v1/public/campaigns/{publicCode} PUBLIC",
                         "GET /api/v1/public/campaigns PUBLIC",
                         // ficha R-7 §6: el catálogo DIVIPOLA

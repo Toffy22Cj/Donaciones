@@ -38,6 +38,8 @@ public final class PublicRoutes {
             // ADR-050 Enmienda 2, E2-2: reenviar y confirmar la verificación del correo
             new Route("POST", "/api/v1/auth/email-verification", Access.PUBLIC),
             new Route("POST", "/api/v1/auth/email-verification/confirm", Access.PUBLIC),
+            // entrar con biometría: el acceso lo da el token del dispositivo, que valida el controlador
+            new Route("POST", "/api/v1/auth/device-login", Access.PUBLIC),
             new Route("GET", "/api/v1/public/campaigns", Access.PUBLIC),
             // ficha R-7 §6: el catálogo DIVIPOLA
             new Route("GET", "/api/v1/public/locations", Access.PUBLIC),
