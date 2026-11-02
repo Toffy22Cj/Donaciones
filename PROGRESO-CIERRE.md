@@ -225,6 +225,11 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - Arranque: `develop` en `4a2c736` (#168 y #169). Abiertos: #170 (mío) y #171 (otra sesión, preverificación; no tocar).
 - P0, hecho: merge de develop en #170 (`d24803d`), sin conflictos. Notas de APROBADA y APROBADO con el texto literal de 6589733853 y E-1 = (a), también en `decisiones-delegadas`; push.
 - P1: en curso, rama `feat/core-zona-en-cada-paso` desde la punta de #170.
+  - Commits: `fcd3050` (rojo: no compila), `d4c7622` (código), `36aae2a` (fixtures de core) y `22c8b91` (contexto de api).
+  - Hash de los eventos viejos fijado con el código anterior (sobre `6ad03ff`), en `ZoneEventHashCompatibilityTest`.
+  - core: 393 en verde. api y app: en curso.
+  - Pendiente: mutaciones (3 tandas: core, api y app), ci-local, §0.73 de estado-fase6, notas de "implementada" y el PR.
+  - Anotado: `scripts/demo/recorrido.py` manda `evidenceRef` "acta-1", que no pasa ADR-051 F3 (problema anterior, no se toca).
 
 ## Código preverificación (2026-11-02)
 - Arranque: `develop` en `4a2c736` (#168 y #169 fusionados). Abiertos: #170 (otra sesión) y #171.
