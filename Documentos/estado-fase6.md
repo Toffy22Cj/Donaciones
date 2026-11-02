@@ -256,6 +256,9 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `766f56c`, con la mutación 0 de línea base VIVA): 12 de 12 muertas. Evidencia: `evidencia-ci/mutaciones-preverificacion-766f56c.txt` y las dos especificaciones.
   - Las 1 y 2 (quitar un campo de la lista) **no** las mata el test a: al ser un solo método, `verify()` y la lista cambian a la vez y siguen de acuerdo. Las matan b, el test de R-7 de `verify()` y c. Es lo esperado de la condición 1.
 - **Tests que cambian sin perder aserciones:** `OrganizationRegistrationAndQueueHttpIntegrationTest` (H-PV-14) gana `missingForVerification` en la lista y la aserción de que está.
+- *Nota (2026-11-02): `ci-local.sh`* en un clon limpio de `6ea483f` (`free -g`: 15 GB en total, 15 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-6ea483f-2026-11-02T23-13-25Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 175, identity 437, convocatoria 272 y app 667, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Este commit de evidencia solo toca `Documentos/`, así que no hace falta repetir `ci-local.sh`.
 
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
