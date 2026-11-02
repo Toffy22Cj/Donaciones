@@ -229,6 +229,23 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.73 Zona pública en cada paso del seguimiento (2026-11-02, `feat/core-zona-en-cada-paso`)
+
+- Numerada 0.73: el siguiente número libre de la serie 0.70 a 0.79. Si choca con el de otra sesión, se renumera al integrar `develop`.
+- **Norma:**
+  - `ficha-zona-en-cada-paso.md`, CONGELADA por Manuel (#169, comentario 6589479007);
+  - `ADR-029-enmienda-2-zona-publica.md` y `plan-zona-en-cada-paso.md`, APROBADOS por Manuel con E-1 = (a) (#170, comentario 6589733853).
+- **Qué hace:**
+  - `municipalityCode` DIVIPOLA obligatorio al registrar (los dos caminos), recibir y entregar; si falta o no está en el catálogo → 400, y lo valida `core` con `MunicipalityCatalogPort` después de autorizar.
+  - Versiones nuevas: `ASSET_REGISTERED` 4.0, `ASSET_SPLIT` 4.0, `ASSET_DISPATCHED` 2.0, `ASSET_RECEIVED` 2.0 y `ASSET_DELIVERED` 2.0. Las clases que ya existían no cambian.
+  - El despacho sella la zona del paso anterior y el sublote la hereda. Un activo anterior escribe la versión nueva con la zona vacía (E-1).
+  - La historia pública, la logística del donante y la actividad leen la zona sellada, con `location_reference` como respaldo.
+- **Evidencia:**
+  - **Rojo** (`fcd3050`, solo tests): no compila (40 errores; `cannot find symbol` y `package com.traceability.contracts.location does not exist`).
+  - **Hash de los eventos viejos:** los cuatro valores de `ZoneEventHashCompatibilityTest` se calcularon con el código anterior a la enmienda, sobre `6ad03ff`, y siguen iguales después.
+  - **Verde por capas**, con cada módulo completo: core "Tests run: 393", api 177 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0".
+    - Antes de llegar ahí fallaron 5 tests de core, el contexto de 3 tests de api y 3 tests de app. Todo eran fixtures que esperaban la versión vieja, el contexto sin `PublicZoneResolver`, o un conteo frágil de eventos de Fund asíncronos en el test 10 nuevo. Se adaptaron sin quitar aserciones (`36aae2a`, `22c8b91` y `96fbf72`).
+
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
 - Numerada 0.80, en la serie de Google (0.80 a 0.84).
