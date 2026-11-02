@@ -129,7 +129,7 @@ class PhysicalAssetTest {
         assertEquals("CARRIER_1", asset.getCustodianRef());
         
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetDispatchedPayload);
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetDispatchedV2Payload); // ADR-029 Enmienda 2
     }
 
     @Test

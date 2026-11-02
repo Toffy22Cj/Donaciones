@@ -119,7 +119,8 @@ class CampaignRefIntegrationTest {
 
         AssetRegisteredV4Payload genesis = genesis(assetId);
         assertThat(genesis.campaignRef()).isEqualTo("CAMP-A");
-        assertThat(storedSchemaVersion(assetId)).isEqualTo("3.0");
+        // ADR-029 Enmienda 2: toda escritura nueva de ASSET_REGISTERED es la 4.0 (la 3.0 + la zona)
+        assertThat(storedSchemaVersion(assetId)).isEqualTo("4.0");
         assertThat(storedPayloadField(assetId, "campaignRef")).as("campaignRef dentro del payload con hash").isEqualTo("CAMP-A");
     }
 

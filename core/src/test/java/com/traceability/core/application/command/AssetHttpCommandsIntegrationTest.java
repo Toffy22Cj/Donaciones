@@ -15,8 +15,9 @@ import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.AssetIds;
-import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
-import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.support.StubMunicipalityCatalogPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
@@ -202,8 +203,11 @@ class AssetHttpCommandsIntegrationTest {
 
         List<DomainEvent> stream = eventStore.loadStream(assetId);
         assertThat(stream).hasSize(3);
-        assertThat(stream.get(1).payload()).isEqualTo(new AssetDispatchedPayload("CARRIER-1", "WH-1"));
-        assertThat(stream.get(2).payload()).isEqualTo(new AssetReceivedPayload("WH-2", "RECEIVER-1"));
+        // ADR-029 Enmienda 2: 2.0, con la zona sellada (el despacho copia la del registro)
+        assertThat(stream.get(1).payload()).isEqualTo(new AssetDispatchedV2Payload("CARRIER-1", "WH-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION));
+        assertThat(stream.get(2).payload()).isEqualTo(new AssetReceivedV2Payload("WH-2", "RECEIVER-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION));
         assertThat(reads.findOperationalView(assetId, actor(EMPLOYEE)).lifecycleStatus()).isEqualTo("RECEIVED");
     }
 
@@ -249,12 +253,13 @@ class AssetHttpCommandsIntegrationTest {
         PhysicalAssetOperationalView view = reads.findOperationalView(assetId, actor(EMPLOYEE));
 
         // ficha R-6, G-4b: assetType es el registrado; sigue sin parentAssetRef, rootAssetRef ni donorRef
+        // ADR-029 Enmienda 2, P6: más el municipio y su zona sellada
         assertThat(view).isEqualTo(new PhysicalAssetOperationalView(assetId, "REGISTERED", "CUST-1", "WH-1",
-                new BigDecimal("10.0000"), "KGS", null, "FOOD", null));
+                new BigDecimal("10.0000"), "KGS", null, "FOOD", null, "05001", "MEDELLÍN, ANTIOQUIA"));
         // ficha R-6, Enmienda 1, E2 (G-9): lastEventAt solo lo rellena el listado; la vista individual lo deja nulo
         assertThat(PhysicalAssetOperationalView.class.getRecordComponents()).extracting(c -> c.getName())
                 .containsExactly("assetRef", "lifecycleStatus", "currentCustodianRef", "currentLocation", "quantity",
-                        "unitOfMeasure", "campaignRef", "assetType", "lastEventAt");
+                        "unitOfMeasure", "campaignRef", "assetType", "lastEventAt", "municipalityCode", "zoneName");
     }
 
     @Test

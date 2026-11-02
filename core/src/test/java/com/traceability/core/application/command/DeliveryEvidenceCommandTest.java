@@ -197,7 +197,10 @@ class DeliveryEvidenceCommandTest {
         String assetId = UUID.randomUUID().toString();
         Instant deliveredAt = Instant.parse("2026-10-20T10:00:00Z");
         PhysicalAsset asset = asset(assetId, true);
-        asset.deliver("cust-2", "ben-1", "loc-2", EVIDENCE, deliveredAt);
+        // la misma entrega, también con el mismo municipio (ADR-029 Enmienda 2): redundancia exacta
+        asset.deliver("cust-2", "ben-1", "loc-2", EVIDENCE, deliveredAt,
+                com.traceability.core.domain.physicalasset.SealedZone.of("05001", "MEDELLÍN", "ANTIOQUIA",
+                        com.traceability.core.support.StubMunicipalityCatalogPort.VERSION));
         when(eventStore.loadStream(assetId)).thenReturn(asset.getUncommittedEvents());
         principal(ORG, AuthorizationRole.EMPLOYEE);
 
