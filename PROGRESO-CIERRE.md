@@ -190,3 +190,12 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - Regla P3 de la tanda anterior: merge normal de develop en #165 (`0b0fb56`), conservando los dos lados y con lo de develop primero.
   - Conflictos: notas, AuditAction, IdentityApiErrorMappings y PublicRoutesInventory, todos de tipo "añadir". 0 líneas de Documentos borradas frente a cualquiera de los dos lados.
   - ci-local en `0b0fb56`: BUILD SUCCESS (identity 429, app 663). Evidencia y nota en §0.72 en `c1a8168`. Cuerpo de #165 actualizado. #165 queda listo y fusionable (clean).
+
+## Preverificación y 48 h (2026-11-01)
+- Arranque: `develop` en `3726414` (#165 y #166 fusionados) y ningún PR abierto.
+- P0, hecho: rama `chore/docs-48h-y-ficha-preverificacion` (`edb7305`), PR #168, solo documentos:
+  - D-1 y D-2 en `decisiones-delegadas` (D-2 con el texto literal);
+  - notas del PT48H en `despliegue-backend` §1.5 y §4;
+  - `ficha-preverificacion-organizaciones.md` en estado PROPUESTA, con P1 a P7.
+- Pie de #168 corregido con la herramienta MCP `update_pull_request` (el proxy lo había reescrito).
+- DETENIDO, como pide el encargo: la ficha la congela Carlos y el plan lo aprueba Manuel. Sin plan ni código.
