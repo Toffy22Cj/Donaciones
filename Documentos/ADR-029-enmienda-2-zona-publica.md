@@ -1,6 +1,18 @@
 # ADR-029 — Enmienda 2: la zona pública DIVIPOLA en los eventos de `PhysicalAsset`
 
 **Estado:** **PROPUESTA.** La aprueba Manuel, dueño del backend (Carlos le delegó el tema el 2026-11-02), con un comentario en el PR. La implementación necesita además su plan aprobado (`plan-zona-en-cada-paso.md`, regla 3.4).
+
+> **Nota (2026-11-02): APROBADA por Manuel**, dueño del backend (comentario de `buelvasmanuel` en #170, 2026-11-02T22:10:26Z, https://github.com/Toffy22Cj/Donaciones/pull/170#issuecomment-6589733853). "PROPUESTA" se conserva; esta nota lo supera. **E-1 queda en (a).** Texto literal:
+>
+> Apruebo la enmienda `Documentos/ADR-029-enmienda-2-zona-publica.md` y el plan `Documentos/plan-zona-en-cada-paso.md` (cabeza `0054a55`), como dueño del backend.
+>
+> - **E-1:** si un activo registrado antes del cambio se despacha o se divide, el evento nuevo se escribe con los tres campos de zona vacíos y la zona pública sale de `location_reference`, como hoy. No se usa la versión vieja del evento ni se rechaza el despacho.
+> - Las clases de payload que ya existen no se tocan: solo se añaden versiones nuevas (`RecomputingEventIntegrityChecker.java:101-107`).
+>
+> Autorizo el código según este plan, sobre `develop` (que ya incluye #169). Antes de fusionar #170, hay que integrar `develop` con un merge normal.
+>
+> — Manuel, 2026-11-02
+
 **Origen:** la ficha `ficha-zona-en-cada-paso.md`, **CONGELADA por Manuel el 2026-11-02**:
 - comentario en #169: https://github.com/Toffy22Cj/Donaciones/pull/169#issuecomment-6589479007;
 - P1 dice: "enmienda corta de ADR-029, escrita a partir de esta ficha";

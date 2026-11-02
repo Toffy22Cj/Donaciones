@@ -1,6 +1,9 @@
 # Plan — La zona pública en cada paso del seguimiento (2026-11-02)
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. **Antes, Manuel aprueba la enmienda** `ADR-029-enmienda-2-zona-publica.md`, que va en el mismo PR (ficha P1: "La apruebo yo antes del plan").
+
+> **Nota (2026-11-02): APROBADO por Manuel** (comentario de `buelvasmanuel` en #170, 2026-11-02T22:10:26Z, https://github.com/Toffy22Cj/Donaciones/pull/170#issuecomment-6589733853), con E-1 en (a). "PROPUESTO" se conserva; esta nota lo supera. El texto literal está en `ADR-029-enmienda-2-zona-publica.md` y en `decisiones-delegadas-2026-10.md` (nota del 2026-11-02, más tarde).
+
 **Norma:**
 - `ficha-zona-en-cada-paso.md`, CONGELADA por Manuel (#169, comentario 6589479007), con D-3, D-4 (1 a 7) y P1 a P6;
 - `ADR-029-enmienda-2-zona-publica.md` (D1 a D6 y E-1).
