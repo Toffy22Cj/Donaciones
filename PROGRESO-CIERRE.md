@@ -241,4 +241,6 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - rojo `41c8ac6` (identity no compila); código `766f56c`; docs `6ea483f` (referencia-api, S-18, ficha, estado-fase6 §0.73, mutaciones);
   - verde `mvn -B test -pl app -am`: core 379, crypto 57, ai 47, api 175, identity 437, convocatoria 272, app 667, BUILD SUCCESS;
   - mutaciones en clon limpio de `766f56c`: 12 de 12 muertas, con la mutación 0 VIVA;
-  - ci-local.sh en clon limpio de `6ea483f`: en curso. Pie de #172 pendiente de corregir.
+  - ci-local.sh en clon limpio de `6ea483f`: salida 0, BUILD SUCCESS (identity 437, app 667); evidencia en `d6f43f3` (solo documentos).
+  - Pie de #172 corregido con la herramienta MCP `update_pull_request`.
+- Cierre: develop sigue en `4a2c736`. #171 (`ef04977`) y #172 (`d6f43f3`) abiertos y limpios; orden de fusión #171 y después #172. Nada fusionado.
