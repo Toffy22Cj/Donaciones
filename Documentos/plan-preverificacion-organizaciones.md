@@ -2,6 +2,21 @@
 
 **Estado: PROPUESTO.** Espera un "plan aprobado" de Manuel que se pueda citar: un comentario de `buelvasmanuel` en el PR de este plan. Un solo mensaje aprueba el plan, sus nombres **[Plan]** y los puntos P-PV-1 a P-PV-8. Si Manuel responde a un punto, su respuesta sustituye a la recomendación. **No hay código antes de esa aprobación** (regla 3.4).
 
+> **Nota (2026-11-02): APROBADO por Manuel**, dueño del backend (comentario de `buelvasmanuel` en #171, https://github.com/Toffy22Cj/Donaciones/pull/171#issuecomment-6589734226, sobre la cabeza `11f24ba`). Texto literal:
+>
+> > Apruebo el plan `Documentos/plan-preverificacion-organizaciones.md` (cabeza `11f24ba`), como dueño del backend. Respuestas:
+> >
+> > - **P-PV-2:** se borra el constructor de 5 argumentos de `QueueItem`, que nadie usa. Así la lista se calcula una sola vez.
+> > - **P-PV-3:** `missingForVerification` sale siempre, también vacío (`[]`).
+> > - **P-PV-6:** `"legalName"` y `"nit"` son valores fijos del contrato.
+> > - **P-PV-8:** la sección de `estado-fase6.md` toma el siguiente número libre al fusionarse. Si choca con la de la zona en cada paso, se renumera el PR que se fusione después.
+> >
+> > Autorizo el código según este plan, sobre `develop` (que ya incluye #168). Antes de fusionar #171, hay que integrar `develop` con un merge normal.
+> >
+> > — Manuel, 2026-11-02
+>
+> Los puntos que el comentario no nombra (P-PV-1, P-PV-4, P-PV-5) quedan como se recomiendan. **P-PV-7:** el encargo de código del 2026-11-02 fija la rama `feat/identity-preverificacion`, que sustituye a la recomendada. "PROPUESTO" se conserva; esta nota lo supera.
+
 **Qué entra** lo fija `ficha-preverificacion-organizaciones.md`, **CONGELADA el 2026-11-02** por Manuel, dueño del backend, por delegación de Carlos (https://github.com/Toffy22Cj/Donaciones/pull/168#issuecomment-6589529148; nota de congelación en la ficha, §11): P1 (a), P2 (a), P3 (c), P4 (a), P5 no aplica, P6 (a), P7 (a), y las dos condiciones. Este plan fija el **cómo**.
 
 **Decisiones de Manuel para el plan (2026-11-01, comunicadas por Manuel):**
