@@ -199,3 +199,12 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - `ficha-preverificacion-organizaciones.md` en estado PROPUESTA, con P1 a P7.
 - Pie de #168 corregido con la herramienta MCP `update_pull_request` (el proxy lo había reescrito).
 - DETENIDO, como pide el encargo: la ficha la congela Carlos y el plan lo aprueba Manuel. Sin plan ni código.
+
+## Zona en cada paso (2026-11-02)
+- Arranque: `develop` en `3726414`; solo #168 abierto.
+- P0, hecho: rama `chore/docs-ficha-zona-en-cada-paso` (`71cea48`), PR #169, solo documentos:
+  - D-3 (literal) y D-4 (1 a 7) en `decisiones-delegadas`;
+  - `ficha-zona-en-cada-paso.md` en estado PROPUESTA: hechos, propuesta `municipalityCode` [Plan], R1 a R7, privacidad, C-1 a C-3, P1 a P6, tests y aviso.
+- Pie de #169 corregido con la herramienta MCP.
+- #168 y #169 añaden notas al final de `decisiones-delegadas`: el segundo que se fusione tendrá un conflicto solo de notas.
+- DETENIDO: la ficha la congela Manuel; sin plan ni código.
