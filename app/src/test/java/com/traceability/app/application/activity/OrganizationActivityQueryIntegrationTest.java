@@ -20,7 +20,13 @@ import com.traceability.core.application.port.out.FundDirectoryPort;
 import com.traceability.core.application.service.LocationReferenceService;
 import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.fund.payloads.FundsClearedV2Payload;
+import com.traceability.core.application.service.PublicZoneResolver;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetSplitV4Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
@@ -114,8 +120,8 @@ class OrganizationActivityQueryIntegrationTest {
         when(closures.closedCampaigns(anyString())).thenReturn(List.of());
         LocationReferenceService locations = mock(LocationReferenceService.class);
         when(locations.resolveZone(anyString())).thenAnswer(i -> Optional.of("Zona de " + i.getArgument(0)));
-        query = new OrganizationActivityQuery(funds, assets, events, counts, batches, closures, locations,
-                new OrganizationBoundaryPolicy());
+        query = new OrganizationActivityQuery(funds, assets, events, counts, batches, closures,
+                new PublicZoneResolver(locations), new OrganizationBoundaryPolicy());
     }
 
     private static AuthorizationPrincipal employee() {
@@ -387,5 +393,37 @@ class OrganizationActivityQueryIntegrationTest {
         assertThat(clearing.unitOfMeasure()).isNull();
         assertThat(clearing.eventCount()).isNull();
         assertThat(items).allSatisfy(i -> assertThat(i.occurredAt()).isNotNull());
+    }
+
+    // Enmienda 2 de ADR-029, D5 (plan de la zona, test 13): los eventos nuevos llevan la zona sellada, también el
+    // despacho; un despacho nuevo sin zona (E-1) usa el respaldo con su texto; nunca el texto libre como zona
+    @Test
+    void test13_newEventsShowTheSealedZone_alsoTheDispatch_andANewDispatchWithoutZoneFallsBack() {
+        String v = "DIVIPOLA-2026-09";
+        insert("asset-z", 1, "ASSET_REGISTERED", new AssetRegisteredV4Payload("asset-z", "BLANKET", new BigDecimal("10"),
+                "UNITS", "warehouse-1", "cust-1", null, "asset-z", "alloc-1", null, ORG, "anon:x", "don-1", "camp-1",
+                "05001", "MEDELLÍN, ANTIOQUIA", v), "2026-10-03T00:00:00Z", "z-1", null);
+        insert("asset-z", 2, "ASSET_DISPATCHED", new AssetDispatchedV2Payload("carrier", "warehouse-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", v), "2026-10-04T00:00:00Z", "z-2", null);
+        insert("asset-z", 3, "ASSET_RECEIVED", new AssetReceivedV2Payload("site-9", "r", "05002", "ABEJORRAL, ANTIOQUIA", v),
+                "2026-10-05T00:00:00Z", "z-3", null);
+        insert("asset-z", 4, "ASSET_SPLIT", new AssetSplitV4Payload("child-z", new BigDecimal("2.5"), "KG",
+                new BigDecimal("10"), new BigDecimal("7.5"), "RECEIVED", "site-9", "c", "asset-z", ORG, "anon:x", "d", "c",
+                "05002", "ABEJORRAL, ANTIOQUIA", v), "2026-10-06T00:00:00Z", "z-4", null);
+        insert("asset-z", 5, "ASSET_DELIVERED", new AssetDeliveredV2Payload("f", "b", "site-7", "sha256:" + "2".repeat(64),
+                Instant.parse("2026-10-07T00:00:00Z"), "11001", "BOGOTÁ, D.C.", v), "2026-10-07T00:00:00Z", "z-5", null);
+        insert("asset-y", 1, "ASSET_REGISTERED", registered("asset-y", ORG), "2026-10-08T00:00:00Z", "y-1", null);
+        insert("asset-y", 2, "ASSET_DISPATCHED", new AssetDispatchedV2Payload("carrier", "warehouse-1", null, null, null),
+                "2026-10-09T00:00:00Z", "y-2", null);
+
+        List<ActivityItem> items = query.page(employee(), ORG, null).items();
+
+        assertThat(items).extracting(ActivityItem::type).containsExactly("ASSET_DISPATCHED", "ASSET_REGISTERED",
+                "ASSET_DELIVERED", "ASSET_SPLIT", "ASSET_RECEIVED", "ASSET_DISPATCHED", "ASSET_REGISTERED");
+        assertThat(items).extracting(ActivityItem::locationZone).containsExactly(
+                "Zona de warehouse-1", "Zona de warehouse-1",
+                "BOGOTÁ, D.C.", null, "ABEJORRAL, ANTIOQUIA", "MEDELLÍN, ANTIOQUIA", "MEDELLÍN, ANTIOQUIA");
+        assertThat(items.get(3).quantity()).isEqualByComparingTo("2.5");
+        assertThat(items.get(6).quantity()).isEqualByComparingTo("10");
     }
 }

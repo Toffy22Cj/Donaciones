@@ -47,7 +47,9 @@ class PublicDonationMapperTest {
         when(campaignSummaries.findByCampaignRef(anyString())).thenReturn(Optional.empty());
         clearingDates = Mockito.mock(FundClearingDatesReadPort.class);
         when(clearingDates.findClearingDates(anyString())).thenReturn(Optional.empty());
-        mapper = new PublicDonationMapper(assetRefService, locationReferenceService, campaignSummaries, clearingDates);
+        mapper = new PublicDonationMapper(assetRefService,
+                new com.traceability.core.application.service.PublicZoneResolver(locationReferenceService),
+                campaignSummaries, clearingDates);
     }
 
     @Test
@@ -275,5 +277,25 @@ class PublicDonationMapperTest {
                 mapper.toPublicDTO(withLogistics(lot("child", "elsewhere"))).logistics().get(0));
 
         assertThat(json).doesNotContain("parentAssetRef", "rootAssetRef", "elsewhere", "parentAssetId");
+    }
+
+    // Enmienda 2 de ADR-029, D5 (plan de la zona, test 13): la logística muestra la zona sellada del lote sin consultar
+    // location_reference; sin zona sellada, el respaldo con su ubicación
+    @Test
+    void zone_theLogisticsShowTheSealedZone_andWithoutItFallBack() {
+        when(assetRefService.computeRef(org.mockito.ArgumentMatchers.anyString())).thenReturn("ref");
+        when(locationReferenceService.resolveZone("loc-vieja")).thenReturn(Optional.of("Zona vieja"));
+        LogisticsReadItem sealed = new LogisticsReadItem("asset-1", "DISPATCHED", "t", "u", BigDecimal.ONE, "Bodega",
+                "c", null, "MEDELLÍN, ANTIOQUIA");
+        LogisticsReadItem old = new LogisticsReadItem("asset-2", "REGISTERED", "t", "u", BigDecimal.ONE, "loc-vieja",
+                "c", null);
+        DonationReadModel model = new DonationReadModel("f1", "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE",
+                List.of(sealed, old));
+
+        List<PublicLogisticsItemDTO> logistics = mapper.toPublicDTO(model).logistics();
+
+        assertEquals("MEDELLÍN, ANTIOQUIA", logistics.get(0).locationZone());
+        assertEquals("Zona vieja", logistics.get(1).locationZone());
+        org.mockito.Mockito.verify(locationReferenceService, org.mockito.Mockito.never()).resolveZone("Bodega");
     }
 }

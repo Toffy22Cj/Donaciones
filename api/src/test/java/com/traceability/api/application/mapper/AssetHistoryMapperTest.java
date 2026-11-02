@@ -38,7 +38,8 @@ class AssetHistoryMapperTest {
         publicDonationMapper = Mockito.mock(PublicDonationMapper.class);
         anchors = Mockito.mock(AssetAnchorStatusPort.class);
         when(anchors.anchorBySequence(Mockito.anyString())).thenReturn(Map.of());
-        assetHistoryMapper = new AssetHistoryMapper(locationReferenceService, publicDonationMapper, anchors);
+        assetHistoryMapper = new AssetHistoryMapper(new com.traceability.core.application.service.PublicZoneResolver(
+                locationReferenceService), publicDonationMapper, anchors);
     }
 
     @Test
@@ -221,5 +222,26 @@ class AssetHistoryMapperTest {
             assertTrue(delivered.get("evidenceRegistered").asBoolean(), almost);
             assertFalse(delivered.has("evidenceRef"), almost);
         }
+    }
+
+    // Enmienda 2 de ADR-029, D5 (plan de la zona, tests 8 y 11): un paso nuevo muestra su zona sellada sin consultar
+    // location_reference, también el despacho; un paso viejo sigue con el respaldo
+    @Test
+    void zone_aNewStepShowsItsSealedZone_withoutReadingLocationReference_andAnOldStepFallsBack() {
+        when(publicDonationMapper.mapCustodian(Mockito.anyString())).thenReturn(PublicCustodianCategory.UNCATEGORIZED);
+        when(locationReferenceService.resolveZone("LOC-VIEJA")).thenReturn(Optional.of("Zona vieja"));
+        AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(new AssetHistoryReadModel("asset-z", List.of(
+                new AssetTransitionReadModel("ASSET_REGISTERED", "REGISTERED", "c", "LOC-VIEJA",
+                        Instant.parse("2026-10-01T10:00:00Z"), 1L),
+                new AssetTransitionReadModel("ASSET_DISPATCHED", "DISPATCHED", "c", "Bodega norte",
+                        Instant.parse("2026-10-02T10:00:00Z"), 2L, "MEDELLÍN, ANTIOQUIA"),
+                new AssetTransitionReadModel("ASSET_RECEIVED", "RECEIVED", "c", "Centro",
+                        Instant.parse("2026-10-03T10:00:00Z"), 3L, "ABEJORRAL, ANTIOQUIA"))));
+
+        assertEquals("Zona vieja", dto.history().get(0).locationZone());
+        assertEquals("MEDELLÍN, ANTIOQUIA", dto.history().get(1).locationZone());
+        assertEquals("ABEJORRAL, ANTIOQUIA", dto.history().get(2).locationZone());
+        Mockito.verify(locationReferenceService, Mockito.never()).resolveZone("Bodega norte");
+        Mockito.verify(locationReferenceService, Mockito.never()).resolveZone("Centro");
     }
 }
