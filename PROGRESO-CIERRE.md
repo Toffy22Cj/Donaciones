@@ -230,7 +230,9 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - Verde por capas: core 393, api 177 y app 671.
   - Mutaciones: 15 de 15 muertas. La tanda de core se repitió con -am porque la mutación 0 había salido MUERTA.
   - Docs `d24046a`: §0.73 y notas de "implementada".
-  - ci-local en curso sobre `d24046a`; después, la evidencia y el PR.
+  - ci-local en `d24046a`: BUILD SUCCESS (core 393, api 177, app 671). Evidencia y nota en `d9658b2`.
+  - PR #173 abierto (depende de #170), con el pie corregido mediante la herramienta MCP.
+  - Orden para fusionar: #170 (con develop integrado) y después #173.
   - Anotado: `scripts/demo/recorrido.py` manda `evidenceRef` "acta-1", que no pasa ADR-051 F3 (problema anterior, no se toca).
 
 ## Código preverificación (2026-11-02)
