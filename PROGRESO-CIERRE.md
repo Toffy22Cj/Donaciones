@@ -208,3 +208,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - Pie de #169 corregido con la herramienta MCP.
 - #168 y #169 añaden notas al final de `decisiones-delegadas`: el segundo que se fusione tendrá un conflicto solo de notas.
 - DETENIDO: la ficha la congela Manuel; sin plan ni código.
+- 2026-11-02, más tarde: Manuel congeló la ficha (#169, comentario 6589479007, P1 a P6 según la recomendación).
+  - P0: nota "CONGELADA 2026-11-02" en la ficha, `01ff5c3` en la rama de #169.
+  - P1: rama `chore/docs-adr029-enmienda-2-y-plan-zona` desde `01ff5c3`, PR #170 (depende de #169): `ADR-029-enmienda-2-zona-publica.md` (PROPUESTA), `plan-zona-en-cada-paso.md` (PROPUESTO) y notas en ADR-029 y su enmienda 1 (`0054a55`).
+  - Pie de #170 corregido con la herramienta MCP.
+  - Pendiente de Manuel: aprobar la enmienda, decidir E-1 (recomendado: (a), campos en null y respaldo) y aprobar el plan. DETENIDO, sin código.
