@@ -47,7 +47,8 @@ class ExternalActorBypassTest {
                 organizationBoundaryPolicy,
                 identityPrincipalPort,
                 new com.traceability.core.support.StubCampaignInKindEligibilityPort(),
-                new com.traceability.core.support.StubDeliveryEvidencePort()
+                new com.traceability.core.support.StubDeliveryEvidencePort(),
+                new com.traceability.core.support.StubMunicipalityCatalogPort()
         );
     }
 
@@ -67,7 +68,7 @@ class ExternalActorBypassTest {
                     BigDecimal.TEN,
                     "UNIDADES",
                     "custodian-1",
-                    "location-1",
+                    "location-1", "05001",
                     null,
                     null,
                     externalActor

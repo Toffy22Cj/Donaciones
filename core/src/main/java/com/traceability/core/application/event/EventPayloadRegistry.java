@@ -30,15 +30,20 @@ public class EventPayloadRegistry {
         register("ASSET_REGISTERED", "1.0", AssetRegisteredPayload.class);
         register("ASSET_REGISTERED", "2.0", AssetRegisteredV2Payload.class);
         register("ASSET_REGISTERED", "3.0", AssetRegisteredV3Payload.class); // ADR-029 Enmienda 1 (campaignRef)
+        register("ASSET_REGISTERED", "4.0", AssetRegisteredV4Payload.class); // ADR-029 Enmienda 2 (zona DIVIPOLA)
         register("ASSET_DISPATCHED", "1.0", AssetDispatchedPayload.class);
+        register("ASSET_DISPATCHED", "2.0", AssetDispatchedV2Payload.class); // ADR-029 Enmienda 2
         register("ASSET_RECEIVED", "1.0", AssetReceivedPayload.class);
+        register("ASSET_RECEIVED", "2.0", AssetReceivedV2Payload.class); // ADR-029 Enmienda 2
         register("ASSET_CUSTODY_TRANSFERRED", "1.0", AssetCustodyTransferredPayload.class);
         register("ASSET_SPLIT", "1.0", AssetSplitPayload.class);
         register("ASSET_SPLIT", "2.0", AssetSplitV2Payload.class);
         register("ASSET_SPLIT", "3.0", AssetSplitV3Payload.class); // ADR-029 Enmienda 1 (campaignRef)
+        register("ASSET_SPLIT", "4.0", AssetSplitV4Payload.class); // ADR-029 Enmienda 2 (zona heredada)
         register("ASSET_DEPLETED", "1.0", AssetDepletedPayload.class);
         register("ASSET_SPLIT_COMPENSATED", "1.0", AssetSplitCompensatedPayload.class);
         register("ASSET_DELIVERED", "1.0", AssetDeliveredPayload.class);
+        register("ASSET_DELIVERED", "2.0", AssetDeliveredV2Payload.class); // ADR-029 Enmienda 2
 
         // Fund Events
         register("FUND_REGISTERED", "1.0", FundRegisteredPayload.class);

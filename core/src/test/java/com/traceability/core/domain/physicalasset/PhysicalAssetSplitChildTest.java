@@ -1,5 +1,6 @@
 package com.traceability.core.domain.physicalasset;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.physicalasset.exceptions.InvalidCompensationQuantityException;
@@ -39,7 +40,7 @@ class PhysicalAssetSplitChildTest {
         parent = committed(parent);
 
         PhysicalAsset child = PhysicalAsset.registerSplitChild(parent, "child-1");
-        AssetRegisteredV3Payload genesis = (AssetRegisteredV3Payload) child.getUncommittedEvents().get(0).payload();
+        AssetRegisteredV4Payload genesis = (AssetRegisteredV4Payload) child.getUncommittedEvents().get(0).payload();
 
         assertThat(genesis.assetId()).isEqualTo("child-1");
         assertThat(genesis.quantity()).isEqualByComparingTo("3");
@@ -64,7 +65,7 @@ class PhysicalAssetSplitChildTest {
         parent.split("child-b", new BigDecimal("2"));
         parent = committed(parent);
 
-        AssetRegisteredV3Payload genesis = (AssetRegisteredV3Payload)
+        AssetRegisteredV4Payload genesis = (AssetRegisteredV4Payload)
                 PhysicalAsset.registerSplitChild(parent, "child-b").getUncommittedEvents().get(0).payload();
 
         assertThat(genesis.donorRef()).isEqualTo("donor-1");
@@ -84,7 +85,7 @@ class PhysicalAssetSplitChildTest {
         child.getUncommittedEvents().stream().map(DomainEvent::payload).forEach(h::add);
         child = PhysicalAsset.rehydrate("child-1", h, h.size());
 
-        AssetRegisteredV3Payload genesis = (AssetRegisteredV3Payload)
+        AssetRegisteredV4Payload genesis = (AssetRegisteredV4Payload)
                 PhysicalAsset.registerSplitChild(child, "grandchild-1").getUncommittedEvents().get(0).payload();
 
         assertThat(genesis.sourceAllocationId()).isEqualTo("alloc-1");

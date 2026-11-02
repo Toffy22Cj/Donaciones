@@ -295,9 +295,9 @@ class GoldenPathHttpIntegrationTest {
     private void logistics(String employee, String orgId, String assetRef) throws Exception {
         String base = "/api/v1/physical-assets/" + assetRef;
         ok(send("POST", base + "/dispatch", employee, "{\"carrierRef\":\"carrier-1\"}"), 200);
-        ok(send("POST", base + "/receive", employee, "{\"facilityLocation\":\"site-1\",\"receiverRef\":\"rec-1\"}"), 200);
+        ok(send("POST", base + "/receive", employee, "{\"facilityLocation\":\"site-1\",\"municipalityCode\":\"05001\",\"receiverRef\":\"rec-1\"}"), 200);
         ok(send("POST", base + "/deliver", employee,
-                "{\"finalCustodianRef\":\"cust-f\",\"beneficiaryRef\":\"ben-1\",\"locationRef\":\"site-1\",\"evidenceRef\":\""
+                "{\"finalCustodianRef\":\"cust-f\",\"beneficiaryRef\":\"ben-1\",\"locationRef\":\"site-1\",\"municipalityCode\":\"05001\",\"evidenceRef\":\""
                         + evidenceRef(employee, orgId) + "\"}"), 200);
     }
 
@@ -373,7 +373,7 @@ class GoldenPathHttpIntegrationTest {
                 .get("allocationId").asText();
         JsonNode parent = ok(send("POST", "/api/v1/physical-assets/register", employee, """
                 {"fundId":"%s","assetType":"BLANKET","quantity":"10","unitOfMeasure":"UNITS","custodianRef":"cust-1",
-                 "currentLocation":"warehouse-1","allocationId":"%s"}""".formatted(fundId, allocationId)), 201);
+                 "currentLocation":"warehouse-1","municipalityCode":"05001","allocationId":"%s"}""".formatted(fundId, allocationId)), 201);
         String parentRef = parent.get("assetRef").asText();
         assertThat(parent.get("campaignRef").asText()).isEqualTo(campaign.get("campaignRef").asText());
 

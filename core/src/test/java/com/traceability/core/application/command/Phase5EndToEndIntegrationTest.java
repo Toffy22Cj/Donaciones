@@ -183,7 +183,7 @@ class Phase5EndToEndIntegrationTest {
             BigDecimal.valueOf(10),
             "KG",
             "CUST-1",
-            "LOC-1",
+            "LOC-1", "05001",
             allocationId,
             null,
             ACTOR
@@ -242,7 +242,7 @@ class Phase5EndToEndIntegrationTest {
                 BigDecimal.valueOf(100),
                 "DOSES",
                 "CUST-1",
-                "LOC-1",
+                "LOC-1", "05001",
                 allocationId,
                 null,
                 ACTOR
@@ -272,7 +272,7 @@ class Phase5EndToEndIntegrationTest {
             BigDecimal.valueOf(100),
             "KG",
             "CUST-1",
-            "LOC-1",
+            "LOC-1", "05001",
             "ALLOC-1",
             null,
             ACTOR

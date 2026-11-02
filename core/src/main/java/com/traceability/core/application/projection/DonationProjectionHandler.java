@@ -42,7 +42,10 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             AssetRegisteredPayload.class, AssetRegisteredV2Payload.class, AssetRegisteredV3Payload.class,
             AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetCustodyTransferredPayload.class,
             AssetSplitPayload.class, AssetSplitV2Payload.class, AssetSplitV3Payload.class, AssetSplitCompensatedPayload.class,
-            AssetDepletedPayload.class, AssetDeliveredPayload.class);
+            AssetDepletedPayload.class, AssetDeliveredPayload.class,
+            // ADR-029 Enmienda 2: las versiones con la zona sellada
+            AssetRegisteredV4Payload.class, AssetSplitV4Payload.class, AssetDispatchedV2Payload.class,
+            AssetReceivedV2Payload.class, AssetDeliveredV2Payload.class);
 
     @Override
     public String getHandlerName() {
@@ -242,20 +245,35 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
                 assetId, p.allocationId(), p.sourceAllocationId(), p.parentAssetRef(), p.rootAssetRef(),
                 p.quantity(), p.unitOfMeasure(), p.assetType(), p.currentLocation(), p.custodianRef(), "REGISTERED",
                 p.campaignRef(), // D7: solo del payload v3 del propio activo
-                new java.util.HashMap<>()
+                new java.util.HashMap<>(),
+                p.zoneName() // ADR-029 Enmienda 2, D5: la zona sellada (solo 4.0)
             );
             update.push("logistics", log);
         } else if (payload instanceof AssetDispatchedPayload p) {
             update.set("logistics.$[elem].lifecycleStatus", "DISPATCHED");
             update.set("logistics.$[elem].currentCustodian", p.carrierRef());
+        } else if (payload instanceof AssetDispatchedV2Payload p) {
+            // la ubicación y su zona no cambian en camino, como currentLocation (ADR-029 Enmienda 2, P2)
+            update.set("logistics.$[elem].lifecycleStatus", "DISPATCHED");
+            update.set("logistics.$[elem].currentCustodian", p.carrierRef());
         } else if (payload instanceof AssetReceivedPayload p) {
             update.set("logistics.$[elem].lifecycleStatus", "RECEIVED");
             update.set("logistics.$[elem].currentLocation", p.facilityLocation());
+            update.set("logistics.$[elem].currentZoneName", null);
+            if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
+                update.set("logistics.$[elem].currentCustodian", p.receiverRef());
+            }
+        } else if (payload instanceof AssetReceivedV2Payload p) {
+            update.set("logistics.$[elem].lifecycleStatus", "RECEIVED");
+            update.set("logistics.$[elem].currentLocation", p.facilityLocation());
+            update.set("logistics.$[elem].currentZoneName", p.zoneName());
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
         // El registro del hijo lo proyecta su propio ASSET_REGISTERED (creado por la saga de la división, B1-bis).
         // El estado previo se guarda por childAssetId, como el agregado (D-SPLIT S6): un único campo lo pisaba cada división.
+        } else if (payload instanceof AssetSplitV4Payload p) {
+            recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitV3Payload p) {
             recordSplit(update, p.childAssetId(), p.parentQuantityAfter(), p.statusBeforeSplit());
         } else if (payload instanceof AssetSplitV2Payload p) {
@@ -281,6 +299,12 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             update.set("logistics.$[elem].lifecycleStatus", "DEPLETED");
         } else if (payload instanceof AssetDeliveredPayload p) {
             update.set("logistics.$[elem].currentLocation", p.locationRef());
+            update.set("logistics.$[elem].currentZoneName", null);
+            update.set("logistics.$[elem].currentCustodian", p.finalCustodianRef());
+            update.set("logistics.$[elem].lifecycleStatus", "DELIVERED");
+        } else if (payload instanceof AssetDeliveredV2Payload p) {
+            update.set("logistics.$[elem].currentLocation", p.locationRef());
+            update.set("logistics.$[elem].currentZoneName", p.zoneName());
             update.set("logistics.$[elem].currentCustodian", p.finalCustodianRef());
             update.set("logistics.$[elem].lifecycleStatus", "DELIVERED");
         }
@@ -311,19 +335,33 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         Optional<AssetProjectionRouting.Registration> registration = AssetProjectionRouting.registration(payload);
         if (registration.isPresent()) {
             transition.setLocation(registration.get().currentLocation());
+            transition.setZoneName(registration.get().zoneName());
             transition.setCustodian(registration.get().custodianRef());
             transition.setStatus("REGISTERED");
         } else if (payload instanceof AssetDispatchedPayload p) {
             transition.setCustodian(p.carrierRef());
             transition.setStatus("DISPATCHED");
+        } else if (payload instanceof AssetDispatchedV2Payload p) {
+            // ADR-029 Enmienda 2, P2: la zona del paso anterior, sellada; sin ella (E-1), el respaldo con su texto
+            transition.setLocation(p.previousLocation());
+            transition.setZoneName(p.zoneName());
+            transition.setCustodian(p.carrierRef());
+            transition.setStatus("DISPATCHED");
+        } else if (payload instanceof AssetReceivedV2Payload p) {
+            transition.setLocation(p.facilityLocation());
+            transition.setZoneName(p.zoneName());
+            transition.setStatus("RECEIVED");
+            if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
+                transition.setCustodian(p.receiverRef());
+            }
         } else if (payload instanceof AssetReceivedPayload p) {
             transition.setLocation(p.facilityLocation());
             transition.setStatus("RECEIVED");
             if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
                 transition.setCustodian(p.receiverRef());
             }
-        } else if (payload instanceof AssetSplitV3Payload || payload instanceof AssetSplitV2Payload
-                || payload instanceof AssetSplitPayload) {
+        } else if (payload instanceof AssetSplitV4Payload || payload instanceof AssetSplitV3Payload
+                || payload instanceof AssetSplitV2Payload || payload instanceof AssetSplitPayload) {
             transition.setStatus("SPLIT");
         } else if (payload instanceof AssetCustodyTransferredPayload p) {
             transition.setCustodian(p.newCustodianRef());
@@ -334,6 +372,11 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             transition.setStatus("DEPLETED");
         } else if (payload instanceof AssetDeliveredPayload p) {
             transition.setLocation(p.locationRef());
+            transition.setCustodian(p.finalCustodianRef());
+            transition.setStatus("DELIVERED");
+        } else if (payload instanceof AssetDeliveredV2Payload p) {
+            transition.setLocation(p.locationRef());
+            transition.setZoneName(p.zoneName());
             transition.setCustodian(p.finalCustodianRef());
             transition.setStatus("DELIVERED");
         }

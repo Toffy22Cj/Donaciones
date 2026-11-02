@@ -106,7 +106,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
                 new BigDecimal("100.0000"),
                 "KG",
                 "CUSTODIAN-1",
-                "WAREHOUSE-A",
+                "WAREHOUSE-A", "05001",
                 "ALLOC-001",
                 null,
                 actor);
@@ -148,7 +148,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
                     new BigDecimal("100.0000"),
                     "KG",
                     "CUSTODIAN-1",
-                    "WAREHOUSE-A",
+                    "WAREHOUSE-A", "05001",
                     "ALLOC-001",
                     null,
                     actor);
@@ -170,7 +170,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
                         new BigDecimal("100.0000"),
                         "KG",
                         "CUSTODIAN-1",
-                        "WAREHOUSE-A",
+                        "WAREHOUSE-A", "05001",
                         "ALLOC-001",
                         null,
                         new SystemActor("test-harness")));
@@ -194,7 +194,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
                         new BigDecimal("100.0000"),
                         "KG",
                         "CUSTODIAN-1",
-                        "WAREHOUSE-A",
+                        "WAREHOUSE-A", "05001",
                         "ALLOC-001",
                         null,
                         new SystemActor("test-harness")));
@@ -219,7 +219,7 @@ class PhysicalAssetCommandServiceIntegrationTest {
                 new BigDecimal("100.0000"),
                 "KG",
                 "CUSTODIAN-1",
-                "WAREHOUSE-A",
+                "WAREHOUSE-A", "05001",
                 "ALLOC-001",
                 null,
                 actor);

@@ -77,7 +77,8 @@ class DeliveryEvidenceCommandTest {
         when(eventPublisher.appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any())).thenReturn(true);
         service = new PhysicalAssetCommandService(retryTemplate, processedCommandRepository, eventStore, eventPublisher,
                 new RoleAuthorizationPolicy(), new OrganizationBoundaryPolicy(), identityPrincipalPort,
-                new com.traceability.core.support.StubCampaignInKindEligibilityPort(), deliveryEvidence);
+                new com.traceability.core.support.StubCampaignInKindEligibilityPort(), deliveryEvidence,
+                new com.traceability.core.support.StubMunicipalityCatalogPort());
     }
 
     private void principal(String org, AuthorizationRole role) {
@@ -104,7 +105,7 @@ class DeliveryEvidenceCommandTest {
             "sha256:abc", "SHA256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
             "sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a", " sha256:a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"})
     void t4_6_anEvidenceRefWithoutTheSha256Format_isRejected_beforeTheClaimAndWithoutReadingTheAsset(String evidenceRef) {
-        assertThatThrownBy(() -> service.deliverAsset("cmd-1", "asset-1", "cust-2", "ben-1", "loc-2", evidenceRef,
+        assertThatThrownBy(() -> service.deliverAsset("cmd-1", "asset-1", "cust-2", "ben-1", "loc-2", "05001", evidenceRef,
                 Instant.now(), actor)).isInstanceOf(InvalidEvidenceRefException.class);
 
         verifyNoInteractions(processedCommandRepository, eventStore, eventPublisher, deliveryEvidence, identityPrincipalPort);
@@ -117,7 +118,7 @@ class DeliveryEvidenceCommandTest {
         asset(assetId, true);
         principal(ORG, AuthorizationRole.EMPLOYEE);
 
-        service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE, Instant.now(), actor);
+        service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE, Instant.now(), actor);
 
         InOrder order = inOrder(eventStore, identityPrincipalPort, deliveryEvidence, eventPublisher);
         order.verify(eventStore).loadStream(assetId);
@@ -134,7 +135,7 @@ class DeliveryEvidenceCommandTest {
         principal(ORG, AuthorizationRole.EMPLOYEE);
         doThrow(new EvidenceAlreadyBoundException("bound")).when(deliveryEvidence).bindToAsset(ORG, EVIDENCE, assetId);
 
-        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE,
+        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE,
                 Instant.now(), actor)).isInstanceOf(EvidenceAlreadyBoundException.class);
 
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any());
@@ -147,7 +148,7 @@ class DeliveryEvidenceCommandTest {
         asset(assetId, true);
         principal("OTHER-ORG", AuthorizationRole.EMPLOYEE);
 
-        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE,
+        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE,
                 Instant.now(), actor)).isInstanceOf(CrossOrganizationAccessException.class);
         verify(deliveryEvidence, never()).bindToAsset(anyString(), anyString(), anyString());
     }
@@ -158,7 +159,7 @@ class DeliveryEvidenceCommandTest {
         asset(assetId, true);
         principal(ORG, AuthorizationRole.REPRESENTATIVE);
 
-        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE,
+        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE,
                 Instant.now(), actor)).isInstanceOf(InsufficientRoleException.class);
         verify(deliveryEvidence, never()).bindToAsset(anyString(), anyString(), anyString());
     }
@@ -170,7 +171,7 @@ class DeliveryEvidenceCommandTest {
         asset(assetId, false);
         principal(ORG, AuthorizationRole.EMPLOYEE);
 
-        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE,
+        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE,
                 Instant.now(), actor)).isInstanceOf(RuntimeException.class);
         verify(deliveryEvidence, never()).bindToAsset(anyString(), anyString(), anyString());
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any());
@@ -185,7 +186,7 @@ class DeliveryEvidenceCommandTest {
         when(eventStore.loadStream(assetId)).thenReturn(asset.getUncommittedEvents());
         principal(ORG, AuthorizationRole.EMPLOYEE);
 
-        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE,
+        assertThatThrownBy(() -> service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE,
                 Instant.now(), actor)).isInstanceOf(RuntimeException.class);
         verify(deliveryEvidence, never()).bindToAsset(anyString(), anyString(), anyString());
     }
@@ -200,7 +201,7 @@ class DeliveryEvidenceCommandTest {
         when(eventStore.loadStream(assetId)).thenReturn(asset.getUncommittedEvents());
         principal(ORG, AuthorizationRole.EMPLOYEE);
 
-        service.deliverAsset("cmd-2", assetId, "cust-2", "ben-1", "loc-2", EVIDENCE, deliveredAt, actor);
+        service.deliverAsset("cmd-2", assetId, "cust-2", "ben-1", "loc-2", "05001", EVIDENCE, deliveredAt, actor);
 
         verify(deliveryEvidence, never()).bindToAsset(anyString(), anyString(), anyString());
     }
@@ -211,7 +212,7 @@ class DeliveryEvidenceCommandTest {
         when(processedCommandRepository.exists("cmd-1")).thenReturn(true);
         when(processedCommandRepository.findOutcome("cmd-1")).thenReturn(Optional.of("DELIVER_ASSET:asset-1"));
 
-        service.deliverAsset("cmd-1", "asset-1", "cust-2", "ben-1", "loc-2", EVIDENCE, Instant.now(), actor);
+        service.deliverAsset("cmd-1", "asset-1", "cust-2", "ben-1", "loc-2", "05001", EVIDENCE, Instant.now(), actor);
 
         verifyNoInteractions(deliveryEvidence, eventStore, eventPublisher);
     }
@@ -228,7 +229,7 @@ class DeliveryEvidenceCommandTest {
 
         registered.dispatch("carrier");
         when(eventStore.loadStream(assetId)).thenReturn(registered.getUncommittedEvents());
-        service.receiveAsset("cmd-r", assetId, "fac", "rec", actor);
+        service.receiveAsset("cmd-r", assetId, "fac", "05001", "rec", actor);
 
         verifyNoInteractions(deliveryEvidence);
         verify(eventPublisher, org.mockito.Mockito.times(2))

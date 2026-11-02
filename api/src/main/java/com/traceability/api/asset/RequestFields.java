@@ -13,6 +13,9 @@ final class RequestFields {
     /** Decimal positivo con hasta 4 decimales, la escala del dominio; sin signo, exponente ni separador de miles. */
     private static final Pattern QUANTITY = Pattern.compile("^[0-9]{1,15}(\\.[0-9]{1,4})?$");
 
+    /** Código de municipio DIVIPOLA: 5 dígitos (ADR-029 Enmienda 2). Que exista en el catálogo lo comprueba {@code core}. */
+    private static final Pattern MUNICIPALITY = Pattern.compile("^[0-9]{5}$");
+
     private RequestFields() {}
 
     static String required(String value, String field) {
@@ -24,6 +27,13 @@ final class RequestFields {
 
     static String optional(String value, String field) {
         return value == null ? null : required(value, field);
+    }
+
+    static String municipalityCode(String value, String field) {
+        if (value == null || !MUNICIPALITY.matcher(value).matches()) {
+            throw new InvalidRequestFieldException(field);
+        }
+        return value;
     }
 
     static BigDecimal quantity(String value, String field) {

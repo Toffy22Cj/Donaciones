@@ -340,3 +340,16 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 ## 9. Sin HTTP
 
 `MerkleBatch`, `BlockchainAnchorScheduler`, `AnchorConfirmationPoller` e `IntegrityVerificationPort.verifyBatch` son procesos internos (matriz §6). El anclaje en testnet y su evidencia: `runbook-anclaje-testnet.md`.
+
+*Nota (2026-11-02, enmienda 2 de ADR-029 y `plan-zona-en-cada-paso.md`, aprobados por Manuel en #170, comentario 6589733853): la zona pública en cada paso.* Las filas de arriba no se reescriben; esta nota las supera donde dice.
+
+- **`municipalityCode` obligatorio** (código DIVIPOLA de 5 dígitos) en el cuerpo de cuatro rutas. **Cambia el contrato y rompe los clientes actuales**: sin él, con otra forma o con un código que no está en el catálogo → **400**, con el mismo cuerpo `BadRequest` que un campo inválido y sin escribir nada.
+  - `POST /physical-assets/register` (Camino A): `{…, currentLocation, municipalityCode, allocationId, sourceAllocationId?}`.
+  - `POST /physical-assets/from-donation` (Camino B): `{…, currentLocation, municipalityCode, campaignRef?}`.
+  - `POST /physical-assets/{assetRef}/receive`: `{facilityLocation, receiverRef, municipalityCode}`.
+  - `POST /physical-assets/{assetRef}/deliver`: `{finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, municipalityCode}`.
+  - `POST /physical-assets/{assetRef}/dispatch` **no cambia**: el sistema sella la zona del paso anterior.
+- El texto libre (`currentLocation`, `facilityLocation`, `locationRef`) se sigue pidiendo y **es privado**: no sale en ninguna respuesta pública.
+- **`GET /physical-assets/{assetRef}`** y cada ítem de **`GET /organizations/{organizationId}/physical-assets`** llevan además **`municipalityCode?`** y **`zoneName?`** (la zona sellada de la ubicación actual; ausentes en un activo sin zona, de antes del cambio).
+- **De dónde sale `locationZone`** en `GET /donations/tracking/assets/{assetRef}/history`, en `logistics[]` de `GET /donations/tracking` y en `GET /organizations/{organizationId}/activity`: del texto **sellado** en el evento, `"MUNICIPIO, DEPARTAMENTO"` en mayúsculas tal cual el catálogo DIVIPOLA (Bogotá una sola vez: `"BOGOTÁ, D.C."`); **la presentación la decide el front**. Los pasos registrados antes del cambio siguen con `location_reference` como respaldo, y pueden llegar `null`.
+- **Supera la fila de `GET /donations/tracking/assets/{assetRef}/history` (arriba) en lo del despacho:** `locationZone` llega en `DISPATCHED` con la zona del paso anterior en los pasos registrados desde este cambio. En los anteriores puede seguir llegando `null`. `SPLIT`, `CUSTODY_TRANSFERRED`, `SPLIT_COMPENSATED` y `DEPLETED` siguen sin zona.

@@ -384,7 +384,7 @@ class P2EndpointsHttpIntegrationTest {
     @Test
     void organizationAssets_forAdministratorOrEmployee_withoutDonorData() throws Exception {
         String asset = ok(send("POST", "/api/v1/physical-assets/from-donation", employee, """
-                {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1"}"""),
+                {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1","municipalityCode":"05001"}"""),
                 201).get("assetRef").asText();
 
         JsonNode items = ok(send("GET", "/api/v1/organizations/" + org + "/physical-assets", admin, null), 200).get("items");

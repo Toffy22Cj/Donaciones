@@ -514,6 +514,8 @@ Idempotencia de `clearFundsGenesis` ante reenvío del mismo `commandId`: verific
 
 **locationZone (Fase 3):** valor público derivado de `currentLocation` vía una tabla de referencia determinista (`location_reference`, consulta exacta, sin heurística de texto ni fuzzy matching). `null` si la ubicación no está registrada en la tabla — un dato ausente es preferible a uno inventado.
 
+> *Nota (2026-11-02, enmienda 2 de ADR-029):* desde ese cambio, la zona de cada paso nuevo sale del texto **sellado en el evento** (`zoneName`, municipio DIVIPOLA), no de `location_reference`. La tabla queda solo como respaldo de los eventos anteriores (D-4.4 y D-4.6). La definición de arriba se conserva.
+
 **Merkle Tree / Merkle Root:** estructura que agrupa periódicamente los hashes de múltiples eventos en un único hash raíz, que es lo que efectivamente se ancla en blockchain (nunca los eventos individuales), por eficiencia y economía de costos de transacción.
 
 **NarrativeReadPort (Fase 3):** puerto neutral en `contracts` (ADR-024) mediante el cual `api` obtiene el estado de la narrativa de IA de una donación sin depender de `ai` directamente. Método `getOrTriggerGeneration(fundId)` — el nombre expone deliberadamente que invocarlo puede disparar generación asíncrona como efecto colateral, en vez de esconderlo detrás de un nombre que sugiera lectura pura.

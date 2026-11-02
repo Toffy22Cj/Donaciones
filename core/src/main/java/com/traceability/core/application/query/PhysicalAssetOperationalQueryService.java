@@ -51,7 +51,16 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
         PhysicalAsset asset = loadAuthorized(assetId, actor);
         return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
                 asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
-                asset.getAssetType(), null);
+                asset.getAssetType(), null, zoneCode(asset), zoneName(asset));
+    }
+
+    /** ADR-029 Enmienda 2, P6: la zona sellada del agregado, para el empleado. */
+    private static String zoneCode(PhysicalAsset asset) {
+        return asset.getZone() == null ? null : asset.getZone().municipalityCode();
+    }
+
+    private static String zoneName(PhysicalAsset asset) {
+        return asset.getZone() == null ? null : asset.getZone().zoneName();
     }
 
     /** Una página, como los fondos de la organización (DD-31). */
@@ -74,7 +83,7 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
             Instant lastEventAt = events.isEmpty() ? null : events.get(events.size() - 1).occurredAt();
             return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
                     asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
-                    asset.getAssetType(), lastEventAt);
+                    asset.getAssetType(), lastEventAt, zoneCode(asset), zoneName(asset));
         }).toList();
     }
 

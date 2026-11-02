@@ -55,7 +55,8 @@ class OrganizationActivityTruncatedTest {
         when(counts.countByBatch(any())).thenReturn(List.of());
         when(closures.closedCampaigns(anyString())).thenReturn(List.of());
         query = new OrganizationActivityQuery(funds, assets, events, counts, mock(MerkleBatchRepositoryPort.class),
-                closures, mock(LocationReferenceService.class), new OrganizationBoundaryPolicy());
+                closures, new com.traceability.core.application.service.PublicZoneResolver(mock(LocationReferenceService.class)),
+                new OrganizationBoundaryPolicy());
     }
 
     private static List<String> ids(String prefix, int n) {

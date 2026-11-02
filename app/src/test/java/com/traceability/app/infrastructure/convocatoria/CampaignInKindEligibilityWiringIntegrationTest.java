@@ -168,7 +168,7 @@ class CampaignInKindEligibilityWiringIntegrationTest {
     private String registerInKind(String campaignRef) {
         String donorRef = "donor-" + UUID.randomUUID();
         assets.registerPhysicalAssetFromDonation(UUID.randomUUID().toString(), ORG, donorRef, "BLANKETS",
-                BigDecimal.TEN, "UNITS", "CUST-1", "WH-1", campaignRef, SYSTEM);
+                BigDecimal.TEN, "UNITS", "CUST-1", "WH-1", "05001", campaignRef, SYSTEM);
         return mongoTemplate.findOne(
                 org.springframework.data.mongodb.core.query.Query.query(
                         org.springframework.data.mongodb.core.query.Criteria.where("payload.donorRef").is(donorRef)),

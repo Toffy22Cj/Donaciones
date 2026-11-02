@@ -13,13 +13,18 @@ import com.traceability.core.application.port.out.AssetDirectoryPort;
 import com.traceability.core.application.port.out.EventBatchCountPort;
 import com.traceability.core.application.port.out.EventBatchCountPort.BatchEventCount;
 import com.traceability.core.application.port.out.FundDirectoryPort;
-import com.traceability.core.application.service.LocationReferenceService;
+import com.traceability.core.application.service.PublicZoneResolver;
 import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetSplitV4Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitV3Payload;
@@ -100,12 +105,12 @@ public class OrganizationActivityQuery {
     private final EventBatchCountPort counts;
     private final MerkleBatchRepositoryPort batches;
     private final OrganizationCampaignClosuresQuery closures;
-    private final LocationReferenceService locations;
+    private final PublicZoneResolver locations;
     private final OrganizationBoundaryPolicy boundary;
 
     public OrganizationActivityQuery(FundDirectoryPort funds, AssetDirectoryPort assets, ActivityEventsPort events,
                                      EventBatchCountPort counts, MerkleBatchRepositoryPort batches,
-                                     OrganizationCampaignClosuresQuery closures, LocationReferenceService locations,
+                                     OrganizationCampaignClosuresQuery closures, PublicZoneResolver locations,
                                      OrganizationBoundaryPolicy boundary) {
         this.funds = funds;
         this.assets = assets;
@@ -198,7 +203,9 @@ public class OrganizationActivityQuery {
     /**
      * Cantidad, unidad y zona del payload, con las mismas ubicaciones que el historial del seguimiento
      * ({@code DonationProjectionHandler}: registro → {@code currentLocation}, recepción → {@code facilityLocation},
-     * entrega → {@code locationRef}; despacho y división, sin zona). Un {@code FUNDS_CLEARED} solo lleva su fondo.
+     * entrega → {@code locationRef}; despacho 1.0 y división, sin zona). Desde la enmienda 2 de ADR-029 (D5), la zona es la
+     * sellada en el evento, también la del despacho 2.0; sin ella, el respaldo de {@code location_reference} con el texto
+     * del mismo evento. Un {@code FUNDS_CLEARED} solo lleva su fondo.
      */
     private ActivityItem item(ActivityEvent e) {
         DomainEventPayload p = e.payload();
@@ -208,7 +215,13 @@ public class OrganizationActivityQuery {
         BigDecimal quantity = null;
         String unit = null;
         String location = null;
-        if (p instanceof AssetRegisteredV3Payload r) {
+        String sealed = null;
+        if (p instanceof AssetRegisteredV4Payload r) {
+            quantity = r.quantity();
+            unit = r.unitOfMeasure();
+            location = r.currentLocation();
+            sealed = r.zoneName();
+        } else if (p instanceof AssetRegisteredV3Payload r) {
             quantity = r.quantity();
             unit = r.unitOfMeasure();
             location = r.currentLocation();
@@ -220,6 +233,9 @@ public class OrganizationActivityQuery {
             quantity = r.quantity();
             unit = r.unitOfMeasure();
             location = r.currentLocation();
+        } else if (p instanceof AssetSplitV4Payload s) {
+            quantity = s.extractedQuantity();
+            unit = s.unitOfMeasure();
         } else if (p instanceof AssetSplitV3Payload s) {
             quantity = s.extractedQuantity();
             unit = s.unitOfMeasure();
@@ -229,12 +245,21 @@ public class OrganizationActivityQuery {
         } else if (p instanceof AssetSplitPayload s) {
             quantity = s.extractedQuantity();
             unit = s.unitOfMeasure();
+        } else if (p instanceof AssetDispatchedV2Payload d) {
+            location = d.previousLocation();
+            sealed = d.zoneName();
+        } else if (p instanceof AssetReceivedV2Payload r) {
+            location = r.facilityLocation();
+            sealed = r.zoneName();
         } else if (p instanceof AssetReceivedPayload r) {
             location = r.facilityLocation();
+        } else if (p instanceof AssetDeliveredV2Payload d) {
+            location = d.locationRef();
+            sealed = d.zoneName();
         } else if (p instanceof AssetDeliveredPayload d) {
             location = d.locationRef();
         }
-        String zone = location == null ? null : locations.resolveZone(location).orElse(null);
+        String zone = sealed == null && location == null ? null : locations.resolve(sealed, location).orElse(null);
         return new ActivityItem(e.eventType(), e.occurredAt(), new Subject("ASSET", e.streamId()), null, quantity, unit, zone);
     }
 }

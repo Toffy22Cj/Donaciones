@@ -29,7 +29,8 @@ public class OrganizationAssetsController {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record OrganizationAssetItem(String assetRef, String lifecycleStatus, String currentCustodianRef,
                                         String currentLocation, String quantity, String unitOfMeasure,
-                                        String campaignRef, String assetType, String lastEventAt) {}
+                                        String campaignRef, String assetType, String lastEventAt,
+                                        String municipalityCode, String zoneName) {}
 
     private final PhysicalAssetOperationalReadPort reads;
 
@@ -42,7 +43,8 @@ public class OrganizationAssetsController {
         return new Page(reads.listForOrganization(organizationId, actor).stream()
                 .map(v -> new OrganizationAssetItem(v.assetRef(), v.lifecycleStatus(), v.currentCustodianRef(),
                         v.currentLocation(), v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef(),
-                        v.assetType(), v.lastEventAt() == null ? null : v.lastEventAt().toString()))
+                        v.assetType(), v.lastEventAt() == null ? null : v.lastEventAt().toString(),
+                        v.municipalityCode(), v.zoneName()))
                 .toList());
     }
 }

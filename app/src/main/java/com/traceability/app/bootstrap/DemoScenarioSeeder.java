@@ -55,6 +55,12 @@ import java.util.function.Supplier;
 @Profile("demo-seed")
 public class DemoScenarioSeeder {
 
+    /**
+     * Municipio DIVIPOLA de los pasos de la demo (ADR-029 Enmienda 2: obligatorio al registrar, recibir y entregar).
+     * {@code 11001} (BOGOTÁ, D.C.) está en el catálogo real y en el de prueba.
+     */
+    static final String DEMO_MUNICIPALITY = "11001";
+
     public static final String PLATFORM = "plataforma@demo.paxfide.local";
     public static final String REPRESENTATIVE = "representante@demo.paxfide.local";
     public static final String ADMINISTRATOR = "administrador@demo.paxfide.local";
@@ -229,7 +235,8 @@ public class DemoScenarioSeeder {
         String employee = token.get(EMPLOYEE_1);
         String parent = api.post("registrar activo (camino A)", "/api/v1/physical-assets/register", Map.of(
                 "fundId", fundId, "assetType", "BLANKET", "quantity", "10", "unitOfMeasure", "UNITS",
-                "custodianRef", "bodega-central", "currentLocation", "bodega-central", "allocationId", allocationId),
+                "custodianRef", "bodega-central", "currentLocation", "bodega-central", "allocationId", allocationId,
+                "municipalityCode", DEMO_MUNICIPALITY),
                 employee, true, 201).get("assetRef").asText();
         String child = api.post("dividir", "/api/v1/physical-assets/" + parent + "/split", Map.of("quantity", "4"),
                 employee, true, 202).get("childAssetRef").asText();
@@ -240,19 +247,21 @@ public class DemoScenarioSeeder {
             String base = "/api/v1/physical-assets/" + asset;
             api.post("despachar", base + "/dispatch", Map.of("carrierRef", "transportista-1"), employee, true, 200);
             api.post("recibir", base + "/receive", Map.of("facilityLocation", "centro-comunitario", "receiverRef",
-                    "coordinador-centro"), employee, true, 200);
+                    "coordinador-centro", "municipalityCode", DEMO_MUNICIPALITY), employee, true, 200);
             // ADR-051 F3 y F5 (Tarea 4, P-T4-7): primero la foto, después la entrega con su evidenceRef. Una foto por
             // activo (una foto, un activo): cada una es una imagen PNG distinta, generada en memoria
             String evidenceRef = api.upload("subir la evidencia de entrega", "/api/v1/organizations/" + org
                     + "/delivery-evidence", employee, deliveryPhoto(photo++)).get("evidenceRef").asText();
             api.post("entregar", base + "/deliver", Map.of("finalCustodianRef", "coordinador-centro", "beneficiaryRef",
-                    "familia-1", "locationRef", "centro-comunitario", "evidenceRef", evidenceRef), employee, true, 200);
+                    "familia-1", "locationRef", "centro-comunitario", "evidenceRef", evidenceRef, "municipalityCode",
+                    DEMO_MUNICIPALITY), employee, true, 200);
         }
 
         // 7. Camino B: donación en especie a la convocatoria activa, en tránsito
         String inKind = api.post("registrar activo (camino B)", "/api/v1/physical-assets/from-donation", Map.of(
                 "assetType", "FOOD_KIT", "quantity", "20", "unitOfMeasure", "UNITS", "custodianRef", "bodega-central",
-                "currentLocation", "bodega-central", "campaignRef", activeRef), employee, true, 201).get("assetRef").asText();
+                "currentLocation", "bodega-central", "campaignRef", activeRef, "municipalityCode", DEMO_MUNICIPALITY),
+                employee, true, 201).get("assetRef").asText();
         api.post("despachar (camino B)", "/api/v1/physical-assets/" + inKind + "/dispatch",
                 Map.of("carrierRef", "transportista-2"), employee, true, 200);
 
