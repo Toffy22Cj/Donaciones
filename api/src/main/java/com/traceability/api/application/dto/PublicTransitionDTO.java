@@ -20,6 +20,8 @@ public record PublicTransitionDTO(
          */
         @JsonInclude(JsonInclude.Include.NON_NULL) Boolean evidenceRegistered,
         /** E1 y E2: solo si el {@code evidenceRef} es una huella {@code sha256:}; el texto libre heredado nunca sale. */
-        @JsonInclude(JsonInclude.Include.NON_NULL) String evidenceRef
+        @JsonInclude(JsonInclude.Include.NON_NULL) String evidenceRef,
+        /** ADR-052 D2: el punto de {@code locationZone}; falta si no hay zona o su entrada no tiene coordenadas. */
+        @JsonInclude(JsonInclude.Include.NON_NULL) PublicZonePointDTO zonePoint
 ) {
 }

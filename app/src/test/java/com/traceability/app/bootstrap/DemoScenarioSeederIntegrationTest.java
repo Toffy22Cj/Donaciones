@@ -184,6 +184,26 @@ class DemoScenarioSeederIntegrationTest {
         assertThat(t.get("logistics").size()).isGreaterThanOrEqualTo(2);
         assertThat(ok(get("/api/v1/donations/tracking/integrity", tracking)).has("batches")).isTrue();
 
+        // ADR-052 D4: el catálogo de zonas de la demo da zona y punto; los lotes entregados están en Barranquilla
+        JsonNode delivered = null;
+        for (JsonNode l : t.get("logistics")) {
+            if ("DELIVERED".equals(l.get("lifecycleStatus").asText())) {
+                delivered = l;
+            }
+        }
+        assertThat(delivered).as(t.toString()).isNotNull();
+        assertThat(delivered.get("locationZone").asText()).isEqualTo("Barranquilla, Atlántico");
+        assertThat(delivered.get("zonePoint").get("latitude").asDouble()).isEqualTo(10.9639);
+        assertThat(delivered.get("zonePoint").get("longitude").asDouble()).isEqualTo(-74.7964);
+        // el historial: el registro en Cartagena, el despacho sin zona (en tránsito) y la entrega en Barranquilla
+        JsonNode history = ok(get("/api/v1/donations/tracking/assets/" + delivered.get("assetRef").asText() + "/history",
+                tracking)).get("history");
+        List<String> zones = new ArrayList<>();
+        history.forEach(h -> zones.add(h.get("status").asText() + ":" + h.path("locationZone").asText("-")
+                + ":" + (h.has("zonePoint") ? "punto" : "sin punto")));
+        assertThat(zones).contains("DISPATCHED:-:sin punto", "RECEIVED:Barranquilla, Atlántico:punto",
+                "DELIVERED:Barranquilla, Atlántico:punto");
+
         // narrativa de la convocatoria: sus hechos ya tienen entregas
         JsonNode narrative = ok(get("/api/v1/public/campaigns/" + codes.get("activa") + "/narrative", null));
         assertThat(narrative.get("facts").get("unitsDelivered").asLong()).isPositive();

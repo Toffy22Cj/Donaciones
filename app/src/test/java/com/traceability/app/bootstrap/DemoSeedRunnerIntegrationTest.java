@@ -54,6 +54,7 @@ class DemoSeedRunnerIntegrationTest {
 
     @LocalServerPort private int port;
     @Autowired private DemoSeedRunner seed;
+    @Autowired private com.traceability.core.application.service.LocationReferenceService locations;
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
 
@@ -79,5 +80,13 @@ class DemoSeedRunnerIntegrationTest {
         assertThat(me(DemoSeedRunner.REPRESENTATIVE).get("roles").toString()).contains("REPRESENTATIVE");
         assertThat(me(DemoSeedRunner.PLATFORM).get("platformAuthority").asText()).isEqualTo("ADMINISTRATOR");
         assertThat(me(DemoSeedRunner.DONOR).has("organizationId")).isFalse();
+
+        // ADR-052 D4: las referencias de lugar de scripts/demo/recorrido.py tienen zona y punto
+        assertThat(locations.resolve("bodega-1")).hasValueSatisfying(z -> {
+            assertThat(z.zoneName()).isEqualTo("Cartagena, Bolívar");
+            assertThat(z.point()).isEqualTo(new com.traceability.core.application.service.ZonePoint(10.3932, -75.4832));
+        });
+        assertThat(locations.resolve("centro-1")).hasValueSatisfying(z ->
+                assertThat(z.zoneName()).isEqualTo("Barranquilla, Atlántico"));
     }
 }
