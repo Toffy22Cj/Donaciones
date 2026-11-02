@@ -83,8 +83,15 @@ class DeviceLoginEndToEndTest {
                 .header("Authorization", "Bearer " + bearer).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private static final String V = "v1-2026-10";
+
+    /** Una cuenta de sistema (verificada, P-E2V-2) que ya aceptó las versiones vigentes: puede iniciar sesión. */
     private String newAccount() {
-        return accounts.createAccount(new Email(UUID.randomUUID() + "@device.test"), "Pass123!Pass123!").getAccountId().value();
+        String id = accounts.createAccount(new Email(UUID.randomUUID() + "@device.test"), "Pass123!Pass123!").getAccountId().value();
+        mongoTemplate.getCollection("accounts").updateOne(new Document("_id", id), new Document("$set",
+                new Document("termsVersion", V).append("termsAcceptedAt", new java.util.Date())
+                        .append("dataPolicyVersion", V).append("dataPolicyAcceptedAt", new java.util.Date())));
+        return id;
     }
 
     private JsonNode enroll(String accountId) throws Exception {
@@ -176,7 +183,44 @@ class DeviceLoginEndToEndTest {
         String newJwt = json.readTree(changed.body()).get("token").asText();
         HttpResponse<String> again = post("/api/v1/auth/device-credentials", newJwt, "{}");
         assertThat(again.statusCode()).as(again.body()).isEqualTo(201);
-        assertThat(deviceLogin(json.readTree(again.body()).get("deviceToken").asText()).statusCode()).isEqualTo(200);
+        HttpResponse<String> relogin = deviceLogin(json.readTree(again.body()).get("deviceToken").asText());
+        assertThat(relogin.statusCode()).as(relogin.body()).isEqualTo(200);
+        // ADR-050 Enmienda 1, E1-2: emitido con iat = max(ahora, credentialsNotBefore), el JWT vale en el acto
+        assertThat(me(json.readTree(relogin.body()).get("token").asText()).statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void conVersionesLegalesPendientes_es403AcceptanceRequired_yRepitiendoConEllasEntra() throws Exception {
+        // ADR-050 D3: la misma respuesta que el login con contraseña y con Google.
+        String account = accounts.createAccount(new Email(UUID.randomUUID() + "@device.test"), "Pass123!Pass123!")
+                .getAccountId().value();
+        String token = enroll(account).get("deviceToken").asText();
+
+        HttpResponse<String> pending = deviceLogin(token);
+        assertThat(pending.statusCode()).as(pending.body()).isEqualTo(403);
+        JsonNode body = json.readTree(pending.body());
+        assertThat(body.get("title").asText()).isEqualTo("AcceptanceRequired");
+        assertThat(body.get("pendingTermsVersion").asText()).isEqualTo(V);
+        assertThat(body.get("pendingDataPolicyVersion").asText()).isEqualTo(V);
+        assertThat(body.has("token")).isFalse();
+
+        HttpResponse<String> accepted = post("/api/v1/auth/device-login", null, json.writeValueAsString(Map.of(
+                "deviceToken", token, "acceptedTermsVersion", V, "acceptedDataPolicyVersion", V)));
+        assertThat(accepted.statusCode()).as(accepted.body()).isEqualTo(200);
+        assertThat(mongoTemplate.getCollection("accounts").find(new Document("_id", account)).first().getString("termsVersion"))
+                .isEqualTo(V);
+    }
+
+    @Test
+    void conElCorreoSinVerificar_es403EmailNotVerified() throws Exception {
+        // ADR-050 Enmienda 2, E2-3: una cuenta que se registró sola nace sin verificar.
+        String account = accounts.createAccount(new Email(UUID.randomUUID() + "@device.test"), "Pass123!Pass123!", V, V)
+                .getAccountId().value();
+        String token = enroll(account).get("deviceToken").asText();
+
+        HttpResponse<String> r = deviceLogin(token);
+        assertThat(r.statusCode()).as(r.body()).isEqualTo(403);
+        assertThat(json.readTree(r.body()).get("title").asText()).isEqualTo("EmailNotVerified");
     }
 
     @Test
