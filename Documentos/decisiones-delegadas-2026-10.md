@@ -387,3 +387,24 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - **Pregunta:** la ficha pide la descripción en texto plano, sin HTML ni Markdown (`ficha-R7-perfil-organizacion.md:40`). La implementación rechaza `<` y `>` y guarda el Markdown tal cual, sin interpretarlo (`identity/src/main/java/identity/domain/model/OrganizationProfile.java:18-19`).
 - **Respuesta:** **sí vale** rechazar `<` y `>` y guardar el Markdown tal cual, sin interpretarlo. El front lo muestra como texto plano.
 - No cambia código ni tests (#165).
+
+**Nota (2026-11-01): plazo de la transferencia y preverificación de organizaciones, "comunicado por Manuel".**
+
+Contexto: Carlos dijo el 2026-11-01 "todo lo del backend es de Manuel; Carlos organiza y reparte las tareas".
+
+- **D-1.** `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` en producción = **`PT48H`** (48 horas). Lo decide Manuel, a quien Carlos asignó el tema el 2026-11-01.
+  - El `PT72H` de `application-dev.yml` sigue siendo solo de desarrollo y no se cambia.
+  - Se registra en `despliegue-backend-2026-10.md` (§1.5 y §4, notas del 2026-11-01).
+- **D-2.** Preverificación de organizaciones: Carlos eligió la **opción B, solo el Nivel 1**. Texto de Carlos (documento "Tareas de la web y el móvil tras el backend", §7, 2026-11-01), literal:
+
+> Qué es: al crear la organización, al editar el perfil y al reenviarla a revisión, el sistema comprueba los datos y guarda un resultado: PASSED o FAILED, con qué falló. Nunca cambia el estado: la organización sigue en PENDING_VERIFICATION.
+> La bandeja de la plataforma muestra cada solicitud con su etiqueta: verde (todo coincide, revisión rápida), rojo (algo falla: pedir información o rechazar).
+> Siempre decide una persona. Prohibido que la automatización verifique o rechace: aprobar solo con datos públicos (NIT y razón social) permite suplantar a una fundación real, y un rechazo automático deja atrapada a una organización legítima (REJECTED es terminal).
+> Nivel 1, sin dependencias nuevas: dígito de verificación de la DIAN, NIT no repetido, tipo coherente con el régimen especial. Es una ampliación pequeña de R-7.
+> Nivel 2, consultar el RUES (datos abiertos de Confecámaras): fuera. Sería una integración externa nueva (regla 3.5, ADR propio). Sin el RUES, el estado UNAVAILABLE (amarillo) no hace falta en este corte.
+> Decidido por Carlos (2026-11-01): solo el Nivel 1. El RUES (Nivel 2) queda fuera de este corte; si se retoma, necesita su ADR antes.
+> Siguiente artefacto: la ficha "Preverificación de organizaciones", en el formato de R-7. La revisa Manuel (dueño de identity). Nada de código antes de la ficha congelada y su plan aprobado.
+> En la web: las etiquetas en la bandeja de la plataforma. Se planea cuando la ficha esté congelada.
+
+- **Qué autoriza:** escribir `ficha-preverificacion-organizaciones.md` (PROPUESTA). **No autoriza código** hasta que la ficha esté congelada y Manuel apruebe su plan.
+- **Hecho que la ficha expone como P1:** las tres comprobaciones del Nivel 1 ya son rechazos duros desde R-7, así que una organización guardada nunca las fallaría.
