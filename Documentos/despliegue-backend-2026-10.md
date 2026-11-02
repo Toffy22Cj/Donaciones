@@ -71,6 +71,11 @@ Todos deben ser distintos entre sí: el cursor lo comprueba (`DiscoveryCursorCon
 | `CONVOCATORIA_FUNDS_APPLICATION_RECOVERY_ENABLED` | Programador de respaldo de ADR-045 §2.2 | No (por defecto `false`, también en producción) | — | `application.yml:125` |
 | `TRACEABILITY_DEMO_WEBHOOK_SECRET` | Firma del webhook del pago simulado | **Solo en `dev`/demo** | Con `dev`, no arranca | `application-dev.yml`. Fuera de `dev`, el pago simulado está apagado (`application.yml:96`) |
 
+> **Nota (2026-11-01): `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` = `PT48H` (48 horas) en producción.** Lo decidió Manuel (D-1, `decisiones-delegadas-2026-10.md`, nota del 2026-11-01), a quien Carlos asignó el tema el 2026-11-01.
+> - Esto supera "No hay un valor de producto decidido" de la tabla, que se conserva.
+> - El `PT72H` de `application-dev.yml` sigue siendo solo de desarrollo y no cambia.
+> - `application.yml:120` sigue sin valor por defecto: el `PT48H` se pone por entorno al desplegar.
+
 ### 1.6 Anclaje en blockchain
 
 | Variable | Para qué | ¿Obligatoria? | Si falta | Dónde |
@@ -143,3 +148,5 @@ No hay *actuator* ni ruta de salud. Se comprueba con rutas públicas reales (`ap
 | **Tokens ya emitidos** | Las cuentas existentes con `credentialsNotBefore = null` conservan sus tokens hasta `exp` (8 h). Tras publicar una versión legal nueva, los tokens emitidos sirven hasta 8 h sin haberla aceptado | `ADR-050-cuenta-y-sesiones.md:242-243` |
 | **G-2**, sin verificar | El `aud` del `idToken` del móvil no se ha comprobado en el código del móvil; lo confirmará Adonis al cambiar el `applicationId` a `com.paxfide.mobile`. No bloquea: el backend acepta los tres ID de la lista | `decisiones-delegadas-2026-10.md:343`, y la nota del 2026-10-31 (#166) |
 | **`CONVOCATORIA_BANK_TRANSFER_EXPIRATION` sin valor de producto** | El valor de `dev` (`PT72H`) es provisional; producción debe fijarlo | `application-dev.yml:4-6`; `application.yml:118-120` |
+
+> **Nota (2026-11-01):** la fila "`CONVOCATORIA_BANK_TRANSFER_EXPIRATION` sin valor de producto" queda **resuelta**: en producción es `PT48H`, por decisión de Manuel (D-1; ver la nota de §1.5). La fila se conserva. El valor de `dev` (`PT72H`) no cambia.
