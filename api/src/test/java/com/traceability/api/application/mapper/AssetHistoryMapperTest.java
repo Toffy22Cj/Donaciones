@@ -10,6 +10,9 @@ import com.traceability.contracts.AssetAnchorStatusPort.Side;
 import com.traceability.contracts.AssetAnchorStatusPort.StepAnchor;
 import com.traceability.contracts.TrackingAnchorStatus;
 import com.traceability.core.application.service.LocationReferenceService;
+import com.traceability.core.application.service.PublicZone;
+import com.traceability.core.application.service.ZonePoint;
+import com.traceability.api.application.dto.PublicZonePointDTO;
 import com.traceability.core.application.port.out.AssetHistoryReadModel;
 import com.traceability.core.application.port.out.AssetTransitionReadModel;
 import java.time.Instant;
@@ -59,7 +62,7 @@ class AssetHistoryMapperTest {
                 List.of(transition)
         );
 
-        when(locationReferenceService.resolveZone("LOC-1")).thenReturn(Optional.of("Zone A"));
+        when(locationReferenceService.resolve("LOC-1")).thenReturn(Optional.of(new PublicZone("Zone A", new ZonePoint(4.711, -74.0721))));
         when(publicDonationMapper.mapCustodian("REGISTERED")).thenReturn(PublicCustodianCategory.UNCATEGORIZED);
 
         AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(document);
@@ -71,18 +74,21 @@ class AssetHistoryMapperTest {
         assertEquals("AssetRegisteredEvent", tDto.eventType());
         assertEquals("2026-09-06T10:00:00Z", tDto.timestamp());
         assertEquals("Zone A", tDto.locationZone());
+        // ADR-052 D2: el punto de la zona pública del paso
+        assertEquals(new PublicZonePointDTO(4.711, -74.0721), tDto.zonePoint());
         assertEquals(PublicCustodianCategory.UNCATEGORIZED, tDto.custodianCategory());
         assertEquals("REGISTERED", tDto.status());
     }
 
     @Test
     void transitionsThatAreNotLifecycleStates_andMissingCustodians_areUncategorized_neverAnError() {
-        when(locationReferenceService.resolveZone(Mockito.any())).thenReturn(Optional.empty());
+        when(locationReferenceService.resolve(Mockito.any())).thenReturn(Optional.empty());
         for (String status : List.of("SPLIT", "SPLIT_COMPENSATED", "CUSTODY_TRANSFERRED")) {
             AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(new AssetHistoryReadModel("asset-002", List.of(
                     new AssetTransitionReadModel("ASSET_" + status, status, null, null, Instant.parse("2026-10-07T10:00:00Z"), 1L))));
 
             assertEquals(PublicCustodianCategory.UNCATEGORIZED, dto.history().get(0).custodianCategory());
+            assertNull(dto.history().get(0).zonePoint(), "sin zona, sin punto (ADR-052 D2)");
         }
         Mockito.verify(publicDonationMapper, Mockito.never()).mapCustodian("SPLIT");
     }
