@@ -2,6 +2,7 @@
 
 **Naturaleza:** ficha de contrato HTTP, en el formato de la ficha R-7. **No autoriza código:** el código sigue un plan aparte, que aprueba Manuel (dueño de `identity`) cuando la ficha esté congelada.
 **Estado: PROPUESTA.** No está congelada: la congela Carlos, después de que Manuel la revise.
+**CONGELADA 2026-11-02** por Manuel, dueño del backend, por delegación de Carlos ([comentario en #168](https://github.com/Toffy22Cj/Donaciones/pull/168#issuecomment-6589529148), sobre la cabeza `edb7305`). Ver la nota de congelación al final (§11), que manda sobre el resto del texto.
 **Fecha:** 2026-11-02 (UTC). **Base verificada:** `develop` `3726414`, con R-7 (#165) y Google (#166) fusionados. Cada ruta:línea es de esa base.
 **Origen:** D-2, decisión de Carlos del 2026-11-01: la opción B, solo el Nivel 1. El texto literal está en `decisiones-delegadas-2026-10.md`, nota del 2026-11-01.
 **Requiere enmienda o ADR:**
@@ -132,3 +133,35 @@ Con P6 (a), "calcular al leer": no se guarda nada, y el resultado se calcula del
 - **Los botones no cambian:** verificar, rechazar y pedir información siguen siendo de una persona. La etiqueta **no** debe ordenar ni filtrar la cola.
 - **Con P4 (a), la organización no ve la etiqueta.** El formulario de perfil puede marcar `legalName` y `nit` como "necesarios para verificar".
 - Se planea cuando la ficha esté congelada (D-2).
+
+---
+
+## 11. Nota de congelación (2026-11-02)
+
+**Fuente:** comentario de Manuel en #168, https://github.com/Toffy22Cj/Donaciones/pull/168#issuecomment-6589529148 (2026-11-02T21:59:41Z), sobre la cabeza `edb7305`. Manuel congela como dueño del backend; Carlos le delegó esta congelación el 2026-11-02 (Carlos, 2026-11-01: "todo lo del backend es de Manuel; Carlos organiza y reparte las tareas"). Si algo de §1 a §10 contradice esta nota, **manda esta nota**.
+
+**Respuestas fijadas:**
+
+| # | Respuesta | Qué significa |
+|---|---|---|
+| P1 | **(a)** | La etiqueta mide la completitud de lo que `verify()` necesita: `legalName` y `nit` (H-4). Las tres comprobaciones de D-2 quedan como garantía (H-1 a H-3), sin motivo propio |
+| P2 | **(a)** | No se recalcula al verificar |
+| P3 | **(c)** | No hace falta nada para las existentes, porque P6 es (a): se calcula al leer, sin migración |
+| P4 | **(a)** | La organización no ve el campo; solo la plataforma |
+| P5 | no aplica | Con P6 (a) la pregunta desaparece |
+| P6 | **(a)** | Se calcula al leer, a partir del perfil. Nada se guarda en Mongo; sin campo nuevo ni índice |
+| P7 | **(a)** | Textos "Datos completos" / "Faltan datos"; la identidad se comprueba a mano (RUES, fuera del sistema) |
+
+**Condiciones, que entran como reglas del plan:**
+
+1. **Un solo método del dominio.** La etiqueta y `verify()` usan el mismo método del dominio, con un test que lo compruebe: `verify()` lanza `VerificationDataMissing` si y solo si la lista no está vacía.
+2. **Sin PASSED/FAILED.** El campo se llama **`missingForVerification`**: la lista de los nombres de campo del perfil que faltan para verificar, en orden fijo `["legalName", "nit"]`. Vacía significa "Datos completos". Solo aparece en las respuestas de plataforma, se calcula al leer, no ordena ni filtra la cola y no cambia el comportamiento actual de `verify()` (`Organization.java:439-441`).
+
+**Consecuencias sobre el texto de arriba (no se borra; queda como historia de la propuesta):**
+- §3 a §5, §8 y §10 hablan de `preverification`, `PASSED`/`FAILED` y los motivos `LEGAL_NAME_MISSING`/`NIT_MISSING`. **Quedan sustituidos** por `missingForVerification` (condición 2). Los motivos pasan a ser los nombres de campo `legalName` y `nit`.
+- §4, rama P6 (b) ("se guarda"): **no aplica**.
+- Test 5 de §8: se mantiene, con la lista `["legalName", "nit"]` en vez de `FAILED`.
+- Test 1 de §8: se amplía con la condición 1 (las 4 combinaciones de `legalName`/`nit`, y `verify()` lanza si y solo si la lista no está vacía).
+- §1 dice que la ficha la congela Carlos; la congeló Manuel por delegación de Carlos.
+
+**Siguiente paso:** el plan (`plan-preverificacion-organizaciones.md`). No se escribe código antes de que Manuel lo apruebe con un comentario en el PR.
