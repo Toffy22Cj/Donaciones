@@ -126,10 +126,6 @@ class ZoneInEachStepHttpIntegrationTest {
         return send("GET", path, tokens.issue(EMPLOYEE), null, null);
     }
 
-    private long storedEvents() {
-        return mongoTemplate.getCollection("event_store").countDocuments();
-    }
-
     private long assetEvents() {
         return mongoTemplate.getCollection("event_store").countDocuments(new org.bson.Document("aggregateType", "PhysicalAsset"));
     }
@@ -201,7 +197,6 @@ class ZoneInEachStepHttpIntegrationTest {
         String assetRef = json.readTree(ok.body()).get("assetRef").asText();
         assertThat(post(BASE + "/" + assetRef + "/dispatch", "{\"carrierRef\":\"CARRIER-1\"}").statusCode()).isEqualTo(200);
 
-        long before = storedEvents();
         long assetEventsBefore = assetEvents();
         List<String> invalid = new ArrayList<>();
         invalid.add(null);
@@ -213,9 +208,8 @@ class ZoneInEachStepHttpIntegrationTest {
             assertBadRequest(post(BASE + "/" + assetRef + "/receive", receiveBody(code)));
             assertBadRequest(post(BASE + "/" + assetRef + "/deliver", deliverBody(code)));
         }
-        // cada fundWithAllocation escribe sus dos eventos de Fund; ningún evento de activo
+        // ningún evento de activo (los de los fondos de prueba, y la saga del primer registro, son de Fund)
         assertThat(assetEvents()).isEqualTo(assetEventsBefore);
-        assertThat(storedEvents() - before).isEqualTo(2L * invalid.size());
     }
 
     // tests 11, 13, 14 y 15: el recorrido completo con location_reference vacía

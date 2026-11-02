@@ -9,7 +9,7 @@ import com.traceability.app.web.donation.SimulatedPaymentWebhookController;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.domain.event.DomainEvent;
-import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
 import identity.application.service.AddEmployeeService;
 import identity.application.service.AssignAdministratorService;
 import identity.application.service.BootstrapPlatformAuthorityService;
@@ -396,7 +396,8 @@ class GoldenPathHttpIntegrationTest {
             assertThat(ok(send("GET", "/api/v1/physical-assets/" + ref, employee, null), 200).get("lifecycleStatus")
                     .asText()).isEqualTo("DELIVERED");
             List<DomainEvent> stream = eventStore.loadStream(ref);
-            assertThat(stream.get(stream.size() - 1).payload()).isInstanceOfSatisfying(AssetDeliveredPayload.class,
+            // ADR-029 Enmienda 2: la entrega es la 2.0, con el beneficiario sellado y la zona del municipio
+            assertThat(stream.get(stream.size() - 1).payload()).isInstanceOfSatisfying(AssetDeliveredV2Payload.class,
                     p -> assertThat(p.beneficiaryRef()).isEqualTo("ben-1"));
         }
 

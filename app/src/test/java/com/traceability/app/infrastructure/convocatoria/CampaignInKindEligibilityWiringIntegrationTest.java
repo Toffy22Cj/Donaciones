@@ -142,7 +142,8 @@ class CampaignInKindEligibilityWiringIntegrationTest {
                 org.springframework.data.mongodb.core.query.Query.query(
                         org.springframework.data.mongodb.core.query.Criteria.where("streamId").is(assetId)),
                 Document.class, "event_store");
-        assertThat(genesis.getString("schemaVersion")).isEqualTo("3.0");
+        // ADR-029 Enmienda 2: toda escritura nueva de ASSET_REGISTERED es la 4.0 (la 3.0 + la zona), con su campaignRef
+        assertThat(genesis.getString("schemaVersion")).isEqualTo("4.0");
         assertThat(genesis.get("payload", Document.class).getString("campaignRef")).isEqualTo(campaignRef);
     }
 
