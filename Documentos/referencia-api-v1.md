@@ -346,6 +346,8 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 
 *Nota (2026-10-25, enmienda 1 de ADR-021-D; ADR-051 F6, C2 (a), Tarea 5):* en `GET /donations/tracking/assets/{assetRef}/history`, el paso de la entrega (`status: "DELIVERED"`) gana **`evidenceRegistered`**: `true` si el evento lleva un `evidenceRef` no vacío y `false` si no lo lleva. También gana **`evidenceRef?`**, solo si es una huella `sha256:<64 hexadecimales en minúscula>`. Un `evidenceRef` antiguo de texto libre **nunca** sale, porque puede llevar datos personales. Los demás pasos no llevan ninguno de los dos campos, y `logistics` no cambia. Tras una retirada (F7), el paso sigue igual: la huella está en el evento, que es inmutable. Nunca sale la imagen, una URL de la evidencia ni la `objectKey`.
 
+*Nota (2026-11-02, ADR-052 D1 y D2; mapa del recorrido, M-25):* en `GET /donations/tracking` (cada ítem de **`logistics`**) y en `GET /donations/tracking/assets/{assetRef}/history` (cada ítem de **`history`**) aparece **`zonePoint?: {latitude, longitude}`** (WGS84, grados decimales): el punto representativo de la **zona pública** de `locationZone`, nunca el del lugar exacto. Sale **solo si** sale `locationZone` y su entrada de `location_reference` tiene las dos coordenadas en rango; si no, falta. Sin ruta nueva ni otra credencial. El catálogo sigue sin ruta HTTP: lo pueblan operación y las semillas de la demo (`DemoZones`: Cartagena y Barranquilla). Las filas de arriba no se reescriben.
+
 ## 9. Sin HTTP
 
 `MerkleBatch`, `BlockchainAnchorScheduler`, `AnchorConfirmationPoller` e `IntegrityVerificationPort.verifyBatch` son procesos internos (matriz §6). El anclaje en testnet y su evidencia: `runbook-anclaje-testnet.md`.

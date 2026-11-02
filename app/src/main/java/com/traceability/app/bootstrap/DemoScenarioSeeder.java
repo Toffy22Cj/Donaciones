@@ -83,6 +83,7 @@ public class DemoScenarioSeeder {
     private final ObjectProvider<SimulatedWebhookSignature> signature;
     private final Clock clock;
     private final identity.domain.model.LegalVersions legalVersions;
+    private final com.traceability.core.application.service.LocationReferenceService locations;
     private final String password;
     private final Instant demoDay;
     private final Path outputFile;
@@ -94,6 +95,7 @@ public class DemoScenarioSeeder {
                               identity.application.port.out.AccountRepositoryPort accounts,
                               ObjectProvider<SimulatedWebhookSignature> signature, ObjectProvider<Clock> clock,
                               identity.domain.model.LegalVersions legalVersions,
+                              com.traceability.core.application.service.LocationReferenceService locations,
                               @Value("${traceability.demo.seed.password:}") String password,
                               @Value("${traceability.demo.seed.demo-day:2026-10-21T15:00:00Z}") Instant demoDay,
                               @Value("${traceability.demo.seed.output-file:demo-evidencia/credenciales-locales.md}")
@@ -110,6 +112,7 @@ public class DemoScenarioSeeder {
         this.signature = signature;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
         this.legalVersions = legalVersions;
+        this.locations = locations;
         this.password = password;
         this.demoDay = demoDay;
         this.outputFile = outputFile;
@@ -123,6 +126,8 @@ public class DemoScenarioSeeder {
                     + "(perfil dev o traceability.demo.simulated-payments=true y TRACEABILITY_DEMO_WEBHOOK_SECRET)");
         }
         Api api = new Api("http://127.0.0.1:" + port);
+        // ADR-052 D4: zonas y puntos de las referencias de lugar del escenario (sin ruta HTTP: catálogo de operación)
+        DemoZones.register(locations);
 
         // 1. Cuentas por la API; el administrador de plataforma, por el servicio de arranque (no tiene ruta)
         for (String email : List.of(PLATFORM, REPRESENTATIVE, ADMINISTRATOR, EMPLOYEE_1, EMPLOYEE_2, DONOR,
