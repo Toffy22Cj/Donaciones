@@ -225,3 +225,9 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - Arranque: `develop` en `4a2c736` (#168 y #169). Abiertos: #170 (mío) y #171 (otra sesión, preverificación; no tocar).
 - P0, hecho: merge de develop en #170 (`d24803d`), sin conflictos. Notas de APROBADA y APROBADO con el texto literal de 6589733853 y E-1 = (a), también en `decisiones-delegadas`; push.
 - P1: en curso, rama `feat/core-zona-en-cada-paso` desde la punta de #170.
+
+## Código preverificación (2026-11-02)
+- Arranque: `develop` en `4a2c736` (#168 y #169 fusionados). Abiertos: #170 (otra sesión) y #171.
+- Aprobación del plan: comentario 6589734226 de Manuel en #171 (P-PV-2, P-PV-3, P-PV-6, P-PV-8); leído literal.
+- P0, hecho: merge normal de develop en #171 (`8283d49`, sin conflictos) y nota de aprobación literal en el plan (`ef04977`). 0 líneas borradas.
+- P1: en curso, rama `feat/identity-preverificacion` desde `ef04977`.
