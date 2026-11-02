@@ -408,3 +408,15 @@ Contexto: Carlos dijo el 2026-11-01 "todo lo del backend es de Manuel; Carlos or
 
 - **Qué autoriza:** escribir `ficha-preverificacion-organizaciones.md` (PROPUESTA). **No autoriza código** hasta que la ficha esté congelada y Manuel apruebe su plan.
 - **Hecho que la ficha expone como P1:** las tres comprobaciones del Nivel 1 ya son rechazos duros desde R-7, así que una organización guardada nunca las fallaría.
+
+**Nota (2026-11-02): la zona pública de cada paso del seguimiento, "comunicado por Manuel".**
+- **D-3 (Carlos, 2026-11-02).** `location_reference` no se llena a mano. La zona pública debe venir en los mismos datos que manda el empleado en cada paso. Texto de Carlos, literal: "Eso debe venir en los mismos datos".
+- **D-4 (Manuel, 2026-11-02).** Carlos le delegó estas preguntas por ser del backend:
+  1. El código de municipio DIVIPOLA es **obligatorio** al registrar (los dos caminos), recibir y entregar. Sin él, o con un código que no está en el catálogo → 400. No hay usuarios reales todavía, así que se acepta el cambio que rompe y se avisa a la web y al móvil.
+  2. Despachar **no** lleva municipio: el lugar es el del paso anterior.
+  3. El municipio entra en el **evento sellado** (hash y anclaje), como versión nueva del payload, con el patrón de `AssetRegisteredV2Payload`/`V3`. Nunca solo en la proyección.
+  4. Los eventos que ya existen no se tocan ni se migran: siguen resolviendo la zona con `location_reference` como respaldo.
+  5. El evento guarda el código y el nombre tal como estaban ese día ("Municipio, Departamento"), junto con la versión del catálogo (`DIVIPOLA-2026-09`). La zona pública se lee de lo sellado, no del catálogo actual.
+  6. `location_reference` **no** se retira: queda solo como respaldo de los eventos viejos.
+  7. La zona pública es el municipio en todos los pasos, también en la entrega. **Riesgo aceptado:** en un municipio muy pequeño podría ayudar a identificar al beneficiario. Nunca se muestra la dirección, el punto exacto ni a quién se entregó. Alternativa anotada y no implementada: si Carlos lo pide, la entrega mostraría solo el departamento.
+- **Qué autoriza:** escribir `ficha-zona-en-cada-paso.md` (PROPUESTA), que congela Manuel. **No autoriza plan ni código** hasta que esté congelada.
