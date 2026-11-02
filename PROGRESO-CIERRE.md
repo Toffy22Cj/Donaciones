@@ -227,8 +227,10 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 - P1: en curso, rama `feat/core-zona-en-cada-paso` desde la punta de #170.
   - Commits: `fcd3050` (rojo: no compila), `d4c7622` (código), `36aae2a` (fixtures de core) y `22c8b91` (contexto de api).
   - Hash de los eventos viejos fijado con el código anterior (sobre `6ad03ff`), en `ZoneEventHashCompatibilityTest`.
-  - core: 393 en verde. api y app: en curso.
-  - Pendiente: mutaciones (3 tandas: core, api y app), ci-local, §0.73 de estado-fase6, notas de "implementada" y el PR.
+  - Verde por capas: core 393, api 177 y app 671.
+  - Mutaciones: 15 de 15 muertas. La tanda de core se repitió con -am porque la mutación 0 había salido MUERTA.
+  - Docs `d24046a`: §0.73 y notas de "implementada".
+  - ci-local en curso sobre `d24046a`; después, la evidencia y el PR.
   - Anotado: `scripts/demo/recorrido.py` manda `evidenceRef` "acta-1", que no pasa ADR-051 F3 (problema anterior, no se toca).
 
 ## Código preverificación (2026-11-02)
