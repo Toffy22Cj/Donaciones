@@ -215,7 +215,9 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 
 - **ADR-051 — Fotos y almacenamiento** (`ADR-051-fotos-y-almacenamiento.md`). **APROBADO — Carlos, 2026-10-18, con la Enmienda 1 (18:45Z).** Almacenamiento compatible con S3, limpieza de metadatos con la JDK, `media_objects`, `evidenceRef = sha256:`. Tarea 1 implementada en el PR #107. *Nota 2026-10-21:* faltaba en este catálogo; se añade sin cambiar su contenido.
 
-**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-052.
+- **ADR-052 — Mapa del recorrido** (`ADR-052-mapa-del-recorrido.md`). **Reservado el 2026-11-02** y **APROBADO para implementar por encargo del equipo** (M-25). Coordenadas de la zona pública en `location_reference`, `zonePoint?` en el seguimiento, nunca el GPS del teléfono, `flutter_map` + `latlong2` sobre OpenStreetMap en la app. Sustituye al borrador «ADR-050 (número por asignar)» del repositorio móvil.
+
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-053.
 
 ---
 
