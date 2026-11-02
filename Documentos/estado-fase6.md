@@ -229,6 +229,15 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.90 Biometría sobre `develop` y mapa del recorrido, ADR-052 (2026-11-02, `claude/magical-hopper-7w941b`)
+
+- **Biometría:** `claude/beautiful-goodall-ww71gg` fusionada sobre `develop` `3726414` (`26e5bdf`); conflictos solo de suma (rutas públicas y constructor de `ChangeCredentialsService`). `POST /auth/device-login` sigue ahora las reglas del login: 403 `EmailNotVerified` (E2-3), 403 `AcceptanceRequired` (D3, en `LoginAcceptances`) e `iat` de E1-2 (`LoginIssuedAt`). Contrato en `referencia-api-v1` §1 (nota fechada).
+- **Mapa del recorrido (M-25):** `ADR-052-mapa-del-recorrido.md`, reservado en el catálogo (siguiente libre: ADR-053). `location_reference` gana `latitude`/`longitude` opcionales (la zona pública, nunca el lugar exacto); `zonePoint?` en `GET /donations/tracking` y en el historial; `DemoZones` en las semillas. Contrato en `referencia-api-v1` §8 (nota fechada).
+- **Evidencia:**
+  - **Rojo:** `d2c192a` (biometría: no compila sin el código), `b27c6b8` (zonas: no compila), `56f00ca` (semillas: 3 tests, 2 fallos).
+  - **Verde:** `ci-local.sh` en `91e7251`, salida 0: core "Tests run: 384", crypto 57, ai 47, api 176, identity 440, convocatoria 272 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-91e7251-2026-11-02T01-33-56Z.txt`.
+- **Pendiente:** la firma de quien aprueba ADR-052 en nombre del equipo; un proveedor de teselas para producción.
+
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
 - Numerada 0.80, en la serie de Google (0.80 a 0.84).
