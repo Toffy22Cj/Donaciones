@@ -1,7 +1,11 @@
 package identity.application.service;
 
 import com.github.f4b6a3.ulid.UlidCreator;
+import com.traceability.contracts.authentication.AcceptanceRequiredException;
+import com.traceability.contracts.authentication.AcceptedLegalVersions;
+import com.traceability.contracts.authentication.AuthenticatedAccount;
 import com.traceability.contracts.authentication.AuthenticationFailedException;
+import com.traceability.contracts.authentication.EmailNotVerifiedException;
 import identity.application.port.out.AccountRepositoryPort;
 import identity.application.port.out.DeviceCredentialRepositoryPort;
 import identity.domain.exception.AccountNotFoundException;
@@ -12,6 +16,7 @@ import identity.domain.model.AccountId;
 import identity.domain.model.AccountStatus;
 import identity.domain.model.DeviceCredential;
 import identity.domain.model.DeviceToken;
+import identity.domain.model.LegalVersions;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +26,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Entrar con biometría. El teléfono comprueba la huella o el rostro y envía el token de su dispositivo; aquí solo se
@@ -29,7 +35,10 @@ import java.util.Optional;
  *   <li>alta: con sesión iniciada, devuelve el token en claro una única vez;</li>
  *   <li>entrar: token inexistente, revocado, caducado ({@link #MAX_AGE}), anterior al último cambio de contraseña
  *       ({@code credentialsNotBefore}, ADR-050 D4) o de una cuenta {@code INACTIVE} → la misma
- *       {@link AuthenticationFailedException} que el login con contraseña;</li>
+ *       {@link AuthenticationFailedException} que el login con contraseña. Después, las mismas reglas que cualquier
+ *       inicio de sesión: correo verificado ({@link EmailNotVerifiedException}, ADR-050 Enmienda 2, E2-3) y versiones
+ *       legales vigentes ({@link AcceptanceRequiredException}, ADR-050 D3, en {@link LoginAcceptances}). Devuelve el
+ *       {@code credentialsNotBefore} para emitir con el {@code iat} de E1-2, como el login;</li>
  *   <li>revocar: solo las de la propia cuenta; cambiar la contraseña las revoca todas
  *       ({@link ChangeCredentialsService}). Además, cualquier camino que fije {@code credentialsNotBefore} (cambiar,
  *       cambiar la propia o recuperar la contraseña) deja sin efecto las credenciales anteriores.</li>
@@ -53,19 +62,22 @@ public class DeviceCredentialService {
     private final DeviceCredentialRepositoryPort credentials;
     private final AccountRepositoryPort accounts;
     private final MongoTransactionRetryHelper retryHelper;
+    private final Supplier<LegalVersions> legalVersions;
     private final Clock clock;
 
     @Autowired
     public DeviceCredentialService(DeviceCredentialRepositoryPort credentials, AccountRepositoryPort accounts,
-                                   MongoTransactionRetryHelper retryHelper, ObjectProvider<Clock> clock) {
-        this(credentials, accounts, retryHelper, clock.getIfAvailable(Clock::systemUTC));
+                                   MongoTransactionRetryHelper retryHelper, ObjectProvider<LegalVersions> legalVersions,
+                                   ObjectProvider<Clock> clock) {
+        this(credentials, accounts, retryHelper, legalVersions::getObject, clock.getIfAvailable(Clock::systemUTC));
     }
 
     DeviceCredentialService(DeviceCredentialRepositoryPort credentials, AccountRepositoryPort accounts,
-                            MongoTransactionRetryHelper retryHelper, Clock clock) {
+                            MongoTransactionRetryHelper retryHelper, Supplier<LegalVersions> legalVersions, Clock clock) {
         this.credentials = credentials;
         this.accounts = accounts;
         this.retryHelper = retryHelper;
+        this.legalVersions = legalVersions;
         this.clock = clock;
     }
 
@@ -89,10 +101,11 @@ public class DeviceCredentialService {
     }
 
     /**
-     * Devuelve el {@code accountId} si el token es de una credencial activa, no caducada, posterior al último cambio
-     * de contraseña y de una cuenta {@code ACTIVE}.
+     * La cuenta, si el token es de una credencial activa, no caducada, posterior al último cambio de contraseña y de una
+     * cuenta {@code ACTIVE}, con el correo verificado y las versiones legales vigentes aceptadas (o aceptadas en
+     * {@code accepted}, que entonces se guardan). El uso solo se anota si todo eso se cumple.
      */
-    public String authenticate(String token) {
+    public AuthenticatedAccount authenticate(String token, AcceptedLegalVersions accepted) {
         if (token == null || token.isBlank()) {
             throw new AuthenticationFailedException();
         }
@@ -107,8 +120,12 @@ public class DeviceCredentialService {
         if (notBefore != null && credential.getCreatedAt().isBefore(notBefore)) {
             throw new AuthenticationFailedException();
         }
+        if (!account.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
+        LoginAcceptances.require(accounts, legalVersions.get(), clock, account, accepted);
         credentials.markUsed(credential.getCredentialId(), now);
-        return credential.getAccountId().value();
+        return new AuthenticatedAccount(account.getAccountId().value(), account.getCredentialsNotBefore());
     }
 
     public void revoke(AccountId accountId, String credentialId) {
