@@ -1,5 +1,6 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.service.TransactionalEventPublisher;
@@ -349,7 +350,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
     private static final String EVIDENCE = "sha256:" + "e1".repeat(32);
 
     private void deliver(String commandId, String assetId, String beneficiaryRef, String evidenceRef) {
-        physicalAssetCommandService.deliverAsset(commandId, assetId, "CLINIC-1", beneficiaryRef, "CLINIC-LOC",
+        physicalAssetCommandService.deliverAsset(commandId, assetId, "CLINIC-1", beneficiaryRef, "CLINIC-LOC", "05001",
                 evidenceRef, DELIVERED_AT, new SystemActor("test"));
     }
 
@@ -398,7 +399,7 @@ class ProcessedCommandIdempotencyIntegrationTest {
 
         List<DomainEvent> stream = eventStorePort.loadStream(assetId);
         assertEquals(3, stream.size());
-        assertEquals("BENEFICIARY-A", ((AssetDeliveredPayload) stream.get(2).payload()).beneficiaryRef());
+        assertEquals("BENEFICIARY-A", ((AssetDeliveredV2Payload) stream.get(2).payload()).beneficiaryRef());
         assertFalse(claimed(commandId2), "A rejected delivery must not be recorded as processed");
     }
 

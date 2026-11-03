@@ -142,7 +142,8 @@ class CampaignInKindEligibilityWiringIntegrationTest {
                 org.springframework.data.mongodb.core.query.Query.query(
                         org.springframework.data.mongodb.core.query.Criteria.where("streamId").is(assetId)),
                 Document.class, "event_store");
-        assertThat(genesis.getString("schemaVersion")).isEqualTo("3.0");
+        // ADR-029 Enmienda 2: toda escritura nueva de ASSET_REGISTERED es la 4.0 (la 3.0 + la zona), con su campaignRef
+        assertThat(genesis.getString("schemaVersion")).isEqualTo("4.0");
         assertThat(genesis.get("payload", Document.class).getString("campaignRef")).isEqualTo(campaignRef);
     }
 
@@ -168,7 +169,7 @@ class CampaignInKindEligibilityWiringIntegrationTest {
     private String registerInKind(String campaignRef) {
         String donorRef = "donor-" + UUID.randomUUID();
         assets.registerPhysicalAssetFromDonation(UUID.randomUUID().toString(), ORG, donorRef, "BLANKETS",
-                BigDecimal.TEN, "UNITS", "CUST-1", "WH-1", campaignRef, SYSTEM);
+                BigDecimal.TEN, "UNITS", "CUST-1", "WH-1", "05001", campaignRef, SYSTEM);
         return mongoTemplate.findOne(
                 org.springframework.data.mongodb.core.query.Query.query(
                         org.springframework.data.mongodb.core.query.Criteria.where("payload.donorRef").is(donorRef)),

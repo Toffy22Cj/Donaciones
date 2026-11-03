@@ -1,6 +1,8 @@
 package com.traceability.app.config;
 
 import com.traceability.app.infrastructure.location.DivipolaLocationCatalog;
+import com.traceability.app.infrastructure.location.DivipolaMunicipalityCatalogAdapter;
+import com.traceability.contracts.location.MunicipalityCatalogPort;
 import identity.application.port.out.LocationCatalogPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,5 +24,11 @@ public class LocationCatalogConfig {
             throw new IllegalStateException("Falta el catálogo DIVIPOLA en el classpath: " + DivipolaLocationCatalog.RESOURCE);
         }
         return DivipolaLocationCatalog.load(resource.getInputStream());
+    }
+
+    /** [Plan] El mismo catálogo para {@code core}: valida el municipio de cada paso y da su zona (ADR-029 Enmienda 2, D3). */
+    @Bean
+    public MunicipalityCatalogPort municipalityCatalog(LocationCatalogPort locationCatalog) {
+        return new DivipolaMunicipalityCatalogAdapter(locationCatalog.catalog());
     }
 }

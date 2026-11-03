@@ -1,5 +1,7 @@
 package com.traceability.core.application.saga;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetSplitV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.core.application.command.FundCommandService;
@@ -16,9 +18,7 @@ import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.AssetLifecycleStatus;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import com.traceability.core.domain.physicalasset.SplitChildIds;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitCompensatedPayload;
-import com.traceability.core.domain.physicalasset.payloads.AssetSplitV3Payload;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
@@ -169,7 +169,7 @@ class SplitSagaIntegrationTest {
         String child = assets.splitPhysicalAsset("cmd-1", parent, new BigDecimal("3"), new HumanActor(EMPLOYEE));
 
         assertThat(child).isEqualTo(SplitChildIds.of(parent, "cmd-1"));
-        assertThat(splitsOf(parent)).extracting(AssetSplitV3Payload::childAssetId).containsExactly(child);
+        assertThat(splitsOf(parent)).extracting(AssetSplitV4Payload::childAssetId).containsExactly(child);
         OutboxMessage message = outboxPort.findBySagaTypeAndCorrelationId(SplitPhysicalAssetSagaPolicy.SAGA_TYPE, child).orElseThrow();
         assertThat(message.sourceAggregateId()).isEqualTo(parent);
         assertThat(message.payload()).contains(parent).contains(child);
@@ -217,7 +217,7 @@ class SplitSagaIntegrationTest {
 
         assertThat(assets.createSplitChild(parent, child)).isEqualTo(SplitResolution.CHILD_CREATED);
 
-        AssetRegisteredV3Payload genesis = genesis(child);
+        AssetRegisteredV4Payload genesis = genesis(child);
         assertThat(genesis.quantity()).isEqualByComparingTo("4");
         assertThat(genesis.parentAssetRef()).isEqualTo(parent);
         assertThat(genesis.rootAssetRef()).isEqualTo(parent);
@@ -478,7 +478,7 @@ class SplitSagaIntegrationTest {
                 1000L, "SRC", SYSTEM);
         funds.requestAllocation(UUID.randomUUID().toString(), fundId, allocationId, 100L, SYSTEM);
         assets.registerPhysicalAsset(UUID.randomUUID().toString(), fundId, ORG, "FOOD", BigDecimal.ONE, "KGS", "CUST-1",
-                "WH-1", allocationId, null, SYSTEM);
+                "WH-1", "05001", allocationId, null, SYSTEM);
         doThrow(new IllegalStateException("confirm keeps failing")).when(registrationPolicy).execute(any());
 
         clock.set(T0.plus(Duration.ofHours(3)).plus(Duration.ofMinutes(59)));
@@ -509,7 +509,7 @@ class SplitSagaIntegrationTest {
         funds.clearFundsGenesis(UUID.randomUUID().toString(), fundId, new OrganizationRef(ORG), fundCampaignRef,
                 "DONOR-1", "COP", 1000L, "SRC-1", SYSTEM);
         assets.registerPhysicalAsset(UUID.randomUUID().toString(), fundId, ORG, "FOOD", new BigDecimal(quantity), "KGS",
-                "CUST-1", "WH-1", allocationId, null, SYSTEM);
+                "CUST-1", "WH-1", "05001", allocationId, null, SYSTEM);
         return mongoTemplate.findOne(new Query(Criteria.where("eventType").is("ASSET_REGISTERED")
                 .and("payload.allocationId").is(allocationId)), TraceabilityEventDocument.class).getStreamId();
     }
@@ -532,13 +532,13 @@ class SplitSagaIntegrationTest {
 
     private void deliverParent(String parent) {
         onParent(parent, p -> p.dispatch("carrier-1"));
-        assets.deliverAsset(UUID.randomUUID().toString(), parent, "FINAL-CUST", "BENEFICIARY", "LOC-FINAL", "sha256:" + "e1".repeat(32),
+        assets.deliverAsset(UUID.randomUUID().toString(), parent, "FINAL-CUST", "BENEFICIARY", "LOC-FINAL", "05001", "sha256:" + "e1".repeat(32),
                 T0, SYSTEM);
         assertThat(rehydrate(parent).getLifecycleStatus()).isEqualTo(AssetLifecycleStatus.DELIVERED);
     }
 
-    private List<AssetSplitV3Payload> splitsOf(String parent) {
-        return payloads(parent).stream().filter(AssetSplitV3Payload.class::isInstance).map(AssetSplitV3Payload.class::cast).toList();
+    private List<AssetSplitV4Payload> splitsOf(String parent) {
+        return payloads(parent).stream().filter(AssetSplitV4Payload.class::isInstance).map(AssetSplitV4Payload.class::cast).toList();
     }
 
     private List<AssetSplitCompensatedPayload> compensationsOf(String parent) {
@@ -550,8 +550,8 @@ class SplitSagaIntegrationTest {
         return eventStore.loadStream(streamId).stream().map(DomainEvent::payload).toList();
     }
 
-    private AssetRegisteredV3Payload genesis(String assetId) {
-        return (AssetRegisteredV3Payload) payloads(assetId).get(0);
+    private AssetRegisteredV4Payload genesis(String assetId) {
+        return (AssetRegisteredV4Payload) payloads(assetId).get(0);
     }
 
     private boolean claimExists(String commandId) {

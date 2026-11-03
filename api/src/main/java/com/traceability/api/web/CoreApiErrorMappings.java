@@ -53,6 +53,9 @@ public class CoreApiErrorMappings implements ApiErrorMappings {
                 new ApiErrorMapping(CommandIdReusedException.class, HttpStatus.CONFLICT, COMMAND_ID_REUSED),
                 // ADR-051 F3, Tarea 4 (criterio 6): la entrega exige evidenceRef = sha256:<64 hex>
                 new ApiErrorMapping(com.traceability.core.application.exception.InvalidEvidenceRefException.class,
-                        HttpStatus.BAD_REQUEST, null));
+                        HttpStatus.BAD_REQUEST, null),
+                // ADR-029 Enmienda 2, D3: municipio ausente o fuera del catálogo; el mismo cuerpo que un campo inválido
+                new ApiErrorMapping(com.traceability.core.application.exception.UnknownMunicipalityCodeException.class,
+                        HttpStatus.BAD_REQUEST, com.traceability.api.web.ApiExceptionHandler.BAD_REQUEST));
     }
 }

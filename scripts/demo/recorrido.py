@@ -22,6 +22,9 @@ import urllib.error
 import urllib.request
 import uuid
 
+# ADR-029 Enmienda 2: el municipio DIVIPOLA es obligatorio al registrar, recibir y entregar (BOGOTÁ, D.C.)
+MUNICIPIO = "11001"
+
 SEED = {
     "plataforma": "plataforma@demo.paxfide.local",
     "administrador": "administrador@demo.paxfide.local",
@@ -159,7 +162,8 @@ def main():
                       token=tok["administrador"], expect=201)
     _, asset = d.call("registrar-activo", "POST", "/api/v1/physical-assets/register", {
         "fundId": fund["fundId"], "assetType": "BLANKET", "quantity": "10", "unitOfMeasure": "UNITS",
-        "custodianRef": "bodega-1", "currentLocation": "bodega-1", "allocationId": alloc["allocationId"]},
+        "custodianRef": "bodega-1", "currentLocation": "bodega-1", "allocationId": alloc["allocationId"],
+        "municipalityCode": MUNICIPIO},
         token=tok["empleado"], expect=201)
     parent = asset["assetRef"]
 
@@ -175,10 +179,12 @@ def main():
         base = f"/api/v1/physical-assets/{ref}"
         d.call(f"despachar-{name}", "POST", base + "/dispatch", {"carrierRef": "transportista-1"}, token=tok["empleado"],
                expect=200)
-        d.call(f"recibir-{name}", "POST", base + "/receive", {"facilityLocation": "centro-1", "receiverRef": "recibe-1"},
+        d.call(f"recibir-{name}", "POST", base + "/receive", {"facilityLocation": "centro-1", "receiverRef": "recibe-1",
+                                                     "municipalityCode": MUNICIPIO},
                token=tok["empleado"], expect=200)
         d.call(f"entregar-{name}", "POST", base + "/deliver", {"finalCustodianRef": "custodio-final",
-               "beneficiaryRef": "beneficiario-1", "locationRef": "centro-1", "evidenceRef": "acta-1"},
+               "beneficiaryRef": "beneficiario-1", "locationRef": "centro-1", "evidenceRef": "acta-1",
+               "municipalityCode": MUNICIPIO},
                token=tok["empleado"], expect=200)
 
     # Paso 7: seguimiento público y narrativas (criterios 13, 14 y 19)

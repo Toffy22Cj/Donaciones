@@ -260,6 +260,57 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - Resumen: core "Tests run: 379", crypto 57, ai 47, api 175, identity 437, convocatoria 272 y app 667, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
   - Este commit de evidencia solo toca `Documentos/`, así que no hace falta repetir `ci-local.sh`.
 
+### 0.74 Zona pública en cada paso del seguimiento (2026-11-02, `feat/core-zona-en-cada-paso`)
+
+- Numerada 0.74: el siguiente número libre de la serie 0.70 a 0.79. Empezó como 0.73 y se renumeró al integrar `develop` `7adb69c`, porque #172 ocupó §0.73 (decisión de Manuel del 2026-11-02).
+- **Norma:**
+  - `ficha-zona-en-cada-paso.md`, CONGELADA por Manuel (#169, comentario 6589479007);
+  - `ADR-029-enmienda-2-zona-publica.md` y `plan-zona-en-cada-paso.md`, APROBADOS por Manuel con E-1 = (a) (#170, comentario 6589733853).
+- **Qué hace:**
+  - `municipalityCode` DIVIPOLA obligatorio al registrar (los dos caminos), recibir y entregar; si falta o no está en el catálogo → 400, y lo valida `core` con `MunicipalityCatalogPort` después de autorizar.
+  - Versiones nuevas: `ASSET_REGISTERED` 4.0, `ASSET_SPLIT` 4.0, `ASSET_DISPATCHED` 2.0, `ASSET_RECEIVED` 2.0 y `ASSET_DELIVERED` 2.0. Las clases que ya existían no cambian.
+  - El despacho sella la zona del paso anterior y el sublote la hereda. Un activo anterior escribe la versión nueva con la zona vacía (E-1).
+  - La historia pública, la logística del donante y la actividad leen la zona sellada, con `location_reference` como respaldo.
+- **Evidencia:**
+  - **Rojo** (`fcd3050`, solo tests): no compila (40 errores; `cannot find symbol` y `package com.traceability.contracts.location does not exist`).
+  - **Hash de los eventos viejos:** los cuatro valores de `ZoneEventHashCompatibilityTest` se calcularon con el código anterior a la enmienda, sobre `6ad03ff`, y siguen iguales después.
+  - **Verde por capas**, con cada módulo completo: core "Tests run: 393", api 177 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0".
+    - Antes de llegar ahí fallaron 5 tests de core, el contexto de 3 tests de api y 3 tests de app. Todo eran fixtures que esperaban la versión vieja, el contexto sin `PublicZoneResolver`, o un conteo frágil de eventos de Fund asíncronos en el test 10 nuevo. Se adaptaron sin quitar aserciones (`36aae2a`, `22c8b91` y `96fbf72`).
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `96fbf72`, tres tandas, cada una con su mutación 0 VIVA): **15 de 15 muertas.**
+    - La primera tanda de core salió con la mutación 0 MUERTA: compilaba sin `-am` contra un `contracts` viejo. Se descartó y se repitió con `-am`.
+
+    | # | Mutación | La mata |
+    |---|---|---|
+    | 1 | recibir escribe la 1.0 | `registerReceiveAndDeliver_…`, `test5and12_…` y `theZone_survivesRehydration_…` |
+    | 2 | `zoneName` sin el municipio | `test3_…`, `pathB_sealsTheZoneToo` y otros 3 |
+    | 3 | Bogotá repetido | `test3_…` y otros 2 |
+    | 4 | un código desconocido se acepta | `test4_…_theFourCommandsFail_andWriteNothing` |
+    | 5 | validar el municipio antes de autorizar | `anActorOfAnotherOrganization_isRejectedBeforeTheCatalogIsQueried` |
+    | 6 | el despacho no copia la zona | `registerReceiveAndDeliver_…`, `test5and12_…` y `theZone_survivesRehydration_…` |
+    | 7 | el hijo no hereda la zona | `test6_theSublotInheritsTheSealedZone` |
+    | 8 | la entrega idempotente no compara el municipio | `test7_…` |
+    | 9 | `PublicZoneResolver` lee primero `location_reference` | `test8_theSealedZoneWins_…` |
+    | 10 | la proyección no copia la zona del despacho | `test11_13_14_15_…` (HTTP) |
+    | 11 | el municipio desconocido no es 400 | `test10_…` (HTTP) |
+    | 12 | la historia sin la zona sellada | `zone_aNewStepShowsItsSealedZone_…` (api) |
+    | 13 | la logística sin la zona sellada | `zone_theLogisticsShowTheSealedZone_…` (api) |
+    | 14 | la vista operativa sin `zoneName` | `pathB_registersWithItsZone` y `test11_13_14_15_…` |
+    | 15 | una clase vieja gana un campo serializado | `test1_theHashOfOldEvents_…`, `theIntegrityCheckOfAMixedChain_…` y `aTamperedZone…` |
+
+  - **Cuatro mutaciones del plan (§5) se sustituyeron**, porque la del plan no se podía escribir tal cual o era equivalente:
+    - **5:** "validar después de persistir" se revierte dentro de la transacción; se usa "validar antes de autorizar".
+    - **10:** el resolutor no tiene acceso al catálogo; se usa que la proyección no copie la zona del despacho.
+    - **11:** quitar la comprobación de `api` es equivalente, porque `core` también valida; se usa el mapeo a un estado distinto de 400.
+    - **15:** un campo nuevo en un record no compila en sus llamadores; se usa un *getter* que se serializa.
+  - **El test 12** (lo sellado gana al catálogo) va en `core`, con el stub que cambia el nombre, en lugar de en `app`.
+  - **`ci-local.sh`** en un clon limpio de `d24046a` (`free -g`: 15 GB en total, 13 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-d24046a-2026-11-02T23-33-41Z.txt`.
+    - Resumen literal: core "Tests run: 393", crypto 57, ai 47, api 177, identity 429, convocatoria 272 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+    - Respecto de `develop` `4a2c736` (core 379, api 175 y app 663, según la evidencia de #165): core +14, api +2 y app +8.
+- *Nota (2026-11-03):* se integró `develop` `7adb69c` (#170, #171 y #172, la preverificación) con un merge normal (`6004707`).
+  - Solo chocó esta tabla de estado. Se conservan los dos lados, con lo de develop primero, y esta sección pasa de §0.73 a §0.74.
+  - Capas afectadas (`mvn test -pl app -am`, todos los módulos completos): core "Tests run: 393", crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - **`ci-local.sh`** en un clon limpio de `6004707` (`free -g`: 15 GB en total, 13 disponibles), salida 0, con el mismo resumen literal: core "Tests run: 393", crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-6004707-2026-11-03T00-53-13Z.txt`.
+
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
 - Numerada 0.80, en la serie de Google (0.80 a 0.84).

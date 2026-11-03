@@ -17,6 +17,9 @@ import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.contracts.campaign.CampaignInKindEligibilityPort;
 import com.traceability.contracts.campaign.InKindEligibility;
+import com.traceability.contracts.location.MunicipalityCatalogPort;
+import com.traceability.core.application.exception.UnknownMunicipalityCodeException;
+import com.traceability.core.domain.physicalasset.SealedZone;
 import com.traceability.contracts.media.DeliveryEvidencePort;
 import com.traceability.core.application.exception.InvalidEvidenceRefException;
 import com.traceability.core.application.exception.InKindCampaignClosedException;
@@ -47,6 +50,7 @@ public class PhysicalAssetCommandService {
     private final IdentityPrincipalPort identityPrincipalPort;
     private final CampaignInKindEligibilityPort campaignInKindEligibility;
     private final DeliveryEvidencePort deliveryEvidence;
+    private final MunicipalityCatalogPort municipalities;
     private java.time.Clock clock = java.time.Clock.systemUTC();
 
     /** ADR-051 F3: el formato de la huella de la evidencia de las entregas nuevas. */
@@ -60,7 +64,8 @@ public class PhysicalAssetCommandService {
             OrganizationBoundaryPolicy organizationBoundaryPolicy,
             IdentityPrincipalPort identityPrincipalPort,
             CampaignInKindEligibilityPort campaignInKindEligibility,
-            DeliveryEvidencePort deliveryEvidence) {
+            DeliveryEvidencePort deliveryEvidence,
+            MunicipalityCatalogPort municipalities) {
         this.retryTemplate = retryTemplate;
         this.processedCommandRepository = processedCommandRepository;
         this.eventStore = eventStore;
@@ -70,6 +75,7 @@ public class PhysicalAssetCommandService {
         this.identityPrincipalPort = identityPrincipalPort;
         this.campaignInKindEligibility = campaignInKindEligibility;
         this.deliveryEvidence = deliveryEvidence;
+        this.municipalities = municipalities;
     }
 
     /** Con reloj inyectable: la fecha de los mensajes de saga es la del coordinador (ADR-007/008 Enmienda 1). */
@@ -83,9 +89,11 @@ public class PhysicalAssetCommandService {
             IdentityPrincipalPort identityPrincipalPort,
             CampaignInKindEligibilityPort campaignInKindEligibility,
             DeliveryEvidencePort deliveryEvidence,
+            MunicipalityCatalogPort municipalities,
             org.springframework.beans.factory.ObjectProvider<java.time.Clock> clock) {
         this(retryTemplate, processedCommandRepository, eventStore, eventPublisher, roleAuthorizationPolicy,
-                organizationBoundaryPolicy, identityPrincipalPort, campaignInKindEligibility, deliveryEvidence);
+                organizationBoundaryPolicy, identityPrincipalPort, campaignInKindEligibility, deliveryEvidence,
+                municipalities);
         this.clock = clock.getIfAvailable(java.time.Clock::systemUTC);
     }
 
@@ -106,6 +114,17 @@ public class PhysicalAssetCommandService {
     }
 
     /**
+     * ADR-029 Enmienda 2, D3: la zona sellada de un código de municipio, que tiene que estar en el catálogo DIVIPOLA. Se
+     * llama después de autorizar y antes de persistir: un código ausente o desconocido no escribe nada ni reclama el
+     * {@code Command-Id}, y un actor no autorizado no llega a consultar el catálogo.
+     */
+    private SealedZone sealedZone(String municipalityCode) {
+        return municipalities.find(municipalityCode)
+                .map(m -> SealedZone.of(m.municipalityCode(), m.municipalityName(), m.departmentName(), m.catalogVersion()))
+                .orElseThrow(UnknownMunicipalityCodeException::new);
+    }
+
+    /**
      * ADR-051 F3 (Tarea 4): el {@code evidenceRef} tiene que ser {@code sha256:<64 hex>}, y se comprueba antes del
      * reclamo del comando y del reintento (P-T4-1): un formato inválido no consume el {@code Command-Id} ni lee el
      * activo. Después, en cada intento, la foto se vincula al activo tras autorizar y aplicar la entrega en memoria, y
@@ -114,28 +133,32 @@ public class PhysicalAssetCommandService {
      * texto libre.
      */
     public void deliverAsset(String commandId, String assetId, String finalCustodianRef, String beneficiaryRef,
-            String locationRef, String evidenceRef, Instant deliveredAt,
+            String locationRef, String municipalityCode, String evidenceRef, Instant deliveredAt,
             com.traceability.core.domain.event.ActorRef actorRef) {
         if (evidenceRef == null || !EVIDENCE_REF.matcher(evidenceRef).matches()) {
             throw new InvalidEvidenceRefException("evidenceRef must be sha256:<64 lowercase hex>");
         }
         transition(commandId, assetId, CommandType.DELIVER_ASSET, actorRef,
-                asset -> asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt),
+                asset -> asset.deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt,
+                        sealedZone(municipalityCode)),
                 asset -> deliveryEvidence.bindToAsset(asset.getOrganizationRef(), evidenceRef, assetId));
     }
 
-    /** D-ASSET (plan B6-c §2.1): despacho, con el mismo patrón que {@link #deliverAsset}. */
+    /**
+     * D-ASSET (plan B6-c §2.1): despacho, con el mismo patrón que {@link #deliverAsset}. No recibe municipio: el agregado
+     * sella la zona del paso anterior (ADR-029 Enmienda 2, P2).
+     */
     public void dispatchAsset(String commandId, String assetId, String carrierRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
         transition(commandId, assetId, CommandType.DISPATCH_PHYSICAL_ASSET, actorRef, asset -> asset.dispatch(carrierRef),
                 NO_HOOK);
     }
 
-    /** D-ASSET (plan B6-c §2.1): recepción en una instalación. */
-    public void receiveAsset(String commandId, String assetId, String facilityLocation, String receiverRef,
-            com.traceability.core.domain.event.ActorRef actorRef) {
+    /** D-ASSET (plan B6-c §2.1): recepción en una instalación, con su municipio (ADR-029 Enmienda 2, D3). */
+    public void receiveAsset(String commandId, String assetId, String facilityLocation, String municipalityCode,
+            String receiverRef, com.traceability.core.domain.event.ActorRef actorRef) {
         transition(commandId, assetId, CommandType.RECEIVE_PHYSICAL_ASSET, actorRef,
-                asset -> asset.receive(facilityLocation, receiverRef), NO_HOOK);
+                asset -> asset.receive(facilityLocation, receiverRef, sealedZone(municipalityCode)), NO_HOOK);
     }
 
     /** Despachar y recibir no cambian (ADR-051 F3): su gancho no hace nada. */
@@ -215,6 +238,7 @@ public class PhysicalAssetCommandService {
             String unitOfMeasure,
             String custodianRef,
             String currentLocation,
+            String municipalityCode,
             String allocationId,
             String sourceAllocationId,
             com.traceability.core.domain.event.ActorRef actorRef) {
@@ -233,6 +257,7 @@ public class PhysicalAssetCommandService {
         RegisteredAsset result = retryTemplate.execute(() -> {
             Fund fund = assertOrganizationMatchesFund(fundId, organizationRef);
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET);
+            SealedZone zone = sealedZone(municipalityCode);
             // ADR-029 Enmienda 1, D2: el campaignRef es el del Fund, nunca del llamador. Decisión escrita
             // (plan-d-campaign.md §3.2): no se comprueba que la convocatoria siga OPEN; gastar fondos ya
             // recaudados tras el cierre es legítimo (ADR-037 §2.6bis, D1).
@@ -251,7 +276,8 @@ public class PhysicalAssetCommandService {
                     sourceAllocationId,
                     organizationRef,
                     null, // donorRef: null en Camino A
-                    campaignRef
+                    campaignRef,
+                    zone
             );
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
@@ -333,14 +359,16 @@ public class PhysicalAssetCommandService {
             String unitOfMeasure,
             String custodianRef,
             String currentLocation,
+            String municipalityCode,
             com.traceability.core.domain.event.ActorRef actorRef) {
         return registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
-                custodianRef, currentLocation, null, actorRef);
+                custodianRef, currentLocation, municipalityCode, null, actorRef);
     }
 
     /**
      * Tarea 5.4 — Camino B: registra un PhysicalAsset directamente por donación en especie, con convocatoria
-     * opcional (ADR-029 Enmienda 1, D3). Orden: autorizar → validar el {@code campaignRef} con
+     * opcional (ADR-029 Enmienda 1, D3) y municipio obligatorio (Enmienda 2, D3). Orden: autorizar → validar el
+     * municipio con {@link MunicipalityCatalogPort} → validar el {@code campaignRef} con
      * {@link CampaignInKindEligibilityPort} → persistir. Autorizar primero impide que un actor sondee si un
      * {@code campaignRef} existe en otra organización; un rechazo no deja eventos ni reclamo del {@code commandId}.
      */
@@ -352,6 +380,7 @@ public class PhysicalAssetCommandService {
             String unitOfMeasure,
             String custodianRef,
             String currentLocation,
+            String municipalityCode,
             String campaignRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
 
@@ -366,6 +395,7 @@ public class PhysicalAssetCommandService {
 
         RegisteredAsset result = retryTemplate.execute(() -> {
             authorize(actorRef, organizationRef, CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION);
+            SealedZone zone = sealedZone(municipalityCode);
             if (campaignRef != null) {
                 assertCampaignAcceptsInKind(campaignRef, organizationRef);
             }
@@ -384,7 +414,8 @@ public class PhysicalAssetCommandService {
                     organizationRef,
                     donorRef,
                     donationRef,
-                    campaignRef
+                    campaignRef,
+                    zone
             );
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();

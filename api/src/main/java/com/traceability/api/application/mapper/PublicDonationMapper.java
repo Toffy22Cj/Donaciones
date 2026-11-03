@@ -12,7 +12,7 @@ import com.traceability.core.application.port.out.FundClearingDatesReadPort;
 import com.traceability.core.application.port.out.FundClearingDatesReadPort.ClearingDates;
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
-import com.traceability.core.application.service.LocationReferenceService;
+import com.traceability.core.application.service.PublicZoneResolver;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,14 +24,14 @@ import java.util.stream.Collectors;
 public class PublicDonationMapper {
 
     private final AssetRefService assetRefService;
-    private final LocationReferenceService locationReferenceService;
+    private final PublicZoneResolver zones;
     private final CampaignPublicSummaryPort campaignSummaries;
     private final FundClearingDatesReadPort clearingDates;
 
-    public PublicDonationMapper(AssetRefService assetRefService, LocationReferenceService locationReferenceService,
+    public PublicDonationMapper(AssetRefService assetRefService, PublicZoneResolver zones,
                                 CampaignPublicSummaryPort campaignSummaries, FundClearingDatesReadPort clearingDates) {
         this.assetRefService = assetRefService;
-        this.locationReferenceService = locationReferenceService;
+        this.zones = zones;
         this.campaignSummaries = campaignSummaries;
         this.clearingDates = clearingDates;
     }
@@ -84,7 +84,8 @@ public class PublicDonationMapper {
 
     private PublicLogisticsItemDTO mapLogisticsItem(LogisticsReadItem item, Set<String> assetIdsInResponse) {
         String assetRef = assetRefService.computeRef(item.assetId());
-        String locationZone = locationReferenceService.resolveZone(item.currentLocation()).orElse(null);
+        // ADR-029 Enmienda 2, D5: la zona sellada del lote; sin ella, el respaldo de location_reference
+        String locationZone = zones.resolve(item.currentZoneName(), item.currentLocation()).orElse(null);
         PublicCustodianCategory custodianCategory = mapCustodian(item.lifecycleStatus());
 
         return new PublicLogisticsItemDTO(

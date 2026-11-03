@@ -1,5 +1,6 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.contracts.campaign.InKindEligibility;
@@ -14,7 +15,6 @@ import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.OrganizationRef;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
@@ -117,9 +117,10 @@ class CampaignRefIntegrationTest {
     void caminoA_inheritsTheFundCampaignRef() {
         String assetId = registerCaminoA("CAMP-A");
 
-        AssetRegisteredV3Payload genesis = genesis(assetId);
+        AssetRegisteredV4Payload genesis = genesis(assetId);
         assertThat(genesis.campaignRef()).isEqualTo("CAMP-A");
-        assertThat(storedSchemaVersion(assetId)).isEqualTo("3.0");
+        // ADR-029 Enmienda 2: toda escritura nueva de ASSET_REGISTERED es la 4.0 (la 3.0 + la zona)
+        assertThat(storedSchemaVersion(assetId)).isEqualTo("4.0");
         assertThat(storedPayloadField(assetId, "campaignRef")).as("campaignRef dentro del payload con hash").isEqualTo("CAMP-A");
     }
 
@@ -149,7 +150,7 @@ class CampaignRefIntegrationTest {
 
         String assetId = registerCaminoB(UUID.randomUUID().toString(), "CAMP-B", new HumanActor(EMPLOYEE));
 
-        AssetRegisteredV3Payload genesis = genesis(assetId);
+        AssetRegisteredV4Payload genesis = genesis(assetId);
         assertThat(genesis.campaignRef()).isEqualTo("CAMP-B");
         assertThat(genesis.donationRef()).isNotNull();
         assertThat(campaigns.queries()).containsExactly("CAMP-B");
@@ -217,7 +218,7 @@ class CampaignRefIntegrationTest {
 
         registerCaminoB(commandId, "CAMP-B", new HumanActor(EMPLOYEE));
         assets.registerPhysicalAssetFromDonation(commandId, ORG, "DONOR-1", "BLANKETS", BigDecimal.TEN, "UNITS",
-                "CUST-1", "WH-1", "CAMP-B", new HumanActor(EMPLOYEE));
+                "CUST-1", "WH-1", "05001", "CAMP-B", new HumanActor(EMPLOYEE));
 
         assertThat(mongoTemplate.count(new Query(), TraceabilityEventDocument.class)).isEqualTo(1);
     }
@@ -230,14 +231,14 @@ class CampaignRefIntegrationTest {
         funds.clearFundsGenesis(UUID.randomUUID().toString(), fundId, new OrganizationRef(ORG), fundCampaignRef,
                 "DONOR-1", "COP", 1000L, "SRC-1", SYSTEM);
         assets.registerPhysicalAsset(UUID.randomUUID().toString(), fundId, ORG, "FOOD", BigDecimal.ONE, "KGS",
-                "CUST-1", "WH-1", allocationId, null, SYSTEM);
+                "CUST-1", "WH-1", "05001", allocationId, null, SYSTEM);
         return mongoTemplate.findOne(new Query(Criteria.where("eventType").is("ASSET_REGISTERED")
                 .and("payload.allocationId").is(allocationId)), TraceabilityEventDocument.class).getStreamId();
     }
 
     private String registerCaminoB(String commandId, String campaignRef, HumanActor actor) {
         assets.registerPhysicalAssetFromDonation(commandId, ORG, "DONOR-1", "BLANKETS", BigDecimal.TEN, "UNITS",
-                "CUST-1", "WH-1", campaignRef, actor);
+                "CUST-1", "WH-1", "05001", campaignRef, actor);
         return mongoTemplate.findOne(new Query(Criteria.where("aggregateType").is("PhysicalAsset")),
                 TraceabilityEventDocument.class).getStreamId();
     }
@@ -251,10 +252,10 @@ class CampaignRefIntegrationTest {
         throw new AssertionError("Se esperaba un rechazo para " + campaignRef);
     }
 
-    private AssetRegisteredV3Payload genesis(String assetId) {
+    private AssetRegisteredV4Payload genesis(String assetId) {
         List<DomainEventPayload> payloads = eventStore.loadStream(assetId).stream().map(e -> e.payload()).toList();
-        assertThat(payloads.get(0)).isInstanceOf(AssetRegisteredV3Payload.class);
-        return (AssetRegisteredV3Payload) payloads.get(0);
+        assertThat(payloads.get(0)).isInstanceOf(AssetRegisteredV4Payload.class);
+        return (AssetRegisteredV4Payload) payloads.get(0);
     }
 
     private String storedSchemaVersion(String assetId) {

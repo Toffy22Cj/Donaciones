@@ -9,7 +9,7 @@ import com.traceability.app.web.donation.SimulatedPaymentWebhookController;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.domain.event.DomainEvent;
-import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
 import identity.application.service.AddEmployeeService;
 import identity.application.service.AssignAdministratorService;
 import identity.application.service.BootstrapPlatformAuthorityService;
@@ -295,9 +295,9 @@ class GoldenPathHttpIntegrationTest {
     private void logistics(String employee, String orgId, String assetRef) throws Exception {
         String base = "/api/v1/physical-assets/" + assetRef;
         ok(send("POST", base + "/dispatch", employee, "{\"carrierRef\":\"carrier-1\"}"), 200);
-        ok(send("POST", base + "/receive", employee, "{\"facilityLocation\":\"site-1\",\"receiverRef\":\"rec-1\"}"), 200);
+        ok(send("POST", base + "/receive", employee, "{\"facilityLocation\":\"site-1\",\"municipalityCode\":\"05001\",\"receiverRef\":\"rec-1\"}"), 200);
         ok(send("POST", base + "/deliver", employee,
-                "{\"finalCustodianRef\":\"cust-f\",\"beneficiaryRef\":\"ben-1\",\"locationRef\":\"site-1\",\"evidenceRef\":\""
+                "{\"finalCustodianRef\":\"cust-f\",\"beneficiaryRef\":\"ben-1\",\"locationRef\":\"site-1\",\"municipalityCode\":\"05001\",\"evidenceRef\":\""
                         + evidenceRef(employee, orgId) + "\"}"), 200);
     }
 
@@ -373,7 +373,7 @@ class GoldenPathHttpIntegrationTest {
                 .get("allocationId").asText();
         JsonNode parent = ok(send("POST", "/api/v1/physical-assets/register", employee, """
                 {"fundId":"%s","assetType":"BLANKET","quantity":"10","unitOfMeasure":"UNITS","custodianRef":"cust-1",
-                 "currentLocation":"warehouse-1","allocationId":"%s"}""".formatted(fundId, allocationId)), 201);
+                 "currentLocation":"warehouse-1","municipalityCode":"05001","allocationId":"%s"}""".formatted(fundId, allocationId)), 201);
         String parentRef = parent.get("assetRef").asText();
         assertThat(parent.get("campaignRef").asText()).isEqualTo(campaign.get("campaignRef").asText());
 
@@ -396,7 +396,8 @@ class GoldenPathHttpIntegrationTest {
             assertThat(ok(send("GET", "/api/v1/physical-assets/" + ref, employee, null), 200).get("lifecycleStatus")
                     .asText()).isEqualTo("DELIVERED");
             List<DomainEvent> stream = eventStore.loadStream(ref);
-            assertThat(stream.get(stream.size() - 1).payload()).isInstanceOfSatisfying(AssetDeliveredPayload.class,
+            // ADR-029 Enmienda 2: la entrega es la 2.0, con el beneficiario sellado y la zona del municipio
+            assertThat(stream.get(stream.size() - 1).payload()).isInstanceOfSatisfying(AssetDeliveredV2Payload.class,
                     p -> assertThat(p.beneficiaryRef()).isEqualTo("ben-1"));
         }
 

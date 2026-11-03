@@ -159,7 +159,7 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
     }
 
     private static final String IN_KIND = """
-            {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1"}""";
+            {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1","municipalityCode":"05001"}""";
 
     private String receivedAsset() throws Exception {
         HttpResponse<byte[]> r = send("POST", ASSETS + "/from-donation", EMPLOYEE, newId(), IN_KIND);
@@ -168,7 +168,7 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
         assertThat(send("POST", ASSETS + "/" + assetRef + "/dispatch", EMPLOYEE, newId(), "{\"carrierRef\":\"C-1\"}")
                 .statusCode()).isEqualTo(200);
         assertThat(send("POST", ASSETS + "/" + assetRef + "/receive", EMPLOYEE, newId(),
-                "{\"facilityLocation\":\"WH-2\",\"receiverRef\":\"REC-1\"}").statusCode()).isEqualTo(200);
+                "{\"facilityLocation\":\"WH-2\",\"municipalityCode\":\"05001\",\"receiverRef\":\"REC-1\"}").statusCode()).isEqualTo(200);
         return assetRef;
     }
 
@@ -178,7 +178,7 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
         String assetRef = receivedAsset();
         String evidenceRef = photo(seed);
         HttpResponse<byte[]> r = send("POST", ASSETS + "/" + assetRef + "/deliver", EMPLOYEE, newId(),
-                "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"evidenceRef\":\""
+                "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"municipalityCode\":\"05001\",\"evidenceRef\":\""
                         + evidenceRef + "\"}");
         assertThat(r.statusCode()).as(text(r)).isEqualTo(200);
         return new Delivered(assetRef, evidenceRef);

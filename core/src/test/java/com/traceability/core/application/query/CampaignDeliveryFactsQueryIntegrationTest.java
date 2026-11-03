@@ -147,14 +147,14 @@ class CampaignDeliveryFactsQueryIntegrationTest {
         funds.clearFundsGenesis(UUID.randomUUID().toString(), fundId, new OrganizationRef(ORG), fundCampaignRef,
                 "DONOR-1", "COP", 1000L, "SRC-1", SYSTEM);
         assets.registerPhysicalAsset(UUID.randomUUID().toString(), fundId, ORG, "FOOD", new BigDecimal(quantity), "UNITS",
-                "CUST-1", "WH-1", allocationId, null, SYSTEM);
+                "CUST-1", "WH-1", "05001", allocationId, null, SYSTEM);
         return mongoTemplate.findOne(new Query(Criteria.where("eventType").is("ASSET_REGISTERED")
                 .and("payload.allocationId").is(allocationId)), TraceabilityEventDocument.class).getStreamId();
     }
 
     private String registerCaminoB(String campaignRef, String quantity) {
         return assets.registerPhysicalAssetFromDonation(UUID.randomUUID().toString(), ORG, "DONOR-1", "BLANKETS",
-                new BigDecimal(quantity), "UNITS", "CUST-1", "WH-1", campaignRef, new HumanActor(EMPLOYEE)).assetId();
+                new BigDecimal(quantity), "UNITS", "CUST-1", "WH-1", "05001", campaignRef, new HumanActor(EMPLOYEE)).assetId();
     }
 
     private void dispatch(String assetId) {
@@ -163,7 +163,7 @@ class CampaignDeliveryFactsQueryIntegrationTest {
 
     private void deliver(String assetId, String beneficiaryRef) {
         dispatch(assetId);
-        assets.deliverAsset(UUID.randomUUID().toString(), assetId, "FINAL-CUST", beneficiaryRef, "LOC-FINAL",
+        assets.deliverAsset(UUID.randomUUID().toString(), assetId, "FINAL-CUST", beneficiaryRef, "LOC-FINAL", "05001",
                 "sha256:" + "e1".repeat(32), Instant.parse("2027-01-10T10:00:00Z"), new HumanActor(EMPLOYEE));
     }
 }

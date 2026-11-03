@@ -216,7 +216,7 @@ class HumanActorAuthorizationIntegrationTest {
                 new BigDecimal("100"),
                 "Units",
                 "CUST-1",
-                "LOC-1",
+                "LOC-1", "05001",
                 "ALLOC-1",
                 null,
                 actor
@@ -248,7 +248,7 @@ class HumanActorAuthorizationIntegrationTest {
                         new BigDecimal("100"),
                         "Units",
                         "CUST-1",
-                        "LOC-1",
+                        "LOC-1", "05001",
                         "ALLOC-1",
                         null,
                         new HumanActor(accountId)

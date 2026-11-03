@@ -61,7 +61,8 @@ class PublicAssetHistoryControllerIntegrationTest {
             "com.traceability.core.infrastructure.security.mongo",
             "com.traceability.core.infrastructure.projection.mongo.repositories"
     })
-    @Import(TrackingSecurityProperties.class)
+    // ADR-029 Enmienda 2, D5: los mappers leen la zona con PublicZoneResolver (sobre el LocationReferenceService de abajo)
+    @Import({TrackingSecurityProperties.class, com.traceability.core.application.service.PublicZoneResolver.class})
     static class TestApp {
         @Bean
         public TrackingCodeService trackingCodeService(
