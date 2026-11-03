@@ -250,5 +250,7 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
 ### Integración tras la preverificación (2026-11-03)
 - Manuel fusionó #170, #171 y #172; `develop` está en `7adb69c`.
 - Merge de develop en #173 (`6004707`): solo chocó `estado-fase6.md`. Mi sección pasa a §0.74 y se corrigieron mis referencias a §0.73 en la ficha, la enmienda y el plan.
-- Capas (app -am) en curso; después, ci-local en un clon limpio de `6004707`, la evidencia en §0.74 y el cuerpo de #173.
+- Capas (app -am) en verde: core 393, crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675.
+- ci-local en un clon limpio de `6004707`: BUILD SUCCESS, con el mismo resumen. Evidencia y nota en §0.74 (`b289647`).
+- Cuerpo de #173 actualizado (§0.74, Surefire nuevo y pie exacto, mediante MCP). DETENIDO, a la espera de que se fusione #173.
 - **Pendiente P4:** el PR aparte de `scripts/demo/recorrido.py:186` (que suba una foto con la ruta de evidencias y use su sha256), desde develop y SOLO cuando #173 esté fusionado (Manuel, 2026-11-02).
