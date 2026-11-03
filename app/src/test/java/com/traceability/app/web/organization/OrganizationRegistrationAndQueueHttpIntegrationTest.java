@@ -188,7 +188,10 @@ class OrganizationRegistrationAndQueueHttpIntegrationTest {
             assertThat(page.get("items").size()).isLessThanOrEqualTo(20);
             for (JsonNode item : page.get("items")) {
                 assertThat(item.fieldNames()).toIterable().isSubsetOf("organizationId", "name", "type",
-                        "verificationStatus", "informationRequest");
+                        "verificationStatus", "informationRequest",
+                        // plan de preverificación (H-PV-14): siempre presente, también vacío
+                        "missingForVerification");
+                assertThat(item.has("missingForVerification")).isTrue();
                 seen.add(item.get("organizationId").asText());
             }
             cursor = page.has("nextCursor") ? page.get("nextCursor").asText() : null;

@@ -193,6 +193,16 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **El correo de contacto es público** (P3): el formulario debe avisarlo.
 - **Límite conocido (P-R7-3):** los términos de organización no cambian de versión en este PR, y las organizaciones existentes no vuelven a aceptar.
 
+*Nota (2026-11-02, ficha de preverificación CONGELADA; plan aprobado en #171):* **preverificación de organizaciones, Nivel 1.** Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `GET /platform/organizations` | como antes | — | Cada ítem gana **`missingForVerification: string[]`**, siempre presente: los nombres de campo del perfil que faltan para verificar, en orden fijo `["legalName", "nit"]`; `[]` = datos completos. Los dos valores son fijos del contrato (P-PV-6). Se calcula al leer; no se guarda. **No** cambia el orden (por creación) ni la paginación (20 por página), y no se puede filtrar por él | como antes (el mismo 403 a quien no es de la plataforma) |
+| `POST /platform/organizations/{id}/verify` | como antes | — | como antes | El 409 `VerificationDataMissing` se da **si y solo si** `missingForVerification` no está vacía (el mismo método del dominio). Desde `VERIFIED` o `REJECTED` sigue siendo primero el 409 de transición |
+| `GET /organizations/{id}`, `PUT /organizations/{id}/profile` y las rutas públicas | — | — | **No** llevan `missingForVerification` (ficha P4 (a)) | — |
+
+- **Ninguna automatización verifica ni rechaza:** la lista solo informa a la persona de la plataforma.
+
 
 *Nota (2026-10-21, ficha R-6, Bloque A; G-4b y G-5):* `GET /organizations/{organizationId}/physical-assets` lleva además **`assetType`** en cada ítem (el registrado; sigue sin `parentAssetRef`, `rootAssetRef` ni `donorRef`). `GET /organizations/{organizationId}/campaigns` lleva además **`startDate`** y **`endDate`** en cada ítem (ISO-8601 UTC, siempre presentes; las del dominio, como en CV-07). Las filas de arriba no se reescriben.
 

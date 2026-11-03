@@ -160,3 +160,5 @@ Fuera de esta ficha y sin decidir aquí: H-S18-1, H-S18-2 y el hallazgo posterio
 ---
 
 *Nota (2026-10-21, Manuel; enmienda de contrato bajo ADR-041, por ADR-051 F6 y su Enmienda 1):* la respuesta de `GET /api/v1/organizations/{organizationId}` gana **`logoUrl?`**, que apunta a `/api/v1/organizations/{organizationId}/logo`, la ruta **autenticada** del logo. Falta si la organización no tiene logo. Quién lee esta respuesta no cambia: `ADMINISTRATOR` o `REPRESENTATIVE`, Q-S18-2. La ruta del logo tiene su propia regla de acceso (miembro de la organización o administrador de plataforma, Enmienda 1 de ADR-051). Se implementa en la Tarea 2 de ADR-051 (`plan-adr051-tarea2-logo.md`). Lo anterior de esta ficha no se reescribe.
+
+*Nota (2026-11-02, ficha de preverificación CONGELADA; plan aprobado en #171):* la preverificación del Nivel 1 **no es una transición** y no cambia `verificationStatus`. La bandeja de la plataforma muestra `missingForVerification` (lo que falta para que `verify` no responda 409 `VerificationDataMissing`), calculado al leer. Los cuatro estados y sus transiciones siguen como están. `GET /organizations/{id}` no lleva el campo.

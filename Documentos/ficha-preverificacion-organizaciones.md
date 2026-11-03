@@ -165,3 +165,5 @@ Con P6 (a), "calcular al leer": no se guarda nada, y el resultado se calcula del
 - §1 dice que la ficha la congela Carlos; la congeló Manuel por delegación de Carlos.
 
 **Siguiente paso:** el plan (`plan-preverificacion-organizaciones.md`). No se escribe código antes de que Manuel lo apruebe con un comentario en el PR.
+
+*Nota (2026-11-02, código):* implementada en la rama `feat/identity-preverificacion`, según `plan-preverificacion-organizaciones.md` (APROBADO por Manuel en #171, comentario 6589734226). `Organization.missingForVerification()` es el único cálculo y lo usan `verify()` y `GET /platform/organizations`. Evidencia en `estado-fase6.md` §0.73.
