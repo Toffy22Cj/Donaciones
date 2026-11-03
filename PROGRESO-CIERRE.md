@@ -246,6 +246,8 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - ci-local.sh en clon limpio de `6ea483f`: salida 0, BUILD SUCCESS (identity 437, app 667); evidencia en `d6f43f3` (solo documentos).
   - Pie de #172 corregido con la herramienta MCP `update_pull_request`.
 - Cierre: develop sigue en `4a2c736`. #171 (`ef04977`) y #172 (`d6f43f3`) abiertos y limpios; orden de fusión #171 y después #172. Nada fusionado.
+- Nota (2026-11-03): #171 (`70f713f`) y #172 (`84c9281`) fusionados por Manuel; después #173 (zona, §0.74) y #174. `develop` en `11f8698`; §0.73 y §0.74 sin choque. Ningún PR abierto.
+- Web (2026-11-03): el chip de la bandeja se entregó como parche en el chat (`git format-patch main`, 1 commit, sin `next-env.d.ts`); no se subió nada a PaxFide ni se tocó el formulario, por instrucción del usuario.
 
 ### Integración tras la preverificación (2026-11-03)
 - Manuel fusionó #170, #171 y #172; `develop` está en `7adb69c`.
