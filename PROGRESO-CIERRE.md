@@ -246,3 +246,9 @@ Secciones de estado-fase6: SOLO 0.60 a 0.69.
   - ci-local.sh en clon limpio de `6ea483f`: salida 0, BUILD SUCCESS (identity 437, app 667); evidencia en `d6f43f3` (solo documentos).
   - Pie de #172 corregido con la herramienta MCP `update_pull_request`.
 - Cierre: develop sigue en `4a2c736`. #171 (`ef04977`) y #172 (`d6f43f3`) abiertos y limpios; orden de fusión #171 y después #172. Nada fusionado.
+
+### Integración tras la preverificación (2026-11-03)
+- Manuel fusionó #170, #171 y #172; `develop` está en `7adb69c`.
+- Merge de develop en #173 (`6004707`): solo chocó `estado-fase6.md`. Mi sección pasa a §0.74 y se corrigieron mis referencias a §0.73 en la ficha, la enmienda y el plan.
+- Capas (app -am) en curso; después, ci-local en un clon limpio de `6004707`, la evidencia en §0.74 y el cuerpo de #173.
+- **Pendiente P4:** el PR aparte de `scripts/demo/recorrido.py:186` (que suba una foto con la ruta de evidencias y use su sha256), desde develop y SOLO cuando #173 esté fusionado (Manuel, 2026-11-02).
