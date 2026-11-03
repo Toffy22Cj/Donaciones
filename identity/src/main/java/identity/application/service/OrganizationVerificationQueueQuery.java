@@ -28,12 +28,12 @@ public class OrganizationVerificationQueueQuery {
     public record QueueItem(String organizationId, String name, String type, String verificationStatus,
                             String informationRequest,
                             /** Ficha R-7 §4: el perfil completo, solo para la plataforma. */
-                            identity.domain.model.OrganizationProfile profile) {
-        public QueueItem(String organizationId, String name, String type, String verificationStatus,
-                            String informationRequest) {
-            this(organizationId, name, type, verificationStatus, informationRequest, identity.domain.model.OrganizationProfile.EMPTY);
-        }
-    }
+                            identity.domain.model.OrganizationProfile profile,
+                            /**
+                             * [Plan] Ficha de preverificación (CONGELADA el 2026-11-02): lo que falta para verificar, de
+                             * {@link Organization#missingForVerification()}; vacía = datos completos. Solo la plataforma.
+                             */
+                            List<String> missingForVerification) {}
 
     /** {@code next}: el id de la última organización si puede haber más; vacío en la última página. */
     public record QueuePage(List<QueueItem> items, String next) {}
@@ -73,6 +73,8 @@ public class OrganizationVerificationQueueQuery {
         return new QueueItem(o.getOrganizationId().value(), o.getName(), o.getType().name(),
                 o.getVerificationStatus().name(),
                 o.getVerificationInformationRequest() == null ? null : o.getVerificationInformationRequest().value(),
-                o.getProfile());
+                o.getProfile(),
+                // el único cálculo, el mismo que usa verify(); se calcula al leer y no se guarda
+                o.missingForVerification());
     }
 }

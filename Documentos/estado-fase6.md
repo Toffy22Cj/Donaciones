@@ -229,6 +229,37 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.73 Preverificación de organizaciones, Nivel 1 (2026-11-02, `feat/identity-preverificacion`)
+
+- Numerada 0.73, el siguiente número libre de la serie 0.70 a 0.79 (P-PV-8). Si la zona en cada paso se fusiona antes con el mismo número, este PR se renumera al integrar `develop`.
+- **Norma:**
+  - `ficha-preverificacion-organizaciones.md`, CONGELADA por Manuel por delegación de Carlos (#168, comentario 6589529148), con las dos condiciones (§11);
+  - `plan-preverificacion-organizaciones.md`, APROBADO por Manuel (#171, comentario 6589734226: P-PV-2, P-PV-3, P-PV-6 y P-PV-8).
+- **Qué hace:**
+  - `Organization.missingForVerification()` **[Plan]**: el único cálculo, en orden fijo `["legalName", "nit"]` y con lista inmutable;
+  - `verify()` usa ese método y conserva el estado primero, el mismo 409 `VerificationDataMissing` y el mismo mensaje;
+  - `GET /platform/organizations`: cada ítem lleva siempre `missingForVerification`, también `[]`, fuera de `ProfileFields`. No cambian ni el orden ni la paginación, y no hay filtro nuevo;
+  - nada en Mongo, sin migración ni índice; nunca en `GET /organizations/{id}`, en `PUT /profile` ni en lo público;
+  - se borra el constructor de 5 argumentos de `QueueItem`, que nadie usaba (P-PV-2).
+- **Autoauditoría** (norma → hecho → coincide):
+  - condición 1 (ficha §11) → `verify()` llama a `missingForVerification()` (`Organization.java:458`) y la bandeja también (`OrganizationVerificationQueueQuery.java:78`) → sí; test a y mutaciones 3 y 12;
+  - condición 2 y D-PV-1 → campo `missingForVerification`, orden fijo (`Organization.java:441-449`) → sí; test b y mutación 6;
+  - D-PV-2, mismo orden y mismo 409 → la comprobación de estado sigue primero (`Organization.java:453-455`) → sí; test a′ y mutaciones 4 y 5;
+  - D-PV-3, nada en Mongo → ni `OrganizationDocument` ni `OrganizationMapper` cambian; el test c comprueba que el documento no tiene la clave → sí;
+  - D-PV-4 → `ProfileFields` y `OrganizationStatus` sin cambios; test c (negativas) y mutaciones 7 y 8 → sí;
+  - D-PV-5 → `page()` sin cambios; test d y mutación 9 → sí;
+  - 403 → `queue.authorize` sigue antes de interpretar la entrada; test e y mutación 10 → sí;
+  - P-PV-3 → `@JsonInclude(NON_NULL)` escribe `[]`; mutación 11 → sí;
+  - prohibición (ficha §6) → reglas ArchUnit `queries_must_not_decide_the_verification` y `no_scheduled_methods_in_identity_application` **[Plan]**, con su test de que muerden → sí.
+- **Rojo** (`41c8ac6`, solo tests): `identity` no compila, con `cannot find symbol ... method missingForVerification()` en `OrganizationTest.java:[616,36]` y siguientes. Con el dominio y sin la bandeja, `app` daba 4 fallos: "Expecting value to be true but was false" en `c`, `c2`, `d` (el ítem no lleva el campo) y en la lista de campos de la cola (H-PV-14); `e` ya pasaba, porque fija el 403 de hoy.
+- **Verde** (`766f56c`), `mvn -B test -pl app -am`: core "Tests run: 379", crypto 57, ai 47, api 175, identity 437, convocatoria 272 y app 667, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Antes, `identity` completo con `-pl identity -am`: 437, BUILD SUCCESS.
+- **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `766f56c`, con la mutación 0 de línea base VIVA): 12 de 12 muertas. Evidencia: `evidencia-ci/mutaciones-preverificacion-766f56c.txt` y las dos especificaciones.
+  - Las 1 y 2 (quitar un campo de la lista) **no** las mata el test a: al ser un solo método, `verify()` y la lista cambian a la vez y siguen de acuerdo. Las matan b, el test de R-7 de `verify()` y c. Es lo esperado de la condición 1.
+- **Tests que cambian sin perder aserciones:** `OrganizationRegistrationAndQueueHttpIntegrationTest` (H-PV-14) gana `missingForVerification` en la lista y la aserción de que está.
+- *Nota (2026-11-02): `ci-local.sh`* en un clon limpio de `6ea483f` (`free -g`: 15 GB en total, 15 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-6ea483f-2026-11-02T23-13-25Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 175, identity 437, convocatoria 272 y app 667, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Este commit de evidencia solo toca `Documentos/`, así que no hace falta repetir `ci-local.sh`.
+
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
 - Numerada 0.80, en la serie de Google (0.80 a 0.84).

@@ -95,5 +95,26 @@ public class ArchitectureTest {
             noClasses().that().resideInAPackage("identity.domain..")
                     .should().dependOnClassesThat().resideInAnyPackage("identity.application..", "identity.infrastructure..")
                     .because("Domain layer must not depend on application or infrastructure layers (ADR-038 §2.5 / D8g)");
+
+    /**
+     * Plan de preverificación, test f (ficha de preverificación §6, prohibición): ninguna consulta de {@code identity}
+     * —la bandeja incluida— verifica, rechaza ni pide información. Solo deciden los servicios de la plataforma, por una
+     * persona.
+     */
+    @ArchTest
+    public static final ArchRule queries_must_not_decide_the_verification =
+            noClasses().that().resideInAPackage("identity.application..").and().haveSimpleNameEndingWith("Query")
+                    .should().callMethod(identity.domain.model.Organization.class, "verify")
+                    .orShould().callMethod(identity.domain.model.Organization.class, "reject")
+                    .orShould().callMethod(identity.domain.model.Organization.class, "requestInformation",
+                            identity.domain.model.InformationRequestMessage.class)
+                    .because("La preverificación nunca decide: siempre decide una persona (ficha de preverificación §6, D-2)");
+
+    /** Plan de preverificación, test f: ningún programador en la capa de aplicación de {@code identity}. */
+    @ArchTest
+    public static final ArchRule no_scheduled_methods_in_identity_application =
+            noMethods().that().areDeclaredInClassesThat().resideInAPackage("identity.application..")
+                    .should().beAnnotatedWith("org.springframework.scheduling.annotation.Scheduled")
+                    .because("Ninguna automatización verifica ni rechaza (ficha de preverificación §6)");
 }
 
