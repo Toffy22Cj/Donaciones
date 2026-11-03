@@ -15,15 +15,33 @@ import hashlib
 import hmac
 import json
 import os
+import struct
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 import uuid
+import zlib
 
 # ADR-029 Enmienda 2: el municipio DIVIPOLA es obligatorio al registrar, recibir y entregar (BOGOTÁ, D.C.)
 MUNICIPIO = "11001"
+
+
+
+def delivery_photo():
+    """PNG de 64x48 de un color aleatorio, generado en memoria (ADR-051 F3 y F5: una foto, un activo). El color cambia en
+    cada llamada para que dos entregas, o dos ejecuciones sobre la misma base, nunca suban la misma imagen."""
+    r, g, b = os.urandom(3)
+    row = b"\x00" + bytes((r, g, b)) * 64
+    raw = row * 48
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 64, 48, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
 
 SEED = {
     "plataforma": "plataforma@demo.paxfide.local",
@@ -51,13 +69,16 @@ class Demo:
         os.makedirs(out, exist_ok=True)
 
     def call(self, name, method, path, body=None, token=None, headers=None, expect=None, command=True):
-        h = {"Content-Type": "application/json"} if body is not None else {}
+        h = {"Content-Type": "application/json"} if body is not None and not isinstance(body, bytes) else {}
         if token:
             h["Authorization"] = "Bearer " + token
         if method == "POST" and command:
             h["Command-Id"] = str(uuid.uuid4())
         h.update(headers or {})
-        data = body.encode() if isinstance(body, str) else (json.dumps(body).encode() if body is not None else None)
+        if isinstance(body, bytes):
+            data = body
+        else:
+            data = body.encode() if isinstance(body, str) else (json.dumps(body).encode() if body is not None else None)
         req = urllib.request.Request(self.base + path, data=data, method=method, headers=h)
         try:
             with urllib.request.urlopen(req, timeout=20) as r:
@@ -75,6 +96,14 @@ class Demo:
             sys.exit(f"[{name}] {method} {path} -> {status}: {text}")
         print(f"  {self.n:02d} {name}: {status}")
         return status, (json.loads(text) if text.startswith(("{", "[")) else None)
+
+    def upload_photo(self, name, path, png, token, expect=201):
+        """Subida multipart con el campo file, como hace la semilla de la demo (DemoScenarioSeeder.upload)."""
+        boundary = "demo-recorrido-" + uuid.uuid4().hex
+        body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"entrega.png\"\r\n"
+                "Content-Type: image/png\r\n\r\n").encode() + png + f"\r\n--{boundary}--\r\n".encode()
+        return self.call(name, "POST", path, body, token=token, expect=expect, command=False,
+                         headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
 
     def until(self, what, fn, timeout=180, every=2):
         end = time.time() + timeout
@@ -182,8 +211,11 @@ def main():
         d.call(f"recibir-{name}", "POST", base + "/receive", {"facilityLocation": "centro-1", "receiverRef": "recibe-1",
                                                      "municipalityCode": MUNICIPIO},
                token=tok["empleado"], expect=200)
+        # ADR-051 F3 y F5: primero la foto de la entrega; el evidenceRef es el sha256 que devuelve la subida
+        _, evidence = d.upload_photo(f"evidencia-{name}", f"/api/v1/organizations/{org}/delivery-evidence",
+                                     delivery_photo(), tok["empleado"])
         d.call(f"entregar-{name}", "POST", base + "/deliver", {"finalCustodianRef": "custodio-final",
-               "beneficiaryRef": "beneficiario-1", "locationRef": "centro-1", "evidenceRef": "acta-1",
+               "beneficiaryRef": "beneficiario-1", "locationRef": "centro-1", "evidenceRef": evidence["evidenceRef"],
                "municipalityCode": MUNICIPIO},
                token=tok["empleado"], expect=200)
 
