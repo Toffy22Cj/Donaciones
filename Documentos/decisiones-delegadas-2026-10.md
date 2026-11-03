@@ -420,3 +420,17 @@ Contexto: Carlos dijo el 2026-11-01 "todo lo del backend es de Manuel; Carlos or
   6. `location_reference` **no** se retira: queda solo como respaldo de los eventos viejos.
   7. La zona pública es el municipio en todos los pasos, también en la entrega. **Riesgo aceptado:** en un municipio muy pequeño podría ayudar a identificar al beneficiario. Nunca se muestra la dirección, el punto exacto ni a quién se entregó. Alternativa anotada y no implementada: si Carlos lo pide, la entrega mostraría solo el departamento.
 - **Qué autoriza:** escribir `ficha-zona-en-cada-paso.md` (PROPUESTA), que congela Manuel. **No autoriza plan ni código** hasta que esté congelada.
+
+**Nota (2026-11-02, más tarde): enmienda 2 de ADR-029 y plan de la zona en cada paso APROBADOS por Manuel.** Fuente citable: comentario de `buelvasmanuel` en #170, 2026-11-02T22:10:26Z, https://github.com/Toffy22Cj/Donaciones/pull/170#issuecomment-6589733853. Texto literal:
+
+> Apruebo la enmienda `Documentos/ADR-029-enmienda-2-zona-publica.md` y el plan `Documentos/plan-zona-en-cada-paso.md` (cabeza `0054a55`), como dueño del backend.
+>
+> - **E-1:** si un activo registrado antes del cambio se despacha o se divide, el evento nuevo se escribe con los tres campos de zona vacíos y la zona pública sale de `location_reference`, como hoy. No se usa la versión vieja del evento ni se rechaza el despacho.
+> - Las clases de payload que ya existen no se tocan: solo se añaden versiones nuevas (`RecomputingEventIntegrityChecker.java:101-107`).
+>
+> Autorizo el código según este plan, sobre `develop` (que ya incluye #169). Antes de fusionar #170, hay que integrar `develop` con un merge normal.
+>
+> — Manuel, 2026-11-02
+
+- **E-1 = (a):** un activo anterior que se despacha o se divide escribe la versión nueva con `municipalityCode`, `zoneName` y `catalogVersion` vacíos, y la zona pública sale de `location_reference`.
+- **Qué autoriza:** el código en `feat/core-zona-en-cada-paso`, según el plan.

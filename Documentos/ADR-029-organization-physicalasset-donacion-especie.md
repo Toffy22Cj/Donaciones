@@ -77,3 +77,6 @@ Los activos v1 preexistentes que carecen de `organizationRef`:
 
 ### Negativas / Restricciones
 - La implementación del Application Service de donación en especie (Camino B) requirió diferirse hasta la resolución de identidad humana (`HumanActor`, ADR-035).
+
+
+> **Nota (2026-11-02):** la **Enmienda 2** (`ADR-029-enmienda-2-zona-publica.md`, PROPUESTA) añade la zona pública DIVIPOLA a los eventos de `PhysicalAsset`. Crea versiones nuevas: `ASSET_REGISTERED` 4.0, `ASSET_SPLIT` 4.0, `ASSET_DISPATCHED` 2.0, `ASSET_RECEIVED` 2.0 y `ASSET_DELIVERED` 2.0. Sale de la ficha `ficha-zona-en-cada-paso.md`, congelada por Manuel (#169). Este texto no se reescribe.
