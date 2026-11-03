@@ -306,6 +306,10 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
   - **`ci-local.sh`** en un clon limpio de `d24046a` (`free -g`: 15 GB en total, 13 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-d24046a-2026-11-02T23-33-41Z.txt`.
     - Resumen literal: core "Tests run: 393", crypto 57, ai 47, api 177, identity 429, convocatoria 272 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
     - Respecto de `develop` `4a2c736` (core 379, api 175 y app 663, según la evidencia de #165): core +14, api +2 y app +8.
+- *Nota (2026-11-03):* se integró `develop` `7adb69c` (#170, #171 y #172, la preverificación) con un merge normal (`6004707`).
+  - Solo chocó esta tabla de estado. Se conservan los dos lados, con lo de develop primero, y esta sección pasa de §0.73 a §0.74.
+  - Capas afectadas (`mvn test -pl app -am`, todos los módulos completos): core "Tests run: 393", crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - **`ci-local.sh`** en un clon limpio de `6004707` (`free -g`: 15 GB en total, 13 disponibles), salida 0, con el mismo resumen literal: core "Tests run: 393", crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-6004707-2026-11-03T00-53-13Z.txt`.
 
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
