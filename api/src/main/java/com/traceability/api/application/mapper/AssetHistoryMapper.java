@@ -10,15 +10,12 @@ import com.traceability.contracts.AssetAnchorStatusPort.AnchorProof;
 import com.traceability.contracts.AssetAnchorStatusPort.StepAnchor;
 import com.traceability.contracts.TrackingAnchorStatus;
 import com.traceability.core.application.service.LocationReferenceService;
-import com.traceability.core.application.service.PublicZone;
-import com.traceability.api.application.dto.PublicZonePointDTO;
 import com.traceability.core.application.port.out.AssetHistoryReadModel;
 import com.traceability.core.application.port.out.AssetTransitionReadModel;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Component
@@ -61,9 +58,8 @@ public class AssetHistoryMapper {
                                                 String evidenceRef) {
         // E1: solo el paso de la entrega lleva los campos de la evidencia
         boolean delivery = "DELIVERED".equals(transition.status());
-        // ADR-052 D2: la zona y su punto en una sola lectura del catálogo
-        Optional<PublicZone> publicZone = locationReferenceService.resolve(transition.location());
-        String zone = publicZone.map(PublicZone::zoneName).orElse(null);
+        String zone = locationReferenceService.resolveZone(transition.location())
+                .orElse(null);
 
         return new PublicTransitionDTO(
                 transition.eventType(),
@@ -77,8 +73,7 @@ public class AssetHistoryMapper {
                 anchor != null ? toProofDto(anchor.proof()) : null,
                 delivery ? Boolean.valueOf(evidenceRef != null && !evidenceRef.isBlank()) : null,
                 // E2: el texto libre heredado puede llevar datos personales y nunca sale
-                delivery && evidenceRef != null && FOOTPRINT.matcher(evidenceRef).matches() ? evidenceRef : null,
-                PublicZonePointDTO.from(publicZone.map(PublicZone::point).orElse(null))
+                delivery && evidenceRef != null && FOOTPRINT.matcher(evidenceRef).matches() ? evidenceRef : null
         );
     }
 

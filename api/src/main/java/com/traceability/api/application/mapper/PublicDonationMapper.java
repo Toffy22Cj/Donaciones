@@ -13,8 +13,6 @@ import com.traceability.core.application.port.out.FundClearingDatesReadPort.Clea
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
 import com.traceability.core.application.service.LocationReferenceService;
-import com.traceability.core.application.service.PublicZone;
-import com.traceability.api.application.dto.PublicZonePointDTO;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -86,9 +84,7 @@ public class PublicDonationMapper {
 
     private PublicLogisticsItemDTO mapLogisticsItem(LogisticsReadItem item, Set<String> assetIdsInResponse) {
         String assetRef = assetRefService.computeRef(item.assetId());
-        // ADR-052 D2: la zona y su punto en una sola lectura del catálogo
-        Optional<PublicZone> zone = locationReferenceService.resolve(item.currentLocation());
-        String locationZone = zone.map(PublicZone::zoneName).orElse(null);
+        String locationZone = locationReferenceService.resolveZone(item.currentLocation()).orElse(null);
         PublicCustodianCategory custodianCategory = mapCustodian(item.lifecycleStatus());
 
         return new PublicLogisticsItemDTO(
@@ -102,8 +98,7 @@ public class PublicDonationMapper {
                 // Nunca se calcula el ref de un activo que no esté en la respuesta (plan del Bloque C, §2.1)
                 item.parentAssetId() != null && assetIdsInResponse.contains(item.parentAssetId())
                         ? assetRefService.computeRef(item.parentAssetId())
-                        : null,
-                PublicZonePointDTO.from(zone.map(PublicZone::point).orElse(null))
+                        : null
         );
     }
 

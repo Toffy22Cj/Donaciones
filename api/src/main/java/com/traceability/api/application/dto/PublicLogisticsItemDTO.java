@@ -13,8 +13,6 @@ public record PublicLogisticsItemDTO(
     String locationZone,
     PublicCustodianCategory custodianCategory,
     /** Ficha R-6, G-4: {@code assetRef} opaco del lote de la misma {@code logistics} del que salió; falta si no hay. */
-    @JsonInclude(JsonInclude.Include.NON_NULL) String parentAssetRef,
-    /** ADR-052 D2: el punto de {@code locationZone}; falta si no hay zona o su entrada no tiene coordenadas. */
-    @JsonInclude(JsonInclude.Include.NON_NULL) PublicZonePointDTO zonePoint
+    @JsonInclude(JsonInclude.Include.NON_NULL) String parentAssetRef
 ) {
 }
