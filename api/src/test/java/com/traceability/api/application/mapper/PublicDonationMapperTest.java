@@ -12,9 +12,6 @@ import com.traceability.core.application.port.out.FundClearingDatesReadPort.Clea
 import com.traceability.core.application.port.out.LogisticsReadItem;
 import com.traceability.core.application.security.AssetRefService;
 import com.traceability.core.application.service.LocationReferenceService;
-import com.traceability.core.application.service.PublicZone;
-import com.traceability.core.application.service.ZonePoint;
-import com.traceability.api.application.dto.PublicZonePointDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -93,7 +90,7 @@ class PublicDonationMapperTest {
     @Test
     void shouldMapLogisticsWithKnownLocation() {
         when(assetRefService.computeRef("asset-1")).thenReturn("ref-1");
-        when(locationReferenceService.resolve("loc-1")).thenReturn(Optional.of(new PublicZone("Zone A", null)));
+        when(locationReferenceService.resolveZone("loc-1")).thenReturn(Optional.of("Zone A"));
 
         LogisticsReadItem item = new LogisticsReadItem(
                 "asset-1", "DISPATCHED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1", null
@@ -105,32 +102,14 @@ class PublicDonationMapperTest {
 
         assertEquals("ref-1", itemDTO.assetRef());
         assertEquals("Zone A", itemDTO.locationZone());
-        assertNull(itemDTO.zonePoint(), "ADR-052 D2: sin coordenadas en el catálogo, no hay punto");
         assertEquals(new BigDecimal("100"), itemDTO.quantity());
         assertEquals(PublicCustodianCategory.LOGISTICS_PARTNER, itemDTO.custodianCategory());
     }
 
     @Test
-    void zonePoint_isThePublicZonePoint_onlyWithTheZone() {
-        // ADR-052 D2: zonePoint sale solo si sale locationZone y su entrada tiene coordenadas válidas
-        when(assetRefService.computeRef("asset-1")).thenReturn("ref-1");
-        when(locationReferenceService.resolve("loc-1"))
-                .thenReturn(Optional.of(new PublicZone("Cartagena", new ZonePoint(10.391, -75.4794))));
-
-        LogisticsReadItem item = new LogisticsReadItem(
-                "asset-1", "RECEIVED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1", null
-        );
-        PublicLogisticsItemDTO itemDTO = mapper.toPublicDTO(
-                new DonationReadModel("f1", "USD", "camp-1", 100L, 100L, 0L, 0L, 0L, "ACTIVE", List.of(item))).logistics().get(0);
-
-        assertEquals("Cartagena", itemDTO.locationZone());
-        assertEquals(new PublicZonePointDTO(10.391, -75.4794), itemDTO.zonePoint());
-    }
-
-    @Test
     void shouldMapLogisticsWithUnknownLocation() {
         when(assetRefService.computeRef("asset-1")).thenReturn("ref-1");
-        when(locationReferenceService.resolve("loc-1")).thenReturn(Optional.empty());
+        when(locationReferenceService.resolveZone("loc-1")).thenReturn(Optional.empty());
 
         LogisticsReadItem item = new LogisticsReadItem(
                 "asset-1", "DISPATCHED", "VACCINE", "DOSES", new BigDecimal("100"), "loc-1", "cust-1", null
@@ -141,13 +120,12 @@ class PublicDonationMapperTest {
         PublicLogisticsItemDTO itemDTO = dto.logistics().get(0);
 
         assertNull(itemDTO.locationZone());
-        assertNull(itemDTO.zonePoint());
     }
 
     @Test
     void shouldMapAllCustodianCategories() {
         when(assetRefService.computeRef(anyString())).thenReturn("ref-any");
-        when(locationReferenceService.resolve(anyString())).thenReturn(Optional.empty());
+        when(locationReferenceService.resolveZone(anyString())).thenReturn(Optional.empty());
 
         LogisticsReadItem registered = new LogisticsReadItem("a1", "REGISTERED", "t", "u", BigDecimal.ONE, "l", "c", null);
         LogisticsReadItem dispatched = new LogisticsReadItem("a2", "DISPATCHED", "t", "u", BigDecimal.ONE, "l", "c", null);

@@ -167,8 +167,7 @@ class PublicAssetHistoryControllerIntegrationTest {
         donationReadRepository.save(donationModel);
 
         // Setup location
-        // ADR-052 D1: con el punto de la zona pública
-        locationReferenceRepository.save(new LocationReferenceDocument("LOC-1", "Zone X", 10.391, -75.4794));
+        locationReferenceRepository.save(new LocationReferenceDocument("LOC-1", "Zone X"));
 
         // Setup history
         AssetHistoryProjectionDocument.AssetTransition transition = AssetHistoryProjectionDocument.AssetTransition.builder()
@@ -193,9 +192,6 @@ class PublicAssetHistoryControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.history[0].eventType").value("AssetRegisteredEvent"))
                 .andExpect(jsonPath("$.history[0].locationZone").value("Zone X"))
-                // ADR-052 D2: zonePoint en JSON con latitude y longitude
-                .andExpect(jsonPath("$.history[0].zonePoint.latitude").value(10.391))
-                .andExpect(jsonPath("$.history[0].zonePoint.longitude").value(-75.4794))
                 .andExpect(jsonPath("$.history[0].custodianCategory").value("UNCATEGORIZED"))
                 // Ficha R-6, G-3: sin evento en el mapa (el doble devuelve un mapa vacío) → PENDING, sin hash ni prueba
                 .andExpect(jsonPath("$.history[0].anchorStatus").value("PENDING"))
