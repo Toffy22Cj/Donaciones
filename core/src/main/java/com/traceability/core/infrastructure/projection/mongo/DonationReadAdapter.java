@@ -38,7 +38,8 @@ public class DonationReadAdapter implements DonationReadPort {
                         l.getQuantity(),
                         l.getCurrentLocation(),
                         l.getCurrentCustodian(),
-                        l.getParentAssetRef() // ficha R-6, G-4: guarda el assetId del padre (plan C, C-V1)
+                        l.getParentAssetRef(), // ficha R-6, G-4: guarda el assetId del padre (plan C, C-V1)
+                        l.getCurrentZoneName() // ADR-029 Enmienda 2, D5
                 ))
                 .toList();
 

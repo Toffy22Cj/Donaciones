@@ -70,6 +70,7 @@ public class PhysicalAssetController {
                 RequestFields.required(b.unitOfMeasure(), "unitOfMeasure"),
                 RequestFields.required(b.custodianRef(), "custodianRef"),
                 RequestFields.required(b.currentLocation(), "currentLocation"),
+                RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
                 RequestFields.required(b.allocationId(), "allocationId"),
                 RequestFields.optional(b.sourceAllocationId(), "sourceAllocationId"),
                 new HumanActor(principal.accountId()));
@@ -93,6 +94,7 @@ public class PhysicalAssetController {
                 RequestFields.required(b.unitOfMeasure(), "unitOfMeasure"),
                 RequestFields.required(b.custodianRef(), "custodianRef"),
                 RequestFields.required(b.currentLocation(), "currentLocation"),
+                RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
                 RequestFields.optional(b.campaignRef(), "campaignRef"),
                 new HumanActor(principal.accountId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(registered(registered));
@@ -134,6 +136,7 @@ public class PhysicalAssetController {
                                       @RequestBody ReceiveRequest body) {
         ReceiveRequest b = requireBody(body);
         assets.receiveAsset(commandId, assetRef, RequestFields.required(b.facilityLocation(), "facilityLocation"),
+                RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
                 RequestFields.required(b.receiverRef(), "receiverRef"), actor);
         return new TransitionResponse(assetRef, AssetLifecycleStatus.RECEIVED.name());
     }
@@ -148,6 +151,7 @@ public class PhysicalAssetController {
                 RequestFields.required(b.finalCustodianRef(), "finalCustodianRef"),
                 RequestFields.required(b.beneficiaryRef(), "beneficiaryRef"),
                 RequestFields.required(b.locationRef(), "locationRef"),
+                RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
                 RequestFields.required(b.evidenceRef(), "evidenceRef"),
                 clock.instant(), actor);
         return new TransitionResponse(assetRef, AssetLifecycleStatus.DELIVERED.name());
@@ -157,7 +161,8 @@ public class PhysicalAssetController {
     public OperationalResponse operational(@CurrentActor HumanActor actor, @PathVariable("assetRef") String assetRef) {
         PhysicalAssetOperationalView v = reads.findOperationalView(assetRef, actor);
         return new OperationalResponse(v.assetRef(), v.lifecycleStatus(), v.currentCustodianRef(), v.currentLocation(),
-                v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef(), v.assetType());
+                v.quantity().toPlainString(), v.unitOfMeasure(), v.campaignRef(), v.assetType(), v.municipalityCode(),
+                v.zoneName());
     }
 
     private static RegisteredResponse registered(RegisteredAsset r) {

@@ -1,5 +1,6 @@
 package com.traceability.core.application.command;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.contracts.authorization.AuthorizationRole;
@@ -126,7 +127,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                 new BigDecimal("100"),
                 "Units",
                 "CUST-1",
-                "LOC-1",
+                "LOC-1", "05001",
                 actor
         );
 
@@ -141,7 +142,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
         DomainEvent event = stream.get(0);
         assertEquals("ASSET_REGISTERED", event.eventType().name());
 
-        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) event.payload();
+        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) event.payload();
         assertEquals("ORG-456", payload.organizationRef());
         assertEquals("DONOR-ABC", payload.donorRef());
         assertNotNull(payload.donationRef());
@@ -173,7 +174,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                         new BigDecimal("100"),
                         "Units",
                         "CUST-1",
-                        "LOC-1",
+                        "LOC-1", "05001",
                         actor
                 )
         );
@@ -200,7 +201,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                         new BigDecimal("100"),
                         "Units",
                         "CUST-1",
-                        "LOC-1",
+                        "LOC-1", "05001",
                         actor
                 )
         );
@@ -223,7 +224,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
                         new BigDecimal("100"),
                         "Units",
                         "CUST-1",
-                        "LOC-1",
+                        "LOC-1", "05001",
                         actor
                 )
         );
@@ -241,12 +242,12 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
 
         physicalAssetCommandService.registerPhysicalAssetFromDonation(
                 commandId, "ORG-456", "DONOR-ABC", "Tents", new BigDecimal("100"),
-                "Units", "CUST-1", "LOC-1", actor
+                "Units", "CUST-1", "LOC-1", "05001", actor
         );
 
         physicalAssetCommandService.registerPhysicalAssetFromDonation(
                 commandId, "ORG-456", "DONOR-ABC", "Tents", new BigDecimal("100"),
-                "Units", "CUST-1", "LOC-1", actor
+                "Units", "CUST-1", "LOC-1", "05001", actor
         );
 
         // Only one event should be present

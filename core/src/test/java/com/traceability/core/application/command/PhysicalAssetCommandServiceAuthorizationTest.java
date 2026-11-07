@@ -65,7 +65,8 @@ class PhysicalAssetCommandServiceAuthorizationTest {
             organizationBoundaryPolicy,
             identityPrincipalPort,
             new com.traceability.core.support.StubCampaignInKindEligibilityPort(),
-            new com.traceability.core.support.StubDeliveryEvidencePort()
+            new com.traceability.core.support.StubDeliveryEvidencePort(),
+            new com.traceability.core.support.StubMunicipalityCatalogPort()
         );
     }
 
@@ -94,7 +95,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         when(eventPublisher.appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any(), any())).thenReturn(true);
 
         assertDoesNotThrow(() -> {
-            service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "sha256:" + "e1".repeat(32), Instant.now(), actor);
+            service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", "sha256:" + "e1".repeat(32), Instant.now(), actor);
         });
 
         // B6-c (DD-11): el reclamo guarda el resultado TIPO:assetId
@@ -114,7 +115,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertThatThrownBy(() -> {
-            service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "sha256:" + "e1".repeat(32), Instant.now(), actor);
+            service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", "sha256:" + "e1".repeat(32), Instant.now(), actor);
         }).isInstanceOf(InsufficientRoleException.class);
 
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());
@@ -132,7 +133,7 @@ class PhysicalAssetCommandServiceAuthorizationTest {
         when(identityPrincipalPort.resolvePrincipal("user1")).thenReturn(principal);
 
         assertThatThrownBy(() -> {
-            service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "sha256:" + "e1".repeat(32), Instant.now(), actor);
+            service.deliverAsset("cmd-1", assetId, "cust-2", "ben-1", "loc-2", "05001", "sha256:" + "e1".repeat(32), Instant.now(), actor);
         }).isInstanceOf(CrossOrganizationAccessException.class);
 
         verify(eventPublisher, never()).appendAndOutbox(any(), any(), any(Long.class), any(), any(), any(), any());

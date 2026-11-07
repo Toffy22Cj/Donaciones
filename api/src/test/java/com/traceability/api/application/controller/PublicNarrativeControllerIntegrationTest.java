@@ -53,8 +53,10 @@ class PublicNarrativeControllerIntegrationTest {
     })
     @EnableMongoRepositories(basePackages = "com.traceability.core.infrastructure.security.mongo")
     // el manejador único de errores de B6-0, como en la aplicación (TR-D1: el 404 del seguimiento lo compone él)
+    // ADR-029 Enmienda 2, D5: los mappers leen la zona con PublicZoneResolver (sobre el LocationReferenceService del test)
     @Import({TrackingSecurityProperties.class, com.traceability.api.web.ApiExceptionHandler.class,
-            com.traceability.api.web.ApiBaseErrorMappings.class})
+            com.traceability.api.web.ApiBaseErrorMappings.class,
+            com.traceability.core.application.service.PublicZoneResolver.class})
     static class TestApp {
         @Bean
         public TrackingCodeService trackingCodeService(

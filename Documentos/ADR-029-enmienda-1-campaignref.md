@@ -155,3 +155,6 @@ Rutas relativas a `core/src/main/java/com/traceability/core/`, salvo que se indi
 - Los activos anteriores a la 3.0 quedan fuera de toda narrativa de convocatoria para siempre (decisión ya tomada, D5).
 - Un puerto más entre `core` y `convocatoria` (si se elige Q1 (a)) y su conexión en `app`.
 - La ventana entre la validación y la escritura en el Camino B se acepta, no se cierra.
+
+
+> **Nota (2026-11-02):** la **Enmienda 2** (`ADR-029-enmienda-2-zona-publica.md`, PROPUESTA) sigue el patrón de esta enmienda (D1 y D4) y añade la zona pública DIVIPOLA a los eventos de `PhysicalAsset`. Crea versiones nuevas: `ASSET_REGISTERED` 4.0, `ASSET_SPLIT` 4.0, `ASSET_DISPATCHED` 2.0, `ASSET_RECEIVED` 2.0 y `ASSET_DELIVERED` 2.0. Sale de la ficha `ficha-zona-en-cada-paso.md`, congelada por Manuel (#169). Este texto no se reescribe.

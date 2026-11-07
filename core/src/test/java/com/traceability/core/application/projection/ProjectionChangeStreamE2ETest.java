@@ -1,5 +1,6 @@
 package com.traceability.core.application.projection;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.core.application.command.FundCommandService;
@@ -170,7 +171,7 @@ class ProjectionChangeStreamE2ETest {
         funds.requestAllocation(cmd(), fundId, allocationId, 400L, ACTOR);
         await(() -> donationRead.findByFundId(fundId).filter(m -> m.pendingAllocationAmount() == 400L));
 
-        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.TEN, "KGS", "CUST-1", "WH-1",
+        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.TEN, "KGS", "CUST-1", "WH-1", "05001",
                 allocationId, null, ACTOR);
         String assetId = assetIdOfAllocation(allocationId);
 
@@ -186,7 +187,7 @@ class ProjectionChangeStreamE2ETest {
         // TransactionalEventPublisher; cuando D-ASSET añada los métodos del servicio, este test pasará a usarlos.
         appendWithAggregate(assetId, asset -> asset.dispatch("CARRIER-1"));
         appendWithAggregate(assetId, asset -> asset.receive("WH-2", "RECEIVER-1"));
-        assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "sha256:" + "e1".repeat(32), Instant.now(), ACTOR);
+        assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "05001", "sha256:" + "e1".repeat(32), Instant.now(), ACTOR);
 
         await(() -> Optional.of(historyStatuses(assetId)).filter(h -> h.size() == 4));
         assertThat(logisticsStatus(fundId, assetId)).isEqualTo("DELIVERED");
@@ -205,7 +206,7 @@ class ProjectionChangeStreamE2ETest {
         funds.clearFundsGenesis(cmd(), fundId, new OrganizationRef(ORG), "CAMP-SPLIT", "DONOR-1", "COP", 1000L,
                 "SRC-1", ACTOR);
         funds.requestAllocation(cmd(), fundId, allocationId, 400L, ACTOR);
-        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.TEN, "KGS", "CUST-1", "WH-1",
+        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.TEN, "KGS", "CUST-1", "WH-1", "05001",
                 allocationId, null, ACTOR);
         String parentId = assetIdOfAllocation(allocationId);
 
@@ -220,7 +221,7 @@ class ProjectionChangeStreamE2ETest {
         for (String assetId : List.of(parentId, childId)) {
             appendWithAggregate(assetId, asset -> asset.dispatch("CARRIER-1"));
             appendWithAggregate(assetId, asset -> asset.receive("WH-2", "RECEIVER-1"));
-            assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "sha256:" + "e1".repeat(32), Instant.now(), ACTOR);
+            assets.deliverAsset(cmd(), assetId, "CUST-2", "BENEFICIARY-1", "WH-2", "05001", "sha256:" + "e1".repeat(32), Instant.now(), ACTOR);
         }
 
         await(() -> Optional.of(historyStatuses(childId)).filter(h -> h.contains("DELIVERED")));
@@ -240,13 +241,13 @@ class ProjectionChangeStreamE2ETest {
                 ACTOR);
         funds.requestAllocation(cmd(), fundId, allocationId, 100L, ACTOR);
 
-        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.ONE, "KGS", "CUST-1", "WH-1",
+        assets.registerPhysicalAsset(cmd(), fundId, ORG, "FOOD_RATION", BigDecimal.ONE, "KGS", "CUST-1", "WH-1", "05001",
                 allocationId, null, ACTOR);
 
         // Premisa de la detección del Camino B (donationRef != null): el Camino A nunca la cumple.
         DomainEventPayload genesis = eventStore.loadStream(assetIdOfAllocation(allocationId)).get(0).payload();
-        assertThat(genesis).isInstanceOf(AssetRegisteredV3Payload.class);
-        assertThat(((AssetRegisteredV3Payload) genesis).donationRef()).isNull();
+        assertThat(genesis).isInstanceOf(AssetRegisteredV4Payload.class);
+        assertThat(((AssetRegisteredV4Payload) genesis).donationRef()).isNull();
     }
 
     @Test
@@ -256,7 +257,7 @@ class ProjectionChangeStreamE2ETest {
                 "SRC-1", ACTOR);
 
         assets.registerPhysicalAssetFromDonation(cmd(), ORG, "DONOR-2", "BLANKETS", BigDecimal.TEN, "UNITS",
-                "CUST-1", "WH-1", ACTOR);
+                "CUST-1", "WH-1", "05001", ACTOR);
         String assetId = mongoTemplate.findOne(new Query(Criteria.where("aggregateType").is("PhysicalAsset")
                         .and("eventType").is("ASSET_REGISTERED").and("payload.donorRef").is("DONOR-2")),
                 TraceabilityEventDocument.class).getStreamId();

@@ -37,5 +37,7 @@ public class AssetHistoryProjectionDocument {
         private String custodian;
         private String status;
         private long sequence;
+        // ADR-029 Enmienda 2, D5: la zona sellada del paso, copiada del evento; null en los pasos anteriores
+        private String zoneName;
     }
 }

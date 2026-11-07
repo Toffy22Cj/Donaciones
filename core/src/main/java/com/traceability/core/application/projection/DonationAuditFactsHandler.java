@@ -8,6 +8,9 @@ import com.traceability.core.domain.fund.payloads.FundsRefundedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationAuditFactsDocument;
@@ -40,7 +43,9 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
 
     private static final Set<Class<? extends DomainEventPayload>> HANDLED = Set.of(
             FundsRefundedPayload.class,
-            AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetDeliveredPayload.class);
+            AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetDeliveredPayload.class,
+            // ADR-029 Enmienda 2: las versiones 2.0 son los mismos hechos, con la zona sellada
+            AssetDispatchedV2Payload.class, AssetReceivedV2Payload.class, AssetDeliveredV2Payload.class);
 
     /** El resto del registro: avanzan la secuencia sin hechos de auditoría. */
     private static final Set<Class<? extends DomainEventPayload>> IGNORED = ignoredFromRegistry();
@@ -186,7 +191,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
 
         Instant eventTime = Instant.parse(eventDoc.getOccurredAt());
 
-        if (payload instanceof AssetDispatchedPayload) {
+        if (payload instanceof AssetDispatchedPayload || payload instanceof AssetDispatchedV2Payload) {
             // Re-despacho: remove orphaned RECEIVED->?
             Update pullUpdate = new Update();
             pullUpdate.pull("transitions", new Document("assetRef", assetId)
@@ -198,7 +203,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             TransitionFactDTO newTransition = new TransitionFactDTO(assetId, "DISPATCHED", null, eventTime, null, 0, null, false);
             update.push("transitions", newTransition);
 
-        } else if (payload instanceof AssetReceivedPayload) {
+        } else if (payload instanceof AssetReceivedPayload || payload instanceof AssetReceivedV2Payload) {
             // Close DISPATCHED->RECEIVED if exists
             int targetIndex = findPendingTransitionIndex(doc, assetId, "DISPATCHED");
             if (targetIndex >= 0) {
@@ -220,7 +225,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             TransitionFactDTO newTransition = new TransitionFactDTO(assetId, "RECEIVED", null, eventTime, null, 0, null, false);
             update.push("transitions", newTransition);
 
-        } else if (payload instanceof AssetDeliveredPayload) {
+        } else if (payload instanceof AssetDeliveredPayload || payload instanceof AssetDeliveredV2Payload) {
             // Close any pending (DISPATCHED or RECEIVED)
             int targetIndex = findMostRecentPendingTransitionIndex(doc, assetId);
             if (targetIndex >= 0) {

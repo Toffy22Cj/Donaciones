@@ -5,6 +5,7 @@ import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.traceability.core.infrastructure.projection.mongo.documents.AssetIndexDocument;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationProjectionDocument;
 import com.traceability.core.infrastructure.projection.mongo.repositories.AssetIndexRepository;
@@ -27,12 +28,13 @@ import java.util.Optional;
 public class AssetProjectionRouting {
 
     /**
-     * Vista común de {@code ASSET_REGISTERED} 1.0, 2.0 y 3.0. {@code campaignRef} solo existe en la 3.0 (ADR-029
-     * Enmienda 1, D7); en 1.0/2.0 es {@code null} y nunca se infiere.
+     * Vista común de {@code ASSET_REGISTERED} 1.0 a 4.0. {@code campaignRef} existe desde la 3.0 (ADR-029 Enmienda 1,
+     * D7); en 1.0/2.0 es {@code null} y nunca se infiere. {@code zoneName} solo existe en la 4.0 (Enmienda 2, D1).
      */
     public record Registration(String assetId, String allocationId, String sourceAllocationId, String parentAssetRef,
                                String rootAssetRef, BigDecimal quantity, String unitOfMeasure, String assetType,
-                               String currentLocation, String custodianRef, String donationRef, String campaignRef) {
+                               String currentLocation, String custodianRef, String donationRef, String campaignRef,
+                               String zoneName) {
 
         /**
          * Camino B: solo {@code PhysicalAsset.create} (donación en especie) fija {@code donationRef}; el Camino A
@@ -58,20 +60,25 @@ public class AssetProjectionRouting {
 
     /** Vista común si el payload es un {@code ASSET_REGISTERED} de cualquier versión. */
     public static Optional<Registration> registration(DomainEventPayload payload) {
+        if (payload instanceof AssetRegisteredV4Payload p) {
+            return Optional.of(new Registration(p.assetId(), p.allocationId(), p.sourceAllocationId(),
+                    p.parentAssetRef(), p.rootAssetRef(), p.quantity(), p.unitOfMeasure(), p.assetType(),
+                    p.currentLocation(), p.custodianRef(), p.donationRef(), p.campaignRef(), p.zoneName()));
+        }
         if (payload instanceof AssetRegisteredV3Payload p) {
             return Optional.of(new Registration(p.assetId(), p.allocationId(), p.sourceAllocationId(),
                     p.parentAssetRef(), p.rootAssetRef(), p.quantity(), p.unitOfMeasure(), p.assetType(),
-                    p.currentLocation(), p.custodianRef(), p.donationRef(), p.campaignRef()));
+                    p.currentLocation(), p.custodianRef(), p.donationRef(), p.campaignRef(), null));
         }
         if (payload instanceof AssetRegisteredV2Payload p) {
             return Optional.of(new Registration(p.assetId(), p.allocationId(), p.sourceAllocationId(),
                     p.parentAssetRef(), p.rootAssetRef(), p.quantity(), p.unitOfMeasure(), p.assetType(),
-                    p.currentLocation(), p.custodianRef(), p.donationRef(), null));
+                    p.currentLocation(), p.custodianRef(), p.donationRef(), null, null));
         }
         if (payload instanceof AssetRegisteredPayload p) {
             return Optional.of(new Registration(p.assetId(), p.allocationId(), p.sourceAllocationId(),
                     p.parentAssetRef(), p.rootAssetRef(), p.quantity(), p.unitOfMeasure(), p.assetType(),
-                    p.currentLocation(), p.custodianRef(), null, null));
+                    p.currentLocation(), p.custodianRef(), null, null, null));
         }
         return Optional.empty();
     }

@@ -432,12 +432,30 @@ public class Organization {
         }
     }
 
+    /**
+     * [Plan] Ficha de preverificación (CONGELADA el 2026-11-02), condiciones 1 y 2: los nombres de campo del perfil que
+     * faltan para que {@link #verify()} no responda {@code VerificationDataMissing}, en orden fijo
+     * {@code ["legalName", "nit"]}. Vacía = datos completos. Es el único cálculo: lo usan {@link #verify()} y la bandeja
+     * de la plataforma. Es una lectura: no cambia el estado ni nada guardado.
+     */
+    public List<String> missingForVerification() {
+        List<String> missing = new ArrayList<>(2);
+        if (this.profile.legalName() == null) {
+            missing.add("legalName");
+        }
+        if (this.profile.nit() == null) {
+            missing.add("nit");
+        }
+        return List.copyOf(missing);
+    }
+
     public void verify() {
         if (this.verificationStatus == VerificationStatus.VERIFIED || this.verificationStatus == VerificationStatus.REJECTED) {
             throw new InvalidVerificationTransitionException(this.verificationStatus, VerificationCommand.VERIFY);
         }
-        // ficha R-7, P2 (b): la plataforma no verifica sin razón social y NIT con que comprobarla
-        if (this.profile.legalName() == null || this.profile.nit() == null) {
+        // ficha R-7, P2 (b): la plataforma no verifica sin razón social y NIT con que comprobarla. La condición es la
+        // misma lista que ve la bandeja (ficha de preverificación, condición 1): un solo cálculo
+        if (!missingForVerification().isEmpty()) {
             throw new VerificationDataMissingException("Verification requires legalName and nit");
         }
         this.verificationStatus = VerificationStatus.VERIFIED;

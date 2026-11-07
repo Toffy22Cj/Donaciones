@@ -202,6 +202,16 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **El correo de contacto es público** (P3): el formulario debe avisarlo.
 - **Límite conocido (P-R7-3):** los términos de organización no cambian de versión en este PR, y las organizaciones existentes no vuelven a aceptar.
 
+*Nota (2026-11-02, ficha de preverificación CONGELADA; plan aprobado en #171):* **preverificación de organizaciones, Nivel 1.** Las filas de arriba no se reescriben.
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `GET /platform/organizations` | como antes | — | Cada ítem gana **`missingForVerification: string[]`**, siempre presente: los nombres de campo del perfil que faltan para verificar, en orden fijo `["legalName", "nit"]`; `[]` = datos completos. Los dos valores son fijos del contrato (P-PV-6). Se calcula al leer; no se guarda. **No** cambia el orden (por creación) ni la paginación (20 por página), y no se puede filtrar por él | como antes (el mismo 403 a quien no es de la plataforma) |
+| `POST /platform/organizations/{id}/verify` | como antes | — | como antes | El 409 `VerificationDataMissing` se da **si y solo si** `missingForVerification` no está vacía (el mismo método del dominio). Desde `VERIFIED` o `REJECTED` sigue siendo primero el 409 de transición |
+| `GET /organizations/{id}`, `PUT /organizations/{id}/profile` y las rutas públicas | — | — | **No** llevan `missingForVerification` (ficha P4 (a)) | — |
+
+- **Ninguna automatización verifica ni rechaza:** la lista solo informa a la persona de la plataforma.
+
 
 *Nota (2026-10-21, ficha R-6, Bloque A; G-4b y G-5):* `GET /organizations/{organizationId}/physical-assets` lleva además **`assetType`** en cada ítem (el registrado; sigue sin `parentAssetRef`, `rootAssetRef` ni `donorRef`). `GET /organizations/{organizationId}/campaigns` lleva además **`startDate`** y **`endDate`** en cada ítem (ISO-8601 UTC, siempre presentes; las del dominio, como en CV-07). Las filas de arriba no se reescriben.
 
@@ -349,3 +359,16 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 ## 9. Sin HTTP
 
 `MerkleBatch`, `BlockchainAnchorScheduler`, `AnchorConfirmationPoller` e `IntegrityVerificationPort.verifyBatch` son procesos internos (matriz §6). El anclaje en testnet y su evidencia: `runbook-anclaje-testnet.md`.
+
+*Nota (2026-11-02, enmienda 2 de ADR-029 y `plan-zona-en-cada-paso.md`, aprobados por Manuel en #170, comentario 6589733853): la zona pública en cada paso.* Las filas de arriba no se reescriben; esta nota las supera donde dice.
+
+- **`municipalityCode` obligatorio** (código DIVIPOLA de 5 dígitos) en el cuerpo de cuatro rutas. **Cambia el contrato y rompe los clientes actuales**: sin él, con otra forma o con un código que no está en el catálogo → **400**, con el mismo cuerpo `BadRequest` que un campo inválido y sin escribir nada.
+  - `POST /physical-assets/register` (Camino A): `{…, currentLocation, municipalityCode, allocationId, sourceAllocationId?}`.
+  - `POST /physical-assets/from-donation` (Camino B): `{…, currentLocation, municipalityCode, campaignRef?}`.
+  - `POST /physical-assets/{assetRef}/receive`: `{facilityLocation, receiverRef, municipalityCode}`.
+  - `POST /physical-assets/{assetRef}/deliver`: `{finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, municipalityCode}`.
+  - `POST /physical-assets/{assetRef}/dispatch` **no cambia**: el sistema sella la zona del paso anterior.
+- El texto libre (`currentLocation`, `facilityLocation`, `locationRef`) se sigue pidiendo y **es privado**: no sale en ninguna respuesta pública.
+- **`GET /physical-assets/{assetRef}`** y cada ítem de **`GET /organizations/{organizationId}/physical-assets`** llevan además **`municipalityCode?`** y **`zoneName?`** (la zona sellada de la ubicación actual; ausentes en un activo sin zona, de antes del cambio).
+- **De dónde sale `locationZone`** en `GET /donations/tracking/assets/{assetRef}/history`, en `logistics[]` de `GET /donations/tracking` y en `GET /organizations/{organizationId}/activity`: del texto **sellado** en el evento, `"MUNICIPIO, DEPARTAMENTO"` en mayúsculas tal cual el catálogo DIVIPOLA (Bogotá una sola vez: `"BOGOTÁ, D.C."`); **la presentación la decide el front**. Los pasos registrados antes del cambio siguen con `location_reference` como respaldo, y pueden llegar `null`.
+- **Supera la fila de `GET /donations/tracking/assets/{assetRef}/history` (arriba) en lo del despacho:** `locationZone` llega en `DISPATCHED` con la zona del paso anterior en los pasos registrados desde este cambio. En los anteriores puede seguir llegando `null`. `SPLIT`, `CUSTODY_TRANSFERRED`, `SPLIT_COMPENSATED` y `DEPLETED` siguen sin zona.

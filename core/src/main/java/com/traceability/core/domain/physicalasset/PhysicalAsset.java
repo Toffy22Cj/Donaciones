@@ -36,6 +36,12 @@ public class PhysicalAsset extends AggregateRoot {
     private String donationRef;
     /** Convocatoria del activo (ADR-029 Enmienda 1). Inmutable; {@code null} = sin convocatoria. */
     private String campaignRef;
+    /**
+     * Zona DIVIPOLA sellada de la ubicación actual (ADR-029 Enmienda 2). La fijan el registro, la recepción y la
+     * entrega; el despacho la conserva (es "el lugar del paso anterior", P2). {@code null} si el último paso con
+     * ubicación es de una versión anterior (E-1).
+     */
+    private SealedZone zone;
 
     // final delivery metadata for idempotency checking.
     // finalBeneficiaryRef is only replayed from ASSET_DELIVERED to compare redeliveries; it never
@@ -70,15 +76,26 @@ public class PhysicalAsset extends AggregateRoot {
                 rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null);
     }
 
-    /**
-     * Camino A. Escribe {@code ASSET_REGISTERED} 3.0 (ADR-029 Enmienda 1, D1). {@code campaignRef} es el del
-     * {@code Fund} (D2): lo resuelve el servicio de aplicación, nunca el llamador; puede ser {@code null}.
-     */
+    /** Camino A sin zona sellada (equivale a {@code zone = null}). */
     public static PhysicalAsset register(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef, String campaignRef) {
+        return register(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, campaignRef, null);
+    }
+
+    /**
+     * Camino A. Escribe {@code ASSET_REGISTERED} 4.0 (ADR-029 Enmienda 2, D2). {@code campaignRef} es el del
+     * {@code Fund} (Enmienda 1, D2): lo resuelve el servicio de aplicación, nunca el llamador; puede ser {@code null}.
+     * {@code zone} la valida el servicio contra el catálogo (Enmienda 2, D3).
+     */
+    public static PhysicalAsset register(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String campaignRef, SealedZone zone) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -98,10 +115,10 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV4Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
                 parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null,
-                campaignRef));
+                campaignRef, codeOf(zone), nameOf(zone), versionOf(zone)));
         return asset;
     }
 
@@ -115,16 +132,26 @@ public class PhysicalAsset extends AggregateRoot {
                 rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef, null);
     }
 
-    /**
-     * Camino B. Escribe {@code ASSET_REGISTERED} 3.0 (ADR-029 Enmienda 1, D1). {@code campaignRef} lo recibe el comando
-     * y lo valida el servicio de aplicación contra {@code convocatoria} antes de llegar aquí (D3); puede ser
-     * {@code null}.
-     */
+    /** Camino B sin zona sellada (equivale a {@code zone = null}). */
     public static PhysicalAsset create(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef, String donationRef, String campaignRef) {
+        return create(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef, campaignRef, null);
+    }
+
+    /**
+     * Camino B. Escribe {@code ASSET_REGISTERED} 4.0 (ADR-029 Enmienda 2, D2). {@code campaignRef} lo recibe el comando
+     * y lo valida el servicio de aplicación contra {@code convocatoria} antes de llegar aquí (Enmienda 1, D3); puede ser
+     * {@code null}. {@code zone} la valida el servicio contra el catálogo (Enmienda 2, D3).
+     */
+    public static PhysicalAsset create(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String donationRef, String campaignRef, SealedZone zone) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -150,20 +177,21 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV4Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
                 parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef,
-                campaignRef));
+                campaignRef, codeOf(zone), nameOf(zone), versionOf(zone)));
         return asset;
     }
 
     /**
-     * Génesis del hijo de una división (D-SPLIT S3; B1-bis). Escribe {@code ASSET_REGISTERED} 3.0. Origen de cada
+     * Génesis del hijo de una división (D-SPLIT S3; B1-bis). Escribe {@code ASSET_REGISTERED} 4.0. Origen de cada
      * atributo (P4):
      * <ul>
      *   <li>del {@code ASSET_SPLIT}: cantidad, unidad, ubicación y custodio <em>en el momento de la división</em> (son
      *       mutables en el padre), {@code rootAssetRef} y las referencias heredadas {@code organizationRef},
-     *       {@code donorRef}, {@code donationRef} y {@code campaignRef} (ADR-029 §3; Enmienda 1, D4);</li>
+     *       {@code donorRef}, {@code donationRef} y {@code campaignRef} (ADR-029 §3; Enmienda 1, D4), y la zona sellada
+     *       (Enmienda 2, D4; {@code null} si la división no la trae);</li>
      *   <li>del padre, solo atributos inmutables desde su registro: {@code assetType} y la asignación de origen
      *       ({@code allocationId} del padre o, si el padre ya es hijo, su {@code sourceAllocationId}).</li>
      * </ul>
@@ -175,15 +203,15 @@ public class PhysicalAsset extends AggregateRoot {
         String sourceAllocationId = parent.allocationId != null ? parent.allocationId : parent.sourceAllocationId;
 
         PhysicalAsset child = new PhysicalAsset();
-        child.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV3Payload(
+        child.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV4Payload(
                 childAssetId, parent.assetType, split.extractedQuantity(), split.unitOfMeasure(),
                 split.childLocation(), split.childCustodianRef(), parent.assetId, split.rootAssetRef(),
                 null, sourceAllocationId, split.organizationRef(), split.donorRef(), split.donationRef(),
-                split.campaignRef()));
+                split.campaignRef(), codeOf(split.zone()), nameOf(split.zone()), versionOf(split.zone())));
         return child;
     }
 
-    /** El {@code ASSET_SPLIT} (v1, v2 o v3) que generó ese hijo. */
+    /** El {@code ASSET_SPLIT} (v1 a v4) que generó ese hijo. */
     public java.util.Optional<SplitRecord> findSplit(String childAssetId) {
         return java.util.Optional.ofNullable(splits.get(childAssetId));
     }
@@ -204,11 +232,18 @@ public class PhysicalAsset extends AggregateRoot {
             throw new InvalidAssetTransitionException("Cannot dispatch asset without current location");
         }
 
-        raiseEvent(PhysicalAssetEventType.ASSET_DISPATCHED, new AssetDispatchedPayload(
-                carrierRef, this.currentLocation));
+        // ADR-029 Enmienda 2, P2: la zona del paso anterior, copiada del estado; el comando no trae ninguna
+        raiseEvent(PhysicalAssetEventType.ASSET_DISPATCHED, new AssetDispatchedV2Payload(
+                carrierRef, this.currentLocation, codeOf(zone), nameOf(zone), versionOf(zone)));
     }
 
+    /** Recepción sin zona sellada (equivale a {@code zone = null}). */
     public void receive(String facilityLocation, String receiverRef) {
+        receive(facilityLocation, receiverRef, null);
+    }
+
+    /** Escribe {@code ASSET_RECEIVED} 2.0 con la zona que validó el servicio (ADR-029 Enmienda 2, D2 y D3). */
+    public void receive(String facilityLocation, String receiverRef, SealedZone zone) {
         checkOrganizationAssigned();
         if (lifecycleStatus != AssetLifecycleStatus.DISPATCHED) {
             throw new InvalidAssetTransitionException("Cannot receive asset that is not dispatched");
@@ -217,8 +252,8 @@ public class PhysicalAsset extends AggregateRoot {
             throw new IllegalArgumentException("Facility location is required");
         }
 
-        raiseEvent(PhysicalAssetEventType.ASSET_RECEIVED, new AssetReceivedPayload(
-                facilityLocation, receiverRef));
+        raiseEvent(PhysicalAssetEventType.ASSET_RECEIVED, new AssetReceivedV2Payload(
+                facilityLocation, receiverRef, codeOf(zone), nameOf(zone), versionOf(zone)));
     }
 
     public void transferCustody(String newCustodianRef) {
@@ -252,12 +287,13 @@ public class PhysicalAsset extends AggregateRoot {
 
         BigDecimal previousQ = this.quantity;
 
-        // ADR-029 Enmienda 1, D4: el hijo hereda también el campaignRef del padre (3.0).
-        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV3Payload(
+        // ADR-029 Enmienda 1, D4: el hijo hereda también el campaignRef del padre; Enmienda 2, D4: y su zona sellada (4.0)
+        raiseEvent(PhysicalAssetEventType.ASSET_SPLIT, new AssetSplitV4Payload(
                 childAssetId, extractedQuantity, this.unitOfMeasure, previousQ,
                 previousQ.subtract(extractedQuantity), this.lifecycleStatus.name(),
                 this.currentLocation, this.custodianRef, this.rootAssetRef,
-                this.organizationRef, this.donorRef, this.donationRef, this.campaignRef));
+                this.organizationRef, this.donorRef, this.donationRef, this.campaignRef,
+                codeOf(zone), nameOf(zone), versionOf(zone)));
 
         if (this.quantity.compareTo(BigDecimal.ZERO) == 0) {
             raiseEvent(PhysicalAssetEventType.ASSET_DEPLETED, new AssetDepletedPayload(previousQ));
@@ -286,13 +322,24 @@ public class PhysicalAsset extends AggregateRoot {
                 childAssetId, reintegratedQuantity));
     }
 
+    /** Entrega sin zona sellada (equivale a {@code zone = null}). */
     public void deliver(String finalCustodianRef, String beneficiaryRef, String locationRef, String evidenceRef,
             Instant deliveredAt) {
+        deliver(finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt, null);
+    }
+
+    /**
+     * Escribe {@code ASSET_DELIVERED} 2.0 con la zona que validó el servicio (ADR-029 Enmienda 2, D2 y D3). Una entrega
+     * repetida es idempotente solo si todo coincide, también el municipio.
+     */
+    public void deliver(String finalCustodianRef, String beneficiaryRef, String locationRef, String evidenceRef,
+            Instant deliveredAt, SealedZone zone) {
         checkOrganizationAssigned();
         if (lifecycleStatus == AssetLifecycleStatus.DELIVERED) {
             if (Objects.equals(this.custodianRef, finalCustodianRef)
                     && Objects.equals(this.finalBeneficiaryRef, beneficiaryRef)
                     && Objects.equals(this.currentLocation, locationRef)
+                    && Objects.equals(codeOf(this.zone), codeOf(zone))
                     && Objects.equals(this.finalEvidenceRef, evidenceRef)
                     && Objects.equals(this.finalDeliveredAt, deliveredAt)) {
                 return;
@@ -304,13 +351,46 @@ public class PhysicalAsset extends AggregateRoot {
             throw new InvalidAssetTransitionException("Cannot deliver asset in status " + lifecycleStatus);
         }
 
-        raiseEvent(PhysicalAssetEventType.ASSET_DELIVERED, new AssetDeliveredPayload(
-                finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt));
+        raiseEvent(PhysicalAssetEventType.ASSET_DELIVERED, new AssetDeliveredV2Payload(
+                finalCustodianRef, beneficiaryRef, locationRef, evidenceRef, deliveredAt,
+                codeOf(zone), nameOf(zone), versionOf(zone)));
+    }
+
+    private static String codeOf(SealedZone zone) {
+        return zone == null ? null : zone.municipalityCode();
+    }
+
+    private static String nameOf(SealedZone zone) {
+        return zone == null ? null : zone.zoneName();
+    }
+
+    private static String versionOf(SealedZone zone) {
+        return zone == null ? null : zone.catalogVersion();
     }
 
     @Override
     protected void apply(DomainEventPayload payload) {
         switch (payload) {
+            // 4.0 (ADR-029 Enmienda 2): la 3.0 + la zona sellada
+            case AssetRegisteredV4Payload p -> {
+                this.assetId = p.assetId();
+                this.assetType = p.assetType();
+                this.quantity = p.quantity().setScale(4, RoundingMode.HALF_UP);
+                this.unitOfMeasure = p.unitOfMeasure();
+                this.lifecycleStatus = AssetLifecycleStatus.REGISTERED;
+                this.currentLocation = p.currentLocation();
+                this.lastKnownLocation = p.currentLocation();
+                this.custodianRef = p.custodianRef();
+                this.parentAssetRef = p.parentAssetRef();
+                this.rootAssetRef = p.rootAssetRef();
+                this.allocationId = p.allocationId();
+                this.sourceAllocationId = p.sourceAllocationId();
+                this.organizationRef = p.organizationRef();
+                this.donorRef = p.donorRef();
+                this.donationRef = p.donationRef();
+                this.campaignRef = p.campaignRef();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
+            }
             case AssetRegisteredV3Payload p -> {
                 this.assetId = p.assetId();
                 this.assetType = p.assetType();
@@ -367,14 +447,39 @@ public class PhysicalAsset extends AggregateRoot {
                 this.currentLocation = null;
                 this.custodianRef = p.carrierRef();
             }
+            // En camino, la zona sigue siendo la del paso anterior (la que el despacho copió)
+            case AssetDispatchedV2Payload p -> {
+                this.lifecycleStatus = AssetLifecycleStatus.DISPATCHED;
+                this.lastKnownLocation = p.previousLocation();
+                this.currentLocation = null;
+                this.custodianRef = p.carrierRef();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
+            }
             case AssetReceivedPayload p -> {
                 this.lifecycleStatus = AssetLifecycleStatus.RECEIVED;
                 this.currentLocation = p.facilityLocation();
                 this.lastKnownLocation = p.facilityLocation();
                 this.custodianRef = p.receiverRef();
+                this.zone = null; // la ubicación cambió sin zona sellada
+            }
+            case AssetReceivedV2Payload p -> {
+                this.lifecycleStatus = AssetLifecycleStatus.RECEIVED;
+                this.currentLocation = p.facilityLocation();
+                this.lastKnownLocation = p.facilityLocation();
+                this.custodianRef = p.receiverRef();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
             }
             case AssetCustodyTransferredPayload p -> {
                 this.custodianRef = p.newCustodianRef();
+            }
+            case AssetSplitV4Payload p -> {
+                this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
+                        p.unitOfMeasure(), p.childLocation(), p.childCustodianRef(), p.rootAssetRef(),
+                        p.organizationRef(), p.donorRef(), p.donationRef(), p.campaignRef(),
+                        SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion())));
+                this.splitsBeforeCompensation.put(p.childAssetId(),
+                        AssetLifecycleStatus.valueOf(p.statusBeforeSplit()));
+                this.quantity = this.quantity.subtract(p.extractedQuantity().setScale(4, RoundingMode.HALF_UP));
             }
             case AssetSplitV3Payload p -> {
                 this.splits.put(p.childAssetId(), new SplitRecord(p.childAssetId(), scaled(p.extractedQuantity()),
@@ -419,6 +524,17 @@ public class PhysicalAsset extends AggregateRoot {
                 this.finalBeneficiaryRef = p.beneficiaryRef();
                 this.finalEvidenceRef = p.evidenceRef();
                 this.finalDeliveredAt = p.deliveredAt();
+                this.zone = null; // la ubicación cambió sin zona sellada
+            }
+            case AssetDeliveredV2Payload p -> {
+                this.lifecycleStatus = AssetLifecycleStatus.DELIVERED;
+                this.currentLocation = p.locationRef();
+                this.lastKnownLocation = p.locationRef();
+                this.custodianRef = p.finalCustodianRef();
+                this.finalBeneficiaryRef = p.beneficiaryRef();
+                this.finalEvidenceRef = p.evidenceRef();
+                this.finalDeliveredAt = p.deliveredAt();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
             }
             default -> throw new IllegalArgumentException("Unknown payload type: " + payload.getClass());
         }
@@ -456,6 +572,16 @@ public class PhysicalAsset extends AggregateRoot {
 
     public String getLastKnownLocation() {
         return lastKnownLocation;
+    }
+
+    /** La zona sellada de la ubicación actual (ADR-029 Enmienda 2); {@code null} si no la hay (E-1). */
+    public SealedZone getZone() {
+        return zone;
+    }
+
+    /** La huella de la evidencia sellada en la entrega (ADR-051 F3); {@code null} si no está entregado. */
+    public String getFinalEvidenceRef() {
+        return finalEvidenceRef;
     }
 
     public String getCustodianRef() {

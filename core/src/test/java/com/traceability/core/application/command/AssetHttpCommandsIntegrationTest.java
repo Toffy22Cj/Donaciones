@@ -15,8 +15,9 @@ import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.AssetIds;
-import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
-import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.support.StubMunicipalityCatalogPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
@@ -106,7 +107,7 @@ class AssetHttpCommandsIntegrationTest {
 
     private String registerInKind(String commandId) {
         return assets.registerPhysicalAssetFromDonation(commandId, ORG, "anon:donor", "FOOD", new BigDecimal("10"),
-                "KGS", "CUST-1", "WH-1", actor(EMPLOYEE)).assetId();
+                "KGS", "CUST-1", "WH-1", "05001", actor(EMPLOYEE)).assetId();
     }
 
     private long eventCount() {
@@ -120,10 +121,10 @@ class AssetHttpCommandsIntegrationTest {
         String commandId = UUID.randomUUID().toString();
 
         RegisteredAsset first = assets.registerPhysicalAssetFromDonation(commandId, ORG, "anon:donor", "FOOD",
-                new BigDecimal("10"), "KGS", "CUST-1", "WH-1", actor(EMPLOYEE));
+                new BigDecimal("10"), "KGS", "CUST-1", "WH-1", "05001", actor(EMPLOYEE));
         long events = eventCount();
         RegisteredAsset again = assets.registerPhysicalAssetFromDonation(commandId, ORG, "anon:donor", "FOOD",
-                new BigDecimal("99"), "KGS", "CUST-2", "WH-2", actor(EMPLOYEE));
+                new BigDecimal("99"), "KGS", "CUST-2", "WH-2", "05001", actor(EMPLOYEE));
 
         assertThat(first.assetId()).isEqualTo(AssetIds.of(ORG, commandId));
         assertThat(first.donationRef()).isNotBlank();
@@ -142,9 +143,9 @@ class AssetHttpCommandsIntegrationTest {
         String commandId = UUID.randomUUID().toString();
 
         RegisteredAsset first = assets.registerPhysicalAsset(commandId, fundId, ORG, "FOOD", BigDecimal.ONE, "KGS",
-                "CUST-1", "WH-1", allocationId, null, actor(EMPLOYEE));
+                "CUST-1", "WH-1", "05001", allocationId, null, actor(EMPLOYEE));
         RegisteredAsset again = assets.registerPhysicalAsset(commandId, fundId, ORG, "FOOD", BigDecimal.ONE, "KGS",
-                "CUST-1", "WH-1", allocationId, null, actor(EMPLOYEE));
+                "CUST-1", "WH-1", "05001", allocationId, null, actor(EMPLOYEE));
 
         assertThat(first).isEqualTo(new RegisteredAsset(AssetIds.of(ORG, commandId), null, "CAMP-B6C"));
         assertThat(again).isEqualTo(first);
@@ -171,7 +172,7 @@ class AssetHttpCommandsIntegrationTest {
         assertThatThrownBy(() -> assets.splitPhysicalAsset(commandId, assetId, BigDecimal.ONE, actor(EMPLOYEE)))
                 .isInstanceOf(CommandIdReusedException.class);
         assertThatThrownBy(() -> assets.registerPhysicalAssetFromDonation(commandId, OTHER_ORG, "anon:x", "FOOD",
-                BigDecimal.ONE, "KGS", "C", "L", actor(OTHER_EMPLOYEE)))
+                BigDecimal.ONE, "KGS", "C", "L", "05001", actor(OTHER_EMPLOYEE)))
                 .isInstanceOf(CommandIdReusedException.class);
         assertThat(eventCount()).isEqualTo(events);
     }
@@ -197,13 +198,16 @@ class AssetHttpCommandsIntegrationTest {
 
         assets.dispatchAsset(dispatch, assetId, "CARRIER-1", actor(EMPLOYEE));
         assets.dispatchAsset(dispatch, assetId, "CARRIER-1", actor(EMPLOYEE));
-        assets.receiveAsset(receive, assetId, "WH-2", "RECEIVER-1", actor(EMPLOYEE));
-        assets.receiveAsset(receive, assetId, "WH-2", "RECEIVER-1", actor(EMPLOYEE));
+        assets.receiveAsset(receive, assetId, "WH-2", "05001", "RECEIVER-1", actor(EMPLOYEE));
+        assets.receiveAsset(receive, assetId, "WH-2", "05001", "RECEIVER-1", actor(EMPLOYEE));
 
         List<DomainEvent> stream = eventStore.loadStream(assetId);
         assertThat(stream).hasSize(3);
-        assertThat(stream.get(1).payload()).isEqualTo(new AssetDispatchedPayload("CARRIER-1", "WH-1"));
-        assertThat(stream.get(2).payload()).isEqualTo(new AssetReceivedPayload("WH-2", "RECEIVER-1"));
+        // ADR-029 Enmienda 2: 2.0, con la zona sellada (el despacho copia la del registro)
+        assertThat(stream.get(1).payload()).isEqualTo(new AssetDispatchedV2Payload("CARRIER-1", "WH-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION));
+        assertThat(stream.get(2).payload()).isEqualTo(new AssetReceivedV2Payload("WH-2", "RECEIVER-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION));
         assertThat(reads.findOperationalView(assetId, actor(EMPLOYEE)).lifecycleStatus()).isEqualTo("RECEIVED");
     }
 
@@ -215,7 +219,7 @@ class AssetHttpCommandsIntegrationTest {
                 .isInstanceOf(InsufficientRoleException.class);
         assertThatThrownBy(() -> assets.dispatchAsset(UUID.randomUUID().toString(), assetId, "C", actor(OTHER_EMPLOYEE)))
                 .isInstanceOf(CrossOrganizationAccessException.class);
-        assertThatThrownBy(() -> assets.receiveAsset(UUID.randomUUID().toString(), assetId, "WH", "R", actor(OTHER_EMPLOYEE)))
+        assertThatThrownBy(() -> assets.receiveAsset(UUID.randomUUID().toString(), assetId, "WH", "05001", "R", actor(OTHER_EMPLOYEE)))
                 .isInstanceOf(CrossOrganizationAccessException.class);
         assertThat(eventStore.loadStream(assetId)).hasSize(1);
         assertThat(mongoTemplate.getCollection("processed_commands").countDocuments()).isEqualTo(1);
@@ -227,9 +231,9 @@ class AssetHttpCommandsIntegrationTest {
 
         assertThatThrownBy(() -> assets.dispatchAsset(UUID.randomUUID().toString(), missing, "C", actor(EMPLOYEE)))
                 .isInstanceOf(PhysicalAssetNotFoundException.class);
-        assertThatThrownBy(() -> assets.receiveAsset(UUID.randomUUID().toString(), missing, "W", "R", actor(EMPLOYEE)))
+        assertThatThrownBy(() -> assets.receiveAsset(UUID.randomUUID().toString(), missing, "W", "05001", "R", actor(EMPLOYEE)))
                 .isInstanceOf(PhysicalAssetNotFoundException.class);
-        assertThatThrownBy(() -> assets.deliverAsset(UUID.randomUUID().toString(), missing, "C", "B", "L", "sha256:" + "e1".repeat(32),
+        assertThatThrownBy(() -> assets.deliverAsset(UUID.randomUUID().toString(), missing, "C", "B", "L", "05001", "sha256:" + "e1".repeat(32),
                 java.time.Instant.now(), actor(EMPLOYEE))).isInstanceOf(PhysicalAssetNotFoundException.class);
         assertThatThrownBy(() -> assets.splitPhysicalAsset(UUID.randomUUID().toString(), missing, BigDecimal.ONE,
                 actor(EMPLOYEE))).isInstanceOf(PhysicalAssetNotFoundException.class);
@@ -249,12 +253,13 @@ class AssetHttpCommandsIntegrationTest {
         PhysicalAssetOperationalView view = reads.findOperationalView(assetId, actor(EMPLOYEE));
 
         // ficha R-6, G-4b: assetType es el registrado; sigue sin parentAssetRef, rootAssetRef ni donorRef
+        // ADR-029 Enmienda 2, P6: más el municipio y su zona sellada
         assertThat(view).isEqualTo(new PhysicalAssetOperationalView(assetId, "REGISTERED", "CUST-1", "WH-1",
-                new BigDecimal("10.0000"), "KGS", null, "FOOD", null));
+                new BigDecimal("10.0000"), "KGS", null, "FOOD", null, "05001", "MEDELLÍN, ANTIOQUIA"));
         // ficha R-6, Enmienda 1, E2 (G-9): lastEventAt solo lo rellena el listado; la vista individual lo deja nulo
         assertThat(PhysicalAssetOperationalView.class.getRecordComponents()).extracting(c -> c.getName())
                 .containsExactly("assetRef", "lifecycleStatus", "currentCustodianRef", "currentLocation", "quantity",
-                        "unitOfMeasure", "campaignRef", "assetType", "lastEventAt");
+                        "unitOfMeasure", "campaignRef", "assetType", "lastEventAt", "municipalityCode", "zoneName");
     }
 
     @Test

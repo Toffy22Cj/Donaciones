@@ -89,6 +89,19 @@ public class DonationProjectionDocument {
         private String campaignRef;
         // Estado previo a cada división, por childAssetId (D-SPLIT S6), como el agregado (splitsBeforeCompensation)
         private Map<String, String> splitsBeforeCompensation;
+        // ADR-029 Enmienda 2, D5: la zona sellada de la ubicación actual, copiada del evento; null si el último paso con
+        // ubicación es anterior a la enmienda (la lectura usa entonces el respaldo con currentLocation)
+        private String currentZoneName;
+
+        /** Sin zona sellada: los documentos y las llamadas anteriores a la enmienda 2. */
+        public LogisticsProjection(String assetId, String allocationId, String sourceAllocationId, String parentAssetRef,
+                                   String rootAssetRef, BigDecimal quantity, String unitOfMeasure, String assetType,
+                                   String currentLocation, String currentCustodian, String lifecycleStatus,
+                                   String campaignRef, Map<String, String> splitsBeforeCompensation) {
+            this(assetId, allocationId, sourceAllocationId, parentAssetRef, rootAssetRef, quantity, unitOfMeasure,
+                    assetType, currentLocation, currentCustodian, lifecycleStatus, campaignRef, splitsBeforeCompensation,
+                    null);
+        }
     }
 
     @Data

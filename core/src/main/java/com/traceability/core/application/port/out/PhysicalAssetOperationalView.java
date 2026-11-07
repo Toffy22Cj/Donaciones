@@ -12,4 +12,14 @@ import java.time.Instant;
  */
 public record PhysicalAssetOperationalView(String assetRef, String lifecycleStatus, String currentCustodianRef,
                                            String currentLocation, BigDecimal quantity, String unitOfMeasure,
-                                           String campaignRef, String assetType, Instant lastEventAt) {}
+                                           String campaignRef, String assetType, Instant lastEventAt,
+                                           /** ADR-029 Enmienda 2, P6: la zona sellada; {@code null} si no la hay (E-1). */
+                                           String municipalityCode, String zoneName) {
+    /** Sin zona. */
+    public PhysicalAssetOperationalView(String assetRef, String lifecycleStatus, String currentCustodianRef,
+                                        String currentLocation, BigDecimal quantity, String unitOfMeasure,
+                                        String campaignRef, String assetType, Instant lastEventAt) {
+        this(assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef,
+                assetType, lastEventAt, null, null);
+    }
+}

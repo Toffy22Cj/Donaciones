@@ -1,5 +1,6 @@
 package com.traceability.app.web.asset;
 
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.traceability.app.TraceabilityApplication;
@@ -119,7 +120,7 @@ class PhysicalAssetHttpIntegrationTest {
     }
 
     private static final String IN_KIND = """
-            {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1"}""";
+            {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1","municipalityCode":"05001"}""";
 
     private String registerInKind() throws Exception {
         HttpResponse<String> r = post(BASE + "/from-donation", newId(), IN_KIND);
@@ -156,9 +157,9 @@ class PhysicalAssetHttpIntegrationTest {
         assertThat(post(BASE + "/" + assetRef + "/dispatch", newId(), "{\"carrierRef\":\"CARRIER-1\"}").body())
                 .isEqualTo("{\"assetRef\":\"" + assetRef + "\",\"status\":\"DISPATCHED\"}");
         assertThat(post(BASE + "/" + assetRef + "/receive", newId(),
-                "{\"facilityLocation\":\"WH-2\",\"receiverRef\":\"REC-1\"}").statusCode()).isEqualTo(200);
+                "{\"facilityLocation\":\"WH-2\",\"municipalityCode\":\"05001\",\"receiverRef\":\"REC-1\"}").statusCode()).isEqualTo(200);
         HttpResponse<String> delivered = post(BASE + "/" + assetRef + "/deliver", newId(),
-                "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"evidenceRef\":\""
+                "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"municipalityCode\":\"05001\",\"evidenceRef\":\""
                         + evidenceRef() + "\"}");
         assertThat(delivered.statusCode()).isEqualTo(200);
         assertThat(delivered.body()).isEqualTo("{\"assetRef\":\"" + assetRef + "\",\"status\":\"DELIVERED\"}");
@@ -196,8 +197,8 @@ class PhysicalAssetHttpIntegrationTest {
         // Criterios 15 y 16
         assertThat(read(child).get("quantity").asText()).isEqualTo("4.0000");
         assertThat(read(parent).get("quantity").asText()).isEqualTo("6.0000");
-        AssetRegisteredV3Payload parentGenesis = (AssetRegisteredV3Payload) eventStore.loadStream(parent).get(0).payload();
-        AssetRegisteredV3Payload childGenesis = (AssetRegisteredV3Payload) eventStore.loadStream(child).get(0).payload();
+        AssetRegisteredV4Payload parentGenesis = (AssetRegisteredV4Payload) eventStore.loadStream(parent).get(0).payload();
+        AssetRegisteredV4Payload childGenesis = (AssetRegisteredV4Payload) eventStore.loadStream(child).get(0).payload();
         assertThat(childGenesis.organizationRef()).isEqualTo(ORG);
         assertThat(childGenesis.donorRef()).isEqualTo(parentGenesis.donorRef());
         assertThat(childGenesis.donationRef()).isEqualTo(parentGenesis.donationRef());
@@ -220,7 +221,7 @@ class PhysicalAssetHttpIntegrationTest {
 
         HttpResponse<String> r = post(BASE + "/register", newId(), """
                 {"fundId":"%s","assetType":"FOOD","quantity":"1","unitOfMeasure":"KGS","custodianRef":"C",
-                 "currentLocation":"WH-1","allocationId":"%s"}""".formatted(fundId, allocationId));
+                 "currentLocation":"WH-1","municipalityCode":"05001","allocationId":"%s"}""".formatted(fundId, allocationId));
 
         assertThat(r.statusCode()).isEqualTo(201);
         JsonNode body = json.readTree(r.body());
@@ -248,7 +249,7 @@ class PhysicalAssetHttpIntegrationTest {
         assertThat(s1.statusCode()).isEqualTo(202);
 
         HttpResponse<String> reused = post(BASE + "/" + assetRef + "/receive", dispatch,
-                "{\"facilityLocation\":\"W\",\"receiverRef\":\"R\"}");
+                "{\"facilityLocation\":\"W\",\"municipalityCode\":\"05001\",\"receiverRef\":\"R\"}");
         assertThat(reused.statusCode()).isEqualTo(409);
         assertThat(reused.body()).contains("\"title\":\"CommandIdReused\"").doesNotContain(dispatch);
         assertThat(eventStore.loadStream(assetRef)).hasSize(2);
@@ -277,11 +278,11 @@ class PhysicalAssetHttpIntegrationTest {
                 new String[]{"GET", "", null},
                 new String[]{"GET", "/splits/" + newId(), null},
                 new String[]{"POST", "/dispatch", "{\"carrierRef\":\"C\"}"},
-                new String[]{"POST", "/receive", "{\"facilityLocation\":\"W\",\"receiverRef\":\"R\"}"},
+                new String[]{"POST", "/receive", "{\"facilityLocation\":\"W\",\"municipalityCode\":\"05001\",\"receiverRef\":\"R\"}"},
                 new String[]{"POST", "/split", "{\"quantity\":\"1\"}"},
                 new String[]{"POST", "/deliver",
                         // ADR-051 F3: con el formato sha256: (texto libre daría 400 antes de mirar el activo)
-                        "{\"finalCustodianRef\":\"C\",\"beneficiaryRef\":\"B\",\"locationRef\":\"L\",\"evidenceRef\":\"sha256:"
+                        "{\"finalCustodianRef\":\"C\",\"beneficiaryRef\":\"B\",\"locationRef\":\"L\",\"municipalityCode\":\"05001\",\"evidenceRef\":\"sha256:"
                                 + "e1".repeat(32) + "\"}"});
 
         for (String[] call : calls) {
@@ -313,7 +314,7 @@ class PhysicalAssetHttpIntegrationTest {
         assertThat(r.statusCode()).isEqualTo(201);
         String assetRef = json.readTree(r.body()).get("assetRef").asText();
         DomainEvent genesis = eventStore.loadStream(assetRef).get(0);
-        AssetRegisteredV3Payload payload = (AssetRegisteredV3Payload) genesis.payload();
+        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) genesis.payload();
         assertThat(payload.donorRef()).startsWith("anon:").doesNotContain("Juan");
         assertThat(payload.organizationRef()).isEqualTo(ORG);
         assertThat(r.body()).doesNotContain("donorRef").doesNotContain("anon:");
@@ -323,9 +324,11 @@ class PhysicalAssetHttpIntegrationTest {
     void theOperationalView_hasNoDonorNorGenealogy() throws Exception {
         JsonNode view = read(registerInKind());
 
-        // ficha R-6, G-4b: assetType es el registrado; sin parentAssetRef, rootAssetRef ni donorRef
+        // ficha R-6, G-4b: assetType es el registrado; sin parentAssetRef, rootAssetRef ni donorRef. ADR-029 Enmienda 2,
+        // P6: más el municipio y su zona sellada
         assertThat(view.fieldNames()).toIterable().containsExactlyInAnyOrder("assetRef", "lifecycleStatus",
-                "currentCustodianRef", "currentLocation", "quantity", "unitOfMeasure", "assetType");
+                "currentCustodianRef", "currentLocation", "quantity", "unitOfMeasure", "assetType", "municipalityCode",
+                "zoneName");
         assertThat(view.get("quantity").asText()).isEqualTo("10.0000");
         assertThat(view.get("assetType").asText()).isEqualTo("FOOD");
     }

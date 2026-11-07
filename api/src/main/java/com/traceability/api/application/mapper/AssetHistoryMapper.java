@@ -9,7 +9,7 @@ import com.traceability.contracts.AssetAnchorStatusPort;
 import com.traceability.contracts.AssetAnchorStatusPort.AnchorProof;
 import com.traceability.contracts.AssetAnchorStatusPort.StepAnchor;
 import com.traceability.contracts.TrackingAnchorStatus;
-import com.traceability.core.application.service.LocationReferenceService;
+import com.traceability.core.application.service.PublicZoneResolver;
 import com.traceability.core.application.port.out.AssetHistoryReadModel;
 import com.traceability.core.application.port.out.AssetTransitionReadModel;
 import org.springframework.stereotype.Component;
@@ -24,13 +24,13 @@ public class AssetHistoryMapper {
     /** ADR-051 F3: el único formato que se expone (enmienda de ADR-021-D, E1). */
     private static final Pattern FOOTPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
 
-    private final LocationReferenceService locationReferenceService;
+    private final PublicZoneResolver zones;
     private final PublicDonationMapper publicDonationMapper;
     private final AssetAnchorStatusPort anchors;
 
-    public AssetHistoryMapper(LocationReferenceService locationReferenceService, PublicDonationMapper publicDonationMapper,
+    public AssetHistoryMapper(PublicZoneResolver zones, PublicDonationMapper publicDonationMapper,
                               AssetAnchorStatusPort anchors) {
-        this.locationReferenceService = locationReferenceService;
+        this.zones = zones;
         this.publicDonationMapper = publicDonationMapper;
         this.anchors = anchors;
     }
@@ -58,8 +58,8 @@ public class AssetHistoryMapper {
                                                 String evidenceRef) {
         // E1: solo el paso de la entrega lleva los campos de la evidencia
         boolean delivery = "DELIVERED".equals(transition.status());
-        String zone = locationReferenceService.resolveZone(transition.location())
-                .orElse(null);
+        // ADR-029 Enmienda 2, D5: la zona sellada del paso; sin ella, el respaldo de location_reference
+        String zone = zones.resolve(transition.zoneName(), transition.location()).orElse(null);
 
         return new PublicTransitionDTO(
                 transition.eventType(),

@@ -31,7 +31,8 @@ public class MongoAssetHistoryReadAdapter implements AssetHistoryReadPort {
                                         t.getCustodian(),
                                         t.getLocation(),
                                         t.getTimestamp() != null ? Instant.parse(t.getTimestamp()) : null,
-                                        t.getSequence()
+                                        t.getSequence(),
+                                        t.getZoneName()
                                 ))
                                 .toList()
                 ));

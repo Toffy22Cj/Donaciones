@@ -10,6 +10,9 @@ import identity.domain.exception.SelfTransferNotAllowedException;
 import identity.domain.exception.TransferTargetNotMemberException;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class OrganizationTest {
@@ -589,5 +592,86 @@ class OrganizationTest {
                 () -> company.updateProfile("E", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null,
                         null, null, null, null, null, Boolean.TRUE, null))));
         assertEquals("specialTaxRegime", e.getField());
+    }
+
+    // ---- Preverificación, Nivel 1 (plan-preverificacion-organizaciones.md §3, tests a, a', b, b') ----
+
+    private static Organization pendingWith(String legalName, String nit, String nitCheckDigit) {
+        Organization o = Organization.createOrganization(OrganizationType.FOUNDATION, AccountId.generate(), "F");
+        o.updateProfile("F", OrganizationProfile.from(new OrganizationProfile.Draft(null, null, null, null, null,
+                legalName, nit, nitCheckDigit, null, null)));
+        return o;
+    }
+
+    /** Test a: condición 1 de Carlos. En las 4 combinaciones, verify() lanza si y solo si la lista no está vacía. */
+    @Test
+    void preverification_a_inTheFourCombinations_verifyThrowsIfAndOnlyIfTheListIsNotEmpty() {
+        String[][] combinations = {
+                {null, null, null},
+                {"Fundación Ejemplo", null, null},
+                {null, "900000006", "9"},
+                {"Fundación Ejemplo", "900000006", "9"}};
+        for (String[] c : combinations) {
+            Organization o = pendingWith(c[0], c[1], c[2]);
+            boolean listIsEmpty = o.missingForVerification().isEmpty();
+            boolean threw;
+            try {
+                o.verify();
+                threw = false;
+            } catch (identity.domain.exception.VerificationDataMissingException e) {
+                threw = true;
+            }
+            String label = "legalName=" + c[0] + ", nit=" + c[1];
+            assertEquals(!listIsEmpty, threw, label);
+            assertEquals(threw ? VerificationStatus.PENDING_VERIFICATION : VerificationStatus.VERIFIED,
+                    o.getVerificationStatus(), label);
+        }
+    }
+
+    /** Test a': mismo orden que hoy (estado primero) y mismo mensaje del 409. */
+    @Test
+    void preverification_a2_verifyChecksTheStatusBeforeTheData_andKeepsTheMessage() {
+        OrganizationId orgId = OrganizationId.generate();
+        List<Membership> members = List.of(new Membership(AccountId.generate(), Set.of(Role.REPRESENTATIVE)));
+        for (VerificationStatus terminal : List.of(VerificationStatus.VERIFIED, VerificationStatus.REJECTED)) {
+            Organization o = Organization.reconstitute(orgId, OrganizationType.FOUNDATION, members, terminal, null,
+                    "F", null, null, null);
+            assertEquals(List.of("legalName", "nit"), o.missingForVerification());
+            assertThrows(InvalidVerificationTransitionException.class, o::verify, terminal.name());
+        }
+        identity.domain.exception.VerificationDataMissingException e = assertThrows(
+                identity.domain.exception.VerificationDataMissingException.class, pendingWith(null, null, null)::verify);
+        assertEquals("Verification requires legalName and nit", e.getMessage());
+    }
+
+    /** Test b: orden fijo ["legalName", "nit"], lista inmutable, y el perfil nulo de una organización anterior a R-7. */
+    @Test
+    void preverification_b_theListHasAFixedOrder_isImmutable_andCoversOrganizationsWithoutProfile() {
+        assertIterableEquals(List.of("legalName", "nit"), pendingWith(null, null, null).missingForVerification());
+        assertIterableEquals(List.of("nit"), pendingWith("Fundación Ejemplo", null, null).missingForVerification());
+        assertIterableEquals(List.of("legalName"), pendingWith(null, "900000006", "9").missingForVerification());
+        assertIterableEquals(List.of(), pendingWith("Fundación Ejemplo", "900000006", "9").missingForVerification());
+
+        List<String> missing = pendingWith(null, null, null).missingForVerification();
+        assertThrows(UnsupportedOperationException.class, () -> missing.add("x"));
+        assertThrows(UnsupportedOperationException.class, () -> missing.remove(0));
+
+        Organization beforeR7 = Organization.reconstitute(OrganizationId.generate(), OrganizationType.FOUNDATION,
+                List.of(new Membership(AccountId.generate(), Set.of(Role.REPRESENTATIVE))),
+                VerificationStatus.PENDING_VERIFICATION, null, "F", null, null, null);
+        assertIterableEquals(List.of("legalName", "nit"), beforeR7.missingForVerification());
+    }
+
+    /** Test b': calcular la lista es una lectura; no cambia el estado ni la solicitud en ninguno de los cuatro. */
+    @Test
+    void preverification_b2_computingTheListNeverChangesTheStatusNorTheRequest() {
+        for (VerificationStatus status : VerificationStatus.values()) {
+            Organization o = withStatus(status);
+            InformationRequestMessage request = o.getVerificationInformationRequest();
+            o.missingForVerification();
+            o.missingForVerification();
+            assertEquals(status, o.getVerificationStatus());
+            assertEquals(request, o.getVerificationInformationRequest());
+        }
     }
 }

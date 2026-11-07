@@ -14,7 +14,6 @@ import com.traceability.core.application.exception.PhysicalAssetNotFoundExceptio
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.physicalasset.PhysicalAsset;
-import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
 import identity.application.authorization.PlatformAuthorizationPolicy;
 import identity.application.authorization.PlatformCommandType;
 import org.springframework.http.CacheControl;
@@ -80,9 +79,8 @@ public class DeliveryEvidenceReadController {
         if (!asPlatform) {
             boundary.assertBelongs(principal.organizationId(), asset.getOrganizationRef());
         }
-        String evidenceRef = events.stream().map(DomainEvent::payload)
-                .filter(AssetDeliveredPayload.class::isInstance).map(p -> ((AssetDeliveredPayload) p).evidenceRef())
-                .reduce((first, second) -> second).orElse(null);
+        // la huella sellada en la entrega, de cualquier versión (1.0, o 2.0 con la zona: ADR-029 Enmienda 2)
+        String evidenceRef = asset.getFinalEvidenceRef();
         if (evidenceRef == null || !FOOTPRINT.matcher(evidenceRef).matches()) {
             throw new DeliveryEvidenceUnavailableException();
         }

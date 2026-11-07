@@ -229,6 +229,88 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.73 Preverificación de organizaciones, Nivel 1 (2026-11-02, `feat/identity-preverificacion`)
+
+- Numerada 0.73, el siguiente número libre de la serie 0.70 a 0.79 (P-PV-8). Si la zona en cada paso se fusiona antes con el mismo número, este PR se renumera al integrar `develop`.
+- **Norma:**
+  - `ficha-preverificacion-organizaciones.md`, CONGELADA por Manuel por delegación de Carlos (#168, comentario 6589529148), con las dos condiciones (§11);
+  - `plan-preverificacion-organizaciones.md`, APROBADO por Manuel (#171, comentario 6589734226: P-PV-2, P-PV-3, P-PV-6 y P-PV-8).
+- **Qué hace:**
+  - `Organization.missingForVerification()` **[Plan]**: el único cálculo, en orden fijo `["legalName", "nit"]` y con lista inmutable;
+  - `verify()` usa ese método y conserva el estado primero, el mismo 409 `VerificationDataMissing` y el mismo mensaje;
+  - `GET /platform/organizations`: cada ítem lleva siempre `missingForVerification`, también `[]`, fuera de `ProfileFields`. No cambian ni el orden ni la paginación, y no hay filtro nuevo;
+  - nada en Mongo, sin migración ni índice; nunca en `GET /organizations/{id}`, en `PUT /profile` ni en lo público;
+  - se borra el constructor de 5 argumentos de `QueueItem`, que nadie usaba (P-PV-2).
+- **Autoauditoría** (norma → hecho → coincide):
+  - condición 1 (ficha §11) → `verify()` llama a `missingForVerification()` (`Organization.java:458`) y la bandeja también (`OrganizationVerificationQueueQuery.java:78`) → sí; test a y mutaciones 3 y 12;
+  - condición 2 y D-PV-1 → campo `missingForVerification`, orden fijo (`Organization.java:441-449`) → sí; test b y mutación 6;
+  - D-PV-2, mismo orden y mismo 409 → la comprobación de estado sigue primero (`Organization.java:453-455`) → sí; test a′ y mutaciones 4 y 5;
+  - D-PV-3, nada en Mongo → ni `OrganizationDocument` ni `OrganizationMapper` cambian; el test c comprueba que el documento no tiene la clave → sí;
+  - D-PV-4 → `ProfileFields` y `OrganizationStatus` sin cambios; test c (negativas) y mutaciones 7 y 8 → sí;
+  - D-PV-5 → `page()` sin cambios; test d y mutación 9 → sí;
+  - 403 → `queue.authorize` sigue antes de interpretar la entrada; test e y mutación 10 → sí;
+  - P-PV-3 → `@JsonInclude(NON_NULL)` escribe `[]`; mutación 11 → sí;
+  - prohibición (ficha §6) → reglas ArchUnit `queries_must_not_decide_the_verification` y `no_scheduled_methods_in_identity_application` **[Plan]**, con su test de que muerden → sí.
+- **Rojo** (`41c8ac6`, solo tests): `identity` no compila, con `cannot find symbol ... method missingForVerification()` en `OrganizationTest.java:[616,36]` y siguientes. Con el dominio y sin la bandeja, `app` daba 4 fallos: "Expecting value to be true but was false" en `c`, `c2`, `d` (el ítem no lleva el campo) y en la lista de campos de la cola (H-PV-14); `e` ya pasaba, porque fija el 403 de hoy.
+- **Verde** (`766f56c`), `mvn -B test -pl app -am`: core "Tests run: 379", crypto 57, ai 47, api 175, identity 437, convocatoria 272 y app 667, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Antes, `identity` completo con `-pl identity -am`: 437, BUILD SUCCESS.
+- **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `766f56c`, con la mutación 0 de línea base VIVA): 12 de 12 muertas. Evidencia: `evidencia-ci/mutaciones-preverificacion-766f56c.txt` y las dos especificaciones.
+  - Las 1 y 2 (quitar un campo de la lista) **no** las mata el test a: al ser un solo método, `verify()` y la lista cambian a la vez y siguen de acuerdo. Las matan b, el test de R-7 de `verify()` y c. Es lo esperado de la condición 1.
+- **Tests que cambian sin perder aserciones:** `OrganizationRegistrationAndQueueHttpIntegrationTest` (H-PV-14) gana `missingForVerification` en la lista y la aserción de que está.
+- *Nota (2026-11-02): `ci-local.sh`* en un clon limpio de `6ea483f` (`free -g`: 15 GB en total, 15 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-6ea483f-2026-11-02T23-13-25Z.txt`.
+  - Resumen: core "Tests run: 379", crypto 57, ai 47, api 175, identity 437, convocatoria 272 y app 667, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - Este commit de evidencia solo toca `Documentos/`, así que no hace falta repetir `ci-local.sh`.
+
+### 0.74 Zona pública en cada paso del seguimiento (2026-11-02, `feat/core-zona-en-cada-paso`)
+
+- Numerada 0.74: el siguiente número libre de la serie 0.70 a 0.79. Empezó como 0.73 y se renumeró al integrar `develop` `7adb69c`, porque #172 ocupó §0.73 (decisión de Manuel del 2026-11-02).
+- **Norma:**
+  - `ficha-zona-en-cada-paso.md`, CONGELADA por Manuel (#169, comentario 6589479007);
+  - `ADR-029-enmienda-2-zona-publica.md` y `plan-zona-en-cada-paso.md`, APROBADOS por Manuel con E-1 = (a) (#170, comentario 6589733853).
+- **Qué hace:**
+  - `municipalityCode` DIVIPOLA obligatorio al registrar (los dos caminos), recibir y entregar; si falta o no está en el catálogo → 400, y lo valida `core` con `MunicipalityCatalogPort` después de autorizar.
+  - Versiones nuevas: `ASSET_REGISTERED` 4.0, `ASSET_SPLIT` 4.0, `ASSET_DISPATCHED` 2.0, `ASSET_RECEIVED` 2.0 y `ASSET_DELIVERED` 2.0. Las clases que ya existían no cambian.
+  - El despacho sella la zona del paso anterior y el sublote la hereda. Un activo anterior escribe la versión nueva con la zona vacía (E-1).
+  - La historia pública, la logística del donante y la actividad leen la zona sellada, con `location_reference` como respaldo.
+- **Evidencia:**
+  - **Rojo** (`fcd3050`, solo tests): no compila (40 errores; `cannot find symbol` y `package com.traceability.contracts.location does not exist`).
+  - **Hash de los eventos viejos:** los cuatro valores de `ZoneEventHashCompatibilityTest` se calcularon con el código anterior a la enmienda, sobre `6ad03ff`, y siguen iguales después.
+  - **Verde por capas**, con cada módulo completo: core "Tests run: 393", api 177 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0".
+    - Antes de llegar ahí fallaron 5 tests de core, el contexto de 3 tests de api y 3 tests de app. Todo eran fixtures que esperaban la versión vieja, el contexto sin `PublicZoneResolver`, o un conteo frágil de eventos de Fund asíncronos en el test 10 nuevo. Se adaptaron sin quitar aserciones (`36aae2a`, `22c8b91` y `96fbf72`).
+  - **Mutaciones** (`scripts/mutaciones.py`, clon limpio de `96fbf72`, tres tandas, cada una con su mutación 0 VIVA): **15 de 15 muertas.**
+    - La primera tanda de core salió con la mutación 0 MUERTA: compilaba sin `-am` contra un `contracts` viejo. Se descartó y se repitió con `-am`.
+
+    | # | Mutación | La mata |
+    |---|---|---|
+    | 1 | recibir escribe la 1.0 | `registerReceiveAndDeliver_…`, `test5and12_…` y `theZone_survivesRehydration_…` |
+    | 2 | `zoneName` sin el municipio | `test3_…`, `pathB_sealsTheZoneToo` y otros 3 |
+    | 3 | Bogotá repetido | `test3_…` y otros 2 |
+    | 4 | un código desconocido se acepta | `test4_…_theFourCommandsFail_andWriteNothing` |
+    | 5 | validar el municipio antes de autorizar | `anActorOfAnotherOrganization_isRejectedBeforeTheCatalogIsQueried` |
+    | 6 | el despacho no copia la zona | `registerReceiveAndDeliver_…`, `test5and12_…` y `theZone_survivesRehydration_…` |
+    | 7 | el hijo no hereda la zona | `test6_theSublotInheritsTheSealedZone` |
+    | 8 | la entrega idempotente no compara el municipio | `test7_…` |
+    | 9 | `PublicZoneResolver` lee primero `location_reference` | `test8_theSealedZoneWins_…` |
+    | 10 | la proyección no copia la zona del despacho | `test11_13_14_15_…` (HTTP) |
+    | 11 | el municipio desconocido no es 400 | `test10_…` (HTTP) |
+    | 12 | la historia sin la zona sellada | `zone_aNewStepShowsItsSealedZone_…` (api) |
+    | 13 | la logística sin la zona sellada | `zone_theLogisticsShowTheSealedZone_…` (api) |
+    | 14 | la vista operativa sin `zoneName` | `pathB_registersWithItsZone` y `test11_13_14_15_…` |
+    | 15 | una clase vieja gana un campo serializado | `test1_theHashOfOldEvents_…`, `theIntegrityCheckOfAMixedChain_…` y `aTamperedZone…` |
+
+  - **Cuatro mutaciones del plan (§5) se sustituyeron**, porque la del plan no se podía escribir tal cual o era equivalente:
+    - **5:** "validar después de persistir" se revierte dentro de la transacción; se usa "validar antes de autorizar".
+    - **10:** el resolutor no tiene acceso al catálogo; se usa que la proyección no copie la zona del despacho.
+    - **11:** quitar la comprobación de `api` es equivalente, porque `core` también valida; se usa el mapeo a un estado distinto de 400.
+    - **15:** un campo nuevo en un record no compila en sus llamadores; se usa un *getter* que se serializa.
+  - **El test 12** (lo sellado gana al catálogo) va en `core`, con el stub que cambia el nombre, en lugar de en `app`.
+  - **`ci-local.sh`** en un clon limpio de `d24046a` (`free -g`: 15 GB en total, 13 disponibles), salida 0. Evidencia: `evidencia-ci/ci-local-d24046a-2026-11-02T23-33-41Z.txt`.
+    - Resumen literal: core "Tests run: 393", crypto 57, ai 47, api 177, identity 429, convocatoria 272 y app 671, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+    - Respecto de `develop` `4a2c736` (core 379, api 175 y app 663, según la evidencia de #165): core +14, api +2 y app +8.
+- *Nota (2026-11-03):* se integró `develop` `7adb69c` (#170, #171 y #172, la preverificación) con un merge normal (`6004707`).
+  - Solo chocó esta tabla de estado. Se conservan los dos lados, con lo de develop primero, y esta sección pasa de §0.73 a §0.74.
+  - Capas afectadas (`mvn test -pl app -am`, todos los módulos completos): core "Tests run: 393", crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS.
+  - **`ci-local.sh`** en un clon limpio de `6004707` (`free -g`: 15 GB en total, 13 disponibles), salida 0, con el mismo resumen literal: core "Tests run: 393", crypto 57, ai 47, api 177, identity 437, convocatoria 272 y app 675, todos con "Failures: 0, Errors: 0, Skipped: 0", y BUILD SUCCESS. Evidencia: `evidencia-ci/ci-local-6004707-2026-11-03T00-53-13Z.txt`.
+
 ### 0.80 ADR-050 R-6: iniciar sesión con Google, vincular y desvincular (2026-10-31, `feat/identity-adr050-r6-google`, #166)
 
 - Numerada 0.80, en la serie de Google (0.80 a 0.84).

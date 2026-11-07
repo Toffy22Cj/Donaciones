@@ -28,6 +28,8 @@ import java.util.regex.Pattern;
  *   cursor del descubrimiento no vale aquí ni al revés. Inválido → 400;</li>
  *   <li>{@code 200 {items: [{organizationId, name?, type, verificationStatus, informationRequest?}], nextCursor?}},
  *   {@value #PAGE_SIZE} por página, por orden de creación; sin miembros ni emails.</li>
+ *   <li>Ficha de preverificación (CONGELADA el 2026-11-02): cada ítem lleva siempre {@code missingForVerification}, en
+ *   orden fijo {@code ["legalName", "nit"]} y {@code []} si están los dos. No ordena ni filtra la cola.</li>
  * </ul>
  */
 @RestController
@@ -41,6 +43,11 @@ public class OrganizationVerificationQueueController {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Item(String organizationId, String name, String type, String verificationStatus,
                        String informationRequest,
+                       /**
+                        * [Plan] Ficha de preverificación: siempre presente, también {@code []} (P-PV-3). Va aquí y no en
+                        * {@code ProfileFields}, que comparten las respuestas de la organización (H-PV-9).
+                        */
+                       List<String> missingForVerification,
                        /** Ficha R-7 §4: los campos del perfil, planos, solo para la plataforma. */
                        @com.fasterxml.jackson.annotation.JsonUnwrapped
                        com.traceability.app.web.organization.OrganizationProfileJson.ProfileFields profile) {}
@@ -66,7 +73,7 @@ public class OrganizationVerificationQueueController {
         String after = cursor == null ? null : decode(cursor);
         OrganizationVerificationQueueQuery.QueuePage page = queue.page(principal, statuses, after, PAGE_SIZE);
         List<Item> items = page.items().stream().map(i -> new Item(i.organizationId(), i.name(), i.type(),
-                i.verificationStatus(), i.informationRequest(),
+                i.verificationStatus(), i.informationRequest(), i.missingForVerification(),
                 com.traceability.app.web.organization.OrganizationProfileJson.ProfileFields.of(i.profile()))).toList();
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .body(new Page(items, page.next() == null ? null : cursors.encode(CURSOR_PURPOSE + page.next())));

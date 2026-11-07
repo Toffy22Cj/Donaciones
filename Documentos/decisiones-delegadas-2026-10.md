@@ -387,3 +387,50 @@ El hallazgo de la deduplicación (`MediaUploadService.java:67`, que no mira `del
 - **Pregunta:** la ficha pide la descripción en texto plano, sin HTML ni Markdown (`ficha-R7-perfil-organizacion.md:40`). La implementación rechaza `<` y `>` y guarda el Markdown tal cual, sin interpretarlo (`identity/src/main/java/identity/domain/model/OrganizationProfile.java:18-19`).
 - **Respuesta:** **sí vale** rechazar `<` y `>` y guardar el Markdown tal cual, sin interpretarlo. El front lo muestra como texto plano.
 - No cambia código ni tests (#165).
+
+**Nota (2026-11-01): plazo de la transferencia y preverificación de organizaciones, "comunicado por Manuel".**
+
+Contexto: Carlos dijo el 2026-11-01 "todo lo del backend es de Manuel; Carlos organiza y reparte las tareas".
+
+- **D-1.** `CONVOCATORIA_BANK_TRANSFER_EXPIRATION` en producción = **`PT48H`** (48 horas). Lo decide Manuel, a quien Carlos asignó el tema el 2026-11-01.
+  - El `PT72H` de `application-dev.yml` sigue siendo solo de desarrollo y no se cambia.
+  - Se registra en `despliegue-backend-2026-10.md` (§1.5 y §4, notas del 2026-11-01).
+- **D-2.** Preverificación de organizaciones: Carlos eligió la **opción B, solo el Nivel 1**. Texto de Carlos (documento "Tareas de la web y el móvil tras el backend", §7, 2026-11-01), literal:
+
+> Qué es: al crear la organización, al editar el perfil y al reenviarla a revisión, el sistema comprueba los datos y guarda un resultado: PASSED o FAILED, con qué falló. Nunca cambia el estado: la organización sigue en PENDING_VERIFICATION.
+> La bandeja de la plataforma muestra cada solicitud con su etiqueta: verde (todo coincide, revisión rápida), rojo (algo falla: pedir información o rechazar).
+> Siempre decide una persona. Prohibido que la automatización verifique o rechace: aprobar solo con datos públicos (NIT y razón social) permite suplantar a una fundación real, y un rechazo automático deja atrapada a una organización legítima (REJECTED es terminal).
+> Nivel 1, sin dependencias nuevas: dígito de verificación de la DIAN, NIT no repetido, tipo coherente con el régimen especial. Es una ampliación pequeña de R-7.
+> Nivel 2, consultar el RUES (datos abiertos de Confecámaras): fuera. Sería una integración externa nueva (regla 3.5, ADR propio). Sin el RUES, el estado UNAVAILABLE (amarillo) no hace falta en este corte.
+> Decidido por Carlos (2026-11-01): solo el Nivel 1. El RUES (Nivel 2) queda fuera de este corte; si se retoma, necesita su ADR antes.
+> Siguiente artefacto: la ficha "Preverificación de organizaciones", en el formato de R-7. La revisa Manuel (dueño de identity). Nada de código antes de la ficha congelada y su plan aprobado.
+> En la web: las etiquetas en la bandeja de la plataforma. Se planea cuando la ficha esté congelada.
+
+- **Qué autoriza:** escribir `ficha-preverificacion-organizaciones.md` (PROPUESTA). **No autoriza código** hasta que la ficha esté congelada y Manuel apruebe su plan.
+- **Hecho que la ficha expone como P1:** las tres comprobaciones del Nivel 1 ya son rechazos duros desde R-7, así que una organización guardada nunca las fallaría.
+
+**Nota (2026-11-02): la zona pública de cada paso del seguimiento, "comunicado por Manuel".**
+- **D-3 (Carlos, 2026-11-02).** `location_reference` no se llena a mano. La zona pública debe venir en los mismos datos que manda el empleado en cada paso. Texto de Carlos, literal: "Eso debe venir en los mismos datos".
+- **D-4 (Manuel, 2026-11-02).** Carlos le delegó estas preguntas por ser del backend:
+  1. El código de municipio DIVIPOLA es **obligatorio** al registrar (los dos caminos), recibir y entregar. Sin él, o con un código que no está en el catálogo → 400. No hay usuarios reales todavía, así que se acepta el cambio que rompe y se avisa a la web y al móvil.
+  2. Despachar **no** lleva municipio: el lugar es el del paso anterior.
+  3. El municipio entra en el **evento sellado** (hash y anclaje), como versión nueva del payload, con el patrón de `AssetRegisteredV2Payload`/`V3`. Nunca solo en la proyección.
+  4. Los eventos que ya existen no se tocan ni se migran: siguen resolviendo la zona con `location_reference` como respaldo.
+  5. El evento guarda el código y el nombre tal como estaban ese día ("Municipio, Departamento"), junto con la versión del catálogo (`DIVIPOLA-2026-09`). La zona pública se lee de lo sellado, no del catálogo actual.
+  6. `location_reference` **no** se retira: queda solo como respaldo de los eventos viejos.
+  7. La zona pública es el municipio en todos los pasos, también en la entrega. **Riesgo aceptado:** en un municipio muy pequeño podría ayudar a identificar al beneficiario. Nunca se muestra la dirección, el punto exacto ni a quién se entregó. Alternativa anotada y no implementada: si Carlos lo pide, la entrega mostraría solo el departamento.
+- **Qué autoriza:** escribir `ficha-zona-en-cada-paso.md` (PROPUESTA), que congela Manuel. **No autoriza plan ni código** hasta que esté congelada.
+
+**Nota (2026-11-02, más tarde): enmienda 2 de ADR-029 y plan de la zona en cada paso APROBADOS por Manuel.** Fuente citable: comentario de `buelvasmanuel` en #170, 2026-11-02T22:10:26Z, https://github.com/Toffy22Cj/Donaciones/pull/170#issuecomment-6589733853. Texto literal:
+
+> Apruebo la enmienda `Documentos/ADR-029-enmienda-2-zona-publica.md` y el plan `Documentos/plan-zona-en-cada-paso.md` (cabeza `0054a55`), como dueño del backend.
+>
+> - **E-1:** si un activo registrado antes del cambio se despacha o se divide, el evento nuevo se escribe con los tres campos de zona vacíos y la zona pública sale de `location_reference`, como hoy. No se usa la versión vieja del evento ni se rechaza el despacho.
+> - Las clases de payload que ya existen no se tocan: solo se añaden versiones nuevas (`RecomputingEventIntegrityChecker.java:101-107`).
+>
+> Autorizo el código según este plan, sobre `develop` (que ya incluye #169). Antes de fusionar #170, hay que integrar `develop` con un merge normal.
+>
+> — Manuel, 2026-11-02
+
+- **E-1 = (a):** un activo anterior que se despacha o se divide escribe la versión nueva con `municipalityCode`, `zoneName` y `catalogVersion` vacíos, y la zona pública sale de `location_reference`.
+- **Qué autoriza:** el código en `feat/core-zona-en-cada-paso`, según el plan.
