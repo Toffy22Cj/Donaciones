@@ -53,13 +53,11 @@ public class DemoSeedRunner implements ApplicationRunner {
     private final CreateOrganizationService organizations;
     private final AddEmployeeService employees;
     private final AssignAdministratorService administrators;
-    private final com.traceability.core.application.service.LocationReferenceService locations;
     private final String password;
 
     public DemoSeedRunner(CreateAccountService accounts, AccountRepositoryPort accountRepository,
                           BootstrapPlatformAuthorityService bootstrap, CreateOrganizationService organizations,
                           AddEmployeeService employees, AssignAdministratorService administrators,
-                          com.traceability.core.application.service.LocationReferenceService locations,
                           @Value("${traceability.demo.seed.password:}") String password) {
         if (password == null || password.isBlank()) {
             throw new IllegalStateException("traceability.demo.seed.password (TRACEABILITY_DEMO_SEED_PASSWORD) "
@@ -71,7 +69,6 @@ public class DemoSeedRunner implements ApplicationRunner {
         this.organizations = organizations;
         this.employees = employees;
         this.administrators = administrators;
-        this.locations = locations;
         this.password = password;
     }
 
@@ -96,8 +93,6 @@ public class DemoSeedRunner implements ApplicationRunner {
             log.info("Demo seed: organization already present; nothing created");
         }
         ensureAccount(DONOR);
-        // ADR-052 D4: zonas y puntos de las referencias de lugar del recorrido de la demo (idempotente)
-        DemoZones.register(locations);
         log.info("Demo seed: platform account {}", platform.value());
     }
 
