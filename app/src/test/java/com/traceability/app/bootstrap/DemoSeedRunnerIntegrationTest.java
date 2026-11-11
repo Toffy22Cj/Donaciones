@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.traceability.app.TraceabilityApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,6 +57,7 @@ class DemoSeedRunnerIntegrationTest {
 
     @LocalServerPort private int port;
     @Autowired private DemoSeedRunner seed;
+    @Autowired private MongoTemplate mongoTemplate;
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
 
@@ -78,6 +82,20 @@ class DemoSeedRunnerIntegrationTest {
         assertThat(me(DemoSeedRunner.EMPLOYEE).get("organizationId").asText()).isEqualTo(organizationId);
         assertThat(me(DemoSeedRunner.REPRESENTATIVE).get("roles").toString()).contains("REPRESENTATIVE");
         assertThat(me(DemoSeedRunner.PLATFORM).get("platformAuthority").asText()).isEqualTo("ADMINISTRATOR");
+        assertThat(me(DemoSeedRunner.DONOR).has("organizationId")).isFalse();
+    }
+
+    /** E2-1: en una base que ya existía (organización creada, cuentas sin verificar), todas quedan verificadas. */
+    @Test
+    void onAnExistingDatabase_theOrganizationAccountsAreVerifiedToo() throws Exception {
+        seed.run(null);
+        mongoTemplate.updateMulti(new Query(), new Update().unset("emailVerifiedAt"), "accounts");
+
+        seed.run(null);
+
+        assertThat(me(DemoSeedRunner.ADMINISTRATOR).get("roles").toString()).contains("ADMINISTRATOR");
+        assertThat(me(DemoSeedRunner.EMPLOYEE).get("roles").toString()).contains("EMPLOYEE");
+        assertThat(me(DemoSeedRunner.REPRESENTATIVE).get("roles").toString()).contains("REPRESENTATIVE");
         assertThat(me(DemoSeedRunner.DONOR).has("organizationId")).isFalse();
     }
 }

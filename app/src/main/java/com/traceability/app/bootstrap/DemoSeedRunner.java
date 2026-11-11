@@ -90,6 +90,9 @@ public class DemoSeedRunner implements ApplicationRunner {
             employees.addEmployee(SEED, organization.getOrganizationId(), ensureAccount(EMPLOYEE).getAccountId());
             log.info("Demo seed: organization {} created (PENDING_VERIFICATION)", organization.getOrganizationId().value());
         } else {
+            // E2-1: en una base que ya existía, las cuentas de la organización también quedan verificadas.
+            ensureAccount(ADMINISTRATOR);
+            ensureAccount(EMPLOYEE);
             log.info("Demo seed: organization already present; nothing created");
         }
         ensureAccount(DONOR);
