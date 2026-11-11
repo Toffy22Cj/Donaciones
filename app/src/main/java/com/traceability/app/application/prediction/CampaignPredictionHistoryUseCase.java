@@ -113,7 +113,7 @@ public class CampaignPredictionHistoryUseCase {
         if (features.pctRaised() >= 1.0) {
             return new Cut(t, cutAt, Unavailable.TARGET_ALREADY_REACHED, null, null, pctRaised);
         }
-        Map<String, Object> x = features.byName();
+        Map<String, Object> x = model.clipToTrainedRange(features.byName());
         return new Cut(t, cutAt, null, CampaignPredictionUseCase.round(model.probabilityReachTarget(x)),
                 CampaignPredictionUseCase.round(model.finalPctOfTarget(x)), pctRaised);
     }

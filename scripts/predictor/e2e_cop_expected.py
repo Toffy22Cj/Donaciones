@@ -26,14 +26,14 @@ raised = sum(a for a, _ in donations)
 pct = raised / target_pesos
 window_start = max(0.0, t - 0.10)
 recent = sum(a for a, d in donations if d / duration >= window_start)
-elapsed = t * duration
 x = {
     "logTargetAmount": math.log(target_pesos), "durationDays": duration, "orgPriorCampaigns": 0.0,
     "paymentMethodsEnabled": 1.0, "pctTimeElapsed": t, "pctRaised": pct, "nDonations": 2.0, "nDistinctDonors": 2.0,
     "meanDonationPctOfTarget": (raised / 2) / target_pesos,
-    "recentVelocity": recent / target_pesos / max((t - window_start) * duration, 1e-9),
-    "overallVelocity": pct / max(elapsed, 1e-9),
-    "requiredVelocity": max(0.0, 1.0 - pct) / max(duration - elapsed, 1e-9),
+    # baseline-0.3.0: velocidades por fracción del tiempo de la convocatoria, no por día
+    "recentVelocity": recent / target_pesos / max(t - window_start, 1e-9),
+    "overallVelocity": pct / max(t, 1e-9),
+    "requiredVelocity": max(0.0, 1.0 - pct) / max(1.0 - t, 1e-9),
     "paceRatio": pct / t, "failedRate": 1.0 / 3.0, "targetPolicy": "FLEXIBLE", "visibility": "PUBLIC",
 }
 clf = joblib.load(args.models / "model_logistic_regression.joblib")

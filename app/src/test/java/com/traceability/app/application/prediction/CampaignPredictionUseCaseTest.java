@@ -80,10 +80,10 @@ class CampaignPredictionUseCaseTest {
         CampaignPredictorModel model = CampaignPredictorModel.load(
                 getClass().getResourceAsStream(CampaignPredictionUseCase.MODEL_RESOURCE));
         assertThat(p.unavailable()).isNull();
-        assertThat(p.modelVersion()).isEqualTo("baseline-0.2.0");
-        assertThat(p.probabilityReachTarget()).isEqualTo(Math.round(model.probabilityReachTarget(f.byName()) * 10_000.0) / 10_000.0)
+        assertThat(p.modelVersion()).isEqualTo("baseline-0.3.0");
+        assertThat(p.probabilityReachTarget()).isEqualTo(Math.round(model.probabilityReachTarget(model.clipToTrainedRange(f.byName())) * 10_000.0) / 10_000.0)
                 .isBetween(0.0, 1.0);
-        assertThat(p.estimatedFinalPctOfTarget()).isEqualTo(Math.round(model.finalPctOfTarget(f.byName()) * 10_000.0) / 10_000.0);
+        assertThat(p.estimatedFinalPctOfTarget()).isEqualTo(Math.round(model.finalPctOfTarget(model.clipToTrainedRange(f.byName())) * 10_000.0) / 10_000.0);
         assertThat(p.pctTimeElapsed()).isEqualTo(0.25);
         assertThat(p.warnings()).containsExactly("modelo entrenado con datos sintéticos");
         assertThat(f.nDonations()).isEqualTo(5);
@@ -199,5 +199,35 @@ class CampaignPredictionUseCaseTest {
                 .isInstanceOf(CampaignNotFoundException.class);
         assertThatThrownBy(() -> atNow.predict(principal(null), "ORG-1", "CAMP-1"))
                 .isInstanceOf(ActorNotInCampaignOrganizationException.class);
+    }
+
+    /**
+     * baseline-0.3.0 (prueba de Adonis en el teléfono, 2026-11-11): una convocatoria de una hora, con meta pequeña,
+     * daba 0 % aunque ya llevara casi toda la meta, porque las velocidades «por día» salían cientos de veces fuera del
+     * rango de entrenamiento. Ahora la probabilidad sigue al ritmo de la convocatoria, sea cual sea su duración.
+     */
+    @Test
+    void aShortCampaign_isJudgedByItsPace_notByItsDuration() {
+        Instant start = Instant.parse("2027-01-01T00:00:00Z");
+        Instant end = start.plus(Duration.ofHours(1));
+        Instant now = start.plus(Duration.ofMinutes(18)); // t = 0,30
+        CampaignPredictionUseCase atNow = useCase(now);
+        AuthorizationPrincipal admin = principal("ORG-1", AuthorizationRole.ADMINISTRATOR);
+        java.util.function.Function<long[], Double> probability = amounts -> {
+            List<IntentOutcome> intents = new java.util.ArrayList<>();
+            for (int i = 0; i < amounts.length; i++) {
+                intents.add(new IntentOutcome(Outcome.CONFIRMED, amounts[i], i, start.plus(Duration.ofMinutes(5 + i))));
+            }
+            when(query.dataOf("CAMP-1")).thenReturn(Optional.of(new CampaignPredictionData("CAMP-1", "ORG-1", "OPEN",
+                    "PUBLIC", "FLEXIBLE", 20_000_000L, "COP", start, end, 0, 1, intents, false)));
+            return atNow.predict(admin, "ORG-1", "CAMP-1").probabilityReachTarget();
+        };
+
+        double ahead = probability.apply(new long[] {6_000_000, 6_000_000, 6_000_000}); // 90 % de la meta al 30 %
+        double behind = probability.apply(new long[] {500_000}); // 2,5 % de la meta al 30 %
+
+        assertThat(ahead).as("va muy por delante").isGreaterThan(0.5);
+        assertThat(behind).as("va muy por detrás").isLessThan(0.5);
+        assertThat(ahead).isGreaterThan(behind);
     }
 }

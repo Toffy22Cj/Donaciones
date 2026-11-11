@@ -51,7 +51,7 @@ from sklearn.model_selection import GroupKFold, GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-MODEL_VERSION = "baseline-0.2.0"  # 0.2.0: sin STRICT (ADR-044 P7/D3)
+MODEL_VERSION = "baseline-0.3.0"  # 0.2.0: sin STRICT (ADR-044 P7/D3); 0.3.0: velocidades por fracción de la convocatoria
 EXCLUDED_POLICIES = ("STRICT",)
 SEED = 20261006
 

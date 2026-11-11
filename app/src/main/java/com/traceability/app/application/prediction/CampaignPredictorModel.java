@@ -42,6 +42,8 @@ public final class CampaignPredictorModel {
     private final Map<String, List<String>> regressorCategories;
     private final double baseline;
     private final List<Node[]> trees;
+    /** baseline-0.3.0: [mín, máx] de cada variable numérica en el entrenamiento; vacío en modelos anteriores. */
+    private final Map<String, double[]> featureRanges;
 
     private CampaignPredictorModel(JsonNode root) {
         modelVersion = root.get("modelVersion").asText();
@@ -71,6 +73,12 @@ public final class CampaignPredictorModel {
             }
             trees.add(nodes);
         }
+        featureRanges = new java.util.LinkedHashMap<>();
+        JsonNode ranges = root.get("featureRanges");
+        if (ranges != null) {
+            ranges.fields().forEachRemaining(e -> featureRanges.put(e.getKey(),
+                    new double[] {e.getValue().get(0).asDouble(), e.getValue().get(1).asDouble()}));
+        }
         int width = numeric.size() + classifierCategories.values().stream().mapToInt(List::size).sum();
         if (mean.length != numeric.size() || scale.length != numeric.size() || coefficients.length != width) {
             throw new IllegalStateException("Predictor JSON inconsistente: dimensiones del clasificador");
@@ -95,6 +103,21 @@ public final class CampaignPredictorModel {
 
     public List<String> excludedPolicies() {
         return excludedPolicies;
+    }
+
+    /**
+     * Las variables recortadas al rango que el modelo vio al entrenar (baseline-0.3.0). Fuera de ese rango la regresión
+     * logística extrapola sin límite: una meta o una duración muy distintas de las sintéticas llevaban la probabilidad
+     * a 0 aunque la convocatoria fuera muy por delante. Las categóricas no cambian.
+     */
+    public Map<String, Object> clipToTrainedRange(Map<String, Object> features) {
+        Map<String, Object> clipped = new java.util.LinkedHashMap<>(features);
+        featureRanges.forEach((name, range) -> {
+            if (clipped.get(name) instanceof Number n && !Double.isNaN(n.doubleValue())) {
+                clipped.put(name, Math.max(range[0], Math.min(range[1], n.doubleValue())));
+            }
+        });
+        return clipped;
     }
 
     /** P(recaudado al cierre ≥ 100 % de la meta). */

@@ -151,13 +151,13 @@ def build_snapshot(campaign: dict, intents: pd.DataFrame, t: float) -> dict | No
 
     window_start = max(0.0, t - RECENT_WINDOW_FRACTION)
     recent = confirmed[confirmed["dayFraction"] >= window_start]
-    window_days = max((t - window_start) * duration, 1e-9)
-    elapsed_days = t * duration
-    remaining_days = duration - elapsed_days
 
-    recent_velocity = float(recent["amount"].sum()) / target / window_days      # % meta / día
-    overall_velocity = pct_raised / max(elapsed_days, 1e-9)
-    required_velocity = max(0.0, 1.0 - pct_raised) / max(remaining_days, 1e-9)
+    # baseline-0.3.0: las velocidades se miden en «% de la meta por fracción del tiempo de la convocatoria», no por
+    # día. Así no dependen de la duración: una convocatoria de una hora y una de 60 días con el mismo ritmo relativo
+    # dan las mismas variables (con «por día», las cortas daban velocidades cientos de veces fuera del rango).
+    recent_velocity = float(recent["amount"].sum()) / target / max(t - window_start, 1e-9)
+    overall_velocity = pct_raised / max(t, 1e-9)
+    required_velocity = max(0.0, 1.0 - pct_raised) / max(1.0 - t, 1e-9)
     n_attempts = len(past)
 
     return {

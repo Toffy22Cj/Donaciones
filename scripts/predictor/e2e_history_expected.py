@@ -8,7 +8,8 @@ y dos donaciones acreditadas (FUNDS_CLEARED) de 1 200 000 y 900 000 COP en t = 0
 El pago fallido del test no está en el event store: en los cortes pasados la tasa de fallos es 0 (DD-75), así que
 aquí no aparece. En t = 0,15 no hay ninguna donación; en t = 0,25 están las dos (y caen en la ventana reciente).
 
-Uso: python -I e2e_history_expected.py --predictor <dir paxfide-predictor> --out <fichero.json>
+Uso: python -I e2e_history_expected.py --predictor <dir paxfide-predictor> --model-json <predictor exportado .json>
+     --out <fichero.json>
 """
 import argparse
 import json
@@ -18,6 +19,8 @@ from pathlib import Path
 ap = argparse.ArgumentParser()
 ap.add_argument("--predictor", type=Path, required=True)
 ap.add_argument("--out", type=Path, required=True)
+# baseline-0.3.0: el backend recorta las variables al rango de entrenamiento (featureRanges del JSON exportado)
+ap.add_argument("--model-json", type=Path, required=True)
 args = ap.parse_args()
 
 sys.path.insert(0, str(args.predictor.resolve()))
@@ -37,10 +40,12 @@ intents = pd.DataFrame([
 
 clf = joblib.load(args.predictor / "output" / "model_logistic_regression.joblib")
 reg = joblib.load(args.predictor / "output" / "model_final_pct_regressor.joblib")
+ranges = json.loads(args.model_json.read_text())["featureRanges"]
 out = {"modelVersion": clf["modelVersion"], "cuts": {}}
 for t in (0.15, 0.25):
     snap = build_snapshot(campaign, intents, t)
-    frame = pd.DataFrame([snap], columns=clf["features"])
+    clipped = {k: (min(max(v, ranges[k][0]), ranges[k][1]) if k in ranges else v) for k, v in snap.items()}
+    frame = pd.DataFrame([clipped], columns=clf["features"])
     out["cuts"][str(t)] = {"features": {k: snap[k] for k in clf["features"]},
                            "pctRaised": snap["pctRaised"],
                            "probabilityReachTarget": float(clf["model"].predict_proba(frame)[0, 1]),
