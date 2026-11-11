@@ -90,9 +90,10 @@ public class DemoSeedRunner implements ApplicationRunner {
             employees.addEmployee(SEED, organization.getOrganizationId(), ensureAccount(EMPLOYEE).getAccountId());
             log.info("Demo seed: organization {} created (PENDING_VERIFICATION)", organization.getOrganizationId().value());
         } else {
-            // E2-1: en una base que ya existía, las cuentas de la organización también quedan verificadas.
-            ensureAccount(ADMINISTRATOR);
-            ensureAccount(EMPLOYEE);
+            // E2-1: en una base que ya existía, las cuentas de la organización también quedan verificadas (sin crear
+            // ninguna: la base del escenario completo no tiene empleado@).
+            verifyIfPresent(ADMINISTRATOR);
+            verifyIfPresent(EMPLOYEE);
             log.info("Demo seed: organization already present; nothing created");
         }
         ensureAccount(DONOR);
@@ -100,8 +101,7 @@ public class DemoSeedRunner implements ApplicationRunner {
         // también quedan verificadas. Solo las que existen: aquí no se crea ninguna.
         for (String email : java.util.List.of(DemoScenarioSeeder.EMPLOYEE_1, DemoScenarioSeeder.EMPLOYEE_2,
                 DemoScenarioSeeder.PENDING_REPRESENTATIVE)) {
-            accountRepository.findByEmail(new Email(email)).filter(a -> !a.isEmailVerified()).ifPresent(a ->
-                    accountRepository.markEmailVerifiedIfUnverified(a.getAccountId(), java.time.Instant.now()));
+            verifyIfPresent(email);
         }
         log.info("Demo seed: platform account {}", platform.value());
     }
@@ -110,6 +110,11 @@ public class DemoSeedRunner implements ApplicationRunner {
      * ADR-050 Enmienda 2, E2-1 y P-E2V-4: las cuentas de la semilla nacen verificadas (alta de sistema) y las que ya
      * existen en una base desplegada se marcan con una escritura condicional e idempotente.
      */
+    private void verifyIfPresent(String email) {
+        accountRepository.findByEmail(new Email(email)).filter(a -> !a.isEmailVerified()).ifPresent(a ->
+                accountRepository.markEmailVerifiedIfUnverified(a.getAccountId(), java.time.Instant.now()));
+    }
+
     private Account ensureAccount(String email) {
         return accountRepository.findByEmail(new Email(email))
                 .map(existing -> {
