@@ -89,6 +89,8 @@ class DemoSeedRunnerIntegrationTest {
     @Test
     void onAnExistingDatabase_theOrganizationAccountsAreVerifiedToo() throws Exception {
         seed.run(null);
+        // una cuenta del escenario completo, registrada por la API (nace sin verificar)
+        registerUnverified(DemoScenarioSeeder.EMPLOYEE_1);
         mongoTemplate.updateMulti(new Query(), new Update().unset("emailVerifiedAt"), "accounts");
 
         seed.run(null);
@@ -97,5 +99,14 @@ class DemoSeedRunnerIntegrationTest {
         assertThat(me(DemoSeedRunner.EMPLOYEE).get("roles").toString()).contains("EMPLOYEE");
         assertThat(me(DemoSeedRunner.REPRESENTATIVE).get("roles").toString()).contains("REPRESENTATIVE");
         assertThat(me(DemoSeedRunner.DONOR).has("organizationId")).isFalse();
+        assertThat(me(DemoScenarioSeeder.EMPLOYEE_1).has("accountId")).isTrue();
+    }
+
+    private void registerUnverified(String email) throws Exception {
+        HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v1/auth/register"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"email\":\"" + email + "\",\"password\":\"test-only-seed-password\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}"))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(r.statusCode()).as("registro " + email).isEqualTo(201);
     }
 }

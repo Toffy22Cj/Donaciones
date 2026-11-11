@@ -96,6 +96,13 @@ public class DemoSeedRunner implements ApplicationRunner {
             log.info("Demo seed: organization already present; nothing created");
         }
         ensureAccount(DONOR);
+        // E2-1: las cuentas del escenario completo (DemoScenarioSeeder) de una base creada antes de la Enmienda 2
+        // también quedan verificadas. Solo las que existen: aquí no se crea ninguna.
+        for (String email : java.util.List.of(DemoScenarioSeeder.EMPLOYEE_1, DemoScenarioSeeder.EMPLOYEE_2,
+                DemoScenarioSeeder.PENDING_REPRESENTATIVE)) {
+            accountRepository.findByEmail(new Email(email)).filter(a -> !a.isEmailVerified()).ifPresent(a ->
+                    accountRepository.markEmailVerifiedIfUnverified(a.getAccountId(), java.time.Instant.now()));
+        }
         log.info("Demo seed: platform account {}", platform.value());
     }
 
