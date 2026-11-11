@@ -4,6 +4,8 @@
 #
 #   paxfide.sh arrancar      túneles nuevos, URLs a backend.env y a la web, recompila la web y arranca todo en tmux
 #   paxfide.sh semilla       BORRA la base y carga el escenario de la demo (cuentas, convocatorias, trackingCode)
+#   paxfide.sh actualizar    trae los cambios del equipo (git pull de los 3 repos) y recompila y reinicia solo lo
+#                            que cambió, sin tocar los túneles (las URLs siguen igual). --forzar recompila todo
 #   paxfide.sh compilar      git pull + compila backend y web
 #   paxfide.sh estado        qué corre, URLs y comprobación de la API y la web
 #   paxfide.sh logs [api|web|tunel-api|tunel-web]
@@ -18,10 +20,12 @@ set -euo pipefail
 HOME_DIR=${PAXFIDE_HOME:-$HOME/PaxFide}
 BACK=$HOME_DIR/Donaciones
 WEB=$HOME_DIR/PaxFide
+MOVIL=$HOME_DIR/PaxFide_Mv
 DEP=$HOME_DIR/deploy
 ENVF=$DEP/backend.env
 WEBENV=$WEB/.env.production.local
 JAR=$BACK/app/target/app-1.0.0-SNAPSHOT.jar
+RUN_JAR=$DEP/backend-en-marcha.jar   # copia del jar: mvn puede recompilar sin romper el backend que corre
 SESSION=paxfide
 LOG_API=$DEP/backend.log
 LOG_WEB=$DEP/web.log
@@ -91,18 +95,32 @@ tunnel_url() {
 
 stop_apps() {
   tmux kill-session -t "$SESSION" 2>/dev/null || true
+  stop_backend
+  stop_web
+}
+
+stop_backend() {
+  tmux kill-window -t "$SESSION:backend" 2>/dev/null || true
+  pkill -f "java -jar $RUN_JAR" 2>/dev/null || true
   pkill -f "java -jar $JAR" 2>/dev/null || true
-  pkill -f "next start" 2>/dev/null || true
   sleep 2
+}
+
+stop_web() {
+  tmux kill-window -t "$SESSION:web" 2>/dev/null || true
+  pkill -f "next start" 2>/dev/null || true
+  sleep 1
 }
 
 # start_backend [perfiles extra en SPRING_PROFILES_ACTIVE]
 start_backend() {
   [ -f "$JAR" ] || die "no está el jar; ejecuta: $0 compilar"
+  check_new_vars
+  cp "$JAR" "$RUN_JAR"
   : > "$LOG_API"
   local cmd="cd '$BACK' && set -a && . '$ENVF' && set +a"
   [ -n "${1:-}" ] && cmd="$cmd && export SPRING_PROFILES_ACTIVE='$1' TRACEABILITY_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=false"
-  cmd="$cmd && java -jar '$JAR' 2>&1 | tee '$LOG_API'"
+  cmd="$cmd && java -jar '$RUN_JAR' 2>&1 | tee '$LOG_API'"
   if tmux has-session -t "$SESSION" 2>/dev/null; then
     tmux new-window -t "$SESSION" -n backend "bash -c \"$cmd; exec bash\""
   else
@@ -130,6 +148,7 @@ build_web() {
 
 start_web() {
   : > "$LOG_WEB"
+  if ! tmux has-session -t "$SESSION" 2>/dev/null; then tmux new-session -d -s "$SESSION" -n shell; fi
   tmux new-window -t "$SESSION" -n web "bash -c \"cd '$WEB' && pnpm start 2>&1 | tee '$LOG_WEB'; exec bash\""
   wait_http http://localhost:3000 90 || die "la web no responde en :3000; mira $LOG_WEB"
 }
@@ -147,6 +166,81 @@ summary() {
   printf '    {\n      "PAXFIDE_API_BASE_URL": "%s/api/v1",\n      "PAXFIDE_PUBLIC_BASE_URL": "%s"\n    }\n' "$API_URL" "$WEB_URL"
   echo
   echo "Ver procesos: tmux attach -t $SESSION   (salir sin detener: Ctrl+B y luego D)"
+}
+
+# Variables obligatorias (${VAR} sin valor por defecto en application.yml) que faltan en backend.env. Si el equipo
+# añade una nueva, el backend no arrancaría: se avisa antes y no se reinicia.
+check_new_vars() {
+  local v missing=""
+  for v in $(command grep -oE '\$\{[A-Z_0-9]+\}' "$BACK/app/src/main/resources/application.yml" | tr -d '${}' | sort -u); do
+    [ -n "$(envval "$v")" ] || missing="$missing $v"
+  done
+  [ -z "$missing" ] && return 0
+  echo "Faltan en $ENVF variables obligatorias nuevas:$missing" >&2
+  echo "Mira para qué son en Donaciones/Documentos/despliegue-backend-2026-10.md, añádelas y repite." >&2
+  die "el backend no se reinicia sin ellas (el que corre sigue igual)"
+}
+
+# git pull de un repo; imprime "si" si cambió. Se niega si hay cambios locales sin guardar.
+pull_repo() { # pull_repo dir nombre
+  local dir=$1 name=$2 before after branch
+  [ -d "$dir/.git" ] || { echo "  $name: no está en $dir (lo salto)" >&2; echo no; return 0; }
+  if [ -n "$(git -C "$dir" status --porcelain --untracked-files=no)" ]; then
+    git -C "$dir" status --short --untracked-files=no >&2
+    die "$name tiene cambios locales sin guardar (arriba). Guárdalos (git stash) o descártalos y repite."
+  fi
+  branch=$(git -C "$dir" branch --show-current)
+  before=$(git -C "$dir" rev-parse HEAD)
+  git -C "$dir" pull --ff-only -q origin "$branch" >&2 || die "$name: git pull falló (¿la rama $branch divergió?)"
+  after=$(git -C "$dir" rev-parse HEAD)
+  if [ "$before" = "$after" ]; then
+    echo "  $name ($branch): sin cambios" >&2; echo no
+  else
+    echo "  $name ($branch): ${before:0:7} -> ${after:0:7}" >&2
+    git -C "$dir" log --oneline --no-decorate "$before..$after" | head -15 | sed 's/^/      /' >&2
+    echo si
+  fi
+}
+
+cmd_actualizar() {
+  need git; need mvn; need pnpm; need tmux
+  check_env
+  local force=0 back web movil
+  [ "${1:-}" = --forzar ] && force=1
+  info "Trayendo los cambios del equipo"
+  back=$(pull_repo "$BACK" Donaciones)
+  web=$(pull_repo "$WEB" PaxFide)
+  movil=$(pull_repo "$MOVIL" PaxFide_Mv)
+  [ "$force" = 1 ] && { back=si; web=si; }
+  if [ "$back" = no ] && [ "$web" = no ]; then
+    echo; echo "Backend y web ya estaban al día: no reinicio nada."
+    [ "$movil" = si ] && echo "PaxFide_Mv cambió: recompila la app en tu equipo con Flutter (git pull allí)."
+    return 0
+  fi
+  [ -f "$DEP/urls.txt" ] || die "no hay túneles; ejecuta: $0 arrancar"
+  infra
+
+  if [ "$back" = si ]; then
+    info "Backend: compilando (el que corre sigue atendiendo mientras tanto)"
+    (cd "$BACK" && mvn -q install -DskipTests) > "$DEP/backend-build.log" 2>&1 \
+      || { tail -30 "$DEP/backend-build.log"; die "falló la compilación; el backend anterior sigue en marcha (log: $DEP/backend-build.log)"; }
+    check_new_vars
+    info "Backend: reiniciando"
+    stop_backend
+    start_backend
+    wait_backend
+  fi
+
+  if [ "$web" = si ]; then
+    info "Web: compilando (la web se para durante el build)"
+    stop_web
+    build_web
+    start_web
+  fi
+
+  summary
+  [ "$movil" = si ] && echo "PaxFide_Mv cambió: recompila la app en tu equipo con Flutter (git pull allí)."
+  return 0
 }
 
 cmd_compilar() {
@@ -220,7 +314,7 @@ cmd_semilla() {
 cmd_estado() {
   info "Procesos"
   pgrep -af "cloudflared tunnel --url" || echo "(sin túneles)"
-  pgrep -af "java -jar $JAR" || echo "(backend parado)"
+  pgrep -af "java -jar $RUN_JAR" || echo "(backend parado)"
   pgrep -af "next start" || echo "(web parada)"
   (cd "$DEP" && docker compose ps)
   if [ -f "$DEP/urls.txt" ]; then summary; fi
@@ -245,9 +339,10 @@ cmd_parar() {
 case "${1:-}" in
   arrancar) cmd_arrancar ;;
   semilla) cmd_semilla ;;
+  actualizar) cmd_actualizar "${2:-}" ;;
   compilar) cmd_compilar ;;
   estado) cmd_estado ;;
   logs) cmd_logs "${2:-}" ;;
   parar) cmd_parar ;;
-  *) sed -n '2,15p' "$0"; exit 1 ;;
+  *) sed -n '2,18p' "$0"; exit 1 ;;
 esac
