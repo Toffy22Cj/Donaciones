@@ -186,7 +186,7 @@ class PublicRoutesInventoryIntegrationTest {
                 // ADR-050 D8: las dos rutas de la recuperación existen y son públicas (PublicRoutes)
                 .contains("/api/v1/auth/password-reset", "/api/v1/auth/password-reset/confirm")
                 // ADR-050 D9: el login con Google es público; vincular y desvincular, no
-                .contains("/api/v1/auth/google", "/api/v1/account/google/link")
+                .contains("/api/v1/auth/google", "/api/v1/auth/google/register", "/api/v1/account/google/link")
                 // ficha R-7 §4 y §6: el catálogo es público; el perfil y el reenvío, no
                 .contains("/api/v1/public/locations", "/api/v1/organizations/{organizationId}/profile",
                         "/api/v1/organizations/{organizationId}/verification/resubmit")

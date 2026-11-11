@@ -110,6 +110,12 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
 - **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
+*Nota (2026-11-11, ADR-050 Enmienda 3, **PROPUESTA**; código en `claude/relaxed-curie-9271o4`, sin fusionar):* **crear la cuenta con Google y contraseña.** Las filas de abajo no se reescriben; mientras la enmienda no esté aprobada, rige "No hay registro con Google (Q2 (a))".
+
+| Método y ruta | Auth | Cuerpo | Respuestas | Errores |
+|---|---|---|---|---|
+| `POST /auth/google/register` | pública | `{idToken, password, acceptedTermsVersion, acceptedDataPolicyVersion}` | `201 {accountId, status, token}`: la cuenta nace con el correo de Google, verificada, con las aceptaciones y vinculada; `token` es el del login (con el `iat` de E1-2), o `null` si no se pudo emitir | 400 campo vacío o versión no vigente (antes de llamar a Google); **400 `PasswordTooShort`**; **400 `GoogleIdTokenInvalid`**; **409 `GoogleAccountAlreadyLinked`**; **409 `DuplicateEmail`** (la cuenta existente no se toca); 503 `GoogleSignInUnavailable` |
+
 *Nota (2026-10-31, ADR-050 D9 y sus tres ampliaciones, decisión de Manuel en #164; plan de Google aprobado):* **iniciar sesión con Google y vincularlo.** Las filas de arriba no se reescriben.
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
