@@ -8,13 +8,10 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.Map;
 
 /**
  * [Plan] Correo de verificación por SMTP (ADR-050 Enmienda 2, E2-2), con la forma de {@link SmtpPasswordResetMailAdapter}
@@ -29,19 +26,19 @@ public class SmtpEmailVerificationMailAdapter implements EmailVerificationMailPo
 
     private static final Logger log = LoggerFactory.getLogger(SmtpEmailVerificationMailAdapter.class);
     static final String PATH = "/verificar-correo";
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy, HH:mm '(hora de Colombia)'",
-            Locale.forLanguageTag("es"));
-    private static final ZoneId BOGOTA = ZoneId.of("America/Bogota");
 
     private final JavaMailSender sender;
     private final TaskExecutor executor;
     private final String from;
     private final String baseUrl;
+    private final MailTemplates templates;
 
     public SmtpEmailVerificationMailAdapter(ObjectProvider<JavaMailSender> sender,
                                             @Qualifier(PasswordResetMailExecutorConfig.EXECUTOR) TaskExecutor executor,
                                             @Value("${traceability.mail.from}") String from,
-                                            @Value("${traceability.web.base-url}") String baseUrl) {
+                                            @Value("${traceability.web.base-url}") String baseUrl,
+                                            MailTemplates templates) {
+        this.templates = templates;
         this.sender = MailSettings.requireSender(sender);
         this.executor = executor;
         this.from = MailSettings.requireFrom(from);
@@ -62,21 +59,22 @@ public class SmtpEmailVerificationMailAdapter implements EmailVerificationMailPo
         }
     }
 
+    MailTemplates.Body body(EmailVerificationMail mail) {
+        return templates.render("verificacion", Map.of(
+                "title", "Confirma tu correo",
+                "kicker", "Verificación",
+                "preheader", "Confirma tu correo para terminar de crear tu cuenta.",
+                "recipientEmail", mail.to(),
+                "expiresAt", MailSettings.when(mail.expiresAt()),
+                "actionUrl", link(mail.token()),
+                "actionLabel", "Confirmar mi correo",
+                "closing", "Si no creaste una cuenta en PaxFide, ignora este correo.",
+                "reason", "Recibiste este correo porque alguien creó una cuenta de PaxFide con esta dirección."));
+    }
+
     private void send(EmailVerificationMail mail) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(from);
-            message.setTo(mail.to());
-            message.setSubject("Confirma tu correo en PaxFide");
-            message.setText("""
-                    Para terminar de crear tu cuenta de PaxFide, confirma que este correo es tuyo con este enlace:
-                    %s
-
-                    El enlace caduca el %s y solo se puede usar una vez.
-
-                    Si no creaste una cuenta en PaxFide, ignora este correo.
-                    """.formatted(link(mail.token()), TIME.format(mail.expiresAt().atZone(BOGOTA))));
-            sender.send(message);
+            BrandedMail.send(sender, from, mail.to(), "Confirma tu correo en PaxFide", body(mail));
         } catch (RuntimeException e) {
             log.warn("email-verification.mail.failed tokenId={} cause={}", mail.tokenId(), e.getClass().getSimpleName());
         }

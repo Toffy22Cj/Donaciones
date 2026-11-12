@@ -117,5 +117,11 @@ class InvitationMailpitIntegrationTest {
         assertThat(text).doesNotContain(adminEmail).doesNotContain(admin).doesNotContain(rep).doesNotContain(org.value())
                 .doesNotContain("?token");
         assertThat(message.get("From").get("Address").asText()).isEqualTo("no-reply@tests.paxfide.local");
+        // el diseño: la misma invitación en HTML, con el enlace en el botón y sin datos de quien invita
+        String html = message.get("HTML").asText();
+        assertThat(html).contains("Aceptar invitación").contains("Fundación Correo Real")
+                .containsPattern(Pattern.compile("href=\"" + Pattern.quote("https://web.tests.paxfide.local/invitaciones#token=")
+                        + "[A-Za-z0-9_-]{43}\""))
+                .doesNotContain(adminEmail).doesNotContain("{{");
     }
 }

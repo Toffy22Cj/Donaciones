@@ -36,7 +36,21 @@ public class CapturedMail {
 
     public static final class Sender extends JavaMailSenderImpl {
         public final List<SimpleMailMessage> sent = new CopyOnWriteArrayList<>();
+        /** Los mensajes tal como salieron (texto y HTML), en el orden de envío. */
+        public final List<jakarta.mail.internet.MimeMessage> lastMime = new CopyOnWriteArrayList<>();
         public volatile CountDownLatch gate;
+
+        @Override public void send(jakarta.mail.internet.MimeMessage message) {
+            send(new jakarta.mail.internet.MimeMessage[] {message});
+        }
+        @Override public void send(jakarta.mail.internet.MimeMessage... messages) {
+            for (jakarta.mail.internet.MimeMessage m : messages) {
+                // asegura los multipart antes de leerlos, como haría el envío real
+                try { m.saveChanges(); } catch (jakarta.mail.MessagingException e) { throw new IllegalStateException(e); }
+                lastMime.add(m);
+                send(com.traceability.app.support.MimeMails.toSimple(m));
+            }
+        }
 
         @Override
         public void send(SimpleMailMessage message) {

@@ -4,6 +4,10 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import java.net.URI;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * [Plan] Las comprobaciones de arranque comunes a los correos de la Enmienda 2 de ADR-050, las mismas que hace
@@ -12,7 +16,16 @@ import java.net.URI;
  */
 final class MailSettings {
 
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern(
+            "d 'de' MMMM 'de' yyyy, h:mm a '(hora de Colombia)'", Locale.forLanguageTag("es-CO"));
+    private static final ZoneId BOGOTA = ZoneId.of("America/Bogota");
+
     private MailSettings() {
+    }
+
+    /** La hora de los correos, en America/Bogota (P-E2V-10), igual en todos. */
+    static String when(Instant instant) {
+        return TIME.format(instant.atZone(BOGOTA));
     }
 
     static JavaMailSender requireSender(ObjectProvider<JavaMailSender> sender) {

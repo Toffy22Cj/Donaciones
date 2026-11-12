@@ -109,6 +109,18 @@ class PasswordResetHttpIntegrationTest {
         final List<SimpleMailMessage> sent = new CopyOnWriteArrayList<>();
         volatile CountDownLatch gate;
         volatile CountDownLatch entered;
+        final List<jakarta.mail.internet.MimeMessage> lastMime = new CopyOnWriteArrayList<>();
+        @Override public void send(jakarta.mail.internet.MimeMessage message) {
+            send(new jakarta.mail.internet.MimeMessage[] {message});
+        }
+        @Override public void send(jakarta.mail.internet.MimeMessage... messages) {
+            for (jakarta.mail.internet.MimeMessage m : messages) {
+                // asegura los multipart antes de leerlos, como haría el envío real
+                try { m.saveChanges(); } catch (jakarta.mail.MessagingException e) { throw new IllegalStateException(e); }
+                lastMime.add(m);
+                send(com.traceability.app.support.MimeMails.toSimple(m));
+            }
+        }
         @Override public void send(SimpleMailMessage message) { send(new SimpleMailMessage[] {message}); }
         @Override public void send(SimpleMailMessage... messages) {
             CountDownLatch e = entered;
