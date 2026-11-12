@@ -19,11 +19,18 @@ spring:
       base-url: https://api.groq.com/openai
       chat:
         options:
-          model: llama3-8b-8192
+          # Groq retiró llama3-8b-8192 (2026-11-12: ya no aparece en GET /openai/v1/models y cada relato caía al
+          # respaldo). Se cambia sin tocar el código con SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL
+          model: openai/gpt-oss-20b
 
   data:
     mongodb:
       auto-index-creation: true
+
+# Clave de la caché de los relatos: el modelo que de verdad se usa. Si se cambia el modelo, los relatos se regeneran
+ai:
+  narrative:
+    model-identifier: ${spring.ai.openai.chat.options.model}
 
 crypto:
   # ── Node connection & wallet credentials ─────────────────────────────────────
