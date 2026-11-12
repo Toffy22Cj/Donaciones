@@ -26,6 +26,27 @@ public class SpringAiLlmAdapter implements LlmClientPort {
         this.chatClient = builder.build();
     }
 
+    /**
+     * El prompt del relato del donante. Las reglas de las citas son las mismas que comprueba
+     * {@code GroundingValidatorImpl}: una cita que no coincide exactamente con un hecho descarta el relato entero.
+     */
+    static String prompt(AuditFactsDTO facts, String outputFormat) {
+        return "Escribe en español, en dos a cuatro frases sencillas, el relato de lo que pasó con una donación,"
+                + " para la persona que donó. Usa solo los hechos de abajo; no inventes nada."
+                + "\n\nReglas de citedFacts (se comprueban una por una; si una falla, el relato se descarta):"
+                + "\n- Cita cada dato que menciones, con su valor EXACTO tal como aparece en los hechos."
+                + "\n- DATE: una fecha ISO-8601 copiada tal cual de occurredAtFrom, occurredAtTo, occurredAt o generatedAt."
+                + "\n- AMOUNT: solo el campo amount de una entrada de financialFlags, como número entero sin puntos ni"
+                + " símbolos. Nunca uses AMOUNT para cantidades de unidades, conteos ni duraciones."
+                + "\n- LIFECYCLE_STATUS y TRANSITION: un fromStatus o toStatus de transitions, copiado tal cual."
+                + "\n- OPERATION_REF: el fundId, un assetRef, un allocationId, un refundId o un type de financialFlags."
+                + "\n- No escribas en narrativeText ninguna cifra que no esté en citedFacts. Si no hay transiciones ni"
+                + " alertas, cita el fundId como OPERATION_REF."
+                + "\n- No menciones identificadores internos en narrativeText: descríbelos (\"un lote\", \"la entrega\")."
+                + "\n\nDevuelve solo un JSON que cumpla este esquema:\n" + outputFormat
+                + "\n\nHechos:\n\"\"\"\n" + facts + "\n\"\"\"";
+    }
+
     @Override
     public LlmNarrativeResponse generateNarrative(AuditFactsDTO sanitizedFacts, String promptTemplateVersion)
             throws NarrativeGenerationTimeoutException, NarrativeProviderException {
@@ -35,10 +56,8 @@ public class SpringAiLlmAdapter implements LlmClientPort {
 
             String format = converter.getFormat();
 
-            String prompt = String.format("Generate a human-readable donor report for fund %s based on facts. Emphasize impact.\n\n" +
-                    "Return a JSON adhering strictly to the following schema:\n%s\n\nRaw facts:\n\"\"\"\n%s\n\"\"\"",
-                    sanitizedFacts.fundId(), format, sanitizedFacts.toString());
-            
+            String prompt = prompt(sanitizedFacts, format);
+
             ChatResponse response = chatClient.prompt()
                     .user(prompt)
                     .call()

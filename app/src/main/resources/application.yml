@@ -31,6 +31,8 @@ spring:
 ai:
   narrative:
     model-identifier: ${spring.ai.openai.chat.options.model}
+    # v1.1 (2026-11-12): prompt en español con las reglas de las citas del verificador; cambia la clave de la caché
+    prompt-template-version: v1.1
 
 crypto:
   # ── Node connection & wallet credentials ─────────────────────────────────────
@@ -50,7 +52,13 @@ crypto:
     receipt-timeout-seconds: 3600
     submit:
       delay: 30000
-      timeout-seconds: 15
+      # Espera del recibo de la transacción. En Sepolia (bloques de ~12 s) 15 s no bastaba: el envío quedaba
+      # "ambiguo" aunque llegara, y el reintento chocaba con "nonce too low" (2026-11-12)
+      timeout-seconds: ${CRYPTO_ANCHOR_SUBMIT_TIMEOUT_SECONDS:120}
+    # Si un reintento da "nonce too low", se busca la raíz en el contrato (eventos RootStored) en los últimos bloques
+    reconcile:
+      lookback-blocks: ${CRYPTO_ANCHOR_RECONCILE_LOOKBACK_BLOCKS:2000}
+      chunk-blocks: ${CRYPTO_ANCHOR_RECONCILE_CHUNK_BLOCKS:500}
     poll:
       delay: 15000
     stuck-monitor:

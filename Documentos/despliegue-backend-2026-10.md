@@ -84,6 +84,8 @@ Todos deben ser distintos entre sí: el cursor lo comprueba (`DiscoveryCursorCon
 |---|---|---|---|---|
 | `WEB3_PRIVATE_KEY`, `WEB3_NODE_URL` | Billetera y nodo del anclaje | **Sí, en la práctica.** El marcador tiene valor vacío por defecto, pero `@NotBlank` lo rechaza | No arranca ("Web3j private key must be configured") | `application.yml:33-34`; `crypto/src/main/java/com/traceability/crypto/infrastructure/web3j/Web3Configuration.java:17-21` |
 | `CRYPTO_ANCHOR_NETWORK`, `CRYPTO_ANCHOR_SMART_CONTRACT`, `CRYPTO_ANCHOR_CHAIN_ID`, `CRYPTO_ANCHOR_CONFIRMATIONS_REQUIRED` | Red, contrato, cadena y confirmaciones | No (por defecto Sepolia, contrato `0x0…0`, 11155111 y 12) | Con el contrato por defecto el anclaje no sirve | `application.yml:38-41` |
+| `CRYPTO_ANCHOR_SUBMIT_TIMEOUT_SECONDS` | Espera del recibo de cada transacción de anclaje. Nota del 2026-11-12: era 15 s fijo; en Sepolia el envío quedaba ambiguo aunque llegara | No (120) | — | `application.yml` (`crypto.anchor.submit.timeout-seconds`) |
+| `CRYPTO_ANCHOR_RECONCILE_LOOKBACK_BLOCKS`, `CRYPTO_ANCHOR_RECONCILE_CHUNK_BLOCKS` | Si un reintento da `nonce too low`, cuántos bloques hacia atrás se busca la raíz en el contrato (`RootStored`) y en tramos de cuántos. Bajar el tramo si el proveedor RPC limita el rango de `eth_getLogs` (log `anchor.reconcile.rpc-error`) | No (2000 y 500) | — | `application.yml` (`crypto.anchor.reconcile.*`) |
 | `CRYPTO_ANCHOR_COLLECTING_RECOVERY_TIMEOUT_SECONDS`, `CRYPTO_ANCHOR_COLLECTING_RECOVERY_MAX_PER_CYCLE`, `CRYPTO_ANCHOR_COLLECTING_RECOVERY_WARN_AFTER_ATTEMPTS` | Recuperación de lotes atascados | No (300, 10 y 5) | — | `application.yml:54-56` |
 
 ### 1.7 Otras
