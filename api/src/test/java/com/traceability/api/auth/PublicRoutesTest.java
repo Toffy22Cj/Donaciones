@@ -16,6 +16,8 @@ class PublicRoutesTest {
                         "POST /api/v1/auth/register PUBLIC",
                         // ADR-050 D9: iniciar sesión con Google
                         "POST /api/v1/auth/google PUBLIC",
+                        // ADR-050 Enmienda 3 (propuesta), E3-1: crear la cuenta con Google
+                        "POST /api/v1/auth/google/register PUBLIC",
                         "POST /api/v1/auth/password-reset PUBLIC",
                         "POST /api/v1/auth/password-reset/confirm PUBLIC",
                         // ADR-050 Enmienda 2, E2-2: reenviar y confirmar la verificación del correo

@@ -32,6 +32,8 @@ public final class PublicRoutes {
             new Route("POST", "/api/v1/auth/register", Access.PUBLIC),
             // ADR-050 D9: iniciar sesión con Google; vincular y desvincular necesitan JWT
             new Route("POST", "/api/v1/auth/google", Access.PUBLIC),
+            // ADR-050 Enmienda 3 (propuesta), E3-1: crear la cuenta con Google (y contraseña), sin JWT
+            new Route("POST", "/api/v1/auth/google/register", Access.PUBLIC),
             // ADR-050 D8: pedir y confirmar la recuperación de la contraseña, sin JWT
             new Route("POST", "/api/v1/auth/password-reset", Access.PUBLIC),
             new Route("POST", "/api/v1/auth/password-reset/confirm", Access.PUBLIC),
