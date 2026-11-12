@@ -7,6 +7,8 @@
 #   paxfide.sh actualizar    trae los cambios del equipo (git pull de los 3 repos) y recompila y reinicia solo lo
 #                            que cambió, sin tocar los túneles (las URLs siguen igual). --forzar recompila todo
 #   paxfide.sh compilar      git pull + compila backend y web
+#   paxfide.sh reparar-anclaje  tras "nonce too low" en el log: devuelve a la cola los lotes atascados sin enviar y
+#                            reinicia el backend, que vuelve a tomar el nonce de la cartera en la red
 #   paxfide.sh estado        qué corre, URLs y comprobación de la API y la web
 #   paxfide.sh logs [api|web|tunel-api|tunel-web]
 #   paxfide.sh parar         detiene backend, web y túneles (MongoDB y MinIO siguen)
@@ -335,6 +337,34 @@ cmd_semilla() {
   echo "Contraseña común de esas cuentas: $(envval TRACEABILITY_DEMO_SEED_PASSWORD)"
 }
 
+# "nonce too low": el contador de nonce de la base quedó por detrás de la cartera (por ejemplo, tras vaciar la base).
+# El backend lo sincroniza con la red al arrancar, pero un lote que ya tomó un nonce viejo se reintenta con él para
+# siempre. Aquí esos lotes (SUBMITTING o STUCK sin transactionHash: no llegaron a la red) vuelven a PENDING sin nonce,
+# se borra el contador y el backend, al reiniciar, lo vuelve a tomar de la red.
+cmd_reparar_anclaje() {
+  need docker; need tmux; need java
+  check_env
+  local db
+  db=$(envval SPRING_DATA_MONGODB_URI | sed -E 's|.*/([^/?]+)(\?.*)?$|\1|')
+  # sin la sincronización al arrancar, borrar el contador lo dejaría en 0 otra vez
+  command grep -q NonceCounterChainSync "$JAR" \
+    || die "el backend compilado no sincroniza el nonce con la red; primero: $0 actualizar (con develop al día)"
+  infra
+  stop_backend
+  info "Liberando los lotes atascados de la base '$db'"
+  dc exec -T mongo mongosh --quiet --eval "
+    const d = db.getSiblingDB('$db');
+    const r = d.merkle_batches.updateMany(
+      { status: { \$in: ['SUBMITTING', 'STUCK'] }, transactionHash: null },
+      { \$set: { status: 'PENDING' }, \$unset: { nonceUsed: '', submittedAt: '' } });
+    const c = d.web3_nonce_counter.deleteMany({});
+    print('lotes devueltos a la cola: ' + r.modifiedCount + ', contadores borrados: ' + c.deletedCount);"
+  start_backend
+  wait_backend
+  command grep -m1 'web3.nonce' "$LOG_API" || true
+  echo "Listo. Comprueba en unos minutos: $0 logs api (debe salir 'successfully submitted', sin 'nonce too low')."
+}
+
 cmd_estado() {
   info "Procesos"
   pgrep -af "cloudflared tunnel --url" || echo "(sin túneles)"
@@ -365,8 +395,9 @@ case "${1:-}" in
   semilla) cmd_semilla ;;
   actualizar) cmd_actualizar "${2:-}" ;;
   compilar) cmd_compilar ;;
+  reparar-anclaje) cmd_reparar_anclaje ;;
   estado) cmd_estado ;;
   logs) cmd_logs "${2:-}" ;;
   parar) cmd_parar ;;
-  *) sed -n '2,18p' "$0"; exit 1 ;;
+  *) sed -n '2,20p' "$0"; exit 1 ;;
 esac
