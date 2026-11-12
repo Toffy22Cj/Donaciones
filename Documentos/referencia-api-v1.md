@@ -110,7 +110,7 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 - **Confirmar revoca todas las sesiones** (`credentialsNotBefore`, D4). Con P-R3-3, iniciar sesión justo después con la contraseña nueva funciona.
 - **Riesgo aceptado en ADR-050 (1):** ninguna de las dos rutas limita los intentos por IP (DH-56).
 
-*Nota (2026-11-11, ADR-050 Enmienda 3, **PROPUESTA**; código en `claude/relaxed-curie-9271o4`, sin fusionar):* **crear la cuenta con Google y contraseña.** Las filas de abajo no se reescriben; mientras la enmienda no esté aprobada, rige "No hay registro con Google (Q2 (a))".
+*Nota (2026-11-11, ADR-050 Enmienda 3, **APROBADA** por Carlos el 2026-11-12):* **crear la cuenta con Google y contraseña.** Las filas de abajo no se reescriben; "No hay registro con Google (Q2 (a))" queda superado por esta ruta.
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
 |---|---|---|---|---|

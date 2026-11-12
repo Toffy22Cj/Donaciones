@@ -2,7 +2,9 @@
 
 ## Status
 
-**PROPUESTA — espera la aprobación de Carlos.**
+**APROBADA — Carlos, 2026-11-12** (comunicado por Manuel: "si aprobó, puedes hacer la fusión"). Se aprueban E3-1 a E3-4 y la recomendación de E3-Q1 a E3-Q3.
+
+> Texto original del estado: "PROPUESTA — espera la aprobación de Carlos." Se conserva lo de abajo.
 
 - **Qué se construye** lo pidió Manuel el 2026-11-11: "necesito poder registrarme con el correo de google".
 - **La forma** la eligió Manuel el mismo día entre dos opciones: Google **y** contraseña (no una cuenta solo con Google).
@@ -64,9 +66,9 @@
 
 | # | Pregunta | Opciones | Recomendación | Decisión |
 |---|---|---|---|---|
-| **E3-Q1** | ¿Se acepta registrar con Google **y** contraseña (no cambia el invariante de Q2)? | (a) Sí. (b) No, se queda Q2 (a). (c) Sí, pero solo con Google, sin contraseña (Q2 (b)) | **(a)** | Pendiente (Carlos) |
-| **E3-Q2** | Con el registro hecho, ¿se inicia la sesión ya (201 con `token`)? | (a) Sí. (b) No: responde `201 {accountId, status}` y la persona entra con Google | **(a)**: la cuenta ya está verificada y con las aceptaciones; un paso más no protege nada | Pendiente (Carlos) |
-| **E3-Q3** | Correo de Google ya registrado | (a) 409 `DuplicateEmail` sin tocar la cuenta. (b) Vincular la cuenta existente | **(a)**: (b) elegiría la cuenta por el correo, que D9 prohíbe | Pendiente (Carlos) |
+| **E3-Q1** | ¿Se acepta registrar con Google **y** contraseña (no cambia el invariante de Q2)? | (a) Sí. (b) No, se queda Q2 (a). (c) Sí, pero solo con Google, sin contraseña (Q2 (b)) | **(a)** | **(a)** (Carlos, 2026-11-12) |
+| **E3-Q2** | Con el registro hecho, ¿se inicia la sesión ya (201 con `token`)? | (a) Sí. (b) No: responde `201 {accountId, status}` y la persona entra con Google | **(a)**: la cuenta ya está verificada y con las aceptaciones; un paso más no protege nada | **(a)** (Carlos, 2026-11-12) |
+| **E3-Q3** | Correo de Google ya registrado | (a) 409 `DuplicateEmail` sin tocar la cuenta. (b) Vincular la cuenta existente | **(a)**: (b) elegiría la cuenta por el correo, que D9 prohíbe | **(a)** (Carlos, 2026-11-12) |
 
 ## Tests
 
