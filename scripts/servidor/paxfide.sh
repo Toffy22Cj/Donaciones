@@ -56,15 +56,39 @@ wait_http() { # wait_http URL segundos
   return 1
 }
 
+# docker compose siempre con backend.env (sin él, avisa de MINIO_ROOT_* vacías)
+dc() { docker compose --project-directory "$DEP" -f "$DEP/docker-compose.yml" --env-file "$ENVF" "$@"; }
+
 infra() {
   info "MongoDB y MinIO"
-  (cd "$DEP" && docker compose --env-file "$ENVF" up -d mongo minio)
+  dc up -d mongo minio
   local i
   for ((i = 0; i < 60; i++)); do
-    [ "$(docker inspect -f '{{.State.Health.Status}}' "$(cd "$DEP" && docker compose ps -q mongo)" 2>/dev/null)" = healthy ] && return 0
+    [ "$(docker inspect -f '{{.State.Health.Status}}' "$(dc ps -q mongo)" 2>/dev/null)" = healthy ] && { ensure_bucket; return 0; }
     sleep 2
   done
   die "MongoDB no llega a healthy: cd $DEP && docker compose logs mongo"
+}
+
+# El backend no crea el bucket de imágenes (MEDIA_S3_BUCKET): sin él, subir una foto da 503 MediaStorageUnavailable.
+# Lo crea con el cliente mc que trae la imagen de MinIO; si ya existe, no hace nada.
+ensure_bucket() {
+  local bucket i
+  bucket=$(envval MEDIA_S3_BUCKET)
+  [ -n "$bucket" ] || die "falta MEDIA_S3_BUCKET en $ENVF"
+  for ((i = 0; i < 30; i++)); do
+    curl -s -o /dev/null http://127.0.0.1:9000/minio/health/live && break
+    sleep 1
+  done
+  if dc exec -T -e MC_CONFIG_DIR=/tmp/.mc minio sh -c '
+      MC=$(command -v mc || echo /opt/bitnami/minio-client/bin/mc)
+      [ -x "$MC" ] || exit 3
+      "$MC" alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null &&
+      "$MC" mb --ignore-existing "local/$1" >/dev/null' sh "$bucket"; then
+    echo "  bucket '$bucket' listo"
+  else
+    die "no pude crear el bucket '$bucket' en MinIO. Créalo a mano en http://127.0.0.1:9001 (usuario MINIO_ROOT_USER) y repite"
+  fi
 }
 
 tunnels() {
@@ -286,7 +310,7 @@ cmd_semilla() {
   infra
   stop_apps
   info "Vaciando la base '$db'"
-  (cd "$DEP" && docker compose exec -T mongo mongosh --quiet --eval "db.getSiblingDB('$db').dropDatabase()")
+  dc exec -T mongo mongosh --quiet --eval "db.getSiblingDB('$db').dropDatabase()"
 
   start_backend demo-seed
   info "Cargando la semilla (puede tardar un par de minutos)"
@@ -316,7 +340,7 @@ cmd_estado() {
   pgrep -af "cloudflared tunnel --url" || echo "(sin túneles)"
   pgrep -af "java -jar $RUN_JAR" || echo "(backend parado)"
   pgrep -af "next start" || echo "(web parada)"
-  (cd "$DEP" && docker compose ps)
+  dc ps
   if [ -f "$DEP/urls.txt" ]; then summary; fi
 }
 
