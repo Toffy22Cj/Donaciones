@@ -1,0 +1,13 @@
+{{title}}
+
+{{{content}}}
+{{#actionUrl}}
+{{actionLabel}}:
+{{actionUrl}}
+{{/actionUrl}}
+{{closing}}
+
+PaxFide nunca te pedirá tu contraseña ni códigos por correo, chat o teléfono.
+{{reason}}
+{{#supportEmail}}¿Dudas? Escríbenos a {{supportEmail}}
+{{/supportEmail}}

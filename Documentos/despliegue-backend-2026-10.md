@@ -24,6 +24,8 @@ Todas las lee `app/src/main/resources/application.yml`.
 | `SPRING_MAIL_HOST` | Servidor SMTP de todos los correos: verificación, recuperación, invitaciones y avisos de seguridad | **Sí** | No arranca (el marcador no tiene valor por defecto) | `application.yml:6` |
 | `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | Puerto, credenciales y TLS del SMTP (Gmail: `smtp.gmail.com`, 587, contraseña de aplicación) | Según el servidor | Spring usa sus valores por defecto (puerto 25, sin autenticación). La aplicación arranca, pero los envíos fallan | `application.yml:2-4` |
 | `TRACEABILITY_MAIL_FROM` | Remitente de los correos | **Sí** | No arranca | `application.yml:67` |
+| `TRACEABILITY_MAIL_LOGO_URL` | Logo de la cabecera de los correos: URL pública **https** de un PNG de 80×80 (no SVG). Nota del 2026-11-12, correos con diseño | No | La cabecera lleva solo la marca en texto. Si no es https, no arranca | `application.yml` (`traceability.mail.logo-url`); `app/src/main/resources/mail/LEEME.md` |
+| `TRACEABILITY_MAIL_SUPPORT_EMAIL` | Correo de soporte del pie de los correos. Nota del 2026-11-12 | No | El pie no ofrece contacto. Si no es un correo, no arranca | `application.yml` (`traceability.mail.support-email`) |
 | `TRACEABILITY_WEB_BASE_URL` | Base de los enlaces de los correos (verificar, recuperar, invitar) | **Sí** | No arranca | `application.yml:69` |
 | `TRACEABILITY_CORS_ALLOWED_ORIGINS` | Orígenes web exactos, separados por comas; nunca `*` | No | Ningún origen cruzado: **la web en otro dominio no puede llamar a la API** | `application.yml:72`; `api/src/main/java/com/traceability/api/web/CorsConfig.java:43` |
 

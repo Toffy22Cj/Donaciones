@@ -3,14 +3,10 @@ package com.traceability.app.infrastructure.mail;
 import identity.application.port.out.InvitationMailPort;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.Map;
 
 /**
  * Correo de invitación por SMTP (ADR-049 D1, D3, D5). El enlace lleva el token en el <b>fragmento</b>
@@ -24,30 +20,20 @@ import java.util.Locale;
 public class SmtpInvitationMailAdapter implements InvitationMailPort {
 
     static final String PATH = "/invitaciones";
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy, HH:mm 'UTC'",
-            Locale.forLanguageTag("es"));
 
     private final JavaMailSender sender;
     private final String from;
     private final String baseUrl;
+    private final MailTemplates templates;
 
     public SmtpInvitationMailAdapter(ObjectProvider<JavaMailSender> sender,
                                      @Value("${traceability.mail.from}") String from,
-                                     @Value("${traceability.web.base-url}") String baseUrl) {
-        this.sender = sender.getIfAvailable();
-        if (this.sender == null) {
-            throw new IllegalStateException("Falta el servidor SMTP: SPRING_MAIL_HOST es obligatorio (ADR-049 D1)");
-        }
-        if (from == null || from.isBlank()) {
-            throw new IllegalStateException("TRACEABILITY_MAIL_FROM es obligatorio (ADR-049 D1)");
-        }
-        URI base = baseUrl == null ? null : URI.create(baseUrl.strip());
-        if (base == null || !("https".equals(base.getScheme()) || "http".equals(base.getScheme()))
-                || base.getHost() == null || base.getRawQuery() != null || base.getRawFragment() != null) {
-            throw new IllegalStateException("TRACEABILITY_WEB_BASE_URL debe ser una URL http(s) sin query ni fragmento");
-        }
-        this.from = from.strip();
-        this.baseUrl = baseUrl.strip().replaceAll("/+$", "");
+                                     @Value("${traceability.web.base-url}") String baseUrl,
+                                     MailTemplates templates) {
+        this.templates = templates;
+        this.sender = MailSettings.requireSender(sender);
+        this.from = MailSettings.requireFrom(from);
+        this.baseUrl = MailSettings.requireBaseUrl(baseUrl);
     }
 
     /** {@code {base}/invitaciones#token=…}: el token nunca en la ruta ni en la query (ADR-049 D3). */
@@ -57,24 +43,35 @@ public class SmtpInvitationMailAdapter implements InvitationMailPort {
 
     @Override
     public void send(InvitationMail mail) {
-        String organization = mail.organizationName() == null || mail.organizationName().isBlank()
+        BrandedMail.send(sender, from, mail.to(), "Invitación a " + organization(mail) + " en PaxFide", body(mail));
+    }
+
+    private static String organization(InvitationMail mail) {
+        return mail.organizationName() == null || mail.organizationName().isBlank()
                 ? "una organización" : mail.organizationName();
-        String role = "ADMINISTRATOR".equals(mail.role()) ? "administrador" : "empleado";
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(mail.to());
-        message.setSubject("Invitación a " + organization + " en PaxFide");
-        message.setText("""
-                Te han invitado a unirte a %s en PaxFide como %s.
+    }
 
-                Para aceptar, inicia sesión con esta dirección de correo y abre este enlace:
-                %s
-
-                La invitación caduca el %s y solo se puede usar una vez.
-
-                Si no esperabas esta invitación, ignora este correo.
-                """.formatted(organization, role, link(mail.token()),
-                DATE.format(mail.expiresAt().atOffset(ZoneOffset.UTC))));
-        sender.send(message);
+    /** Sin datos de quien invita (ADR-049 D5): organización, rol, para quién, enlace y caducidad. */
+    MailTemplates.Body body(InvitationMail mail) {
+        boolean admin = "ADMINISTRATOR".equals(mail.role());
+        String organization = organization(mail);
+        return templates.render("invitacion", Map.ofEntries(
+                Map.entry("title", "Te invitaron a unirte a " + organization),
+                Map.entry("kicker", "Invitación"),
+                Map.entry("preheader", "Te invitaron como " + (admin ? "administrador" : "empleado")
+                        + ". Acepta antes del " + MailSettings.when(mail.expiresAt()) + "."),
+                Map.entry("organizationName", organization),
+                Map.entry("roleName", admin ? "administrador" : "empleado"),
+                Map.entry("roleLabel", admin ? "Administrador" : "Empleado"),
+                Map.entry("roleDescription", admin
+                        ? "Gestionar el equipo y las convocatorias de la organización, y asignar a sus responsables."
+                        : "Llevar la convocatoria que te asignen: registrar sus lotes, sus movimientos y sus entregas."),
+                Map.entry("recipientEmail", mail.to()),
+                Map.entry("expiresAt", MailSettings.when(mail.expiresAt())),
+                Map.entry("actionUrl", link(mail.token())),
+                Map.entry("actionLabel", "Aceptar invitación"),
+                Map.entry("closing", "Si no esperabas esta invitación, ignora este correo: sin aceptar, no te unes a "
+                        + "ninguna organización."),
+                Map.entry("reason", "Recibiste este correo porque " + organization + " te invitó desde PaxFide.")));
     }
 }
