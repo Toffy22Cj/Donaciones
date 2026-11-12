@@ -129,8 +129,6 @@ public class Web3jBlockchainAnchorAdapter implements BlockchainAnchorSubmitterPo
                             batch.batchId(), batch.nonceUsed(), anchoredTx.get());
                     return anchoredTx.get();
                 }
-                log.warn("anchor.nonce-consumed batchId={} nonce={}: la raíz no aparece en los últimos {} bloques",
-                        batch.batchId(), batch.nonceUsed(), reconcileLookbackBlocks);
             }
             throw new RuntimeException("Unexpected error during transaction submission", e);
         }
@@ -145,30 +143,67 @@ public class Web3jBlockchainAnchorAdapter implements BlockchainAnchorSubmitterPo
         return false;
     }
 
+    /** Tramo mínimo: el plan gratuito de algunos proveedores (Alchemy) no admite más en {@code eth_getLogs}. */
+    static final long MIN_CHUNK_BLOCKS = 10;
+    /** Tras una búsqueda sin resultado, no se repite para el mismo lote hasta pasado este tiempo. */
+    static final java.time.Duration NOT_FOUND_BACKOFF = java.time.Duration.ofMinutes(5);
+    private final java.util.Map<String, java.time.Instant> notFoundUntil = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Tramo en uso: baja a {@link #MIN_CHUNK_BLOCKS} la primera vez que el proveedor rechaza un rango. */
+    private volatile long effectiveChunkBlocks = -1;
+
     /**
      * Busca el evento {@code RootStored(root, sender)} de esta cartera con la raíz del lote, hacia atrás desde el último
-     * bloque, en tramos de {@code crypto.anchor.reconcile.chunk-blocks} hasta {@code lookback-blocks}. Si está, devuelve
-     * su transacción. Un fallo al consultar se trata como "no encontrado": el lote sigue como estaba.
+     * bloque y solo hasta la creación del lote (la transacción no puede ser anterior), con el tope de
+     * {@code lookback-blocks}. Si el proveedor rechaza el tramo, sigue con tramos de {@value #MIN_CHUNK_BLOCKS}. Si
+     * está, devuelve su transacción; si no, o si el nodo falla, nada cambia y no se vuelve a buscar en
+     * {@link #NOT_FOUND_BACKOFF}.
      */
     Optional<String> findAnchorTransaction(MerkleBatch batch) {
+        java.time.Instant now = java.time.Instant.now();
+        java.time.Instant wait = notFoundUntil.get(batch.batchId());
+        if (wait != null && now.isBefore(wait)) {
+            return Optional.empty();
+        }
         try {
             BigInteger latest = web3j.ethBlockNumber().send().getBlockNumber();
-            BigInteger oldest = latest.subtract(BigInteger.valueOf(reconcileLookbackBlocks)).max(BigInteger.ZERO);
-            BigInteger chunk = BigInteger.valueOf(Math.max(1, reconcileChunkBlocks));
+            long window = reconcileLookbackBlocks;
+            if (batch.createdAt() != null) {
+                long elapsed = Math.max(0, java.time.Duration.between(batch.createdAt(), now).toSeconds());
+                window = Math.min(window, elapsed / 12 * 3 / 2 + 50); // ~12 s por bloque, con margen
+            }
+            BigInteger oldest = latest.subtract(BigInteger.valueOf(window)).max(BigInteger.ZERO);
             String root = Numeric.toHexString(Numeric.hexStringToByteArray(batch.merkleRoot()));
             String sender = Numeric.toHexStringWithPrefixZeroPadded(Numeric.toBigInt(credentials.getAddress()), 64);
-            for (BigInteger to = latest; to.compareTo(oldest) >= 0; to = to.subtract(chunk)) {
+            if (effectiveChunkBlocks < 0) {
+                effectiveChunkBlocks = Math.max(MIN_CHUNK_BLOCKS, reconcileChunkBlocks);
+            }
+            BigInteger to = latest;
+            while (to.compareTo(oldest) >= 0) {
+                BigInteger chunk = BigInteger.valueOf(effectiveChunkBlocks);
                 BigInteger from = to.subtract(chunk).add(BigInteger.ONE).max(oldest);
                 EthFilter filter = new EthFilter(DefaultBlockParameter.valueOf(from), DefaultBlockParameter.valueOf(to),
                         batch.smartContractAddress());
                 filter.addSingleTopic(EventEncoder.encode(AnchorRegistry.ROOTSTORED_EVENT));
                 filter.addSingleTopic(root);
                 filter.addSingleTopic(sender);
-                EthLog logs = web3j.ethGetLogs(filter).send();
-                if (logs.hasError()) {
-                    // p. ej. el proveedor limita el rango: bajar crypto.anchor.reconcile.chunk-blocks
+                EthLog logs;
+                String refusal;
+                try {
+                    logs = web3j.ethGetLogs(filter).send();
+                    refusal = logs.hasError() ? logs.getError().getMessage() : null;
+                } catch (org.web3j.protocol.exceptions.ClientConnectionException rejected) {
+                    logs = null;
+                    refusal = rejected.getMessage();
+                }
+                if (refusal != null) {
+                    if (effectiveChunkBlocks > MIN_CHUNK_BLOCKS) {
+                        log.info("anchor.reconcile.smaller-range batchId={} chunk={}->{}", batch.batchId(),
+                                effectiveChunkBlocks, MIN_CHUNK_BLOCKS);
+                        effectiveChunkBlocks = MIN_CHUNK_BLOCKS;
+                        continue; // el mismo tramo, más pequeño
+                    }
                     log.warn("anchor.reconcile.rpc-error batchId={} range={}-{} error={}", batch.batchId(), from, to,
-                            logs.getError().getMessage());
+                            abbreviate(refusal));
                     return Optional.empty();
                 }
                 Optional<String> tx = logs.getLogs() == null ? Optional.empty() : logs.getLogs().stream()
@@ -176,14 +211,29 @@ public class Web3jBlockchainAnchorAdapter implements BlockchainAnchorSubmitterPo
                         .filter(java.util.Objects::nonNull)
                         .findFirst();
                 if (tx.isPresent()) {
+                    notFoundUntil.remove(batch.batchId());
                     return tx;
                 }
+                to = from.subtract(BigInteger.ONE);
             }
+            notFoundUntil.put(batch.batchId(), now.plus(NOT_FOUND_BACKOFF));
+            log.warn("anchor.nonce-consumed batchId={} nonce={}: la raíz no está en los bloques {}-{}", batch.batchId(),
+                    batch.nonceUsed(), oldest, latest);
             return Optional.empty();
         } catch (Exception lookup) {
-            log.warn("anchor.reconcile.failed batchId={} cause={}", batch.batchId(), lookup.getClass().getSimpleName());
+            log.warn("anchor.reconcile.failed batchId={} cause={} detail={}", batch.batchId(),
+                    lookup.getClass().getSimpleName(), abbreviate(lookup.getMessage()));
             return Optional.empty();
         }
     }
+
+    private static String abbreviate(String message) {
+        if (message == null) {
+            return "";
+        }
+        String oneLine = message.replaceAll("\\s+", " ");
+        return oneLine.length() > 200 ? oneLine.substring(0, 200) + "…" : oneLine;
+    }
+
 
 }

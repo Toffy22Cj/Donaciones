@@ -32,7 +32,7 @@ class AnchorReconciliationTest {
     private static final Credentials WALLET =
             Credentials.create("0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d");
     private static final String ROOT = "0x" + "ab".repeat(32);
-    private static final MerkleBatch BATCH = new MerkleBatch("b1", Map.of(), ROOT, Instant.now(),
+    private static final MerkleBatch BATCH = new MerkleBatch("b1", Map.of(), ROOT, Instant.now().minus(java.time.Duration.ofHours(3)),
             AnchorStatus.SUBMITTING, "sepolia", "0x00000000000000000000000000000000000000aa", 4L, null, null, null,
             null, null);
 
@@ -101,5 +101,32 @@ class AnchorReconciliationTest {
         EthLog refused = new EthLog();
         refused.setError(new Response.Error(-32600, "block range too large"));
         assertThat(adapter(node(10_000, List.of(refused), new ArrayList<>())).findAnchorTransaction(BATCH)).isEmpty();
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void ifTheProviderRefusesTheRange_itRetriesWithTenBlockChunks() throws Exception {
+        List<EthFilter> seen = new ArrayList<>();
+        Web3j web3j = mock(Web3j.class);
+        EthBlockNumber number = new EthBlockNumber();
+        number.setResult("0x2710");
+        Request blockReq = mock(Request.class);
+        when(blockReq.send()).thenReturn(number);
+        when(web3j.ethBlockNumber()).thenReturn(blockReq);
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        when(web3j.ethGetLogs(any())).thenAnswer(inv -> {
+            seen.add(inv.getArgument(0));
+            Request logsReq = mock(Request.class);
+            if (calls.getAndIncrement() == 0) {
+                when(logsReq.send()).thenThrow(new org.web3j.protocol.exceptions.ClientConnectionException(
+                        "Invalid response received: 400; up to a 10 block range"));
+            } else {
+                when(logsReq.send()).thenReturn(withTx("0xbeef"));
+            }
+            return logsReq;
+        });
+        assertThat(adapter(web3j).findAnchorTransaction(BATCH)).contains("0xbeef");
+        assertThat(seen).hasSize(2);
+        assertThat(seen.get(1).getFromBlock().getValue()).isEqualTo("0x2707"); // 10000 - 10 + 1
     }
 }
