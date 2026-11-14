@@ -39,6 +39,20 @@ mvn -B clean test -fae >"$LOG" 2>&1
 STATUS=$?
 END=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# 3b. T-07 (ADR-055): supresiones del escaneo con caducidad y registro, siempre; escaneo de dependencias y SBOM solo
+#     con NVD_API_KEY (sin la clave, la base de NVD no se puede descargar: se deja escrito OMITIDO, nunca "verde")
+SEC_LOG=$(mktemp "${TMPDIR:-/tmp}/ci-local-security-XXXXXX.log")
+python3 scripts/seguridad/comprobar-supresiones.py >"$SEC_LOG" 2>&1
+SUPP_STATUS=$?
+if [ -n "${NVD_API_KEY:-}" ]; then
+    mvn -B -Psecurity -DskipTests verify >>"$SEC_LOG" 2>&1
+    SCAN_STATUS=$?
+    SCAN_RESULT="ejecutado, salida $SCAN_STATUS"
+else
+    SCAN_STATUS=0
+    SCAN_RESULT="OMITIDO: falta NVD_API_KEY (el escaneo de dependencias NO se ha hecho en esta ejecución)"
+fi
+
 # 4. Evidencia: cabecera, versiones, resumen literal de Surefire por módulo y sha256 del log
 {
     echo "# CI local — scripts/ci-local.sh"
@@ -60,6 +74,11 @@ END=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     echo "## Tests fallidos (si los hay)"
     grep -E "<<< (FAILURE|ERROR)!" "$LOG" | grep -v "Tests run" || echo "ninguno"
     echo
+    echo "## Seguridad de dependencias (T-07, ADR-055)"
+    echo "supresiones: $(tail -1 "$SEC_LOG" | grep -E '^supresiones:' || echo 'sin resultado') (salida $SUPP_STATUS)"
+    echo "escaneo:     $SCAN_RESULT"
+    grep -E "One or more dependencies were identified|CVSS|BUILD (SUCCESS|FAILURE)" "$SEC_LOG" | head -20
+    echo
     echo "## sha256 del log completo"
     sha256sum "$LOG" | cut -d' ' -f1
 } >"$OUT"
@@ -67,9 +86,14 @@ END=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "ci-local: evidencia en $OUT"
 grep -E "Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+$|BUILD" "$OUT"
 
-# 5. Código de salida del reactor
+# 5. Código de salida del reactor y de la seguridad de dependencias
 if [ "$STATUS" -ne 0 ]; then
     echo "ci-local: FALLO (mvn salió con $STATUS)" >&2
     exit "$STATUS"
 fi
+if [ "$SUPP_STATUS" -ne 0 ] || [ "$SCAN_STATUS" -ne 0 ]; then
+    echo "ci-local: FALLO en la seguridad de dependencias (supresiones $SUPP_STATUS, escaneo $SCAN_STATUS; log $SEC_LOG)" >&2
+    exit 5
+fi
+[ -n "${NVD_API_KEY:-}" ] || echo "ci-local: AVISO: escaneo de dependencias omitido (falta NVD_API_KEY)" >&2
 exit 0

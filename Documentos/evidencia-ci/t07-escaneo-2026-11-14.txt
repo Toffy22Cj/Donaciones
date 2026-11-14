@@ -1,0 +1,41 @@
+# Evidencia T-07 — escaneo de dependencias y SBOM (salida literal)
+fecha: 2026-11-14T17:51:02Z
+
+## Backend: SBOM (mvn -B -Psecurity -DskipTests -Ddependency-check.skip=true verify)
+bomFormat CycloneDX specVersion 1.6 componentes 167
+
+## Backend: Dependency-Check sin acceso a NVD desde esta sesión (falla cerrado)
+$ mvn -B -Psecurity -DskipTests -Dcyclonedx.skip=true verify
+[ERROR] Error updating the NVD Data; the NVD returned a 403 or 404 error
+[ERROR] org.owasp.dependencycheck.utils.ForbiddenException: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json - Server status: 403 - Server reason: Forbidden
+[ERROR] Unable to continue dependency-check analysis.
+[INFO] BUILD FAILURE
+(alcance de red de la sesión: services.nvd.nist.gov, api.osv.dev, ossindex.sonatype.org → sin conexión)
+
+## Backend: comprobación de supresiones
+$ python3 scripts/seguridad/comprobar-supresiones.py
+supresiones: 0; errores: 0
+[salida: 0]
+
+Casos inválidos (fichero de prueba con 5 supresiones):
+ERROR: supresión 2: falta until="AAAA-MM-DDZ"
+ERROR: supresión 3: caducó el 2020-01-01; bórrala o renuévala con un motivo nuevo
+ERROR: supresión 4: EXC-002 no está en r.md
+ERROR: supresión 5: sus <notes> no citan ninguna EXC-NNN
+supresiones: 5; errores: 4
+exit 1
+
+## Web (PaxFide)
+$ pnpm audit --audit-level high   (PaxFide 7da596b, next 16.3.8)
+│ More info           │ https://github.com/advisories/GHSA-qrxm-fqhp-jwvm      │
+└─────────────────────┴────────────────────────────────────────────────────────┘
+20 vulnerabilities found
+Severity: 1 low | 10 moderate | 7 high | 2 critical
+[salida: 1]
+
+$ pnpm audit --audit-level high   (PaxFide 715593b, next 16.4.3)
+2 vulnerabilities found
+Severity: 2 moderate
+[salida: 0]
+$ pnpm audit --prod
+No known vulnerabilities found

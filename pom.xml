@@ -82,4 +82,72 @@
             </snapshots>
         </repository>
     </repositories>
+
+    <!-- T-07 (ADR-055): escaneo de dependencias y SBOM, fuera del ciclo normal. Uso:
+           NVD_API_KEY=... mvn -B -Psecurity -DskipTests verify
+         Falla con CVSS >= 7 salvo supresión justificada y con fecha de caducidad en
+         Documentos/seguridad/dependency-check-supresiones.xml (registro humano: excepciones-dependencias.md).
+         SBOM CycloneDX del reactor en target/bom.json; informe en target/dependency-check-report.{html,json}. -->
+    <profiles>
+        <profile>
+            <id>security</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.cyclonedx</groupId>
+                        <artifactId>cyclonedx-maven-plugin</artifactId>
+                        <version>2.9.3</version>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>sbom</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>makeAggregateBom</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <outputFormat>json</outputFormat>
+                            <outputName>bom</outputName>
+                            <includeTestScope>false</includeTestScope>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>13.0.0</version>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>scan</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>aggregate</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                            <suppressionFiles>
+                                <suppressionFile>${maven.multiModuleProjectDirectory}/Documentos/seguridad/dependency-check-supresiones.xml</suppressionFile>
+                            </suppressionFiles>
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                            </formats>
+                            <skipTestScope>true</skipTestScope>
+                            <!-- el backend no lleva JavaScript ni .NET; OSS Index exige credenciales propias -->
+                            <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+                            <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                            <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+                            <nodeAuditAnalyzerEnabled>false</nodeAuditAnalyzerEnabled>
+                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
