@@ -115,6 +115,31 @@ traceability:
   # Enmienda 3 de ADR-037, D6 y E3-Q3 (Carlos, 2026-10-07): el trackingCode dura un año desde fundsAppliedAt
   tracking-code:
     ttl: P365D
+  # ADR-053 (T-03): límite de intentos por IP del cliente (y, en el login, también por correo). Ventana deslizante en
+  # memoria (una instancia). Cada grupo necesita limit y window; sin alguno, o con un grupo desconocido, la aplicación
+  # no arranca. Las cuotas por IP son holgadas porque detrás de una misma IP puede haber muchas personas (un campus o
+  # una sede con NAT); la del correo es la que frena la fuerza bruta contra una cuenta.
+  rate-limit:
+    enabled: ${TRACEABILITY_RATE_LIMIT_ENABLED:true}
+    max-keys: 100000
+    sweep-interval: PT1M
+    client-ip:
+      # Proxies de confianza (IP o CIDR) cuya cabecera CF-Connecting-IP se cree: el cloudflared del propio servidor
+      # conecta desde 127.0.0.1. Vacío: siempre la IP de la conexión. X-Forwarded-For nunca se lee.
+      trusted-proxies: ${TRACEABILITY_RATE_LIMIT_TRUSTED_PROXIES:}
+      header: CF-Connecting-IP
+    login-email:
+      limit: 10
+      window: PT15M
+    groups:
+      login: { limit: 30, window: PT5M }
+      registration: { limit: 10, window: PT1H }
+      account-recovery: { limit: 10, window: PT15M }
+      tracking: { limit: 120, window: PT1M }
+      donation-intent-read: { limit: 120, window: PT1M }
+      donation-intent-create: { limit: 10, window: PT10M }
+      payment-webhook: { limit: 300, window: PT1M }
+      media-upload: { limit: 30, window: PT10M }
   # Proveedor de pago simulado: apagado por defecto (E3-Q1). Solo application-dev.yml lo activa.
   demo:
     simulated-payments: false
