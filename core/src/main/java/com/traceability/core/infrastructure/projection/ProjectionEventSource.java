@@ -13,6 +13,7 @@ import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.domain.event.DomainEventPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import java.time.Instant;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -71,6 +72,9 @@ public class ProjectionEventSource {
         MessageListener<ChangeStreamDocument<Document>, TraceabilityEventDocument> listener = message -> {
             TraceabilityEventDocument eventDoc = message.getBody();
             if (eventDoc != null) {
+              // ADR-054 D3: los logs de las proyecciones de este evento llevan su eventId y su streamId
+              try (MDC.MDCCloseable mdcEvent = MDC.putCloseable("eventId", eventDoc.getEventId());
+                   MDC.MDCCloseable mdcStream = MDC.putCloseable("streamId", eventDoc.getStreamId())) {
                 boolean allHandlersSucceededOrDurable = true;
                 // Forward strictly to the read side handlers (CQRS)
                 for (ProjectionEventHandler handler : projectionHandlers) {
@@ -99,6 +103,7 @@ public class ProjectionEventSource {
                     log.error("Failed to persist retry document, aborting checkpoint advance for eventId={}", eventDoc.getEventId());
                     throw new RuntimeException("Failed to persist retry document, aborting checkpoint advance");
                 }
+              }
             }
         };
 

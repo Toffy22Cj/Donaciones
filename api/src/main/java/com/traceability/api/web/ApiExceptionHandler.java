@@ -98,7 +98,9 @@ public class ApiExceptionHandler {
             String title = known == null ? "Error" : known.getReasonPhrase().replace(" ", "").replace("-", "");
             return problem(status, title, null, springError.getHeaders());
         }
-        String correlationId = UUID.randomUUID().toString();
+        // ADR-054 D3: el mismo correlationId que el resto de los logs de la petición (CorrelationIdFilter)
+        String fromMdc = org.slf4j.MDC.get(CORRELATION_ID);
+        String correlationId = fromMdc != null ? fromMdc : UUID.randomUUID().toString();
         log.error("Unhandled exception class={} causes={} correlationId={} at={}",
                 ex.getClass().getName(), causeClasses(ex), correlationId, firstFrame(ex));
         return problem(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR, correlationId, HttpHeaders.EMPTY);

@@ -1,0 +1,7 @@
+# Perfil del servidor de pruebas (ADR-054 D2): logs estructurados en JSON (formato ECS de Spring Boot 3.4), con las
+# claves del MDC (correlationId, eventId, streamId, batchId) como campos. Se activa con SPRING_PROFILES_ACTIVE=servidor
+# en deploy/backend.env. Sin este perfil, los logs siguen en texto (desarrollo).
+logging:
+  structured:
+    format:
+      console: ecs

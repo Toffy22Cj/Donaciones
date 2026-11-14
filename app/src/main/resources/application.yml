@@ -177,3 +177,29 @@ convocatoria:
       batch-size: 50
       retry-window: PT4H          # aprobado en ADR-045 §2.3 (como ADR-010)
       max-attempts: 10            # valor de implementación (ADR-045 §7)
+
+# ADR-054 D1: salud interna en un puerto de gestión distinto del de la API, solo en 127.0.0.1. El túnel publica el
+# puerto de la API (8080), nunca este. Solo health (con MongoDB) e info; ningún otro endpoint de actuator.
+management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:8081}
+    address: 127.0.0.1
+  endpoints:
+    access:
+      default: none
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      access: read-only
+      show-details: always
+    info:
+      access: read-only
+  health:
+    # el correo no decide si el backend está vivo: un SMTP caído ya se ve en el log de cada envío
+    mail:
+      enabled: false
+  info:
+    env:
+      enabled: false

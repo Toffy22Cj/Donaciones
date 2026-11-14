@@ -9,7 +9,7 @@
 #   paxfide.sh compilar      git pull + compila backend y web
 #   paxfide.sh reparar-anclaje  tras "nonce too low" en el log: devuelve a la cola los lotes atascados sin enviar y
 #                            reinicia el backend, que vuelve a tomar el nonce de la cartera en la red
-#   paxfide.sh estado        qué corre, URLs y comprobación de la API y la web
+#   paxfide.sh estado        qué corre, URLs, salud interna del backend (con MongoDB) y comprobación de la API y la web
 #   paxfide.sh logs [api|web|tunel-api|tunel-web]
 #   paxfide.sh parar         detiene backend, web y túneles (MongoDB y MinIO siguen)
 #   paxfide.sh respaldo      copia cifrada de MongoDB (mongodump --oplog) y del bucket de MinIO, con manifiesto
@@ -669,6 +669,12 @@ cmd_estado() {
   pgrep -af "java -jar $RUN_JAR" || echo "(backend parado)"
   pgrep -af "next start" || echo "(web parada)"
   dc ps
+  # ADR-054 D1: salud interna (MongoDB incluido) en el puerto de gestión, que solo escucha en 127.0.0.1
+  local mp
+  mp=$(envval MANAGEMENT_SERVER_PORT); mp=${mp:-8081}
+  info "Salud interna (127.0.0.1:$mp)"
+  curl -s --max-time 5 "http://127.0.0.1:$mp/actuator/health" || echo "(sin respuesta: el backend está parado o arrancando)"
+  echo
   if [ -f "$DEP/urls.txt" ]; then summary; fi
 }
 

@@ -55,6 +55,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- Salud interna (ADR-054 D1): solo health e info, en un puerto de gestión aparte que el túnel no publica -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Almacenamiento de imágenes compatible con S3 (ADR-051 F1): solo en app, con el cliente HTTP de la JDK.
              Se excluyen los clientes Netty y Apache (4 y 5) para que el único cliente HTTP sea url-connection-client. -->
         <dependency>

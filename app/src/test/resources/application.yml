@@ -65,3 +65,24 @@ traceability:
 convocatoria:
   donation-intent:
     bank-transfer-expiration: PT72H
+
+# ADR-054 D1: puerto de gestión aleatorio en los tests (varios contextos vivos a la vez no pueden compartir el 8081)
+management:
+  server:
+    port: 0
+    address: 127.0.0.1
+  endpoints:
+    access:
+      default: none
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      access: read-only
+      show-details: always
+    info:
+      access: read-only
+  health:
+    mail:
+      enabled: false

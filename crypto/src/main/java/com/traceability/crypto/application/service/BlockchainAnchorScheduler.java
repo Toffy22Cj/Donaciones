@@ -8,6 +8,7 @@ import com.traceability.crypto.domain.exception.BlockchainNodeCommunicationExcep
 import com.traceability.crypto.domain.exception.GasCapExceededException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -65,6 +66,9 @@ public class BlockchainAnchorScheduler {
                 log.info("Claimed new PENDING batch {} and assigned nonce {}", batchToProcess.batchId(), batchToProcess.nonceUsed());
             }
 
+            // ADR-054 D3: desde aquí, los logs de este envío (también los de los catch) llevan el batchId
+            MDC.put("batchId", batchToProcess.batchId());
+
             // 3. Delegate to the Submitter Port
             try {
                 String txHash = submitterPort.submitBatch(batchToProcess);
@@ -90,6 +94,8 @@ public class BlockchainAnchorScheduler {
             // the batch remains safely in SUBMITTING and will be picked up in the next cycle.
             // If the error occurred before (e.g. Mongo connection issue), no batch was affected.
             log.error("CRITICAL: Unforeseen error in BlockchainAnchorScheduler. Batch state left unchanged.", e);
+        } finally {
+            MDC.remove("batchId");
         }
     }
 

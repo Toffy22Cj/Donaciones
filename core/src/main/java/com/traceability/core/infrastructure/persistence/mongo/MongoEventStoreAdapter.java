@@ -9,6 +9,8 @@ import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.EventStreamGenesisReadPort;
 import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -26,6 +28,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class MongoEventStoreAdapter implements EventStorePort, EventStreamGenesisReadPort {
+
+    private static final Logger log = LoggerFactory.getLogger(MongoEventStoreAdapter.class);
 
     private final MongoTemplate mongoTemplate;
     private final HashPort hashPort;
@@ -113,6 +117,12 @@ public class MongoEventStoreAdapter implements EventStorePort, EventStreamGenesi
             mongoTemplate.insertAll(newDocs);
         } catch (DuplicateKeyException e) {
             throw new ConcurrencyConflictException("Concurrency conflict appending to stream " + streamId + " at sequence " + currentSequence, e);
+        }
+        // ADR-054 D3: una línea por evento escrito, con el correlationId de la petición o del scheduler (MDC). Solo
+        // identificadores y tipo, nunca el payload. Si la transacción que lo envuelve se deshace, el evento no queda.
+        for (TraceabilityEventDocument doc : newDocs) {
+            log.info("Event written streamId={} sequence={} eventType={} eventId={}", doc.getStreamId(),
+                    doc.getSequence(), doc.getEventType(), doc.getEventId());
         }
     }
 
