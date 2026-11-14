@@ -1,0 +1,54 @@
+# CI local — scripts/ci-local.sh
+commit:   a07fea0ec02d41d9f5fe96c584f4a5e9c8e2601e
+rama:     wip-etapa1
+inicio:   2026-11-14T18:23:25Z
+fin:      2026-11-14T18:47:14Z
+comando:  mvn -B clean test -fae
+salida:   0
+
+## Versiones
+java:   openjdk version "21.0.12.1" 2026-08-18
+java:   OpenJDK Runtime Environment (build 21.0.12.1+1-1-24.04.4-Ubuntu)
+java:   OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-24.04.4-Ubuntu, mixed mode, sharing)
+maven:  Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+docker: cliente 29.9.2, servidor 29.9.2
+
+## Resumen de Surefire por módulo (literal)
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 393, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 62, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 211, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 437, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 272, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 704, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.070 s]
+[INFO] contracts .......................................... SUCCESS [  0.711 s]
+[INFO] core ............................................... SUCCESS [01:57 min]
+[INFO] crypto ............................................. SUCCESS [ 15.385 s]
+[INFO] ai ................................................. SUCCESS [  9.769 s]
+[INFO] api ................................................ SUCCESS [ 18.178 s]
+[INFO] identity ........................................... SUCCESS [02:56 min]
+[INFO] convocatoria ....................................... SUCCESS [ 22.167 s]
+[INFO] app ................................................ SUCCESS [17:46 min]
+[INFO] BUILD SUCCESS
+
+## Tests fallidos (si los hay)
+ninguno
+
+## Seguridad de dependencias (T-07, ADR-055)
+supresiones: supresiones: 0; errores: 0 (salida 0)
+escaneo:     OMITIDO: falta NVD_API_KEY (el escaneo de dependencias NO se ha hecho en esta ejecución)
+
+## sha256 del log completo
+964cc2434e8d49a606f0aad7ab2d3f4779f691fcf53cbaa8970e196541a1b643

@@ -229,6 +229,26 @@ Las 9 entradas del reactor son el pom padre y 8 módulos. `app` pasa de 27 a 42 
 - **Deuda registrada:** **DT-1**: `S3MediaStorageAdapter.isAmbiguous` recorre las causas de afuera hacia adentro; una `IOException` que envuelve una `ConnectException` se reintenta una vez. No hace daño porque el `put` es idempotente. (DT-2 se resolvió en esta misma tarea.)
 - **Preguntas abiertas para Carlos** (no bloquean la Tarea 1; plan §7.3): P-1, P-2, P-6 (ADR-050 y ADR-051 en el catálogo del documento maestro, que dice "siguiente libre: ADR-050"), P-9; riesgo R-1 (memoria al decodificar 40 MP sin límite de concurrencia); N-1 y N-2, ya aplicadas por Manuel, para su ratificación.
 
+### 0.81 Etapa 1 del plan de evolución del producto (2026-11-14, rama `claude/festive-newton-687sd0`) — en revisión, sin fusionar
+
+Planes `plan-evolucion-producto.md` y `plan-f08-api-integracion.md` aprobados por el usuario el 2026-11-14. Rama sobre `develop` `1478c75`. **Nada se ha fusionado a `develop`**: falta la puerta de §1.2 (firma de los ADR y revisión humana).
+
+| Elemento | Estado | Evidencia |
+|---|---|---|
+| T-04 respaldo y restauración probada | Hecho en código. Falta en el servidor: destino externo (pregunta 3), restauración con datos reales y 3 días del temporizador | `runbook-respaldo-restauracion.md` §5; `evidencia-ci/t04-respaldo-2026-11-14.txt` |
+| T-01 paso 1: Spring Boot 3.4.13 | Hecho; reactor en verde con 3.4.13. ADR-052 **propuesto**: falta elegir B (4.x) o C (riesgo con fecha) | `ADR-052` |
+| T-03 límite de intentos | Hecho; ADR-053 propuesto (falta firma). 13 mutaciones muertas | `ADR-053`; `evidencia-ci/mutaciones-t03-*.txt` |
+| D-01 salud y logs JSON | Hecho; ADR-054 propuesto (falta firma). 5 mutaciones muertas | `ADR-054`; `evidencia-ci/mutaciones-d01-*.txt` |
+| T-07 escaneo y SBOM | Perfil `-Psecurity`, SBOM y comprobación de supresiones hechos; **escaneo NVD no ejecutado** (red de la sesión sin acceso a NVD). Web: Next.js 16.3.8 → 16.4.3 por 2 críticas y 2 altas (PaxFide, misma rama). Móvil pendiente (sin Flutter) | `ADR-055`; `evidencia-ci/t07-escaneo-2026-11-14.txt` |
+| D-06 consolidación documental | Parcial: índice de ADR generado y comprobación catálogo ↔ ficheros. **Hallazgo: ADR-019 falta en el catálogo** (se cita en ADR-039). `ESTADO.md` y el CHANGELOG, sin empezar | `scripts/docs/indice-adr.py`; `ADR-INDICE.md` |
+| U-01 solapamientos web | Sin empezar. Primera observación: en `p17-seguimiento-zona__light__390.png` la cabecera fija y la barra inferior aparecen a mitad de página, lo que apunta a la captura de página completa | — |
+
+**Reactor completo** (`scripts/ci-local.sh` sobre `a07fea0`): contracts 0, core 393, crypto 62, ai 48, api 211, identity 437, convocatoria 272, app 704; `Failures: 0, Errors: 0`; `BUILD SUCCESS`; golden path 1/1. Escaneo de dependencias: OMITIDO (falta `NVD_API_KEY`). Evidencia: `evidencia-ci/ci-local-a07fea0-2026-11-14T18-23-25Z.txt`. Referencia sobre `develop` `1478c75`, en la misma máquina: 2078 tests, 0 fallos.
+
+**Ejecución anterior fallida** (`ci-local-e358450-…`, conservada): 2 fallos en `app`.
+- `ObservabilityHttpIntegrationTest`, propio: dependía del formato de log de `@TestPropertySource`. Corregido para leer el MDC de Logback.
+- `OrganizationMembersAndInvitationsHttpIntegrationTest.anAccountRegisteredWithUppercase_…`: un correo de más (18 frente a 17). Pasa en solitario y en la ejecución siguiente. Apunta a una carrera del propio test (`hasSize(before + 1)` justo después de invitar). No se toca aquí; queda anotado.
+
 ### 0.73 Preverificación de organizaciones, Nivel 1 (2026-11-02, `feat/identity-preverificacion`)
 
 - Numerada 0.73, el siguiente número libre de la serie 0.70 a 0.79 (P-PV-8). Si la zona en cada paso se fusiona antes con el mismo número, este PR se renumera al integrar `develop`.
