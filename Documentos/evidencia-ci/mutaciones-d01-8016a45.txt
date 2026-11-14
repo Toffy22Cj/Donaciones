@@ -21,3 +21,8 @@ Restauración verificada contra HEAD. Mutaciones vivas: 0
   {"name": "N4 decorador del scheduler sin correlationId", "edits": [{"file": "app/src/main/java/com/traceability/app/config/SchedulerCorrelationConfig.java", "old": "            MDC.put(MDC_KEY, \"sched-\" + UUID.randomUUID());", "new": ""}]},
   {"name": "N5 log del evento escrito fuera del MDC de la petición (sin línea)", "edits": [{"file": "core/src/main/java/com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapter.java", "old": "            log.info(\"Event written streamId={} sequence={} eventType={} eventId={}\", doc.getStreamId(),\n                    doc.getSequence(), doc.getEventType(), doc.getEventId());", "new": ""}]}
  ]}
+
+## Tras reescribir el test con el MDC de Logback (commit 19cc687), N1 y N5 de nuevo:
+- N1 sin correlationId por petición: MUERTA  oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine
+- N5 log del evento escrito fuera del MDC de la petición (sin línea): MUERTA  oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine
+Restauración verificada contra HEAD. Mutaciones vivas: 0
