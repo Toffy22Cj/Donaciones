@@ -12,6 +12,19 @@
 #   paxfide.sh estado        qué corre, URLs y comprobación de la API y la web
 #   paxfide.sh logs [api|web|tunel-api|tunel-web]
 #   paxfide.sh parar         detiene backend, web y túneles (MongoDB y MinIO siguen)
+#   paxfide.sh respaldo      copia cifrada de MongoDB (mongodump --oplog) y del bucket de MinIO, con manifiesto
+#                            SHA-256, retención 7 diarias + 4 semanales y copia al destino externo (T-04)
+#   paxfide.sh restaurar-prueba [carpeta]  restaura un respaldo (por defecto, el último) en un MongoDB aislado y
+#                            desechable, arranca el backend contra él y verifica la integridad de todos los lotes
+#   paxfide.sh instalar-temporizador  instala el temporizador de systemd (usuario) que ejecuta 'respaldo' a diario
+#
+# Respaldo (runbook-respaldo-restauracion.md), en backend.env o en el entorno:
+#   PAXFIDE_BACKUP_AGE_RECIPIENT  clave pública de age (age1…) con la que se cifra; la privada NO vive en este PC
+#   PAXFIDE_BACKUP_GPG_RECIPIENT  alternativa: destinatario de gpg (si no hay clave de age)
+#   PAXFIDE_BACKUP_DEST           destino externo: ruta local montada (disco o carpeta sincronizada), usuario@host:ruta
+#                                 (rsync por ssh) o rclone:remoto:ruta. 'solo-local' lo omite a sabiendas (avisa)
+#   PAXFIDE_BACKUP_AGE_IDENTITY   solo para restaurar-prueba: fichero con la clave privada de age (p. ej. en un USB)
+#   PAXFIDE_BACKUP_DIR            carpeta local de respaldos (por defecto deploy/respaldos)
 #
 # Rutas por defecto (se pueden cambiar con variables de entorno):
 #   PAXFIDE_HOME=~/PaxFide   (contiene Donaciones/, PaxFide/ y deploy/)
@@ -311,6 +324,7 @@ cmd_semilla() {
 
   infra
   stop_apps
+  backup_before_drop
   info "Vaciando la base '$db'"
   dc exec -T mongo mongosh --quiet --eval "db.getSiblingDB('$db').dropDatabase()"
 
@@ -365,6 +379,290 @@ cmd_reparar_anclaje() {
   echo "Listo. Comprueba en unos minutos: $0 logs api (debe salir 'successfully submitted', sin 'nonce too low')."
 }
 
+# ───────────────────────────── T-04: respaldo y restauración de prueba ─────────────────────────────
+# Plan de evolución del producto §2.1 (aprobado el 2026-11-14). MongoDB es el Event Store (única fuente de verdad) y
+# MinIO guarda las fotos y evidencias cuyo sha256 está en los eventos: se copian los dos, cifrados, con manifiesto.
+
+# cfg NOMBRE [defecto]: el entorno manda; si no, backend.env; si no, el valor por defecto
+cfg() {
+  local v="${!1:-}"
+  [ -n "$v" ] || v=$(envval "$1")
+  printf '%s' "${v:-${2:-}}"
+}
+
+backup_dir() { cfg PAXFIDE_BACKUP_DIR "$DEP/respaldos"; }
+
+mongo_db_name() { envval SPRING_DATA_MONGODB_URI | sed -E 's|.*/([^/?]+)(\?.*)?$|\1|'; }
+
+# URI para las herramientas dentro del contenedor de MongoDB: mismas credenciales que el backend (si las hay),
+# pero contra 127.0.0.1:27017 del propio contenedor, sin base y con directConnection
+mongo_local_uri() {
+  local uri cred="" auth
+  uri=$(envval SPRING_DATA_MONGODB_URI)
+  if [[ "$uri" =~ ^mongodb://([^@/]+)@ ]]; then cred="${BASH_REMATCH[1]}@"; fi
+  printf 'mongodb://%s127.0.0.1:27017/?directConnection=true' "$cred"
+  if [ -n "$cred" ]; then
+    auth=$(printf '%s' "$uri" | command grep -oE 'authSource=[^&]+' | cut -d= -f2 || true)
+    printf '&authSource=%s' "${auth:-admin}"
+  fi
+}
+
+encrypt_file() { # encrypt_file entrada salida
+  local age_r gpg_r
+  age_r=$(cfg PAXFIDE_BACKUP_AGE_RECIPIENT)
+  gpg_r=$(cfg PAXFIDE_BACKUP_GPG_RECIPIENT)
+  if [ -n "$age_r" ]; then
+    age -r "$age_r" -o "$2" "$1"
+  elif [ -n "$gpg_r" ]; then
+    gpg --batch --yes --trust-model always -r "$gpg_r" -o "$2" --encrypt "$1"
+  else
+    return 1
+  fi
+}
+
+decrypt_file() { # decrypt_file entrada salida
+  case "$1" in
+    *.age)
+      local id
+      id=$(cfg PAXFIDE_BACKUP_AGE_IDENTITY)
+      [ -n "$id" ] && [ -f "$id" ] || die "falta PAXFIDE_BACKUP_AGE_IDENTITY (fichero con la clave privada de age)"
+      age -d -i "$id" -o "$2" "$1" ;;
+    *.gpg) gpg --batch --yes -o "$2" --decrypt "$1" ;;
+    *) die "formato de cifrado desconocido: $1" ;;
+  esac
+}
+
+# Copia al destino externo de diarios/ y semanales/ (la retención se refleja: lo que se borró aquí se borra allí)
+copy_external() { # copy_external carpeta-local
+  local dest
+  dest=$(cfg PAXFIDE_BACKUP_DEST)
+  case "$dest" in
+    "") echo "falta PAXFIDE_BACKUP_DEST (destino externo); para omitirlo a sabiendas: PAXFIDE_BACKUP_DEST=solo-local" >&2
+        return 1 ;;
+    solo-local) echo "AVISO: PAXFIDE_BACKUP_DEST=solo-local: el respaldo NO salió de este equipo" >&2; return 0 ;;
+    rclone:*) need rclone; rclone sync "$1" "${dest#rclone:}" --include '/diarios/**' --include '/semanales/**' ;;
+    /*) mkdir -p "$dest" || return 1
+        local sub
+        for sub in diarios semanales; do
+          mkdir -p "$dest/$sub"
+          # borrar en el destino lo que la retención borró aquí, y copiar lo nuevo
+          (cd "$dest/$sub" && for d in respaldo-*; do [ -e "$d" ] && [ ! -e "$1/$sub/$d" ] && rm -rf -- "$d"; done; true)
+          cp -a "$1/$sub/." "$dest/$sub/" || return 1
+        done
+        # comprobar en el destino lo que se acaba de copiar
+        (cd "$dest/diarios/$(basename "$LAST_BACKUP")" && sha256sum --quiet -c manifiesto.sha256) ;;
+    *:*) need rsync; rsync -a --delete --include '/diarios/***' --include '/semanales/***' --exclude '*' "$1/" "$dest/" ;;
+    *) echo "PAXFIDE_BACKUP_DEST no reconocido: $dest" >&2; return 1 ;;
+  esac
+}
+
+prune() { # prune carpeta cuántos: deja los N respaldos más recientes
+  local n=0 d
+  for d in $(ls -1d "$1"/respaldo-* 2>/dev/null | sort -r); do
+    n=$((n + 1))
+    [ "$n" -le "$2" ] || rm -rf -- "$d"
+  done
+}
+
+# Respaldo completo. Devuelve 0 solo si el respaldo local está cifrado, verificado y copiado al destino externo
+# (o PAXFIDE_BACKUP_DEST=solo-local). Deja la carpeta en LAST_BACKUP.
+do_backup() {
+  need docker; need sha256sum
+  local bk stamp work db bucket events objects f uri
+  if [ -z "$(cfg PAXFIDE_BACKUP_AGE_RECIPIENT)" ] && [ -z "$(cfg PAXFIDE_BACKUP_GPG_RECIPIENT)" ]; then
+    echo "falta PAXFIDE_BACKUP_AGE_RECIPIENT (o PAXFIDE_BACKUP_GPG_RECIPIENT): sin cifrado no hay respaldo" >&2
+    return 1
+  fi
+  [ -n "$(cfg PAXFIDE_BACKUP_AGE_RECIPIENT)" ] && need age
+  db=$(mongo_db_name); bucket=$(envval MEDIA_S3_BUCKET)
+  [ -n "$db" ] && [ -n "$bucket" ] || { echo "faltan SPRING_DATA_MONGODB_URI o MEDIA_S3_BUCKET" >&2; return 1; }
+  [ -n "$(dc ps -q mongo 2>/dev/null)" ] && [ -n "$(dc ps -q minio 2>/dev/null)" ] \
+    || { echo "MongoDB o MinIO no están en marcha" >&2; return 1; }
+
+  bk=$(backup_dir); stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+  mkdir -p "$bk/diarios" "$bk/semanales" "$bk/registros" && chmod 700 "$bk"
+  work="$bk/.en-curso-$stamp"
+  rm -rf "$work"; mkdir -m 700 "$work"
+  uri=$(mongo_local_uri)
+
+  info "Respaldo $stamp: MongoDB (mongodump --oplog, base completa)"
+  dc exec -T mongo mongodump --quiet --uri "$uri" --archive --gzip --oplog > "$work/mongo.archive.gz" \
+    || { echo "mongodump falló" >&2; rm -rf "$work"; return 1; }
+  events=$(dc exec -T mongo mongosh --quiet "$uri" --eval "db.getSiblingDB('$db').event_store.countDocuments()" | tr -d '\r') \
+    || { echo "no pude contar los eventos" >&2; rm -rf "$work"; return 1; }
+
+  info "Respaldo $stamp: MinIO (bucket '$bucket')"
+  dc exec -T -e MC_CONFIG_DIR=/tmp/.mc minio sh -c '
+      MC=$(command -v mc || echo /opt/bitnami/minio-client/bin/mc)
+      [ -x "$MC" ] || exit 3
+      rm -rf /tmp/pf-respaldo && mkdir -p /tmp/pf-respaldo &&
+      "$MC" alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null &&
+      "$MC" mirror --quiet "local/$1" /tmp/pf-respaldo >/dev/null &&
+      tar -C /tmp/pf-respaldo -cf - .; rc=$?; rm -rf /tmp/pf-respaldo; exit $rc' sh "$bucket" > "$work/minio.tar" \
+    || { echo "la copia de MinIO falló" >&2; rm -rf "$work"; return 1; }
+  objects=$(tar -tf "$work/minio.tar" | command grep -cv '/$' || true)
+
+  info "Respaldo $stamp: manifiesto y cifrado"
+  {
+    echo "fecha=$stamp"
+    echo "base=$db"
+    echo "eventos=$events"
+    echo "bucket=$bucket"
+    echo "objetos=$objects"
+    for f in mongo.archive.gz minio.tar; do
+      echo "contenido.$f.bytes=$(stat -c %s "$work/$f")"
+      echo "contenido.$f.sha256=$(sha256sum "$work/$f" | cut -d' ' -f1)"
+    done
+  } > "$work/manifiesto.txt"
+  local ext=age
+  [ -n "$(cfg PAXFIDE_BACKUP_AGE_RECIPIENT)" ] || ext=gpg
+  for f in mongo.archive.gz minio.tar; do
+    encrypt_file "$work/$f" "$work/$f.$ext" || { echo "el cifrado falló" >&2; rm -rf "$work"; return 1; }
+    shred -u "$work/$f" 2>/dev/null || rm -f "$work/$f"
+    echo "cifrado.$f.$ext.bytes=$(stat -c %s "$work/$f.$ext")" >> "$work/manifiesto.txt"
+  done
+  (cd "$work" && sha256sum "mongo.archive.gz.$ext" "minio.tar.$ext" manifiesto.txt > manifiesto.sha256)
+  (cd "$work" && sha256sum --quiet -c manifiesto.sha256) || { echo "el manifiesto no cuadra" >&2; rm -rf "$work"; return 1; }
+
+  mv "$work" "$bk/diarios/respaldo-$stamp"
+  LAST_BACKUP="$bk/diarios/respaldo-$stamp"
+  # semanal: el primero de cada semana ISO
+  local week
+  week=$(date -u +%G-W%V)
+  if [ ! -e "$bk/semanales/.semana-$week" ]; then
+    cp -a "$LAST_BACKUP" "$bk/semanales/" && : > "$bk/semanales/.semana-$week"
+  fi
+  prune "$bk/diarios" 7
+  prune "$bk/semanales" 4
+  { ls -1 "$bk/semanales"/.semana-* 2>/dev/null || true; } | sort -r | tail -n +9 | xargs -r rm -f
+
+  info "Respaldo $stamp: copia al destino externo"
+  copy_external "$bk" || { echo "la copia externa falló; el respaldo local está en $LAST_BACKUP" >&2; return 1; }
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$bk/ultimo-respaldo-ok"
+  echo "Respaldo listo: $LAST_BACKUP ($events eventos, $objects objetos)"
+}
+
+cmd_respaldo() {
+  check_env
+  do_backup || die "el respaldo NO se completó (arriba, el motivo)"
+}
+
+# Antes de cualquier dropDatabase: sin un respaldo completo y verificado, no se borra nada
+backup_before_drop() {
+  info "Respaldo obligatorio antes de vaciar la base"
+  do_backup || die "el respaldo previo falló: la base NO se ha borrado"
+}
+
+# Destruye el backend, el MongoDB y los ficheros descifrados de la restauración de prueba. Nunca falla.
+cleanup_restore() {
+  set +e
+  if [ -n "${RESTORE_API:-}" ]; then kill "$RESTORE_API" 2>/dev/null; wait "$RESTORE_API" 2>/dev/null; fi
+  [ -n "${RESTORE_NAME:-}" ] && docker rm -f "$RESTORE_NAME" >/dev/null 2>&1
+  if [ -n "${RESTORE_WORK:-}" ] && [ -d "$RESTORE_WORK" ]; then
+    find "$RESTORE_WORK" -type f -exec shred -u {} + 2>/dev/null; rm -rf "$RESTORE_WORK"
+  fi
+  RESTORE_API=""; RESTORE_NAME=""; RESTORE_WORK=""
+  return 0
+}
+
+cmd_restaurar_prueba() {
+  need docker; need java; need sha256sum
+  check_env
+  local bk src port db events want ok=1 image report
+  # globales a propósito: la limpieza corre en el trap EXIT, cuando las variables locales ya no existen
+  RESTORE_WORK=""; RESTORE_NAME=""; RESTORE_API=""
+  bk=$(backup_dir)
+  src=${1:-$(ls -1d "$bk"/diarios/respaldo-* 2>/dev/null | sort | tail -1)}
+  [ -n "$src" ] && [ -d "$src" ] || die "no hay respaldo que restaurar (en $bk/diarios)"
+  [ -f "$JAR" ] || die "no está el jar; ejecuta: $0 compilar"
+  info "Restauración de prueba de $src"
+
+  (cd "$src" && sha256sum --quiet -c manifiesto.sha256) || die "respaldo corrupto: el SHA-256 no coincide con el manifiesto"
+  RESTORE_WORK=$(mktemp -d "${TMPDIR:-/tmp}/paxfide-restauracion-XXXXXX"); chmod 700 "$RESTORE_WORK"
+  RESTORE_NAME="paxfide-restauracion-$$"
+  trap cleanup_restore EXIT
+  local work=$RESTORE_WORK name=$RESTORE_NAME
+
+  local f enc
+  for f in mongo.archive.gz minio.tar; do
+    enc=$(ls "$src/$f".* 2>/dev/null | command grep -E '\.(age|gpg)$' | head -1)
+    [ -n "$enc" ] || die "falta $f cifrado en $src"
+    decrypt_file "$enc" "$work/$f" || die "no pude descifrar $enc"
+    [ "$(sha256sum "$work/$f" | cut -d' ' -f1)" = "$(command grep "^contenido.$f.sha256=" "$src/manifiesto.txt" | cut -d= -f2)" ] \
+      || die "respaldo corrupto: $f descifrado no coincide con el manifiesto"
+  done
+  want=$(command grep '^objetos=' "$src/manifiesto.txt" | cut -d= -f2)
+  [ "$(tar -tf "$work/minio.tar" | command grep -cv '/$' || true)" = "$want" ] || die "la copia de MinIO no tiene los $want objetos del manifiesto"
+
+  info "MongoDB aislado y desechable"
+  image=$(docker inspect -f '{{.Config.Image}}' "$(dc ps -q mongo 2>/dev/null)" 2>/dev/null || true)
+  docker run -d --name "$name" -p 127.0.0.1::27017 "${image:-mongo:6.0}" --replSet rs0 --bind_ip_all >/dev/null
+  port=$(docker port "$name" 27017/tcp | head -1 | sed 's/.*://')
+  local i
+  for ((i = 0; i < 60; i++)); do
+    docker exec "$name" mongosh --quiet --eval \
+      "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]}).ok }" 2>/dev/null \
+      | command grep -q 1 && docker exec "$name" mongosh --quiet --eval 'db.hello().isWritablePrimary' 2>/dev/null | command grep -q true && break
+    sleep 1
+  done
+  info "Restaurando (mongorestore --oplogReplay)"
+  docker exec -i "$name" mongorestore --quiet --archive --gzip --oplogReplay < "$work/mongo.archive.gz" || die "mongorestore falló"
+
+  db=$(command grep '^base=' "$src/manifiesto.txt" | cut -d= -f2)
+  events=$(docker exec "$name" mongosh --quiet --eval "db.getSiblingDB('$db').event_store.countDocuments()" | tr -d '\r')
+  want=$(command grep '^eventos=' "$src/manifiesto.txt" | cut -d= -f2)
+  echo "eventos restaurados: $events (manifiesto: $want)"
+  [ "$events" = "$want" ] || ok=0
+
+  info "Backend contra la copia (puerto interno, sin red de anclaje ni correo)"
+  report="$work/informe.txt"
+  (
+    set -a; . "$ENVF"; set +a
+    # nada de lo que haga este backend puede salir: cadena, correo, IA y S3 apuntan a un puerto cerrado
+    export SPRING_DATA_MONGODB_URI="mongodb://127.0.0.1:$port/$db?directConnection=true"
+    export SERVER_ADDRESS=127.0.0.1 SERVER_PORT=0
+    export WEB3_PRIVATE_KEY="0x$(openssl rand -hex 32)" WEB3_NODE_URL=http://127.0.0.1:9
+    export SPRING_MAIL_HOST=127.0.0.1 SPRING_MAIL_PORT=9 SPRING_AI_OPENAI_API_KEY=dummy
+    export SPRING_AI_OPENAI_BASE_URL=http://127.0.0.1:9 MEDIA_S3_ENDPOINT=http://127.0.0.1:9
+    export TRACEABILITY_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=false TRACEABILITY_DEMO_SEED_ENABLED=false
+    export TRACEABILITY_RESTORE_CHECK_ENABLED=true TRACEABILITY_RESTORE_CHECK_OUTPUT_FILE="$report"
+    export SPRING_PROFILES_ACTIVE="$(printf '%s' "${SPRING_PROFILES_ACTIVE:-}" | sed 's/demo-seed//g; s/,,*/,/g; s/^,//; s/,$//')"
+    exec java -jar "$JAR"
+  ) > "$work/backend.log" 2>&1 &
+  RESTORE_API=$!
+  for ((i = 0; i < 300; i++)); do
+    [ -f "$report" ] && break
+    kill -0 "$RESTORE_API" 2>/dev/null || { tail -40 "$work/backend.log"; die "el backend de prueba no arrancó"; }
+    sleep 1
+  done
+  [ -f "$report" ] || { tail -40 "$work/backend.log"; die "la verificación no terminó en 5 minutos"; }
+  cat "$report"
+  command grep -q '^resultado=OK$' "$report" || ok=0
+
+  mkdir -p "$bk/registros"
+  local log_file
+  log_file="$bk/registros/restauracion-$(date -u +%Y-%m-%dT%H-%M-%SZ).txt"
+  { echo "respaldo=$src"; echo "eventos_restaurados=$events"; cat "$src/manifiesto.txt" "$report";
+    echo "conclusion=$([ "$ok" = 1 ] && echo CORRECTA || echo FALLIDA)"; } > "$log_file"
+  echo "Registro: $log_file"
+  cleanup_restore; trap - EXIT
+  [ "$ok" = 1 ] || die "la restauración de prueba FALLÓ (arriba, el informe)"
+  echo "Restauración de prueba CORRECTA (MongoDB de prueba y ficheros descifrados destruidos)."
+}
+
+cmd_instalar_temporizador() {
+  need systemctl
+  local units="$HOME/.config/systemd/user" src
+  src=$(dirname "$(readlink -f "$0")")/systemd
+  mkdir -p "$units"
+  sed "s|@PAXFIDE_SH@|$(readlink -f "$0")|; s|@PAXFIDE_HOME@|$HOME_DIR|" "$src/paxfide-respaldo.service" > "$units/paxfide-respaldo.service"
+  cp "$src/paxfide-respaldo.timer" "$units/"
+  systemctl --user daemon-reload
+  systemctl --user enable --now paxfide-respaldo.timer
+  systemctl --user list-timers paxfide-respaldo.timer
+  echo "Para que corra sin sesión abierta: sudo loginctl enable-linger $USER"
+}
+
 cmd_estado() {
   info "Procesos"
   pgrep -af "cloudflared tunnel --url" || echo "(sin túneles)"
@@ -399,5 +697,8 @@ case "${1:-}" in
   estado) cmd_estado ;;
   logs) cmd_logs "${2:-}" ;;
   parar) cmd_parar ;;
-  *) sed -n '2,20p' "$0"; exit 1 ;;
+  respaldo) cmd_respaldo ;;
+  restaurar-prueba) cmd_restaurar_prueba "${2:-}" ;;
+  instalar-temporizador) cmd_instalar_temporizador ;;
+  *) sed -n '2,32p' "$0"; exit 1 ;;
 esac

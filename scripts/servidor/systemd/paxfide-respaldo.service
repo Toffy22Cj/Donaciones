@@ -1,0 +1,10 @@
+# T-04: respaldo diario de MongoDB y MinIO (plantilla; 'paxfide.sh instalar-temporizador' rellena las rutas)
+[Unit]
+Description=PaxFide: respaldo cifrado de MongoDB y MinIO
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+Environment=PAXFIDE_HOME=@PAXFIDE_HOME@
+ExecStart=@PAXFIDE_SH@ respaldo

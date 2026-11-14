@@ -1,0 +1,11 @@
+# T-04: una vez al día; si el equipo estaba apagado, corre al encender (Persistent)
+[Unit]
+Description=PaxFide: respaldo diario
+
+[Timer]
+OnCalendar=*-*-* 03:17:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

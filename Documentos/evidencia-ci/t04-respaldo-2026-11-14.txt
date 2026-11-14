@@ -1,0 +1,120 @@
+# Evidencia T-04 — paxfide.sh respaldo / restaurar-prueba (salida literal)
+fecha: 2026-11-14T17:16:15Z
+entorno: contenedor de desarrollo; deploy/ de prueba con mongo:6.0 (rs0), bitnamilegacy/minio:2025.7.23, Ganache + AnchorRegistry, semilla demo-seed
+rutas: el prefijo de la carpeta temporal de la sesión se sustituye por <tmp>
+
+## Prueba 1: restauración real del último respaldo
+$ bash /home/user/wt-don/scripts/servidor/paxfide.sh restaurar-prueba
+
+== Restauración de prueba de <tmp>/pfhome/deploy/respaldos/diarios/respaldo-2026-11-14T17-14-00Z
+
+== MongoDB aislado y desechable
+
+== Restaurando (mongorestore --oplogReplay)
+eventos restaurados: 17 (manifiesto: 17)
+
+== Backend contra la copia (puerto interno, sin red de anclaje ni correo)
+resultado=OK
+eventos=17
+lotes_anclados=2
+match=2
+inconclusive=0
+mismatch=0
+no_verificables=0
+lotes_mismatch=
+lotes_no_verificables=
+Registro: <tmp>/pfhome/deploy/respaldos/registros/restauracion-2026-11-14T17-15-00Z.txt
+Restauración de prueba CORRECTA (MongoDB de prueba y ficheros descifrados destruidos).
+[salida: 0]
+
+contenedores de restauración vivos: 0
+carpetas temporales: 0
+## Prueba 2: respaldo corrupto (un byte cambiado)
+$ bash /home/user/wt-don/scripts/servidor/paxfide.sh restaurar-prueba <tmp>/corrupto
+
+== Restauración de prueba de <tmp>/corrupto
+mongo.archive.gz.age: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+ERROR: respaldo corrupto: el SHA-256 no coincide con el manifiesto
+[salida: 1]
+
+## Prueba 3: 'semilla' con el respaldo forzado a fallar (destinatario de age inválido) no borra la base
+eventos antes: 17
+$ echo BORRAR | PAXFIDE_BACKUP_AGE_RECIPIENT=age1invalida paxfide.sh semilla
+Esto BORRA la base 'paxfide' entera (cuentas, organizaciones, convocatorias, donaciones) y carga la demo.
+
+== MongoDB y MinIO
+ Container deploy-mongo-1 Running 
+ Container deploy-minio-1 Running 
+  bucket 'paxfide-media' listo
+
+== Respaldo obligatorio antes de vaciar la base
+
+== Respaldo 2026-11-14T17-15-15Z: MongoDB (mongodump --oplog, base completa)
+
+== Respaldo 2026-11-14T17-15-15Z: MinIO (bucket 'paxfide-media')
+
+== Respaldo 2026-11-14T17-15-15Z: manifiesto y cifrado
+age: error: malformed recipient "age1invalida": invalid character data part: s[0]=105
+age: report unexpected or unhelpful errors at https://filippo.io/age/report
+el cifrado falló
+ERROR: el respaldo previo falló: la base NO se ha borrado
+[salida: 1]
+eventos después: 17
+
+## Prueba 4: un evento alterado en la base se detecta en la restauración de prueba (MISMATCH)
+alteración: 1
+$ bash /home/user/wt-don/scripts/servidor/paxfide.sh respaldo
+
+== Respaldo 2026-11-14T17-15-17Z: MongoDB (mongodump --oplog, base completa)
+
+== Respaldo 2026-11-14T17-15-17Z: MinIO (bucket 'paxfide-media')
+
+== Respaldo 2026-11-14T17-15-17Z: manifiesto y cifrado
+
+== Respaldo 2026-11-14T17-15-17Z: copia al destino externo
+Respaldo listo: <tmp>/pfhome/deploy/respaldos/diarios/respaldo-2026-11-14T17-15-17Z (17 eventos, 4 objetos)
+[salida: 0]
+
+$ bash /home/user/wt-don/scripts/servidor/paxfide.sh restaurar-prueba
+
+== Restauración de prueba de <tmp>/pfhome/deploy/respaldos/diarios/respaldo-2026-11-14T17-15-17Z
+
+== MongoDB aislado y desechable
+
+== Restaurando (mongorestore --oplogReplay)
+eventos restaurados: 17 (manifiesto: 17)
+
+== Backend contra la copia (puerto interno, sin red de anclaje ni correo)
+resultado=FALLO
+eventos=17
+lotes_anclados=2
+match=1
+inconclusive=0
+mismatch=1
+no_verificables=0
+lotes_mismatch=179fa2ca-2ee4-4991-ad47-16eaf633000a
+lotes_no_verificables=
+Registro: <tmp>/pfhome/deploy/respaldos/registros/restauracion-2026-11-14T17-15-29Z.txt
+ERROR: la restauración de prueba FALLÓ (arriba, el informe)
+[salida: 1]
+
+## Prueba 5: retención (8 diarios antiguos de octubre + los de hoy → quedan los 7 más recientes, aquí y en el destino externo)
+antes: 10 diarios locales, 10 externos
+[salida: 0]
+después, locales:
+respaldo-2026-10-05T03-17-00Z
+respaldo-2026-10-06T03-17-00Z
+respaldo-2026-10-07T03-17-00Z
+respaldo-2026-10-08T03-17-00Z
+respaldo-2026-11-14T17-14-00Z
+respaldo-2026-11-14T17-15-17Z
+respaldo-2026-11-14T17-15-40Z
+después, externos:
+respaldo-2026-10-05T03-17-00Z
+respaldo-2026-10-06T03-17-00Z
+respaldo-2026-10-07T03-17-00Z
+respaldo-2026-10-08T03-17-00Z
+respaldo-2026-11-14T17-14-00Z
+respaldo-2026-11-14T17-15-17Z
+respaldo-2026-11-14T17-15-40Z
