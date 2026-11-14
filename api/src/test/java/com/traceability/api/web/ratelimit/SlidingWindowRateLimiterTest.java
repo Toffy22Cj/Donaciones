@@ -99,6 +99,35 @@ class SlidingWindowRateLimiterTest {
     }
 
     @Test
+    void manyRoundsOfFiftySimultaneousFirstAttemptsNeverExceedTheLimit() throws Exception {
+        // cada ronda, una clave nueva y 50 hilos soltados a la vez por la barrera: la carrera entre comprobar el
+        // tamaño y añadir el instante aparece en alguna ronda si la decisión no está bajo el monitor de la clave
+        int threads = 50;
+        int limit = 5;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            for (int round = 0; round < 300; round++) {
+                String key = "round-" + round;
+                CyclicBarrier start = new CyclicBarrier(threads);
+                List<Future<Boolean>> results = new ArrayList<>();
+                for (int t = 0; t < threads; t++) {
+                    results.add(pool.submit(() -> {
+                        start.await();
+                        return limiter.tryAcquire(key, limit, WINDOW).allowed();
+                    }));
+                }
+                int accepted = 0;
+                for (Future<Boolean> r : results) {
+                    accepted += r.get(30, TimeUnit.SECONDS) ? 1 : 0;
+                }
+                assertThat(accepted).as("round %d", round).isEqualTo(limit);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     void concurrentSweepNeverLetsAKeyExceedTheLimit() throws Exception {
         // la limpieza corre a la vez que las peticiones; la ventana nunca expira, así que el total debe ser el límite
         int limit = 25;
