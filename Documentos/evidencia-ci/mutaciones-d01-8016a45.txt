@@ -1,0 +1,23 @@
+# Mutaciones D-01 (ADR-054) — scripts/mutaciones.py, salida literal
+commit: 8016a458bc48b3aabd38a856f53f13289a6f2b53
+fecha: 2026-11-14T17:46:02Z
+
+- N1 sin correlationId por petición: MUERTA  oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine
+- N2 salud publicada en todas las interfaces: MUERTA  managementIsLocalOnlyOnItsOwnPortWithOnlyHealthAndInfo
+- N3 todos los endpoints de actuator expuestos (test yml): MUERTA  healthIsUpWithMongoOnTheManagementPort_andAbsentFromTheApiPort
+- N4 decorador del scheduler sin correlationId: MUERTA  eachScheduledRunGetsItsOwnSchedulerCorrelationId_andTheThreadIsCleanAfterwards
+- N5 log del evento escrito fuera del MDC de la petición (sin línea): VIVA  
+Restauración verificada contra HEAD. Mutaciones vivas: 1
+
+N5 quedó viva en la primera ejecución porque 'api,app' no recompila 'core' (app usó el jar instalado, sin mutar). Repetida con 'core,api,app':
+- N5 log del evento escrito fuera del MDC de la petición (sin línea): MUERTA  oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+{"module": "api,app", "tests": "ObservabilityHttpIntegrationTest,ProductionManagementConfigTest", "args": ["-Dsurefire.failIfNoSpecifiedTests=false"],
+ "mutations": [
+  {"name": "N1 sin correlationId por petición", "edits": [{"file": "api/src/main/java/com/traceability/api/web/observability/CorrelationIdFilter.java", "old": "        MDC.put(MDC_KEY, UUID.randomUUID().toString());\n", "new": "\n"}]},
+  {"name": "N2 salud publicada en todas las interfaces", "edits": [{"file": "app/src/main/resources/application.yml", "old": "    port: ${MANAGEMENT_SERVER_PORT:8081}\n    address: 127.0.0.1", "new": "    port: ${MANAGEMENT_SERVER_PORT:8081}\n    address: 0.0.0.0"}]},
+  {"name": "N3 todos los endpoints de actuator expuestos (test yml)", "edits": [{"file": "app/src/test/resources/application.yml", "old": "    access:\n      default: none\n    web:\n      exposure:\n        include: health,info", "new": "    web:\n      exposure:\n        include: '*'"}]},
+  {"name": "N4 decorador del scheduler sin correlationId", "edits": [{"file": "app/src/main/java/com/traceability/app/config/SchedulerCorrelationConfig.java", "old": "            MDC.put(MDC_KEY, \"sched-\" + UUID.randomUUID());", "new": ""}]},
+  {"name": "N5 log del evento escrito fuera del MDC de la petición (sin línea)", "edits": [{"file": "core/src/main/java/com/traceability/core/infrastructure/persistence/mongo/MongoEventStoreAdapter.java", "old": "            log.info(\"Event written streamId={} sequence={} eventType={} eventId={}\", doc.getStreamId(),\n                    doc.getSequence(), doc.getEventType(), doc.getEventId());", "new": ""}]}
+ ]}
