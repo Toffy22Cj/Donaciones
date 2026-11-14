@@ -42,6 +42,22 @@ traceability:
       bucket: tests-media
       access-key-id: test-only-media-access-key-id
       secret-access-key: test-only-media-secret-not-for-production
+  # ADR-053: este fichero sustituye al application.yml principal en los tests; cuotas que ningún test que no sea del
+  # límite alcanza (los del límite fijan las suyas con @TestPropertySource)
+  rate-limit:
+    enabled: true
+    max-keys: 100000
+    sweep-interval: PT1M
+    login-email: { limit: 1000000, window: PT1M }
+    groups:
+      login: { limit: 1000000, window: PT1M }
+      registration: { limit: 1000000, window: PT1M }
+      account-recovery: { limit: 1000000, window: PT1M }
+      tracking: { limit: 1000000, window: PT1M }
+      donation-intent-read: { limit: 1000000, window: PT1M }
+      donation-intent-create: { limit: 1000000, window: PT1M }
+      payment-webhook: { limit: 1000000, window: PT1M }
+      media-upload: { limit: 1000000, window: PT1M }
   discovery:
     # Solo para tests (32 bytes en Base64): "test-only-discovery-cursor-key!!"
     cursor-key: dGVzdC1vbmx5LWRpc2NvdmVyeS1jdXJzb3Ita2V5ISE=
