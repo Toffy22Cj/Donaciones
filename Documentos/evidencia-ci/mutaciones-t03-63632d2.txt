@@ -1,0 +1,51 @@
+# Mutaciones T-03 (ADR-053) — scripts/mutaciones.py, salida literal
+commit: 63632d250078af21e8e36b8a7a87cb2a0f95e2b4
+fecha: 2026-11-14T17:33:13Z
+
+## api (SlidingWindowRateLimiterTest, ClientIpResolverTest, RateLimitFilterTest, RateLimitPropertiesTest)
+Primera ejecución, sobre e6e8e5e (antes de reforzar la concurrencia): M11 quedó VIVA.
+- M1 umbral +1 (<= en lugar de <): MUERTA  acceptsTheLimitAndRejectsTheNextWithRetryAfter; concurrentSweepNeverLetsAKeyExceedTheLimit; eachClientIpHasItsOwnCounter; fiftyThreadsOnTheSameKeyNeverExceedTheLimit; groupsHaveSeparateCountersAndUnlimitedRoutesPass; keysAreIndependent; nPlusOneLoginAttemptsGive429WithRetryAfterAndTheFixedBody; rejectedAttemptsDoNotExtendTheWindow; repeatedSlashesDoNotEscapeTheGroup; retryAfterIsAtLeastOneSecond; sameAccountFromManyIpsIsLimitedByNormalizedEmail; theLimitExpiresWithTheWindow; theWindowSlidesAndAcceptsAgainExactlyWhenTheOldestLeaves; theXForwardedForHeaderDoesNotEvadeTheLimit; uploadsAreLimitedBeforeAuthentication
+- M2 ventana ignorada (no se expulsan las antiguas al decidir): MUERTA  rejectedAttemptsDoNotExtendTheWindow; theLimitExpiresWithTheWindow; theWindowSlidesAndAcceptsAgainExactlyWhenTheOldestLeaves
+- M3 clave sin IP: MUERTA  eachClientIpHasItsOwnCounter
+- M4 X-Forwarded-For como IP: MUERTA  theXForwardedForHeaderDoesNotEvadeTheLimit; withoutTrustedProxiesHeadersAreIgnored; xForwardedForIsNeverReadEvenFromATrustedProxy
+- M5 cabecera del proxy creída sin ser de confianza: MUERTA  untrustedConnectionCannotSpoofTheHeader
+- M6 correo sin normalizar: MUERTA  sameAccountFromManyIpsIsLimitedByNormalizedEmail
+- M7 sin límite por correo: MUERTA  sameAccountFromManyIpsIsLimitedByNormalizedEmail
+- M8 limpieza sin respetar la ventana: MUERTA  sweepForgetsKeysWithoutRequestsInTheirWindow_noMemoryGrowthWith100kIps; whenFullEvenAfterSweepingANewKeyIsRejectedButKnownKeysKeepWorking
+- M9 sin tope de claves: MUERTA  whenFullEvenAfterSweepingANewKeyIsRejectedButKnownKeysKeepWorking
+- M10 grupo desconocido aceptado: MUERTA  unknownGroupKeyIsATypoAndFails
+- M11 sin bloqueo por clave: VIVA  
+Restauración verificada contra HEAD. Mutaciones vivas: 1
+
+Tras añadir manyRoundsOfFiftySimultaneousFirstAttemptsNeverExceedTheLimit (commit 63632d2), M11 tres veces:
+- M11 sin bloqueo por clave: MUERTA  concurrentSweepNeverLetsAKeyExceedTheLimit
+- M11 sin bloqueo por clave: MUERTA  concurrentSweepNeverLetsAKeyExceedTheLimit
+- M11 sin bloqueo por clave: MUERTA  fiftyThreadsOnTheSameKeyNeverExceedTheLimit
+(La carrera es no determinista: la matan tests de concurrencia distintos en cada ejecución.)
+
+## api,app (RateLimitHttpIntegrationTest, Tomcat real)
+Descartadas por equivalentes, sin cambio de comportamiento: 'orden LOWEST_PRECEDENCE' (empata con JwtAuthFilter y el desempate por orden de registro lo deja delante igualmente) y 'código tras chain.doFilter' (el conteo ya ocurrió antes).
+- M12 filtro registrado en otra ruta (no cubre /api/v1): MUERTA  aFakeXForwardedForDoesNotEvadeTheLimit; protectedUploadsAreLimitedBeforeTheJwtCheck; the429DoesNotRevealWhetherTheAccountExists_andThe401StaysUniform
+- M13 filtro desactivado en el contenedor: MUERTA  aFakeXForwardedForDoesNotEvadeTheLimit; protectedUploadsAreLimitedBeforeTheJwtCheck; the429DoesNotRevealWhetherTheAccountExists_andThe401StaysUniform
+Restauración verificada contra HEAD. Mutaciones vivas: 0
+
+{"module": "api", "tests": "SlidingWindowRateLimiterTest,ClientIpResolverTest,RateLimitFilterTest,RateLimitPropertiesTest",
+ "mutations": [
+  {"name": "M1 umbral +1 (<= en lugar de <)", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/SlidingWindowRateLimiter.java", "old": "w.acceptedAtMillis.size() < limit", "new": "w.acceptedAtMillis.size() <= limit"}]},
+  {"name": "M2 ventana ignorada (no se expulsan las antiguas al decidir)", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/SlidingWindowRateLimiter.java", "old": "                evictExpired(w, now);\n                if (w.acceptedAtMillis.size() < limit)", "new": "                if (w.acceptedAtMillis.size() < limit)"}]},
+  {"name": "M3 clave sin IP", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitFilter.java", "old": "group.get().configKey() + \"|\" + clientIp.resolve(request)", "new": "group.get().configKey()"}]},
+  {"name": "M4 X-Forwarded-For como IP", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/ClientIpResolver.java", "old": "        String remote = request.getRemoteAddr();", "new": "        String remote = request.getHeader(\"X-Forwarded-For\") != null ? request.getHeader(\"X-Forwarded-For\") : request.getRemoteAddr();"}]},
+  {"name": "M5 cabecera del proxy creída sin ser de confianza", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/ClientIpResolver.java", "old": "if (trustedProxies.isEmpty() || !isTrusted(remote)) {", "new": "if (trustedProxies.isEmpty()) {"}]},
+  {"name": "M6 correo sin normalizar", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitFilter.java", "old": "email.asText().strip().toLowerCase(Locale.ROOT)", "new": "email.asText()"}]},
+  {"name": "M7 sin límite por correo", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitFilter.java", "old": "                if (!byEmail.allowed()) {", "new": "                if (false && !byEmail.allowed()) {"}]},
+  {"name": "M8 limpieza sin respetar la ventana", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/SlidingWindowRateLimiter.java", "old": "                evictExpired(w, now);\n                if (w.acceptedAtMillis.isEmpty() && windows.remove(key, w)) {", "new": "                w.acceptedAtMillis.clear();\n                if (w.acceptedAtMillis.isEmpty() && windows.remove(key, w)) {"}]},
+  {"name": "M9 sin tope de claves", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/SlidingWindowRateLimiter.java", "old": "                    if (windows.size() >= maxKeys) {\n                        return", "new": "                    if (false) {\n                        return"}]},
+  {"name": "M10 grupo desconocido aceptado", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitProperties.java", "old": "            if (!known.contains(key)) {", "new": "            if (false) {"}]},
+  {"name": "M11 sin bloqueo por clave", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/SlidingWindowRateLimiter.java", "old": "            synchronized (w) {\n                if (w.removed) {", "new": "            {\n                if (w.removed) {"}]}
+ ]}
+
+{"module": "api,app", "tests": "RateLimitHttpIntegrationTest", "args": ["-Dsurefire.failIfNoSpecifiedTests=false"],
+ "mutations": [
+  {"name": "M12 filtro registrado en otra ruta (no cubre /api/v1)", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitConfig.java", "old": "registration.addUrlPatterns(\"/api/v1/*\");", "new": "registration.addUrlPatterns(\"/api/v2/*\");"}]},
+  {"name": "M13 filtro desactivado en el contenedor", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitConfig.java", "old": "        registration.setOrder(FILTER_ORDER);", "new": "        registration.setOrder(FILTER_ORDER);\n        registration.setEnabled(false);"}]}
+ ]}
