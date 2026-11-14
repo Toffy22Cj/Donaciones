@@ -215,7 +215,16 @@ Los ADR-037, 039, 040 y 041 se titularon con "número tentativo"; ya están comm
 
 - **ADR-051 — Fotos y almacenamiento** (`ADR-051-fotos-y-almacenamiento.md`). **APROBADO — Carlos, 2026-10-18, con la Enmienda 1 (18:45Z).** Almacenamiento compatible con S3, limpieza de metadatos con la JDK, `media_objects`, `evidenceRef = sha256:`. Tarea 1 implementada en el PR #107. *Nota 2026-10-21:* faltaba en este catálogo; se añade sin cambiar su contenido.
 
-**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-052.
+- **Reserva del 2026-11-14** (planes `plan-evolucion-producto.md` y `plan-f08-api-integracion.md`, aprobados por el usuario el 2026-11-14). Los números se reservan aquí antes de usarse; el estado de cada ADR está en su propio fichero:
+  - **ADR-052 — Versión de Spring Boot** (T-01). `ADR-052-version-spring-boot.md`.
+  - **ADR-053 — Límite de intentos** (T-03; cierra DH-56). `ADR-053-limite-de-intentos.md`.
+  - **ADR-054 — Observabilidad mínima: salud y logs estructurados** (D-01). `ADR-054-observabilidad-minima.md`.
+  - **ADR-055 — Escaneo de dependencias y SBOM** (T-07). `ADR-055-escaneo-de-dependencias.md`.
+  - **ADR-056 — Autenticación de sistema y actor de integración** (F-08, ADR-A del plan).
+  - **ADR-057 — Contrato público de integración** (F-08, ADR-B del plan).
+  - **ADR-058 — Webhooks salientes** (F-08, ADR-C del plan).
+
+**Regla de numeración:** un número de ADR se reserva en este catálogo **antes** de usarse en cualquier documento. Siguiente número libre: ADR-059.
 
 ---
 

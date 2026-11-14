@@ -13,7 +13,9 @@
         <java.version>21</java.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <spring-boot.version>3.4.4</spring-boot.version>
+        <!-- T-01 paso 1 (plan de evolución §2.2, aprobado el 2026-11-14): último parche de la línea 3.4.
+             La línea 3.4 ya no tiene soporte OSS; migrar a 4.x o aceptar el riesgo lo decide ADR-052 -->
+        <spring-boot.version>3.4.13</spring-boot.version>
         <!-- ADR-047 D1: no la gestiona ningún BOM; se fija a mano y se actualiza como dependencia de seguridad -->
         <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
         <!-- ADR-051 F1: no la gestiona el BOM de Spring Boot 3.4.4 ni el de Spring AI; se fija a mano.
