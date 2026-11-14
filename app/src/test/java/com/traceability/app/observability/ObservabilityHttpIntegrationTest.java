@@ -10,7 +10,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +42,7 @@ import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.contracts.authentication.TokenIssuerPort;
 
 /**
- * ADR-054 (D-01) contra Tomcat real, con los logs en JSON (perfil {@code servidor}): health en el puerto de gestión y
+ * ADR-054 (D-01) contra Tomcat real: health en el puerto de gestión y
  * no en el de la API; el mismo {@code correlationId} en la línea de acceso y en la del evento escrito de una misma
  * petición, y distinto entre peticiones; ningún secreto (contraseña, JWT, cabecera {@code Authorization}) en el log.
  */
@@ -56,8 +55,7 @@ import com.traceability.contracts.authentication.TokenIssuerPort;
     "crypto.anchor.stuck-monitor.delay=9999999",
     "crypto.web3j.private-key=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
     "crypto.web3j.node-url=http://dummy-node",
-    "spring.ai.openai.api-key=dummy-api-key",
-    "logging.structured.format.console=ecs"
+    "spring.ai.openai.api-key=dummy-api-key"
 })
 class ObservabilityHttpIntegrationTest {
 
@@ -104,21 +102,6 @@ class ObservabilityHttpIntegrationTest {
                 .POST(HttpRequest.BodyPublishers.ofString(IN_KIND)).build(), HttpResponse.BodyHandlers.ofString());
     }
 
-    /** Las líneas JSON del log capturado (las que no lo son, como el banner, se ignoran). */
-    private List<JsonNode> jsonLines(CapturedOutput output) {
-        List<JsonNode> lines = new ArrayList<>();
-        for (String line : output.getOut().split("\n")) {
-            if (line.startsWith("{")) {
-                try {
-                    lines.add(json.readTree(line));
-                } catch (Exception ignored) {
-                    // una línea partida por otro hilo
-                }
-            }
-        }
-        return lines;
-    }
-
     @Test
     void healthIsUpWithMongoOnTheManagementPort_andAbsentFromTheApiPort() throws Exception {
         HttpResponse<String> health = get(managementPort, "/actuator/health");
@@ -136,26 +119,38 @@ class ObservabilityHttpIntegrationTest {
     }
 
     @Test
-    void oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine(CapturedOutput output) throws Exception {
-        String token = tokens.issue(EMPLOYEE);
-        assertThat(registerInKind(token).statusCode()).isEqualTo(201);
-        assertThat(registerInKind(token).statusCode()).isEqualTo(201);
+    void oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine() throws Exception {
+        // se leen los eventos de Logback con su MDC, sin depender del formato de salida (texto o JSON), que en el
+        // reactor completo puede haber fijado otro contexto de la misma JVM
+        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        root.addAppender(appender);
+        try {
+            String token = tokens.issue(EMPLOYEE);
+            assertThat(registerInKind(token).statusCode()).isEqualTo(201);
+            assertThat(registerInKind(token).statusCode()).isEqualTo(201);
+        } finally {
+            root.detachAppender(appender);
+        }
 
-        List<JsonNode> lines = jsonLines(output);
-        List<String> accessIds = lines.stream()
-                .filter(l -> l.path("message").asText().startsWith("HTTP POST /api/v1/physical-assets/from-donation -> 201"))
-                .map(l -> l.path("correlationId").asText(null)).toList();
-        List<String> eventIds = lines.stream()
-                .filter(l -> l.path("message").asText().startsWith("Event written ")
-                        && l.path("message").asText().contains("eventType=ASSET_REGISTERED"))
-                .map(l -> l.path("correlationId").asText(null)).toList();
+        List<ch.qos.logback.classic.spi.ILoggingEvent> events = List.copyOf(appender.list);
+        List<String> accessIds = events.stream()
+                .filter(e -> e.getFormattedMessage().startsWith("HTTP POST /api/v1/physical-assets/from-donation -> 201"))
+                .map(e -> e.getMDCPropertyMap().get("correlationId")).toList();
+        List<String> eventIds = events.stream()
+                .filter(e -> e.getFormattedMessage().startsWith("Event written ")
+                        && e.getFormattedMessage().contains("eventType=ASSET_REGISTERED"))
+                .map(e -> e.getMDCPropertyMap().get("correlationId")).toList();
 
         assertThat(accessIds).hasSize(2).doesNotContainNull();
         assertThat(eventIds).hasSize(2).doesNotContainNull();
         assertThat(eventIds).containsExactlyElementsOf(accessIds);
         assertThat(accessIds.get(0)).isNotEqualTo(accessIds.get(1));
-        // la línea de acceso lleva el patrón de la ruta, nunca la URL con identificadores
-        assertThat(lines.stream().map(l -> l.path("message").asText()))
+        // la línea de acceso lleva el patrón de la ruta, nunca la URL con identificadores ni la consulta
+        assertThat(events.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage))
                 .noneMatch(m -> m.startsWith("HTTP ") && m.contains("?"));
     }
 

@@ -1,0 +1,55 @@
+# CI local — scripts/ci-local.sh
+commit:   e35845000d984beaec7a14a7d7300c2af4bd2f80
+rama:     wip-etapa1
+inicio:   2026-11-14T17:56:27Z
+fin:      2026-11-14T18:18:34Z
+comando:  mvn -B clean test -fae
+salida:   1
+
+## Versiones
+java:   openjdk version "21.0.12.1" 2026-08-18
+java:   OpenJDK Runtime Environment (build 21.0.12.1+1-1-24.04.4-Ubuntu)
+java:   OpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-24.04.4-Ubuntu, mixed mode, sharing)
+maven:  Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)
+docker: cliente 29.9.2, servidor 29.9.2
+
+## Resumen de Surefire por módulo (literal)
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 393, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 62, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 211, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 437, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 272, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[ERROR] Tests run: 704, Failures: 2, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.080 s]
+[INFO] contracts .......................................... SUCCESS [  0.720 s]
+[INFO] core ............................................... SUCCESS [01:55 min]
+[INFO] crypto ............................................. SUCCESS [ 13.809 s]
+[INFO] ai ................................................. SUCCESS [  8.664 s]
+[INFO] api ................................................ SUCCESS [ 17.396 s]
+[INFO] identity ........................................... SUCCESS [02:52 min]
+[INFO] convocatoria ....................................... SUCCESS [ 20.542 s]
+[INFO] app ................................................ FAILURE [16:15 min]
+[INFO] BUILD FAILURE
+
+## Tests fallidos (si los hay)
+[ERROR] com.traceability.app.observability.ObservabilityHttpIntegrationTest.oneRequestSharesOneCorrelationIdBetweenTheAccessLineAndTheEventLine(CapturedOutput) -- Time elapsed: 0.059 s <<< FAILURE!
+[ERROR] com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest.anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail -- Time elapsed: 0.278 s <<< FAILURE!
+
+## Seguridad de dependencias (T-07, ADR-055)
+supresiones: supresiones: 0; errores: 0 (salida 0)
+escaneo:     OMITIDO: falta NVD_API_KEY (el escaneo de dependencias NO se ha hecho en esta ejecución)
+
+## sha256 del log completo
+c60ef624b20d0d86e2dacd1dc6b90fcaa0bb3f398cd5d59393b78eb6c768bff5
