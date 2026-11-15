@@ -171,7 +171,7 @@ class CampaignPredictionHttpIntegrationTest {
         assertThat(r.headers().firstValue("Cache-Control")).hasValue("no-store");
         JsonNode body = json.readTree(r.body());
         assertThat(body.get("kind").asText()).isEqualTo("ESTIMATE");
-        assertThat(body.get("modelVersion").asText()).isEqualTo("baseline-0.2.0");
+        assertThat(body.get("modelVersion").asText()).isEqualTo("baseline-0.3.0");
         assertThat(body.get("warning").asText()).isEqualTo("modelo entrenado con datos sintéticos");
         assertThat(body.get("available").asBoolean()).isFalse();
         assertThat(body.get("unavailableReason").asText()).isEqualTo("NOT_STARTED");
@@ -228,7 +228,7 @@ class CampaignPredictionHttpIntegrationTest {
         JsonNode body = json.readTree(r.body());
         assertThat(body.get("kind").asText()).isEqualTo("ESTIMATE");
         assertThat(body.get("basis").asText()).isEqualTo("EVENT_STORE");
-        assertThat(body.get("modelVersion").asText()).isEqualTo("baseline-0.2.0");
+        assertThat(body.get("modelVersion").asText()).isEqualTo("baseline-0.3.0");
         assertThat(body.get("warning").asText()).isEqualTo("modelo entrenado con datos sintéticos");
         assertThat(body.get("available").asBoolean()).isTrue();
         assertThat(body.get("cuts")).hasSize(3);

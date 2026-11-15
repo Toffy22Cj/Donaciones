@@ -124,7 +124,7 @@ class CampaignPredictionHistoryUseCaseTest {
         History h = useCase(NOW).history(principal("ORG-1", AuthorizationRole.ADMINISTRATOR), "ORG-1", "CAMP-1");
 
         assertThat(h.unavailable()).isNull();
-        assertThat(h.modelVersion()).isEqualTo("baseline-0.2.0");
+        assertThat(h.modelVersion()).isEqualTo("baseline-0.3.0");
         assertThat(h.asOf()).isEqualTo(NOW);
         assertThat(h.warnings()).containsExactly(CampaignPredictionUseCase.SYNTHETIC_WARNING,
                 CampaignPredictionHistoryUseCase.FAILED_RATE_WARNING);
@@ -168,7 +168,7 @@ class CampaignPredictionHistoryUseCaseTest {
         Cut c25 = h.cuts().get(1);
         CampaignFeatures f = expectedAt(data, c25.cutAt());
         assertThat(c25.pctRaisedAtCut()).isZero();
-        assertThat(c25.probabilityReachTarget()).isEqualTo(round4(model.probabilityReachTarget(f.byName())));
+        assertThat(c25.probabilityReachTarget()).isEqualTo(round4(model.probabilityReachTarget(model.clipToTrainedRange(f.byName()))));
     }
 
     @Test

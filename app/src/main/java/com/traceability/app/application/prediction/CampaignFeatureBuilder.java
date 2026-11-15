@@ -55,9 +55,9 @@ public final class CampaignFeatureBuilder {
                 recentAmount += i.amount();
             }
         }
-        double windowDays = Math.max((t - windowStart) * duration, 1e-9);
-        double elapsedDays = t * duration;
-        double remainingDays = duration - elapsedDays;
+        // baseline-0.3.0: velocidades en «% de la meta por fracción del tiempo de la convocatoria», no por día; así no
+        // dependen de la duración (con «por día», una convocatoria corta daba velocidades fuera de todo rango).
+        double windowFraction = Math.max(t - windowStart, 1e-9);
         long failed = past.stream().filter(i -> i.outcome() == Outcome.FAILED).count();
 
         return new CampaignFeatures(
@@ -70,9 +70,9 @@ public final class CampaignFeatureBuilder {
                 confirmed.size(),
                 donors.size(),
                 confirmed.isEmpty() ? 0.0 : (raised / confirmed.size()) / target,
-                recentAmount / target / windowDays,
-                pctRaised / Math.max(elapsedDays, 1e-9),
-                Math.max(0.0, 1.0 - pctRaised) / Math.max(remainingDays, 1e-9),
+                recentAmount / target / windowFraction,
+                pctRaised / Math.max(t, 1e-9),
+                Math.max(0.0, 1.0 - pctRaised) / Math.max(1.0 - t, 1e-9),
                 pctRaised / t,
                 past.isEmpty() ? 0.0 : (double) failed / past.size(),
                 data.targetPolicy(),

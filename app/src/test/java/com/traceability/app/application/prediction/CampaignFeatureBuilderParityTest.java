@@ -35,7 +35,7 @@ class CampaignFeatureBuilderParityTest {
     @Test
     void featuresMatchTheTrainingDefinition() throws Exception {
         JsonNode parity;
-        try (InputStream in = getClass().getResourceAsStream("/predictor/campaign-predictor-baseline-0.2.0-feature-parity.json")) {
+        try (InputStream in = getClass().getResourceAsStream("/predictor/campaign-predictor-baseline-0.3.0-feature-parity.json")) {
             parity = new ObjectMapper().readTree(in);
         }
         assertThat(parity.get("cases").size()).isGreaterThan(50);

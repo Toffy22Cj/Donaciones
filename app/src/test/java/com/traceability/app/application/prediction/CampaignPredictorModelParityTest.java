@@ -24,8 +24,8 @@ class CampaignPredictorModelParityTest {
 
     @BeforeAll
     static void load() throws Exception {
-        try (InputStream json = CampaignPredictorModelParityTest.class.getResourceAsStream("/predictor/campaign-predictor-baseline-0.2.0.json");
-             InputStream vectors = CampaignPredictorModelParityTest.class.getResourceAsStream("/predictor/campaign-predictor-baseline-0.2.0-parity.json")) {
+        try (InputStream json = CampaignPredictorModelParityTest.class.getResourceAsStream("/predictor/campaign-predictor-baseline-0.3.0.json");
+             InputStream vectors = CampaignPredictorModelParityTest.class.getResourceAsStream("/predictor/campaign-predictor-baseline-0.3.0-parity.json")) {
             model = CampaignPredictorModel.load(json);
             parity = new ObjectMapper().readTree(vectors);
         }
@@ -40,7 +40,7 @@ class CampaignPredictorModelParityTest {
 
     @Test
     void theModelIsTheTrainedVersion_withoutStrict_andSynthetic() {
-        assertThat(model.modelVersion()).isEqualTo("baseline-0.2.0").isEqualTo(parity.get("modelVersion").asText());
+        assertThat(model.modelVersion()).isEqualTo("baseline-0.3.0").isEqualTo(parity.get("modelVersion").asText());
         assertThat(model.synthetic()).isTrue();
         assertThat(model.excludedPolicies()).containsExactly("STRICT");
         assertThat(parity.get("vectors").size()).isGreaterThanOrEqualTo(300);

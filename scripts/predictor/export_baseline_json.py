@@ -145,12 +145,17 @@ def main() -> None:
         "classifier": export_classifier(clf_bundle),
         "finalPctRegressor": export_regressor(reg_bundle),
     }
+    # baseline-0.3.0: rango de cada variable numérica en el entrenamiento (sin STRICT ni meta ya alcanzada). El
+    # backend recorta a este rango antes de evaluar: fuera de él el modelo extrapola sin sentido.
+    trained = pd.read_csv(args.snapshots)
+    trained = trained[(trained["alreadyReachedAtT"] == 0) & (trained["targetPolicy"] != "STRICT")]
+    exported["featureRanges"] = {f: [float(trained[f].min()), float(trained[f].max())]
+                                 for f in exported["classifier"]["numericFeatures"]}
     (args.out / f"campaign-predictor-{exported['modelVersion']}.json").write_text(json.dumps(exported))
 
     # Vectores de paridad: filas reales del dataset sintético (sin STRICT ni meta ya alcanzada, como el
     # entrenamiento), más casos límite: categoría desconocida (one-hot a cero) y valores extremos.
-    df = pd.read_csv(args.snapshots)
-    df = df[(df["alreadyReachedAtT"] == 0) & (df["targetPolicy"] != "STRICT")].head(N_PARITY_ROWS)
+    df = trained.head(N_PARITY_ROWS)
     rows = df[features].to_dict(orient="records")
     edge = dict(rows[0])
     rows.append({**edge, "targetPolicy": "UNKNOWN_POLICY", "visibility": "UNKNOWN_VISIBILITY"})

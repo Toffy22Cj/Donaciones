@@ -27,9 +27,9 @@ import java.util.Map;
 @Service
 public class CampaignPredictionUseCase {
 
-    public static final String MODEL_RESOURCE = "/predictor/campaign-predictor-baseline-0.2.0.json";
+    public static final String MODEL_RESOURCE = "/predictor/campaign-predictor-baseline-0.3.0.json";
     public static final String SYNTHETIC_WARNING = "modelo entrenado con datos sintéticos";
-    /** El dataset sintético de {@code baseline-0.2.0} está en COP (Carlos, 2026-10-07: motivo explícito para el resto). */
+    /** El dataset sintético de {@code baseline-0.3.0 (como el de 0.2.0)} está en COP (Carlos, 2026-10-07: motivo explícito para el resto). */
     static final String SUPPORTED_CURRENCY = "COP";
     static final double TRAINED_T_MIN = 0.15;
     static final double TRAINED_T_MAX = 0.50;
@@ -129,7 +129,7 @@ public class CampaignPredictionUseCase {
         if (features.pctTimeElapsed() < TRAINED_T_MIN || features.pctTimeElapsed() > TRAINED_T_MAX) {
             return unavailable(now, Unavailable.OUTSIDE_TRAINED_RANGE);
         }
-        Map<String, Object> x = features.byName();
+        Map<String, Object> x = model.clipToTrainedRange(features.byName());
         return new Prediction(model.modelVersion(), now, null, round(model.probabilityReachTarget(x)),
                 round(model.finalPctOfTarget(x)), round(features.pctTimeElapsed()), List.of(SYNTHETIC_WARNING));
     }

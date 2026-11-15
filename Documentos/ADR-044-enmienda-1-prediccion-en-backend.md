@@ -50,3 +50,12 @@
 - **Unidades (H-P3-1, corregido el 2026-10-07):** el backend guarda los importes en unidades mínimas (Q-CV01-3; COP, exponente 2) y el dataset sintético está en pesos. Las razones no cambian, pero `logTargetAmount` se calculaba sobre céntimos (ln(100) ≈ 4,6 de más). Ahora se calcula sobre unidades enteras con el exponente ISO 4217, y la paridad de variables se prueba alimentando Java con céntimos.
 - **Reentrenar** exige volver a exportar y a pasar la paridad; el nombre del recurso lleva la versión del modelo.
 - **El script de exportación** vive en `scripts/predictor/` de este repositorio porque lee los artefactos sin cambiarlos. Si Carlos prefiere que viva junto al predictor, se mueve sin tocar el backend.
+
+---
+
+*Nota (2026-11-11, Adonis): **baseline-0.3.0**.* Probado en el teléfono con convocatorias de la demo (de una hora a pocos días, metas pequeñas), el modelo daba **0 %** de probabilidad aunque la convocatoria ya llevara casi toda la meta, y a la vez un % final estimado por encima del 100 %. Causa: `recentVelocity`, `overallVelocity` y `requiredVelocity` se medían **por día**, y el entrenamiento solo vio convocatorias de 15 a 90 días; en una de una hora esas velocidades salían cientos de veces fuera del rango y la regresión logística extrapolaba sin límite (aportes de −600 al logit). Cambios, sin tocar el contrato HTTP:
+
+1. Las tres velocidades se miden en **% de la meta por fracción del tiempo de la convocatoria** (`generate_synthetic_dataset.build_snapshot` y `CampaignFeatureBuilder`, con la paridad de variables regenerada). Los nombres de las variables no cambian.
+2. Reentrenado con el mismo generador y semilla: logística test-Brier 0,0979 (antes 0,0978), AUC 0,933 (igual), ECE 0,052 (antes 0,043).
+3. El JSON exportado lleva `featureRanges` (mín. y máx. de cada variable numérica en el entrenamiento) y el backend **recorta** las variables a ese rango antes de evaluar (`CampaignPredictorModel.clipToTrainedRange`). La paridad Java–scikit-learn se sigue probando sin recorte; los casos de punta a punta, con él.
+4. La app ya no muestra la advertencia de datos sintéticos (decisión de Adonis, autor de esta enmienda): el backend la sigue enviando en `warning`, pero la frase «la advertencia es obligatoria» del punto de riesgos queda sustituida.
