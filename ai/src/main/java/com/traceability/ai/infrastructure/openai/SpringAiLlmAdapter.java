@@ -58,12 +58,14 @@ public class SpringAiLlmAdapter implements LlmClientPort {
 
             String prompt = prompt(sanitizedFacts, format);
 
-            ChatResponse response = chatClient.prompt()
-                    .user(prompt)
-                    .call()
-                    .chatResponse();
-
-            String text = response.getResult().getOutput().getText();
+            String text = NonEmptyReply.get(() -> {
+                ChatResponse response = chatClient.prompt()
+                        .user(prompt)
+                        .call()
+                        .chatResponse();
+                return response == null || response.getResult() == null ? null
+                        : response.getResult().getOutput().getText();
+            });
             
             LlmNarrativeResponse generated = converter.convert(text);
             if (generated == null) {

@@ -32,11 +32,12 @@ public class SpringAiCampaignLlmAdapter implements CampaignLlmClientPort {
         try {
             BeanOutputConverter<CampaignLlmNarrativeResponse> converter =
                     new BeanOutputConverter<>(CampaignLlmNarrativeResponse.class);
-            String text = chatClient.prompt()
-                    .user(CampaignNarrativePrompt.render(facts, converter.getFormat()))
-                    .call()
-                    .chatResponse()
-                    .getResult().getOutput().getText();
+            String prompt = CampaignNarrativePrompt.render(facts, converter.getFormat());
+            String text = NonEmptyReply.get(() -> {
+                var response = chatClient.prompt().user(prompt).call().chatResponse();
+                return response == null || response.getResult() == null ? null
+                        : response.getResult().getOutput().getText();
+            });
             CampaignLlmNarrativeResponse generated = converter.convert(text);
             if (generated == null) {
                 throw new NarrativeProviderException("LLM returned null structured output", null);

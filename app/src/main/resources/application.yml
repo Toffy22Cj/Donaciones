@@ -22,6 +22,13 @@ spring:
           # Groq retiró llama3-8b-8192 (2026-11-12: ya no aparece en GET /openai/v1/models y cada relato caía al
           # respaldo). Se cambia sin tocar el código con SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL
           model: openai/gpt-oss-20b
+          # gpt-oss es un modelo de razonamiento: con el esfuerzo por defecto, a veces gastaba la respuesta en razonar
+          # y devolvía el contenido vacío ("No content to map"). Con otro modelo de Groq que no admita reasoning_effort
+          # (p. ej. qwen, que solo acepta none o default), poner SPRING_AI_OPENAI_CHAT_OPTIONS_REASONING_EFFORT=default
+          reasoning-effort: ${SPRING_AI_OPENAI_CHAT_OPTIONS_REASONING_EFFORT:low}
+          # Groq garantiza un objeto JSON en la respuesta (los dos prompts piden JSON)
+          response-format:
+            type: JSON_OBJECT
 
   data:
     mongodb:

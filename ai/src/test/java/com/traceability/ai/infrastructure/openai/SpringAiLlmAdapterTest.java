@@ -85,4 +85,23 @@ class SpringAiLlmAdapterTest {
                 .contains("AMOUNT: solo el campo amount de una entrada de financialFlags")
                 .contains("Nunca uses AMOUNT para cantidades de unidades");
     }
+
+    private static org.springframework.ai.chat.model.ChatResponse reply(String text) {
+        return new org.springframework.ai.chat.model.ChatResponse(List.of(
+                new Generation(new org.springframework.ai.chat.messages.AssistantMessage(text))));
+    }
+
+    @Test
+    void anEmptyReply_isRetriedOnce_andThenItIsAProviderError() throws Exception {
+        AuditFactsDTO facts = new AuditFactsDTO("FUND-123", 1L, Collections.emptyList(), Collections.emptyList(), Instant.now());
+        String json = "{\"narrativeText\": \"Tu donación llegó.\", \"citedFacts\": [{\"type\": \"OPERATION_REF\", \"value\": \"FUND-123\"}]}";
+
+        when(callResponseSpec.chatResponse()).thenReturn(reply(""), reply(json));
+        assertEquals("Tu donación llegó.", adapter.generateNarrative(facts, "v1").narrativeText());
+
+        when(callResponseSpec.chatResponse()).thenReturn(reply(""), reply("  "));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.traceability.ai.domain.exception.NarrativeProviderException.class,
+                () -> adapter.generateNarrative(facts, "v1"));
+    }
 }
