@@ -1,5 +1,10 @@
 package com.traceability.crypto.infrastructure.web3j;
 
+import org.web3j.abi.EventEncoder;
+import org.web3j.protocol.core.DefaultBlockParameter;
+import org.web3j.protocol.core.methods.request.EthFilter;
+import org.web3j.protocol.core.methods.response.EthLog;
+import java.util.Optional;
 import com.traceability.crypto.application.port.out.BlockchainAnchorSubmitterPort;
 import com.traceability.crypto.domain.MerkleBatch;
 import com.traceability.crypto.domain.exception.BlockchainAnchorTimeoutException;
@@ -30,6 +35,14 @@ public class Web3jBlockchainAnchorAdapter implements BlockchainAnchorSubmitterPo
     
     @Value("${crypto.anchor.submit.timeout-seconds:15}")
     private int submitTimeoutSeconds;
+
+    @Value("${crypto.anchor.reconcile.lookback-blocks:2000}")
+    private long reconcileLookbackBlocks = 2000;
+
+    @Value("${crypto.anchor.reconcile.chunk-blocks:500}")
+    private long reconcileChunkBlocks = 500;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Web3jBlockchainAnchorAdapter.class);
 
     public Web3jBlockchainAnchorAdapter(Web3j web3j, Credentials credentials, @Value("${crypto.anchor.chain-id:1337}") long chainId) {
         this.web3j = web3j;
@@ -108,7 +121,69 @@ public class Web3jBlockchainAnchorAdapter implements BlockchainAnchorSubmitterPo
             if (e.getCause() instanceof TimeoutException) {
                 throw new BlockchainAnchorTimeoutException("Timeout waiting for transaction submission response", e.getCause());
             }
+            // Reintento de un envío ambiguo cuyo nonce ya se consumió: si la raíz está en el contrato, ese envío llegó
+            if (nonceTooLow(e)) {
+                Optional<String> anchoredTx = findAnchorTransaction(batch);
+                if (anchoredTx.isPresent()) {
+                    log.info("anchor.reconciled batchId={} nonce={} txHash={}: la raíz ya estaba en el contrato",
+                            batch.batchId(), batch.nonceUsed(), anchoredTx.get());
+                    return anchoredTx.get();
+                }
+                log.warn("anchor.nonce-consumed batchId={} nonce={}: la raíz no aparece en los últimos {} bloques",
+                        batch.batchId(), batch.nonceUsed(), reconcileLookbackBlocks);
+            }
             throw new RuntimeException("Unexpected error during transaction submission", e);
         }
     }
+
+    static boolean nonceTooLow(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t.getMessage() != null && t.getMessage().toLowerCase(java.util.Locale.ROOT).contains("nonce too low")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Busca el evento {@code RootStored(root, sender)} de esta cartera con la raíz del lote, hacia atrás desde el último
+     * bloque, en tramos de {@code crypto.anchor.reconcile.chunk-blocks} hasta {@code lookback-blocks}. Si está, devuelve
+     * su transacción. Un fallo al consultar se trata como "no encontrado": el lote sigue como estaba.
+     */
+    Optional<String> findAnchorTransaction(MerkleBatch batch) {
+        try {
+            BigInteger latest = web3j.ethBlockNumber().send().getBlockNumber();
+            BigInteger oldest = latest.subtract(BigInteger.valueOf(reconcileLookbackBlocks)).max(BigInteger.ZERO);
+            BigInteger chunk = BigInteger.valueOf(Math.max(1, reconcileChunkBlocks));
+            String root = Numeric.toHexString(Numeric.hexStringToByteArray(batch.merkleRoot()));
+            String sender = Numeric.toHexStringWithPrefixZeroPadded(Numeric.toBigInt(credentials.getAddress()), 64);
+            for (BigInteger to = latest; to.compareTo(oldest) >= 0; to = to.subtract(chunk)) {
+                BigInteger from = to.subtract(chunk).add(BigInteger.ONE).max(oldest);
+                EthFilter filter = new EthFilter(DefaultBlockParameter.valueOf(from), DefaultBlockParameter.valueOf(to),
+                        batch.smartContractAddress());
+                filter.addSingleTopic(EventEncoder.encode(AnchorRegistry.ROOTSTORED_EVENT));
+                filter.addSingleTopic(root);
+                filter.addSingleTopic(sender);
+                EthLog logs = web3j.ethGetLogs(filter).send();
+                if (logs.hasError()) {
+                    // p. ej. el proveedor limita el rango: bajar crypto.anchor.reconcile.chunk-blocks
+                    log.warn("anchor.reconcile.rpc-error batchId={} range={}-{} error={}", batch.batchId(), from, to,
+                            logs.getError().getMessage());
+                    return Optional.empty();
+                }
+                Optional<String> tx = logs.getLogs() == null ? Optional.empty() : logs.getLogs().stream()
+                        .map(r -> ((EthLog.LogObject) r.get()).getTransactionHash())
+                        .filter(java.util.Objects::nonNull)
+                        .findFirst();
+                if (tx.isPresent()) {
+                    return tx;
+                }
+            }
+            return Optional.empty();
+        } catch (Exception lookup) {
+            log.warn("anchor.reconcile.failed batchId={} cause={}", batch.batchId(), lookup.getClass().getSimpleName());
+            return Optional.empty();
+        }
+    }
+
 }

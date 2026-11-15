@@ -1,0 +1,3 @@
+Para terminar de crear tu cuenta de PaxFide, confirma que {{recipientEmail}} es tu correo.
+
+El enlace caduca el {{expiresAt}} y solo se puede usar una vez.

@@ -8,14 +8,10 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.Map;
 
 /**
  * Correo de recuperación por SMTP (ADR-050 D8, Q5 (a)). {@link #dispatch} entrega la tarea al ejecutor propio y vuelve
@@ -30,33 +26,23 @@ public class SmtpPasswordResetMailAdapter implements PasswordResetMailPort {
 
     private static final Logger log = LoggerFactory.getLogger(SmtpPasswordResetMailAdapter.class);
     static final String PATH = "/recuperar";
-    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy, HH:mm 'UTC'",
-            Locale.forLanguageTag("es"));
 
     private final JavaMailSender sender;
     private final TaskExecutor executor;
     private final String from;
     private final String baseUrl;
+    private final MailTemplates templates;
 
     public SmtpPasswordResetMailAdapter(ObjectProvider<JavaMailSender> sender,
                                         @Qualifier(PasswordResetMailExecutorConfig.EXECUTOR) TaskExecutor executor,
                                         @Value("${traceability.mail.from}") String from,
-                                        @Value("${traceability.web.base-url}") String baseUrl) {
-        this.sender = sender.getIfAvailable();
-        if (this.sender == null) {
-            throw new IllegalStateException("Falta el servidor SMTP: SPRING_MAIL_HOST es obligatorio (ADR-049 D1)");
-        }
-        if (from == null || from.isBlank()) {
-            throw new IllegalStateException("TRACEABILITY_MAIL_FROM es obligatorio (ADR-049 D1)");
-        }
-        URI base = baseUrl == null ? null : URI.create(baseUrl.strip());
-        if (base == null || !("https".equals(base.getScheme()) || "http".equals(base.getScheme()))
-                || base.getHost() == null || base.getRawQuery() != null || base.getRawFragment() != null) {
-            throw new IllegalStateException("TRACEABILITY_WEB_BASE_URL debe ser una URL http(s) sin query ni fragmento");
-        }
+                                        @Value("${traceability.web.base-url}") String baseUrl,
+                                        MailTemplates templates) {
+        this.templates = templates;
+        this.sender = MailSettings.requireSender(sender);
         this.executor = executor;
-        this.from = from.strip();
-        this.baseUrl = baseUrl.strip().replaceAll("/+$", "");
+        this.from = MailSettings.requireFrom(from);
+        this.baseUrl = MailSettings.requireBaseUrl(baseUrl);
     }
 
     /** {@code {base}/recuperar#token=…}: el token nunca en la ruta ni en la query (D8, test 18). */
@@ -74,23 +60,23 @@ public class SmtpPasswordResetMailAdapter implements PasswordResetMailPort {
         }
     }
 
+    MailTemplates.Body body(PasswordResetMail mail) {
+        return templates.render("recuperacion", Map.of(
+                "title", "Restablece tu contraseña",
+                "kicker", "Recuperar contraseña",
+                "preheader", "Pediste cambiar tu contraseña. El enlace vence pronto.",
+                "recipientEmail", mail.to(),
+                "expiresAt", MailSettings.when(mail.expiresAt()),
+                "actionUrl", link(mail.token()),
+                "actionLabel", "Crear una contraseña nueva",
+                "closing", "Si no lo pediste, ignora este correo: tu contraseña no cambia y nadie puede cambiarla sin "
+                        + "este enlace.",
+                "reason", "Recibiste este correo porque alguien pidió restablecer la contraseña de esta cuenta."));
+    }
+
     private void send(PasswordResetMail mail) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(from);
-            message.setTo(mail.to());
-            message.setSubject("Recupera tu contraseña de PaxFide");
-            message.setText("""
-                    Alguien pidió restablecer la contraseña de tu cuenta de PaxFide.
-
-                    Para elegir una nueva, abre este enlace:
-                    %s
-
-                    El enlace caduca el %s y solo se puede usar una vez.
-
-                    Si no lo pediste, ignora este correo: tu contraseña no cambia.
-                    """.formatted(link(mail.token()), TIME.format(mail.expiresAt().atOffset(ZoneOffset.UTC))));
-            sender.send(message);
+            BrandedMail.send(sender, from, mail.to(), "Recupera tu contraseña de PaxFide", body(mail));
         } catch (RuntimeException e) {
             log.warn("password-reset.mail.failed tokenId={} cause={}", mail.tokenId(), e.getClass().getSimpleName());
         }

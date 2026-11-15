@@ -20,22 +20,23 @@ class SmtpInvitationMailAdapterTest {
     @Test
     void withoutAnSmtpServer_orSender_orWebBaseUrl_theApplicationDoesNotStart() {
         assertThatThrownBy(() -> new SmtpInvitationMailAdapter(with(null).getBeanProvider(JavaMailSender.class),
-                "no-reply@x.test", "https://web.x.test"))
+                "no-reply@x.test", "https://web.x.test", new MailTemplates("", "")))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("SPRING_MAIL_HOST");
         JavaMailSender sender = new JavaMailSenderImpl();
         assertThatThrownBy(() -> new SmtpInvitationMailAdapter(with(sender).getBeanProvider(JavaMailSender.class),
-                " ", "https://web.x.test")).hasMessageContaining("TRACEABILITY_MAIL_FROM");
+                " ", "https://web.x.test", new MailTemplates("", ""))).hasMessageContaining("TRACEABILITY_MAIL_FROM");
         for (String bad : new String[] {"", "web.x.test", "ftp://web.x.test", "https://web.x.test/?a=1",
                 "https://web.x.test/#x"}) {
             assertThatThrownBy(() -> new SmtpInvitationMailAdapter(with(sender).getBeanProvider(JavaMailSender.class),
-                    "no-reply@x.test", bad)).as(bad).hasMessageContaining("TRACEABILITY_WEB_BASE_URL");
+                    "no-reply@x.test", bad, new MailTemplates("", ""))).as(bad).hasMessageContaining("TRACEABILITY_WEB_BASE_URL");
         }
     }
 
     @Test
     void theLink_carriesTheTokenOnlyInTheFragment() {
         SmtpInvitationMailAdapter adapter = new SmtpInvitationMailAdapter(
-                with(new JavaMailSenderImpl()).getBeanProvider(JavaMailSender.class), "no-reply@x.test", "https://web.x.test/app/");
+                with(new JavaMailSenderImpl()).getBeanProvider(JavaMailSender.class), "no-reply@x.test", "https://web.x.test/app/",
+                new MailTemplates("", ""));
         assertThat(adapter.link("tok_EN-1")).isEqualTo("https://web.x.test/app/invitaciones#token=tok_EN-1");
     }
 }

@@ -74,4 +74,15 @@ class SpringAiLlmAdapterTest {
         assertEquals(FactType.OPERATION_REF, response.citedFacts().get(0).type());
         assertEquals("FUND-123", response.citedFacts().get(0).value());
     }
+
+    @Test
+    void thePrompt_isInSpanish_andGivesTheSameCitationRulesAsTheValidator() {
+        AuditFactsDTO facts = new AuditFactsDTO("FUND-123", 1L, Collections.emptyList(), Collections.emptyList(),
+                Instant.parse("2026-11-12T20:00:00Z"));
+        String prompt = SpringAiLlmAdapter.prompt(facts, "{schema}");
+        org.assertj.core.api.Assertions.assertThat(prompt)
+                .contains("Escribe en español").contains("{schema}").contains("FUND-123")
+                .contains("AMOUNT: solo el campo amount de una entrada de financialFlags")
+                .contains("Nunca uses AMOUNT para cantidades de unidades");
+    }
 }

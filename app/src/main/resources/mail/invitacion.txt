@@ -1,0 +1,8 @@
+Te invitaron a formar parte de {{organizationName}} en PaxFide como {{roleName}}.
+
+Rol: {{roleLabel}}
+Qué harás: {{roleDescription}}
+Para: {{recipientEmail}}
+
+Para aceptar, entra con la cuenta de este correo. Si aún no tienes cuenta, podrás crearla en el mismo paso.
+La invitación caduca el {{expiresAt}} y solo se puede usar una vez.

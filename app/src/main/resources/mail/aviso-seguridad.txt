@@ -1,0 +1,7 @@
+{{message}}
+
+Cuenta: {{recipientEmail}}
+Cuándo: {{occurredAt}}
+{{#advice}}
+{{advice}}
+{{/advice}}

@@ -24,6 +24,8 @@ Todas las lee `app/src/main/resources/application.yml`.
 | `SPRING_MAIL_HOST` | Servidor SMTP de todos los correos: verificación, recuperación, invitaciones y avisos de seguridad | **Sí** | No arranca (el marcador no tiene valor por defecto) | `application.yml:6` |
 | `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH`, `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE` | Puerto, credenciales y TLS del SMTP (Gmail: `smtp.gmail.com`, 587, contraseña de aplicación) | Según el servidor | Spring usa sus valores por defecto (puerto 25, sin autenticación). La aplicación arranca, pero los envíos fallan | `application.yml:2-4` |
 | `TRACEABILITY_MAIL_FROM` | Remitente de los correos | **Sí** | No arranca | `application.yml:67` |
+| `TRACEABILITY_MAIL_LOGO_URL` | Logo de la cabecera de los correos: URL pública **https** de un PNG de 80×80 (no SVG). Nota del 2026-11-12, correos con diseño | No | La cabecera lleva solo la marca en texto. Si no es https, no arranca | `application.yml` (`traceability.mail.logo-url`); `app/src/main/resources/mail/LEEME.md` |
+| `TRACEABILITY_MAIL_SUPPORT_EMAIL` | Correo de soporte del pie de los correos. Nota del 2026-11-12 | No | El pie no ofrece contacto. Si no es un correo, no arranca | `application.yml` (`traceability.mail.support-email`) |
 | `TRACEABILITY_WEB_BASE_URL` | Base de los enlaces de los correos (verificar, recuperar, invitar) | **Sí** | No arranca | `application.yml:69` |
 | `TRACEABILITY_CORS_ALLOWED_ORIGINS` | Orígenes web exactos, separados por comas; nunca `*` | No | Ningún origen cruzado: **la web en otro dominio no puede llamar a la API** | `application.yml:72`; `api/src/main/java/com/traceability/api/web/CorsConfig.java:43` |
 
@@ -82,6 +84,8 @@ Todos deben ser distintos entre sí: el cursor lo comprueba (`DiscoveryCursorCon
 |---|---|---|---|---|
 | `WEB3_PRIVATE_KEY`, `WEB3_NODE_URL` | Billetera y nodo del anclaje | **Sí, en la práctica.** El marcador tiene valor vacío por defecto, pero `@NotBlank` lo rechaza | No arranca ("Web3j private key must be configured") | `application.yml:33-34`; `crypto/src/main/java/com/traceability/crypto/infrastructure/web3j/Web3Configuration.java:17-21` |
 | `CRYPTO_ANCHOR_NETWORK`, `CRYPTO_ANCHOR_SMART_CONTRACT`, `CRYPTO_ANCHOR_CHAIN_ID`, `CRYPTO_ANCHOR_CONFIRMATIONS_REQUIRED` | Red, contrato, cadena y confirmaciones | No (por defecto Sepolia, contrato `0x0…0`, 11155111 y 12) | Con el contrato por defecto el anclaje no sirve | `application.yml:38-41` |
+| `CRYPTO_ANCHOR_SUBMIT_TIMEOUT_SECONDS` | Espera del recibo de cada transacción de anclaje. Nota del 2026-11-12: era 15 s fijo; en Sepolia el envío quedaba ambiguo aunque llegara | No (120) | — | `application.yml` (`crypto.anchor.submit.timeout-seconds`) |
+| `CRYPTO_ANCHOR_RECONCILE_LOOKBACK_BLOCKS`, `CRYPTO_ANCHOR_RECONCILE_CHUNK_BLOCKS` | Si un reintento da `nonce too low`, cuántos bloques hacia atrás se busca la raíz en el contrato (`RootStored`) y en tramos de cuántos. Bajar el tramo si el proveedor RPC limita el rango de `eth_getLogs` (log `anchor.reconcile.rpc-error`) | No (2000 y 500) | — | `application.yml` (`crypto.anchor.reconcile.*`) |
 | `CRYPTO_ANCHOR_COLLECTING_RECOVERY_TIMEOUT_SECONDS`, `CRYPTO_ANCHOR_COLLECTING_RECOVERY_MAX_PER_CYCLE`, `CRYPTO_ANCHOR_COLLECTING_RECOVERY_WARN_AFTER_ATTEMPTS` | Recuperación de lotes atascados | No (300, 10 y 5) | — | `application.yml:54-56` |
 
 ### 1.7 Otras
@@ -89,6 +93,7 @@ Todos deben ser distintos entre sí: el cursor lo comprueba (`DiscoveryCursorCon
 | Variable | Para qué | ¿Obligatoria? | Si falta | Dónde |
 |---|---|---|---|---|
 | `SPRING_AI_OPENAI_API_KEY` | Clave del proveedor de IA (Groq, compatible con OpenAI) | No (por defecto `dummy`) | Arranca; las llamadas a la IA fallan | `application.yml:18` |
+| `SPRING_AI_OPENAI_CHAT_OPTIONS_MODEL` | Modelo de Groq para los relatos. Nota del 2026-11-12: Groq retiró `llama3-8b-8192` y cada relato caía al respaldo; el valor por defecto pasa a `openai/gpt-oss-20b`. Los disponibles: `GET https://api.groq.com/openai/v1/models` con la clave | No (por defecto `openai/gpt-oss-20b`) | — | `application.yml` (`spring.ai.openai.chat.options.model`) |
 | `TRACEABILITY_BOOTSTRAP_PLATFORM_ADMIN_ENABLED`, `TRACEABILITY_BOOTSTRAP_PLATFORM_ADMIN_EMAIL` | Crear el administrador de plataforma inicial (ADR-038 §2.4). Spring las enlaza por nombre; no están en `application.yml` | No | Sin administrador inicial | `app/src/main/java/com/traceability/app/bootstrap/PlatformAdminBootstrapRunner.java:17,27` |
 | **`GOOGLE_OAUTH_CLIENT_IDS`** (#166) | ID de cliente de Google aceptados como `aud`: web, Android `com.paxfide.mobile` y Android demo `com.paxfide.mobile.demo`, separados por comas. **Los valores los da Manuel** y nunca van al repositorio. El secreto del cliente no se usa | No | Arranca con el log `google-sign-in disabled: no client ids configured`, y `POST /auth/google` responde 401 | (#166) `application.yml:67-69`; `app/src/main/java/com/traceability/app/config/GoogleSignInConfig.java:36-41` |
 

@@ -109,6 +109,12 @@ El principal se resuelve en cada petición (ADR-047 D5), así que la nueva membr
 
 No lleva el nombre ni el email de quien invita ni ningún otro dato de terceros. Si la organización no tiene nombre (DD-04), se usa "una organización".
 
+> **Nota (2026-11-12): los correos pasan a tener diseño (HTML y texto).** Aprobado por Carlos, comunicado por Manuel, a partir de los bocetos de verificación, invitación y recuperación.
+> - Supera "en texto plano" de arriba: cada correo sale como `multipart/alternative`, con la parte HTML del diseño y la de texto. Vale para los cuatro correos (invitación, recuperación, verificación y avisos de seguridad).
+> - **Lo demás de esta sección no cambia:** el mismo asunto, el token solo en el fragmento y **ningún dato de quien invita**. Los bocetos traían el nombre de quien invita; se quitó por esta regla.
+> - Correcciones a los bocetos: las rutas son las reales (`/invitaciones`, `/recuperar`, `/verificar-correo`); no hay saludo con nombre, porque la cuenta no lo guarda; la invitación explica el rol con una línea ("Qué harás"); todas las horas van en hora de Colombia.
+> - Opcionales nuevos: `TRACEABILITY_MAIL_LOGO_URL` y `TRACEABILITY_MAIL_SUPPORT_EMAIL` (`despliegue-backend-2026-10.md` §1.1). Las plantillas están en `app/src/main/resources/mail/`.
+
 ### D6. Listar y revocar invitaciones [DD-65]
 
 - `GET /api/v1/organizations/{organizationId}/invitations`, con los mismos permisos que invitar. Devuelve las invitaciones `PENDING` sin caducar: `{items: [{invitationId, emailMasked, role, createdAt, expiresAt, delivery}]}`, una página de 100. **El email va enmascarado** (`m***@dominio.org`), igual que la lista de miembros no lleva email (DD-55): basta para reconocer a quién se invitó. Nunca devuelve el token ni el hash.
