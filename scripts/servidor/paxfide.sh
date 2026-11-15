@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# Servidor de pruebas de PaxFide en un solo PC: MongoDB y MinIO en Docker, backend (jar), web (Next) y dos
-# Cloudflare quick tunnels (API y web). Ningún valor real va en este script: todo sale de backend.env.
+# Servidor de pruebas de PaxFide en un solo PC: MongoDB y MinIO en Docker, backend (jar) y web (Next), publicados en
+# internet con Tailscale Funnel (URLs fijas) o, con PAXFIDE_EXPOSE=cloudflare en backend.env, con dos Cloudflare
+# quick tunnels (URLs nuevas en cada arranque). Ningún valor real va en este script: todo sale de backend.env.
 #
-#   paxfide.sh arrancar      túneles nuevos, URLs a backend.env y a la web, recompila la web y arranca todo en tmux
+#   Tailscale Funnel:  web  https://<pc>.<red>.ts.net        (puerto 443  -> localhost:3000)
+#                      API  https://<pc>.<red>.ts.net:8443   (puerto 8443 -> localhost:8080)
+#
+#   paxfide.sh arrancar      publica las URLs, las escribe en backend.env y en la web, arranca todo en tmux y
+#                            recompila la web solo si su URL de la API cambió
 #   paxfide.sh semilla       BORRA la base y carga el escenario de la demo (cuentas, convocatorias, trackingCode)
 #   paxfide.sh actualizar    trae los cambios del equipo (git pull de los 3 repos) y recompila y reinicia solo lo
 #                            que cambió, sin tocar los túneles (las URLs siguen igual). --forzar recompila todo
@@ -93,6 +98,53 @@ ensure_bucket() {
   fi
 }
 
+# Cómo se publica: tailscale (por defecto) o cloudflare
+expose_mode() {
+  local m
+  m=$(envval PAXFIDE_EXPOSE)
+  case "${m:-tailscale}" in
+    tailscale|cloudflare) echo "${m:-tailscale}" ;;
+    *) die "PAXFIDE_EXPOSE debe ser tailscale o cloudflare" ;;
+  esac
+}
+
+# Publica la web y la API y deja API_URL y WEB_URL; escribe backend.env, la web y urls.txt
+expose() {
+  if [ "$(expose_mode)" = cloudflare ]; then tunnels; else funnel; fi
+  setenv TRACEABILITY_WEB_BASE_URL "$WEB_URL"
+  setenv TRACEABILITY_CORS_ALLOWED_ORIGINS "$WEB_URL,http://localhost:3000"
+  local google new
+  google=$(envval GOOGLE_OAUTH_CLIENT_IDS | cut -d, -f1)   # el primero es el cliente web
+  new="NEXT_PUBLIC_API_BASE_URL=$API_URL/api/v1"
+  if [ -n "$google" ]; then new="$new"$'\n'"NEXT_PUBLIC_GOOGLE_CLIENT_ID=$google"; fi
+  if [ "$(cat "$WEBENV" 2>/dev/null)" != "$new" ]; then
+    printf '%s\n' "$new" > "$WEBENV"
+    WEB_ENV_CHANGED=1
+  fi
+  printf 'API_URL=%s\nWEB_URL=%s\n' "$API_URL" "$WEB_URL" > "$DEP/urls.txt"
+}
+
+# Tailscale Funnel: URLs fijas del PC en la red de Tailscale, con HTTPS de Tailscale
+funnel() {
+  need tailscale
+  info "Tailscale Funnel (URLs fijas)"
+  pkill -f "cloudflared tunnel --url" 2>/dev/null || true
+  local dns
+  dns=$(tailscale status --json 2>/dev/null \
+        | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))' 2>/dev/null || true)
+  [ -n "$dns" ] || die "Tailscale no está conectado en este PC: sudo tailscale up (y repite)"
+  if ! tailscale funnel --bg --https=443 http://127.0.0.1:3000 >/dev/null \
+     || ! tailscale funnel --bg --https=8443 http://127.0.0.1:8080 >/dev/null; then
+    echo "No pude activar Funnel. Revisa, una sola vez:" >&2
+    echo "  1. sudo tailscale set --operator=\$USER   (para usar funnel sin sudo)" >&2
+    echo "  2. En login.tailscale.com/admin: DNS > HTTPS Certificates activado, y Funnel permitido en la" >&2
+    echo "     política (el comando 'tailscale funnel 3000' te da el enlace para activarlo)" >&2
+    die "Funnel no está disponible"
+  fi
+  WEB_URL="https://$dns"
+  API_URL="https://$dns:8443"
+}
+
 tunnels() {
   info "Túneles de Cloudflare (URLs nuevas)"
   pkill -f "cloudflared tunnel --url" || true
@@ -100,13 +152,6 @@ tunnels() {
   nohup cloudflared tunnel --url http://localhost:3000 > "$DEP/tunel-web.log" 2>&1 &
   API_URL=$(tunnel_url "$DEP/tunel-api.log")
   WEB_URL=$(tunnel_url "$DEP/tunel-web.log")
-  setenv TRACEABILITY_WEB_BASE_URL "$WEB_URL"
-  setenv TRACEABILITY_CORS_ALLOWED_ORIGINS "$WEB_URL,http://localhost:3000"
-  local google
-  google=$(envval GOOGLE_OAUTH_CLIENT_IDS | cut -d, -f1)   # el primero es el cliente web
-  echo "NEXT_PUBLIC_API_BASE_URL=$API_URL/api/v1" > "$WEBENV"
-  if [ -n "$google" ]; then echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$google" >> "$WEBENV"; fi
-  printf 'API_URL=%s\nWEB_URL=%s\n' "$API_URL" "$WEB_URL" > "$DEP/urls.txt"
 }
 
 tunnel_url() {
@@ -186,7 +231,11 @@ summary() {
   echo "API: $API_URL/api/v1   ($(curl -s -o /dev/null -w '%{http_code}' "$API_URL/api/v1/public/campaigns"))"
   echo "WEB: $WEB_URL          ($(curl -s -o /dev/null -w '%{http_code}' "$WEB_URL"))"
   echo
-  echo "Pendiente a mano cada vez que cambian las URLs:"
+  if [ "$(expose_mode)" = tailscale ]; then
+    echo "Estas URLs son fijas: configúralas una sola vez (no cambian al reiniciar):"
+  else
+    echo "Pendiente a mano cada vez que cambian las URLs:"
+  fi
   echo "  - Google Cloud Console > cliente Web > Orígenes de JavaScript autorizados: $WEB_URL"
   echo "  - PaxFide_Mv/config/movil.json:"
   printf '    {\n      "PAXFIDE_API_BASE_URL": "%s/api/v1",\n      "PAXFIDE_PUBLIC_BASE_URL": "%s"\n    }\n' "$API_URL" "$WEB_URL"
@@ -279,14 +328,20 @@ cmd_compilar() {
 }
 
 cmd_arrancar() {
-  need docker; need tmux; need cloudflared; need java; need pnpm
+  need docker; need tmux; need java; need pnpm
   check_env
+  [ "$(expose_mode)" = cloudflare ] && need cloudflared
   infra
   stop_apps
-  tunnels
+  WEB_ENV_CHANGED=0
+  expose
   start_backend
   wait_backend
-  build_web
+  if [ "$WEB_ENV_CHANGED" = 1 ] || [ ! -f "$WEB/.next/BUILD_ID" ] || [ "${1:-}" = --forzar ]; then
+    build_web
+  else
+    info "Web: la URL de la API no cambió, uso el build que hay (--forzar para recompilar)"
+  fi
   start_web
   summary
 }
@@ -367,7 +422,11 @@ cmd_reparar_anclaje() {
 
 cmd_estado() {
   info "Procesos"
-  pgrep -af "cloudflared tunnel --url" || echo "(sin túneles)"
+  if [ "$(expose_mode)" = tailscale ]; then
+    tailscale funnel status 2>/dev/null || echo "(Funnel inactivo)"
+  else
+    pgrep -af "cloudflared tunnel --url" || echo "(sin túneles)"
+  fi
   pgrep -af "java -jar $RUN_JAR" || echo "(backend parado)"
   pgrep -af "next start" || echo "(web parada)"
   dc ps
@@ -387,11 +446,14 @@ cmd_logs() {
 cmd_parar() {
   stop_apps
   pkill -f "cloudflared tunnel --url" || true
+  if [ "$(expose_mode)" = tailscale ] && command -v tailscale >/dev/null; then
+    tailscale funnel reset >/dev/null 2>&1 || true
+  fi
   echo "Backend, web y túneles detenidos. MongoDB y MinIO siguen (cd $DEP && docker compose stop para pararlos)."
 }
 
 case "${1:-}" in
-  arrancar) cmd_arrancar ;;
+  arrancar) cmd_arrancar "${2:-}" ;;
   semilla) cmd_semilla ;;
   actualizar) cmd_actualizar "${2:-}" ;;
   compilar) cmd_compilar ;;
@@ -399,5 +461,5 @@ case "${1:-}" in
   estado) cmd_estado ;;
   logs) cmd_logs "${2:-}" ;;
   parar) cmd_parar ;;
-  *) sed -n '2,20p' "$0"; exit 1 ;;
+  *) sed -n '2,26p' "$0"; exit 1 ;;
 esac
