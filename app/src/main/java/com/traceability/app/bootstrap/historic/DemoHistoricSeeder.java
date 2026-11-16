@@ -92,17 +92,22 @@ public class DemoHistoricSeeder {
 
     static final long COP_20M = 2_000_000_000L;
 
-    /** El escenario aprobado: antes, dentro y después del rango; meta alcanzada; STRICT; otra moneda; cerrada antes. */
+    /**
+     * El escenario aprobado: antes, dentro y después del rango; meta alcanzada; STRICT; otra moneda; cerrada antes.
+     * Dentro del rango, lo recaudado se eligió para que la estimación recorra de muy baja a muy alta: «Inicio del
+     * rango» y «Cuarenta por ciento» van al ritmo lineal o por debajo (el modelo, entrenado con convocatorias que
+     * recaudan pronto, les da poca probabilidad); «Un cuarto» y «Cerca del límite» van adelantadas.
+     */
     static final List<Spec> SCENARIO = List.of(
             new Spec("before", "Antes del rango", 120, 0.07, "COP", TargetPolicy.FLEXIBLE, COP_20M, 0.03, 3, 1, 0,
                     false, null, Expected.OUTSIDE_TRAINED_RANGE),
             new Spec("start", "Inicio del rango", 200, 0.17, "COP", TargetPolicy.FLEXIBLE, COP_20M, 0.12, 6, 1, 1,
                     false, null, Expected.FIGURE),
-            new Spec("quarter", "Un cuarto", 200, 0.25, "COP", TargetPolicy.FLEXIBLE, 3_000_000_000L, 0.22, 8, 2, 0,
+            new Spec("quarter", "Un cuarto", 200, 0.25, "COP", TargetPolicy.FLEXIBLE, 3_000_000_000L, 0.45, 30, 2, 0,
                     false, null, Expected.FIGURE),
             new Spec("forty", "Cuarenta por ciento", 200, 0.40, "COP", TargetPolicy.FLEXIBLE, 2_500_000_000L, 0.45, 10,
                     2, 1, true, null, Expected.FIGURE),
-            new Spec("limit", "Cerca del límite", 300, 0.47, "COP", TargetPolicy.FLEXIBLE, 4_000_000_000L, 0.30, 10, 2,
+            new Spec("limit", "Cerca del límite", 300, 0.47, "COP", TargetPolicy.FLEXIBLE, 4_000_000_000L, 0.80, 50, 2,
                     0, false, null, Expected.FIGURE),
             new Spec("after", "Después del rango", 200, 0.65, "COP", TargetPolicy.FLEXIBLE, 3_000_000_000L, 0.80, 12, 2,
                     1, true, null, Expected.OUTSIDE_TRAINED_RANGE),
