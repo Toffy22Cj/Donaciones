@@ -99,11 +99,13 @@ public class CampaignPredictionHistoryUseCase {
 
     private Cut cut(CampaignPredictionData d, List<ClearedFund> funds, CampaignTimeline line, Instant now, double t,
                     Instant cutAt) {
-        if (cutAt.isAfter(now)) {
-            return new Cut(t, cutAt, Unavailable.FUTURE_CUT, null, null, null);
-        }
+        // El cierre va antes que el corte futuro: un corte posterior al cierre nunca llegará, aunque su fecha aún no
+        // haya pasado (referencia-api-v1: «CAMPAIGN_ENDED (cerrada antes del corte)»)
         if (line.closedAt() != null && !line.closedAt().isAfter(cutAt)) {
             return new Cut(t, cutAt, Unavailable.CAMPAIGN_ENDED, null, null, null);
+        }
+        if (cutAt.isAfter(now)) {
+            return new Cut(t, cutAt, Unavailable.FUTURE_CUT, null, null, null);
         }
         if (line.configurationChangedAt().stream().anyMatch(changedAt -> changedAt.isAfter(cutAt))) {
             return new Cut(t, cutAt, Unavailable.CONFIGURATION_CHANGED_AFTER_CUT, null, null, null);
