@@ -1,0 +1,49 @@
+# Test intermitente de invitaciones — reproducción y corrección (2026-11-16)
+Clase: OrganizationMembersAndInvitationsHttpIntegrationTest, en solitario (mvn -o test -pl app -Dtest=...).
+
+## Antes (develop c0ee6be): 3 fallos de 6 ejecuciones
+=== ejecución 1 (2026-11-16T03:59:14Z)
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.51 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[INFO] BUILD SUCCESS
+=== ejecución 2 (2026-11-16T04:00:10Z)
+[ERROR] Tests run: 19, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 19.67 s <<< FAILURE! -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[ERROR] com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest.anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail -- Time elapsed: 0.369 s <<< FAILURE!
+Expected size: 17 but was: 18 in:
+Expected size: 17 but was: 18 in:
+[INFO] BUILD FAILURE
+=== ejecución 3 (2026-11-16T04:01:03Z)
+[ERROR] Tests run: 19, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 20.20 s <<< FAILURE! -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[ERROR] com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest.anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail -- Time elapsed: 0.366 s <<< FAILURE!
+Expected size: 17 but was: 18 in:
+Expected size: 17 but was: 18 in:
+[INFO] BUILD FAILURE
+=== ejecución 4 (2026-11-16T04:01:57Z)
+[ERROR] Tests run: 19, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 19.73 s <<< FAILURE! -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[ERROR] com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest.anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail -- Time elapsed: 0.366 s <<< FAILURE!
+Expected size: 17 but was: 18 in:
+Expected size: 17 but was: 18 in:
+[INFO] BUILD FAILURE
+=== ejecución 5 (2026-11-16T04:02:50Z)
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.68 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[INFO] BUILD SUCCESS
+=== ejecución 6 (2026-11-16T04:03:43Z)
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.84 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvitationsHttpIntegrationTest
+[INFO] BUILD SUCCESS
+
+## Correo sobrante en un fallo (asuntos de la lista capturada)
+      2 subject=Confirma tu correo en PaxFide
+     34 subject=Invitación a Fundación Miembros en PaxFide
+
+## Test de regresión determinista, antes de la corrección
+[ERROR] Tests run: 1, Failures: 1, Errors: 0, Skipped: 0 -- aStrayMailArrivingDuringTheInvitation_doesNotBreakTheInvitationToken
+Expected size: 1 but was: 2 in:
+
+## Después de la corrección: 8 ejecuciones seguidas
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.60 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.77 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.53 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.90 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.91 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 20.47 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.87 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 19.50 s -- in com.traceability.app.web.organization.OrganizationMembersAndInvi
