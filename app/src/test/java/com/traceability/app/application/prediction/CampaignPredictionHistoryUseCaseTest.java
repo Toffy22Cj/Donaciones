@@ -186,6 +186,30 @@ class CampaignPredictionHistoryUseCaseTest {
         assertThat(h.cuts().get(2).probabilityReachTarget()).isNull();
     }
 
+    /**
+     * Regresión (2026-11-15): cerrada el día 1 y consultada el día 2, sus tres cortes siguen en el futuro del
+     * calendario, pero nunca llegarán. El contrato (referencia-api-v1: «CAMPAIGN_ENDED (cerrada antes del corte)»)
+     * manda sobre «Este corte aún no ha llegado».
+     */
+    @Test
+    void aClosedCampaign_withCutsStillAheadInTheCalendar_saysCampaignEnded_notFutureCut() {
+        CampaignPredictionData data = campaign("CLOSE_ON_TARGET", TARGET, "COP", "CLOSED");
+        given(data, EVENTS, new CampaignTimeline(START.plus(Duration.ofDays(1)), List.of()));
+
+        History h = useCase(START.plus(Duration.ofDays(2))).history(principal("ORG-1", AuthorizationRole.ADMINISTRATOR),
+                "ORG-1", "CAMP-1");
+
+        assertThat(h.unavailable()).isNull();
+        assertThat(h.cuts()).hasSize(3);
+        for (Cut c : h.cuts()) {
+            assertThat(c.unavailable()).isEqualTo(Unavailable.CAMPAIGN_ENDED);
+            assertThat(c.unavailable()).isNotEqualTo(Unavailable.FUTURE_CUT);
+            assertThat(c.probabilityReachTarget()).isNull();
+            assertThat(c.estimatedFinalPctOfTarget()).isNull();
+            assertThat(c.pctRaisedAtCut()).isNull();
+        }
+    }
+
     @Test
     void aConfigurationChangedAfterTheCut_isNotReconstructedWithTodaysValues() {
         CampaignPredictionData data = campaign("FLEXIBLE", TARGET, "COP", "OPEN");

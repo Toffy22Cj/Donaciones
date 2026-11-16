@@ -192,6 +192,8 @@ Orden: **`createdAt` descendente**, con las intenciones sin `createdAt` al final
 | `DELETE /organizations/{organizationId}/logo` (ADR-051 F8; Tarea 2) | ídem | `204`, también sin logo previo (P-T2-4) | 403 |
 | `GET /organizations/{organizationId}/logo` (ADR-051 F6, Enmienda 1; Tarea 2) | JWT: miembro de la organización, con cualquier rol, o administrador de plataforma | `200` con los bytes guardados, `Content-Type` de la imagen, `Cache-Control: no-store, private` | 401 sin JWT; 403 (el mismo, DD-01); 404 `NotFound` sin logo (nunca 410) |
 
+*Nota (2026-11-15, corrección; `plan-paso1-fixes-prediccion-2026-11-15.md`, aprobado por Manuel):* en `GET …/prediction/history`, un corte posterior al cierre de la convocatoria responde **`CAMPAIGN_ENDED`** aunque su fecha todavía no haya llegado. Antes, una convocatoria cerrada antes de tiempo respondía `FUTURE_CUT` («Este corte aún no ha llegado») en cortes que nunca llegarán, en contra de la fila de arriba («`CAMPAIGN_ENDED` (cerrada antes del corte)»). `FUTURE_CUT` queda solo para convocatorias no cerradas antes del corte. La forma de la respuesta y los textos no cambian. Las filas de arriba no se reescriben.
+
 *Nota (2026-10-31, ficha R-7, CONGELADA; plan R-7 aprobado en #162):* **perfil de la organización.** Las filas de arriba no se reescriben.
 
 | Método y ruta | Auth | Cuerpo | Respuestas | Errores |
