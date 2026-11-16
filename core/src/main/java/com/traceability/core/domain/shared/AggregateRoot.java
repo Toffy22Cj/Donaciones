@@ -4,7 +4,6 @@ import com.traceability.core.domain.event.DomainEvent;
 import com.traceability.core.domain.event.DomainEventPayload;
 import com.traceability.core.domain.event.EventType;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,7 +40,7 @@ public abstract class AggregateRoot {
     protected void raiseEvent(EventType type, DomainEventPayload payload) {
         this.apply(payload);
         this.version++;
-        this.uncommittedEvents.add(new DomainEvent(type, payload, Instant.now()));
+        this.uncommittedEvents.add(new DomainEvent(type, payload, EventTime.now()));
     }
     
     public List<DomainEvent> getUncommittedEvents() {
