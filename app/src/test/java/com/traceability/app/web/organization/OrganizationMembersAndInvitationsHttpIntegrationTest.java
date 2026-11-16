@@ -99,6 +99,12 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
     static final class CapturingMailSender extends JavaMailSenderImpl {
         final List<SimpleMailMessage> sent = new CopyOnWriteArrayList<>();
         final List<jakarta.mail.internet.MimeMessage> lastMime = new CopyOnWriteArrayList<>();
+        /**
+         * Regresión del 2026-11-16: si no es nulo, se captura justo antes del siguiente correo y se consume. Simula
+         * de forma determinista el correo de verificación del registro, que sale por un ejecutor aparte
+         * ({@code SmtpEmailVerificationMailAdapter}) y puede llegar en cualquier momento.
+         */
+        volatile SimpleMailMessage strayBeforeNext;
         @Override public void send(jakarta.mail.internet.MimeMessage message) {
             send(new jakarta.mail.internet.MimeMessage[] {message});
         }
@@ -114,6 +120,11 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
         @Override public void send(SimpleMailMessage... messages) {
             for (SimpleMailMessage m : messages) {
                 if (m.getTo()[0].startsWith("smtp-fail")) throw new MailSendException("servidor caído");
+                SimpleMailMessage stray = strayBeforeNext;
+                if (stray != null) {
+                    strayBeforeNext = null;
+                    sent.add(stray);
+                }
                 sent.add(m);
             }
         }
@@ -212,15 +223,25 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
                 "{\"email\":\"" + email + "\",\"role\":\"" + role + "\"}");
     }
 
-    /** Invita y devuelve el token del correo capturado. */
+    /**
+     * Invita y devuelve el token del correo capturado. Cuenta solo los correos <b>de invitación</b> llegados desde el
+     * recuento: el de verificación del registro sale por un ejecutor aparte y puede colarse en cualquier momento.
+     */
     private String invitedToken(String email, String role) throws Exception {
         int before = TestBeans.MAIL.sent.size();
         ok(invite(admin, org, email, role), 202);
-        assertThat(TestBeans.MAIL.sent).hasSize(before + 1);
-        SimpleMailMessage mail = TestBeans.MAIL.sent.get(before);
-        Matcher m = LINK.matcher(mail.getText());
-        assertThat(m.find()).as(mail.getText()).isTrue();
+        List<SimpleMailMessage> invitations = invitationMailsSince(before);
+        assertThat(invitations).as("exactamente un correo de invitación").hasSize(1);
+        Matcher m = LINK.matcher(invitations.get(0).getText());
+        assertThat(m.find()).as(invitations.get(0).getText()).isTrue();
         return m.group(1);
+    }
+
+    /** Los correos capturados desde {@code from} que llevan el enlace de invitación; los demás no cuentan. */
+    private static List<SimpleMailMessage> invitationMailsSince(int from) {
+        List<SimpleMailMessage> all = List.copyOf(TestBeans.MAIL.sent);
+        return all.subList(Math.min(from, all.size()), all.size()).stream()
+                .filter(mail -> mail.getText() != null && LINK.matcher(mail.getText()).find()).toList();
     }
 
     private HttpResponse<String> accept(String account, String token) throws Exception {
@@ -244,7 +265,8 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
         String token = invitedToken(email, "EMPLOYEE");
         assertThat(Base64.getUrlDecoder().decode(token)).hasSize(32);
 
-        SimpleMailMessage mail = TestBeans.MAIL.sent.get(TestBeans.MAIL.sent.size() - 1);
+        List<SimpleMailMessage> invitations = invitationMailsSince(0);
+        SimpleMailMessage mail = invitations.get(invitations.size() - 1);
         assertThat(mail.getTo()).containsExactly(email);
         assertThat(mail.getSubject()).isEqualTo("Invitación a Fundación Miembros en PaxFide");
         // el token solo después de '#': nunca en la ruta ni en la query
@@ -363,6 +385,29 @@ class OrganizationMembersAndInvitationsHttpIntegrationTest {
     // --- aceptar ---
 
     // encargo 5 (4): la cuenta se registró con mayúsculas y la invitación llega en minúsculas
+    /**
+     * Regresión (2026-11-16): el correo de verificación del registro sale por un ejecutor aparte y a veces llegaba
+     * entre el recuento y la invitación; {@code invitedToken} contaba todos los correos y fallaba con «Expected size:
+     * 17 but was: 18». Aquí ese correo ajeno llega siempre en ese hueco.
+     */
+    @Test
+    void aStrayMailArrivingDuringTheInvitation_doesNotBreakTheInvitationToken() throws Exception {
+        String email = email();
+        String invitee = account(email);
+        SimpleMailMessage stray = new SimpleMailMessage();
+        stray.setTo("otra-cuenta@members.test");
+        stray.setSubject("Confirma tu correo en PaxFide");
+        stray.setText(BASE + "/verificar-correo#token=" + "A".repeat(43));
+        TestBeans.MAIL.strayBeforeNext = stray;
+
+        String token = invitedToken(email, "EMPLOYEE");
+
+        assertThat(TestBeans.MAIL.strayBeforeNext).as("el correo ajeno llegó durante la invitación").isNull();
+        assertThat(token).isNotEqualTo("A".repeat(43));
+        JsonNode accepted = ok(accept(invitee, token), 200);
+        assertThat(accepted.get("organizationId").asText()).isEqualTo(org);
+    }
+
     @Test
     void anAccountRegisteredWithUppercase_acceptsAnInvitationToTheLowercaseEmail() throws Exception {
         String email = email();
