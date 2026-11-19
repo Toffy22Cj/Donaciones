@@ -142,6 +142,11 @@ class PublicRoutesInventoryIntegrationTest {
             "POST /api/v1/organizations/{organizationId}/asset-evidence",
             "GET /api/v1/physical-assets/{assetRef}/evidence/{step}",
             "GET /api/v1/physical-assets/{assetRef}/evidence/steps",
+            // ADR-051 Enmienda 2, Tarea 3: la copia censurada de la foto de entrega, su publicación y su historial (autenticadas)
+            "GET /api/v1/physical-assets/{assetRef}/evidence/redacted",
+            "PUT /api/v1/physical-assets/{assetRef}/evidence/redacted/publication",
+            "DELETE /api/v1/physical-assets/{assetRef}/evidence/redacted/publication",
+            "GET /api/v1/physical-assets/{assetRef}/evidence/redacted/publication",
             // ADR-051, Tarea 5: leer la evidencia (F6) y retirar fotos (F7), autenticadas
             "GET /api/v1/physical-assets/{assetRef}/evidence",
             "POST /api/v1/platform/organizations/{organizationId}/media/remove",
