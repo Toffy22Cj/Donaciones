@@ -1,6 +1,6 @@
 # Plan — Fotos, Tarea 1: versiones de esquema y `evidenceRef?` en `core` y `api` (2026-11-19)
 
-**Estado: APROBADO — Manuel, 2026-11-18** (respuesta «plan de la Tarea 1 de fotos (#186) y copia del maestro»), con Q-T1-1 (a), Q-T1-2 (a), Q-T1-3 sí y cinco condiciones al PR de código. *(Estado original: PROPUESTO, sin código hasta la aprobación.)* Como toca `core` (contrato de eventos), el PR de código lo revisa **Carlos**.
+**Estado: APROBADO — Manuel, 2026-11-18** (respuesta «plan de la Tarea 1 de fotos (#186) y copia del maestro»), con Q-T1-1 (a), Q-T1-2 (a), Q-T1-3 sí y cinco condiciones al PR de código. *(Estado original: PROPUESTO, sin código hasta la aprobación.)* Como toca `core` (contrato de eventos), el PR de código lo revisa **Carlos**. **Nota (2026-11-19): el PR de código (#187) fue revisado y APROBADO — Carlos, 2026-11-19** (comunicado por Manuel; `decisiones-delegadas-2026-10.md`, «Firmas del 2026-11-19»).
 
 **Norma:** `ADR-051-enmienda-2-fotos-de-los-pasos-y-copia-para-el-donante.md` (APROBADA — Manuel, por delegación de Carlos, 2026-11-18), E2-1 (fotos opcionales y vínculo), E2-2 (versiones de esquema) y E2-3 (sin conexión). Es la tarea 1 de su tabla de Implementación; las tareas 2 a 6 llevan su propio plan.
 

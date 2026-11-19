@@ -1,6 +1,6 @@
 # Plan del paso 2 — datos de muestra históricos, perfil `demo-historico` (encargo del 2026-11-15)
 
-**Estado:** APROBADO por Manuel el 2026-11-16 (sesión de trabajo; respuesta a las cinco decisiones del plan), con las condiciones de abajo. **Pendiente del visto bueno de Carlos** porque toca `core`: el PR no se fusiona sin su revisión. Redactado por Manuel con asistencia de Claude.
+**Estado:** APROBADO por Manuel el 2026-11-16 (sesión de trabajo; respuesta a las cinco decisiones del plan), con las condiciones de abajo. **Visto bueno de Carlos sobre `core`: APROBADO — Carlos, 2026-11-19** (comunicado por Manuel; #182; `decisiones-delegadas-2026-10.md`, «Firmas del 2026-11-19»). *Texto original, que se conserva:* «Pendiente del visto bueno de Carlos porque toca `core`: el PR no se fusiona sin su revisión.» Redactado por Manuel con asistencia de Claude.
 **Base:** `develop` del backend `c0ee6be`. Rama `claude/focused-dirac-8besqk`, PR hacia `develop`.
 **Para qué:** ver cómo responde la predicción en cada caso y dar datos a los gráficos (paso 3). Se mantiene `baseline-0.3.0`: el problema de la demo se resuelve solo con datos; la enmienda del rango de entrenamiento se decide después de verlos.
 

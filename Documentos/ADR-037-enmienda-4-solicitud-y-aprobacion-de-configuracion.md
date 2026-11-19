@@ -2,7 +2,7 @@
 
 ## Status
 
-**APROBADA como decisión delegada — 2026-10-07T23:59Z** (autorización (3) de Carlos, §3.5: "Requiere una enmienda de ADR-037. Redáctala como decisión delegada siguiendo D2/D3 ya decididos … y luego impleméntala"). `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` **DD-73**.
+**APROBADA como decisión delegada — 2026-10-07T23:59Z** (autorización (3) de Carlos, §3.5: "Requiere una enmienda de ADR-037. Redáctala como decisión delegada siguiendo D2/D3 ya decididos … y luego impleméntala"). `[DECISIÓN DELEGADA — RATIFICADA — Carlos, 2026-10-08]` *(Nota 2026-11-19: antes decía «pendiente de ratificar por Carlos»; la ratificación consta en `decisiones-delegadas-2026-10.md`, DD-73.)* **DD-73**.
 
 No reabre nada de la Enmienda 1. Concreta su §3.2 (D3), que dejó "nombre, campos y colección" a la implementación, y añade las reglas mínimas que hacían falta para exponerla por HTTP.
 

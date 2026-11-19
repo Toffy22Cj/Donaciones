@@ -152,7 +152,7 @@ Modifica ADR-037 §2.4, §2.5 y §5.
 - **[DECISIÓN]** `RemoveResponsible(campaignRef, responsibleRef, replacementRef?)` sigue siendo una única operación, con reemplazo en la misma transacción (nunca una ventana con cero responsables). Si hay reemplazo, se aplican las reglas de la operación correspondiente a su tipo.
 - Sin cambios: cada asignación es una inserción; `REMOVED` es histórico y no se reactiva.
 
-> **Adición (B6-a, 2026-10-07), `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` (DD-05):** no se asigna ni se designa un responsable en una convocatoria `CLOSED` (`ResponsibleAssignmentOnClosedCampaignException`, 409). Retirar responsables no cambia.
+> **Adición (B6-a, 2026-10-07), `[DECISIÓN DELEGADA — RATIFICADA — Carlos, 2026-10-07]` *(Nota 2026-11-19: antes decía «pendiente de ratificar por Carlos»; la ratificación consta en `decisiones-delegadas-2026-10.md`, DD-05.)* (DD-05):** no se asigna ni se designa un responsable en una convocatoria `CLOSED` (`ResponsibleAssignmentOnClosedCampaignException`, 409). Retirar responsables no cambia.
 
 ### 4.3 Autoasignación
 

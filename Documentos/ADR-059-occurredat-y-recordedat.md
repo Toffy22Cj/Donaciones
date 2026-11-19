@@ -4,7 +4,9 @@
 
 **APROBADA — Manuel, por delegación de Carlos, 2026-11-18** (acordado en conversación con Carlos; registro en `decisiones-delegadas-2026-10.md`, sección «Firmas por delegación (2026-11-18)»). Número reservado por decisión de Manuel (2026-11-18); el catálogo del documento maestro lo recoge en la Tarea D.
 
-**Es documentación posterior al código.** El mecanismo que fecha hechos en el pasado (`EventTime`, perfil `demo-historico`) entró por #182 (fusionado el 2026-11-16) con un plan aprobado por Manuel (`plan-paso2-datos-historicos-2026-11-16.md`) pero **sin ADR**. Este documento describe lo que el código hace hoy; no cambia código. El visto bueno de Carlos sobre `core` figuraba como pendiente en ese plan: **[Falta: confirmar si Carlos ya lo dio.]**
+**Es documentación posterior al código.** El mecanismo que fecha hechos en el pasado (`EventTime`, perfil `demo-historico`) entró por #182 (fusionado el 2026-11-16) con un plan aprobado por Manuel (`plan-paso2-datos-historicos-2026-11-16.md`) pero **sin ADR**. Este documento describe lo que el código hace hoy; no cambia código. El visto bueno de Carlos sobre `core` figuraba como pendiente en ese plan: **Nota (2026-11-19): Carlos lo dio** (pregunta 1, ver la nota de abajo).
+
+> **Nota (2026-11-19): respuestas de Carlos a las dos preguntas abiertas** (comunicadas por Manuel el 2026-11-19; `decisiones-delegadas-2026-10.md`, «Firmas del 2026-11-19»). **Pregunta 1** (¿dio Carlos el visto bueno sobre `core` del perfil `demo-historico`, #182?): **Sí.** **Pregunta 2** (¿el event store comprueba `occurredAt ≤ recordedAt` al guardar?): **Sí, con una excepción con nombre propio y su test.** El texto de este documento describe lo que había el 2026-11-18 y **no se reescribe**; la comprobación es código nuevo y va en su propia tarea, con su plan (`plan-adr059-comprobacion-occurredat.md`), que toca `core` y lo revisa Carlos. Hasta que ese PR se fusione, lo que dice D2 («hoy tampoco la hace el event store») sigue siendo cierto.
 
 ## Context
 
@@ -26,7 +28,7 @@ Cada `DomainEvent` lleva dos instantes y los dos entran en el mapa canónico y e
 
 - Con el reloj real se cumple porque el hecho se emite antes de guardarse.
 - Con la fuente simulada se cumple **por construcción**: `EventTime.callAt` rechaza un instante posterior a la hora real (`SimulatedTimeInFutureException`).
-- **Antes de #182 no había ninguna comprobación en el código.** Hoy tampoco la hace el event store al guardar. **Pregunta abierta para Carlos:** ¿se comprueba en `MongoEventStoreAdapter` (rechazar el guardado si se incumple)? No se añade sin decisión.
+- **Antes de #182 no había ninguna comprobación en el código.** Hoy tampoco la hace el event store al guardar. **Pregunta abierta para Carlos (respondida el 2026-11-19: sí; ver la nota de arriba):** ¿se comprueba en `MongoEventStoreAdapter` (rechazar el guardado si se incumple)? No se añade sin decisión.
 
 ### D3. Quién usa cada campo (estado a `develop` `bcaa5dc`)
 
