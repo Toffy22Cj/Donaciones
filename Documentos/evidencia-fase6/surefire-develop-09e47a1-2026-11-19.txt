@@ -1,0 +1,31 @@
+# Surefire del reactor — develop 09e47a1 (2026-11-19)
+Comando: mvn -B test, ejecutado por el agente en este entorno (Docker propio, MongoDB 6.0 por Testcontainers). Extracto de las líneas de resultado; el registro completo (con los avisos de los tests de proyección) no se guarda.
+
+[INFO] Building traceability-parent 1.0.0-SNAPSHOT                        [1/9]
+[INFO] Building contracts 1.0.0-SNAPSHOT                                  [2/9]
+[INFO] No tests to run.
+[INFO] Building core 1.0.0-SNAPSHOT                                       [3/9]
+[INFO] Tests run: 442, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building crypto 1.0.0-SNAPSHOT                                     [4/9]
+[INFO] Tests run: 62, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building ai 1.0.0-SNAPSHOT                                         [5/9]
+[INFO] Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building api 1.0.0-SNAPSHOT                                        [6/9]
+[INFO] Tests run: 177, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building identity 1.0.0-SNAPSHOT                                   [7/9]
+[INFO] Tests run: 448, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building convocatoria 1.0.0-SNAPSHOT                               [8/9]
+[INFO] Tests run: 272, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Building app 1.0.0-SNAPSHOT                                        [9/9]
+[INFO] Tests run: 806, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.003 s]
+[INFO] contracts .......................................... SUCCESS [  0.593 s]
+[INFO] core ............................................... SUCCESS [02:06 min]
+[INFO] crypto ............................................. SUCCESS [ 20.582 s]
+[INFO] ai ................................................. SUCCESS [ 11.095 s]
+[INFO] api ................................................ SUCCESS [ 20.272 s]
+[INFO] identity ........................................... SUCCESS [03:13 min]
+[INFO] convocatoria ....................................... SUCCESS [ 25.336 s]
+[INFO] app ................................................ SUCCESS [20:55 min]
+[INFO] BUILD SUCCESS
