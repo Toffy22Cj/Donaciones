@@ -95,7 +95,7 @@ No se añade `GET /campaigns/{campaignRef}` (detalle individual) — se decide s
 
 | Endpoint | Auth | Read Model | Estado |
 |---|---|---|---|
-| `GET /physical-assets/{assetRef}` | JWT + `EMPLOYEE` + `OrganizationBoundaryPolicy` | `PhysicalAssetOperationalReadModel` — `assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef`. Excluye explícitamente `donorRef`, datos financieros de `Fund`, genealogía de split (`parentAssetRef`/`rootAssetRef`) — el perímetro de privacidad no se relaja por estar autenticado, solo por necesidad operativa concreta | CONTRATO DEFINIDO |
+| `GET /physical-assets/{assetRef}` | JWT + `ADMINISTRATOR`, `REPRESENTATIVE` o `EMPLOYEE` de la misma organización + `OrganizationBoundaryPolicy` *(Nota 2026-11-19: antes solo `EMPLOYEE`; ADR-032 Enmienda 1, PROPUESTA)* | `PhysicalAssetOperationalReadModel` — `assetRef, lifecycleStatus, currentCustodianRef, currentLocation, quantity, unitOfMeasure, campaignRef`. Excluye explícitamente `donorRef`, datos financieros de `Fund`, genealogía de split (`parentAssetRef`/`rootAssetRef`) — el perímetro de privacidad no se relaja por estar autenticado, solo por necesidad operativa concreta | CONTRATO DEFINIDO |
 
 `lifecycleStatus → acción disponible` (derivado, no es un campo nuevo): `REGISTERED→Dispatch`, `DISPATCHED→Receive`, `RECEIVED→Deliver`, `DELIVERED→solo lectura`.
 
