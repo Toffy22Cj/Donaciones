@@ -826,4 +826,67 @@ class DonationProjectionIntegrationTest {
         assertNotNull(rawDoc, "The projection document must exist");
         assertFalse(rawDoc.containsKey("donorRef"), "donorRef MUST NEVER be stored in the public projection document");
     }
+
+    // ADR-051 Enmienda 2, plan de la Tarea 1, test 13: el mismo lote registrado, despachado y recibido con las versiones
+    // 4.0 / 2.0 / 2.0 y con las 5.0 / 3.0 / 3.0 (con y sin foto) da la misma proyección y el mismo historial público.
+    // Sin esto, un evento nuevo se ignoraría en silencio (los manejadores ignoran lo que no declaran tratado).
+    private TraceabilityEventDocument versioned(String streamId, String aggType, long seq, String type, String version,
+                                                Map<String, Object> payload) {
+        TraceabilityEventDocument doc = buildEvent(streamId, aggType, seq, type, payload);
+        doc.setSchemaVersion(version);
+        return doc;
+    }
+
+    private List<Object> projectLot(String suffix, boolean newVersions, String registrationPhoto, String dispatchPhoto,
+                                    String receiptPhoto) {
+        String fund = "fund-c" + suffix;
+        String asset = "asset-c" + suffix;
+        projectionHandler.handleEvent(buildEvent(fund, "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
+        projectionHandler.handleEvent(buildEvent(fund, "Fund", 2, "ALLOCATION_REQUESTED",
+                Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+        Map<String, Object> registered = new java.util.HashMap<>(Map.of("assetId", asset, "assetType", "FOOD",
+                "quantity", 10L, "unitOfMeasure", "KG", "currentLocation", "Bodega norte", "custodianRef", "cust-1",
+                "rootAssetRef", asset, "allocationId", "alloc-1", "organizationRef", "org-1"));
+        registered.put("campaignRef", "campaign-1");
+        registered.put("municipalityCode", "05001");
+        registered.put("zoneName", "MEDELLÍN, ANTIOQUIA");
+        registered.put("catalogVersion", "DIVIPOLA-T");
+        Map<String, Object> dispatched = new java.util.HashMap<>(Map.of("carrierRef", "carrier-1",
+                "previousLocation", "Bodega norte", "municipalityCode", "05001", "zoneName", "MEDELLÍN, ANTIOQUIA",
+                "catalogVersion", "DIVIPOLA-T"));
+        Map<String, Object> received = new java.util.HashMap<>(Map.of("facilityLocation", "Centro", "receiverRef", "rec-1",
+                "municipalityCode", "05001", "zoneName", "MEDELLÍN, ANTIOQUIA", "catalogVersion", "DIVIPOLA-T"));
+        if (newVersions) {
+            registered.put("evidenceRef", registrationPhoto);
+            dispatched.put("evidenceRef", dispatchPhoto);
+            received.put("evidenceRef", receiptPhoto);
+        }
+        projectionHandler.handleEvent(versioned(asset, "PhysicalAsset", 1, "ASSET_REGISTERED", newVersions ? "5.0" : "4.0", registered));
+        projectionHandler.handleEvent(versioned(asset, "PhysicalAsset", 2, "ASSET_DISPATCHED", newVersions ? "3.0" : "2.0", dispatched));
+        projectionHandler.handleEvent(versioned(asset, "PhysicalAsset", 3, "ASSET_RECEIVED", newVersions ? "3.0" : "2.0", received));
+
+        DonationProjectionDocument.LogisticsProjection log = projectionRepository.findById(fund).orElseThrow()
+                .getLogistics().get(0);
+        List<Object> out = new java.util.ArrayList<>(List.of(log.getLifecycleStatus(), String.valueOf(log.getCurrentLocation()),
+                String.valueOf(log.getCurrentCustodian()), String.valueOf(log.getCurrentZoneName()),
+                String.valueOf(log.getCampaignRef()), log.getQuantity().toPlainString(), log.getAssetType()));
+        for (AssetHistoryProjectionDocument.AssetTransition t : historyRepository.findById(asset).orElseThrow().getTransitions()) {
+            out.add(List.of(t.getSequence(), t.getEventType(), String.valueOf(t.getLocation()), String.valueOf(t.getCustodian()),
+                    String.valueOf(t.getStatus()), String.valueOf(t.getZoneName())));
+        }
+        return out;
+    }
+
+    @Test
+    void test13_aLotWithTheNewVersions_givesTheSameProjectionAndPublicHistory_asWithTheOldOnes() {
+        List<Object> old = projectLot("1", false, null, null, null);
+        List<Object> withoutPhoto = projectLot("2", true, null, null, null);
+        List<Object> withPhoto = projectLot("3", true, "sha256:" + "a".repeat(64), "sha256:" + "b".repeat(64),
+                "sha256:" + "c".repeat(64));
+
+        assertEquals(10, old.size()); // 7 campos de la proyección y 3 pasos del historial
+        assertEquals("RECEIVED", old.get(0));
+        assertEquals(old, withoutPhoto);
+        assertEquals(old, withPhoto);
+    }
 }
