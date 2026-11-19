@@ -837,13 +837,10 @@ class DonationProjectionIntegrationTest {
         return doc;
     }
 
-    private List<Object> projectLot(String suffix, boolean newVersions, String registrationPhoto, String dispatchPhoto,
-                                    String receiptPhoto) {
+    private List<TraceabilityEventDocument> lotEvents(String suffix, boolean newVersions, String registrationPhoto,
+                                                      String dispatchPhoto, String receiptPhoto) {
         String fund = "fund-c" + suffix;
         String asset = "asset-c" + suffix;
-        projectionHandler.handleEvent(buildEvent(fund, "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
-        projectionHandler.handleEvent(buildEvent(fund, "Fund", 2, "ALLOCATION_REQUESTED",
-                Map.of("allocationId", "alloc-" + suffix, "requestedAmount", 1000L)));
         Map<String, Object> registered = new java.util.HashMap<>(Map.of("assetId", asset, "assetType", "FOOD",
                 "quantity", 10L, "unitOfMeasure", "KG", "currentLocation", "Bodega norte", "custodianRef", "cust-1",
                 "rootAssetRef", asset, "allocationId", "alloc-" + suffix, "organizationRef", "org-1"));
@@ -861,20 +858,32 @@ class DonationProjectionIntegrationTest {
             dispatched.put("evidenceRef", dispatchPhoto);
             received.put("evidenceRef", receiptPhoto);
         }
-        projectionHandler.handleEvent(versioned(asset, "PhysicalAsset", 1, "ASSET_REGISTERED", newVersions ? "5.0" : "4.0", registered));
-        projectionHandler.handleEvent(versioned(asset, "PhysicalAsset", 2, "ASSET_DISPATCHED", newVersions ? "3.0" : "2.0", dispatched));
-        projectionHandler.handleEvent(versioned(asset, "PhysicalAsset", 3, "ASSET_RECEIVED", newVersions ? "3.0" : "2.0", received));
+        return List.of(
+                buildEvent(fund, "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)),
+                buildEvent(fund, "Fund", 2, "ALLOCATION_REQUESTED", Map.of("allocationId", "alloc-" + suffix, "requestedAmount", 1000L)),
+                versioned(asset, "PhysicalAsset", 1, "ASSET_REGISTERED", newVersions ? "5.0" : "4.0", registered),
+                versioned(asset, "PhysicalAsset", 2, "ASSET_DISPATCHED", newVersions ? "3.0" : "2.0", dispatched),
+                versioned(asset, "PhysicalAsset", 3, "ASSET_RECEIVED", newVersions ? "3.0" : "2.0", received));
+    }
 
-        DonationProjectionDocument.LogisticsProjection log = projectionRepository.findById(fund).orElseThrow()
+    /** Lo que cuenta la proyección y el historial público de un lote ya proyectado. */
+    private List<Object> summaryOfLot(String suffix) {
+        DonationProjectionDocument.LogisticsProjection log = projectionRepository.findById("fund-c" + suffix).orElseThrow()
                 .getLogistics().get(0);
         List<Object> out = new java.util.ArrayList<>(List.of(log.getLifecycleStatus(), String.valueOf(log.getCurrentLocation()),
                 String.valueOf(log.getCurrentCustodian()), String.valueOf(log.getCurrentZoneName()),
                 String.valueOf(log.getCampaignRef()), log.getQuantity().toPlainString(), log.getAssetType()));
-        for (AssetHistoryProjectionDocument.AssetTransition t : historyRepository.findById(asset).orElseThrow().getTransitions()) {
+        for (AssetHistoryProjectionDocument.AssetTransition t : historyRepository.findById("asset-c" + suffix).orElseThrow().getTransitions()) {
             out.add(List.of(t.getSequence(), t.getEventType(), String.valueOf(t.getLocation()), String.valueOf(t.getCustodian()),
                     String.valueOf(t.getStatus()), String.valueOf(t.getZoneName())));
         }
         return out;
+    }
+
+    private List<Object> projectLot(String suffix, boolean newVersions, String registrationPhoto, String dispatchPhoto,
+                                    String receiptPhoto) {
+        lotEvents(suffix, newVersions, registrationPhoto, dispatchPhoto, receiptPhoto).forEach(projectionHandler::handleEvent);
+        return summaryOfLot(suffix);
     }
 
     @Test
@@ -888,5 +897,23 @@ class DonationProjectionIntegrationTest {
         assertEquals("RECEIVED", old.get(0));
         assertEquals(old, withoutPhoto);
         assertEquals(old, withPhoto);
+    }
+
+    // Lo mismo, pero reconstruyendo las proyecciones desde el Event Store (ProjectionRebuildService): las versiones
+    // nuevas tienen que reconstruirse igual que las anteriores
+    @Test
+    void test13_rebuildingTheProjectionsFromTheEventStore_givesTheSameResultForOldAndNewVersions() {
+        lotEvents("4", false, null, null, null).forEach(mongoTemplate::insert);
+        lotEvents("5", true, null, null, null).forEach(mongoTemplate::insert);
+        lotEvents("6", true, "sha256:" + "a".repeat(64), "sha256:" + "b".repeat(64), "sha256:" + "c".repeat(64))
+                .forEach(mongoTemplate::insert);
+
+        rebuildService.rebuildAll();
+
+        List<Object> old = summaryOfLot("4");
+        assertEquals("RECEIVED", old.get(0));
+        assertEquals(10, old.size());
+        assertEquals(old, summaryOfLot("5"));
+        assertEquals(old, summaryOfLot("6"));
     }
 }
