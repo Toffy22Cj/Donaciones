@@ -21,7 +21,7 @@ class PhysicalAssetTest {
             "A1", "VACCINE", new java.math.BigDecimal("10.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null, "CAMP-1"
         );
 
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) asset.getUncommittedEvents().get(0).payload();
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) asset.getUncommittedEvents().get(0).payload();
         assertEquals("CAMP-1", payload.campaignRef());
         assertNull(payload.donationRef());
         assertEquals("CAMP-1", asset.getCampaignRef());
@@ -33,7 +33,7 @@ class PhysicalAssetTest {
             "B1", "BLANKETS", new java.math.BigDecimal("5.0000"), "Units", "LOC_A", "CUST_A", null, "B1", null, null, "ORG_1", "DONOR_1", "DON_1", "CAMP-2"
         );
 
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) asset.getUncommittedEvents().get(0).payload();
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) asset.getUncommittedEvents().get(0).payload();
         assertEquals("CAMP-2", payload.campaignRef());
         assertEquals("DON_1", payload.donationRef());
     }
@@ -44,7 +44,7 @@ class PhysicalAssetTest {
             "A1", "VACCINE", new java.math.BigDecimal("10.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", null
         );
 
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) asset.getUncommittedEvents().get(0).payload();
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) asset.getUncommittedEvents().get(0).payload();
         assertNull(payload.campaignRef());
     }
 
@@ -82,7 +82,7 @@ class PhysicalAssetTest {
             "A1", "VACCINE", new java.math.BigDecimal("1.0000"), "Vial", "LOC_A", "CUST_A", null, "A1", "ALLOC_1", null, "ORG_1", "DONOR_1"
         );
 
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) asset.getUncommittedEvents().get(0).payload();
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) asset.getUncommittedEvents().get(0).payload();
         assertNull(payload.donationRef());
     }
 
@@ -103,7 +103,7 @@ class PhysicalAssetTest {
         assertNull(asset.getDonorRef());
 
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV4Payload);
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV5Payload);
     }
 
     @Test
@@ -129,7 +129,7 @@ class PhysicalAssetTest {
         assertEquals("CARRIER_1", asset.getCustodianRef());
         
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetDispatchedV2Payload); // ADR-029 Enmienda 2
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetDispatchedV3Payload); // ADR-029 Enmienda 2
     }
 
     @Test
@@ -335,8 +335,8 @@ class PhysicalAssetTest {
         assertEquals("DONATION_100", asset.getDonationRef());
 
         assertEquals(1, asset.getUncommittedEvents().size());
-        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV4Payload);
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) asset.getUncommittedEvents().get(0).payload();
+        assertTrue(asset.getUncommittedEvents().get(0).payload() instanceof AssetRegisteredV5Payload);
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) asset.getUncommittedEvents().get(0).payload();
         assertEquals("MEDICINE", payload.assetType());
         assertEquals("ORG_1", payload.organizationRef());
         assertEquals("DONOR_1", payload.donorRef());
@@ -383,11 +383,11 @@ class PhysicalAssetTest {
         DomainEventPayload payloadB = assetCaminoB.getUncommittedEvents().get(0).payload();
 
         // Same record class schema
-        assertEquals(AssetRegisteredV4Payload.class, payloadA.getClass());
-        assertEquals(AssetRegisteredV4Payload.class, payloadB.getClass());
+        assertEquals(AssetRegisteredV5Payload.class, payloadA.getClass());
+        assertEquals(AssetRegisteredV5Payload.class, payloadB.getClass());
 
-        AssetRegisteredV4Payload pA = (AssetRegisteredV4Payload) payloadA;
-        AssetRegisteredV4Payload pB = (AssetRegisteredV4Payload) payloadB;
+        AssetRegisteredV5Payload pA = (AssetRegisteredV5Payload) payloadA;
+        AssetRegisteredV5Payload pB = (AssetRegisteredV5Payload) payloadB;
 
         // Structural equality of components count/types, differing only in value for donationRef
         assertNull(pA.donationRef());

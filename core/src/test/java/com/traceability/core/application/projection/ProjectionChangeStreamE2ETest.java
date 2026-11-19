@@ -1,6 +1,6 @@
 package com.traceability.core.application.projection;
 
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.IdentityPrincipalPort;
 import com.traceability.core.application.command.FundCommandService;
@@ -246,8 +246,8 @@ class ProjectionChangeStreamE2ETest {
 
         // Premisa de la detección del Camino B (donationRef != null): el Camino A nunca la cumple.
         DomainEventPayload genesis = eventStore.loadStream(assetIdOfAllocation(allocationId)).get(0).payload();
-        assertThat(genesis).isInstanceOf(AssetRegisteredV4Payload.class);
-        assertThat(((AssetRegisteredV4Payload) genesis).donationRef()).isNull();
+        assertThat(genesis).isInstanceOf(AssetRegisteredV5Payload.class);
+        assertThat(((AssetRegisteredV5Payload) genesis).donationRef()).isNull();
     }
 
     @Test
