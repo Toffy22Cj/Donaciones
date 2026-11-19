@@ -9,7 +9,11 @@ public enum MediaPurpose {
 
     ORGANIZATION_LOGO(2 * 1024 * 1024),
     CAMPAIGN_COVER(2 * 1024 * 1024),
-    DELIVERY_EVIDENCE(5 * 1024 * 1024);
+    DELIVERY_EVIDENCE(5 * 1024 * 1024),
+    // ADR-051 Enmienda 2, E2-1: la foto opcional de registrar, despachar y recibir; mismas reglas que la entrega (5 MB)
+    REGISTRATION_EVIDENCE(5 * 1024 * 1024),
+    DISPATCH_EVIDENCE(5 * 1024 * 1024),
+    RECEIPT_EVIDENCE(5 * 1024 * 1024);
 
     private final int maxBytes;
 

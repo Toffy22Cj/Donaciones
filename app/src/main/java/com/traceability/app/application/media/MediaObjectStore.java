@@ -39,4 +39,11 @@ public interface MediaObjectStore {
      * tomó la escritura.
      */
     BindResult bindEvidence(String organizationId, String sha256, String assetId);
+
+    /**
+     * ADR-051 Enmienda 2, E2-1: lo mismo para la foto opcional de otro paso: la escritura condicional sobre
+     * {@code (organizationId, purpose, sha256)}. Una foto de otro propósito no existe para este (NOT_FOUND). El método de
+     * tres argumentos es el de la entrega ({@code DELIVERY_EVIDENCE}) y no cambia.
+     */
+    BindResult bindEvidence(String organizationId, String sha256, String assetId, MediaPurpose purpose);
 }

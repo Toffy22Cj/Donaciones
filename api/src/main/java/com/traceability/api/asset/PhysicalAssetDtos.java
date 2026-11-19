@@ -10,24 +10,27 @@ public final class PhysicalAssetDtos {
     /**
      * Camino A. Sin {@code organizationRef}: sale del JWT (DD-10). {@code municipalityCode}: el código DIVIPOLA de 5
      * dígitos, obligatorio (ADR-029 Enmienda 2); {@code currentLocation} sigue siendo texto libre y privado.
+     * {@code evidenceRef}, opcional (ADR-051 Enmienda 2, E2-1): la huella {@code sha256:} de la foto del registro.
      */
     public record RegisterRequest(String fundId, String assetType, String quantity, String unitOfMeasure, String custodianRef,
                            String currentLocation, String allocationId, String sourceAllocationId,
-                           String municipalityCode) {}
+                           String municipalityCode, String evidenceRef) {}
 
     /**
      * Camino B. Sin {@code organizationRef} (DD-10) ni {@code donorRef} (DD-9): si el cliente los envía, se ignoran.
-     * {@code municipalityCode} obligatorio (ADR-029 Enmienda 2).
+     * {@code municipalityCode} obligatorio (ADR-029 Enmienda 2). {@code evidenceRef}, opcional (ADR-051 Enmienda 2, E2-1).
      */
     public record RegisterFromDonationRequest(String assetType, String quantity, String unitOfMeasure, String custodianRef,
-                                       String currentLocation, String campaignRef, String municipalityCode) {}
+                                       String currentLocation, String campaignRef, String municipalityCode,
+                                       String evidenceRef) {}
 
     public record SplitRequest(String quantity) {}
 
-    public record DispatchRequest(String carrierRef) {}
+    /** {@code evidenceRef}, opcional (ADR-051 Enmienda 2, E2-1). */
+    public record DispatchRequest(String carrierRef, String evidenceRef) {}
 
-    /** {@code municipalityCode} obligatorio (ADR-029 Enmienda 2). */
-    public record ReceiveRequest(String facilityLocation, String receiverRef, String municipalityCode) {}
+    /** {@code municipalityCode} obligatorio (ADR-029 Enmienda 2). {@code evidenceRef}, opcional (ADR-051 Enmienda 2, E2-1). */
+    public record ReceiveRequest(String facilityLocation, String receiverRef, String municipalityCode, String evidenceRef) {}
 
     /** Sin {@code deliveredAt}: lo pone el servidor (DD-15). {@code municipalityCode} obligatorio (ADR-029 Enmienda 2). */
     public record DeliverRequest(String finalCustodianRef, String beneficiaryRef, String locationRef, String evidenceRef,

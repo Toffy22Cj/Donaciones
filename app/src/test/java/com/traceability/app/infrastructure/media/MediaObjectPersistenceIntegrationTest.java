@@ -290,4 +290,43 @@ class MediaObjectPersistenceIntegrationTest {
         assertThat(updates.get(0).getString("planSummary")).startsWith("IXSCAN").contains("organizationId: 1, purpose: 1, sha256: 1");
         assertThat(((Number) updates.get(0).get("docsExamined")).intValue()).isEqualTo(1);
     }
+
+    // ---- ADR-051 Enmienda 2, E2-1 (plan de la Tarea 1): el vínculo con el propósito del paso ----
+
+    private static MediaObjectDocument stepEvidence(String objectKey, MediaPurpose purpose, String sha256, String boundAssetId) {
+        return new MediaObjectDocument(null, objectKey, sha256, purpose, "org-1", null, "image/png", 10, 1, 1, "acct-1", NOW,
+                boundAssetId, null, null, null);
+    }
+
+    @Test
+    void bindEvidenceWithAPurpose_bindsOnlyAPhotoOfThatSamePurpose() {
+        repository.insert(stepEvidence("01JB0000000000000000000S01", MediaPurpose.DISPATCH_EVIDENCE, SHA, null));
+
+        // una foto de despacho no existe para la recepción, ni para el registro, ni para la entrega
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1", MediaPurpose.RECEIPT_EVIDENCE))
+                .isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1", MediaPurpose.REGISTRATION_EVIDENCE))
+                .isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1")).isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(boundAssetIdOf("01JB0000000000000000000S01")).isNull();
+
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1", MediaPurpose.DISPATCH_EVIDENCE))
+                .isEqualTo(MediaObjectStore.BindResult.BOUND);
+        assertThat(boundAssetIdOf("01JB0000000000000000000S01")).isEqualTo("asset-1");
+        // el mismo activo otra vez, sin error; otro activo, BOUND_TO_OTHER y el vínculo no cambia
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1", MediaPurpose.DISPATCH_EVIDENCE))
+                .isEqualTo(MediaObjectStore.BindResult.BOUND);
+        assertThat(store.bindEvidence("org-1", SHA, "asset-2", MediaPurpose.DISPATCH_EVIDENCE))
+                .isEqualTo(MediaObjectStore.BindResult.BOUND_TO_OTHER);
+        assertThat(boundAssetIdOf("01JB0000000000000000000S01")).isEqualTo("asset-1");
+    }
+
+    // la entrega no cambia: el método de tres argumentos sigue vinculando solo DELIVERY_EVIDENCE
+    @Test
+    void theThreeArgumentBindEvidence_stillBindsOnlyDeliveryEvidence() {
+        repository.insert(evidence("01JB0000000000000000000S02", "org-1", SHA, null, null));
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1", MediaPurpose.DISPATCH_EVIDENCE))
+                .isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
+        assertThat(store.bindEvidence("org-1", SHA, "asset-1")).isEqualTo(MediaObjectStore.BindResult.BOUND);
+    }
 }

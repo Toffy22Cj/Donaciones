@@ -15,8 +15,8 @@ import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.AssetIds;
-import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
-import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
 import com.traceability.core.support.StubMunicipalityCatalogPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
@@ -203,11 +203,11 @@ class AssetHttpCommandsIntegrationTest {
 
         List<DomainEvent> stream = eventStore.loadStream(assetId);
         assertThat(stream).hasSize(3);
-        // ADR-029 Enmienda 2: 2.0, con la zona sellada (el despacho copia la del registro)
-        assertThat(stream.get(1).payload()).isEqualTo(new AssetDispatchedV2Payload("CARRIER-1", "WH-1", "05001",
-                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION));
-        assertThat(stream.get(2).payload()).isEqualTo(new AssetReceivedV2Payload("WH-2", "RECEIVER-1", "05001",
-                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION));
+        // ADR-029 Enmienda 2: con la zona sellada (el despacho copia la del registro); ADR-051 Enmienda 2: 3.0, sin foto
+        assertThat(stream.get(1).payload()).isEqualTo(new AssetDispatchedV3Payload("CARRIER-1", "WH-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION, null));
+        assertThat(stream.get(2).payload()).isEqualTo(new AssetReceivedV3Payload("WH-2", "RECEIVER-1", "05001",
+                "MEDELLÍN, ANTIOQUIA", StubMunicipalityCatalogPort.VERSION, null));
         assertThat(reads.findOperationalView(assetId, actor(EMPLOYEE)).lifecycleStatus()).isEqualTo("RECEIVED");
     }
 

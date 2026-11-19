@@ -6,6 +6,7 @@ import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayloa
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.core.infrastructure.projection.mongo.documents.AssetIndexDocument;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationProjectionDocument;
 import com.traceability.core.infrastructure.projection.mongo.repositories.AssetIndexRepository;
@@ -60,6 +61,12 @@ public class AssetProjectionRouting {
 
     /** Vista común si el payload es un {@code ASSET_REGISTERED} de cualquier versión. */
     public static Optional<Registration> registration(DomainEventPayload payload) {
+        // ADR-051 Enmienda 2: la 5.0 es la 4.0 con la foto opcional; la vista común es la misma
+        if (payload instanceof AssetRegisteredV5Payload p) {
+            return Optional.of(new Registration(p.assetId(), p.allocationId(), p.sourceAllocationId(),
+                    p.parentAssetRef(), p.rootAssetRef(), p.quantity(), p.unitOfMeasure(), p.assetType(),
+                    p.currentLocation(), p.custodianRef(), p.donationRef(), p.campaignRef(), p.zoneName()));
+        }
         if (payload instanceof AssetRegisteredV4Payload p) {
             return Optional.of(new Registration(p.assetId(), p.allocationId(), p.sourceAllocationId(),
                     p.parentAssetRef(), p.rootAssetRef(), p.quantity(), p.unitOfMeasure(), p.assetType(),

@@ -91,6 +91,10 @@ public class PlatformMediaRemovalController {
                 }
                 yield covers.removeAsPlatform(principal.accountId(), organizationId, request.ref());
             }
+            // ADR-051 Enmienda 2, E2-1 y E2-7: las fotos opcionales de registrar, despachar y recibir. Su retirada por F7
+            // llega con la tarea 3 (retirada ampliada), no antes: hasta entonces el propósito se rechaza como inválido
+            case REGISTRATION_EVIDENCE, DISPATCH_EVIDENCE, RECEIPT_EVIDENCE ->
+                    throw new InvalidRequestFieldException("purpose");
         };
         objectKey.ifPresent(key -> discard(key, principal.accountId(), reason));
         return ResponseEntity.noContent().build();
