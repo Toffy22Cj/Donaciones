@@ -485,7 +485,8 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     // Q-T2-1: último evento del paso por defecto, ?sequence= para uno concreto
     @Test
     void c13_aRepeatedStep_readsTheLatestByDefault_andASpecificOneBySequence() throws Exception {
-        Lot lot = lot(null, freshPhoto("DISPATCHED"), null);
+        // con foto también al registrar: así la sequence del registro SÍ tiene foto y no puede colarse como la de un despacho
+        Lot lot = lot(freshPhoto("REGISTERED"), freshPhoto("DISPATCHED"), null);
         String second = freshPhoto("DISPATCHED");
         dispatch(lot.assetRef(), second); // re-despacho (el lote estaba recibido)
 

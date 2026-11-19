@@ -329,4 +329,36 @@ class MediaObjectPersistenceIntegrationTest {
                 .isEqualTo(MediaObjectStore.BindResult.NOT_FOUND);
         assertThat(store.bindEvidence("org-1", SHA, "asset-1")).isEqualTo(MediaObjectStore.BindResult.BOUND);
     }
+
+    // ---- ADR-051 Enmienda 2, Tarea 2 (plan §2.2): el índice único de las fotos de los pasos ----
+
+    private static MediaObject stepObject(String objectKey, MediaPurpose purpose, String organizationId, String sha256) {
+        return new MediaObject(objectKey, sha256, purpose, organizationId, null, "image/png", 10, 1, 1, "acct-1", NOW, null);
+    }
+
+    // la misma imagen dos veces en el mismo propósito y organización → DuplicateEvidenceException (el índice, traducido)
+    @Test
+    void insert_theSameStepEvidenceTwice_isADuplicate_forEachStepPurpose() {
+        for (MediaPurpose purpose : new MediaPurpose[] {MediaPurpose.REGISTRATION_EVIDENCE, MediaPurpose.DISPATCH_EVIDENCE,
+                MediaPurpose.RECEIPT_EVIDENCE}) {
+            String sha = String.format("%064x", purpose.ordinal() + 900);
+            store.insert(stepObject("01JB00000000000000000S1" + purpose.ordinal(), purpose, "org-1", sha));
+
+            assertThatThrownBy(() -> store.insert(stepObject("01JB00000000000000000S2" + purpose.ordinal(), purpose, "org-1", sha)))
+                    .as(purpose.name()).isInstanceOf(DuplicateEvidenceException.class);
+            assertThat(repository.findAll().stream().filter(d -> d.sha256().equals(sha))).hasSize(1);
+        }
+    }
+
+    // en propósitos distintos, o en otra organización, la misma imagen son objetos separados
+    @Test
+    void insert_theSameImageInAnotherPurposeOrOrganization_isAllowed() {
+        String sha = String.format("%064x", 4242);
+        store.insert(stepObject("01JB00000000000000000T01", MediaPurpose.DISPATCH_EVIDENCE, "org-1", sha));
+
+        store.insert(stepObject("01JB00000000000000000T02", MediaPurpose.RECEIPT_EVIDENCE, "org-1", sha));
+        store.insert(stepObject("01JB00000000000000000T03", MediaPurpose.DISPATCH_EVIDENCE, "org-2", sha));
+
+        assertThat(repository.findAll().stream().filter(d -> d.sha256().equals(sha))).hasSize(3);
+    }
 }
