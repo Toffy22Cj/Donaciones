@@ -1,6 +1,6 @@
 package com.traceability.app.web.asset;
 
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.traceability.app.TraceabilityApplication;
@@ -197,8 +197,8 @@ class PhysicalAssetHttpIntegrationTest {
         // Criterios 15 y 16
         assertThat(read(child).get("quantity").asText()).isEqualTo("4.0000");
         assertThat(read(parent).get("quantity").asText()).isEqualTo("6.0000");
-        AssetRegisteredV4Payload parentGenesis = (AssetRegisteredV4Payload) eventStore.loadStream(parent).get(0).payload();
-        AssetRegisteredV4Payload childGenesis = (AssetRegisteredV4Payload) eventStore.loadStream(child).get(0).payload();
+        AssetRegisteredV5Payload parentGenesis = (AssetRegisteredV5Payload) eventStore.loadStream(parent).get(0).payload();
+        AssetRegisteredV5Payload childGenesis = (AssetRegisteredV5Payload) eventStore.loadStream(child).get(0).payload();
         assertThat(childGenesis.organizationRef()).isEqualTo(ORG);
         assertThat(childGenesis.donorRef()).isEqualTo(parentGenesis.donorRef());
         assertThat(childGenesis.donationRef()).isEqualTo(parentGenesis.donationRef());
@@ -314,7 +314,7 @@ class PhysicalAssetHttpIntegrationTest {
         assertThat(r.statusCode()).isEqualTo(201);
         String assetRef = json.readTree(r.body()).get("assetRef").asText();
         DomainEvent genesis = eventStore.loadStream(assetRef).get(0);
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) genesis.payload();
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) genesis.payload();
         assertThat(payload.donorRef()).startsWith("anon:").doesNotContain("Juan");
         assertThat(payload.organizationRef()).isEqualTo(ORG);
         assertThat(r.body()).doesNotContain("donorRef").doesNotContain("anon:");
