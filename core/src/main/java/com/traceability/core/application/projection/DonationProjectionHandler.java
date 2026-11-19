@@ -124,7 +124,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         }
 
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
 
         // Update Snapshot and Allocations using MongoTemplate update for efficiency if exists, 
         // but for Fund it's easier to modify the object and save it since it's a single document
@@ -214,7 +214,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             }
             return;
         }
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
         Optional<AssetProjectionRouting.Registration> registration = AssetProjectionRouting.registration(payload);
 
         String projectionId = routing.resolveProjectionId(assetId, payload, true);
