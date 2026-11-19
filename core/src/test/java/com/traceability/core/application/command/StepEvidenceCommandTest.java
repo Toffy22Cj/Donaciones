@@ -122,7 +122,8 @@ class StepEvidenceCommandTest {
     }
 
     private void neverBound() {
-        verify(evidencePort, never()).bindToAsset(anyString(), anyString(), anyString(), any(EvidenceStep.class));
+        // any(): anyString() no acepta null, y un vínculo con foto nula también tiene que contar como llamada
+        verify(evidencePort, never()).bindToAsset(any(), any(), any(), any());
     }
 
     // ---- dispatch ----
