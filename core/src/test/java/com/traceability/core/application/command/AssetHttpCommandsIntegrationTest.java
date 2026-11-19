@@ -266,8 +266,8 @@ class AssetHttpCommandsIntegrationTest {
     void reads_requireTheEmployeeRoleAndTheOrganization() {
         String assetId = registerInKind(UUID.randomUUID().toString());
 
-        assertThatThrownBy(() -> reads.findOperationalView(assetId, actor(ADMIN_ONLY)))
-                .isInstanceOf(InsufficientRoleException.class);
+        // ADR-032 Enmienda 1 (PROPUESTA): un ADMINISTRATOR de la misma organización YA puede leer; antes daba 403
+        assertThat(reads.findOperationalView(assetId, actor(ADMIN_ONLY)).assetRef()).isEqualTo(assetId);
         assertThatThrownBy(() -> reads.findOperationalView(assetId, actor(OTHER_EMPLOYEE)))
                 .isInstanceOf(CrossOrganizationAccessException.class);
         assertThatThrownBy(() -> reads.findSplitStatus(assetId, UUID.randomUUID().toString(), actor(OTHER_EMPLOYEE)))

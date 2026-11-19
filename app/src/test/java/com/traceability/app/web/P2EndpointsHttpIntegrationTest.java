@@ -77,6 +77,7 @@ class P2EndpointsHttpIntegrationTest {
     @Autowired private CreateOrganizationService organizations;
     @Autowired private AddEmployeeService employees;
     @Autowired private AssignAdministratorService administrators;
+    @Autowired private identity.application.service.RemoveEmployeeService removeEmployees;
     @Autowired private BootstrapPlatformAuthorityService bootstrap;
     @Autowired private DeactivateAccountService deactivations;
 
@@ -377,6 +378,51 @@ class P2EndpointsHttpIntegrationTest {
 
         assertThat(send("GET", "/api/v1/public/campaigns?cursor=%21%21", null, null).statusCode()).isEqualTo(400);
         assertThat(send("GET", "/api/v1/public/campaigns?cursor=eA", null, null).statusCode()).isEqualTo(400);
+    }
+
+    // --- ADR-032 Enmienda 1 (plan 1 de plan-tanda-2026-11-19.md, tests 7 y 8): la ficha del lote por rol ---
+
+    @Test
+    void assetRead_administratorOnlyAndRepresentativeRead200_otherOrganizationAndMissingAre403WithIdenticalBody() throws Exception {
+        // un ADMINISTRATOR sin EMPLOYEE: la membresía se crea como empleado y luego se le quita ese papel
+        String adminOnly = administratorOf(org);
+        removeEmployees.removeEmployee(SETUP, new identity.domain.model.OrganizationId(org), new AccountId(adminOnly));
+        String asset = ok(send("POST", "/api/v1/physical-assets/from-donation", employee, """
+                {"assetType":"FOOD","quantity":"10","unitOfMeasure":"KGS","custodianRef":"CUST-1","currentLocation":"WH-1","municipalityCode":"05001"}"""),
+                201).get("assetRef").asText();
+        String path = "/api/v1/physical-assets/" + asset;
+
+        JsonNode byEmployee = ok(send("GET", path, employee, null), 200);
+        assertThat(ok(send("GET", path, adminOnly, null), 200)).isEqualTo(byEmployee);
+        assertThat(ok(send("GET", path, representative, null), 200)).isEqualTo(byEmployee);
+        assertThat(byEmployee.fieldNames()).toIterable().doesNotContain("donorRef", "parentAssetRef", "rootAssetRef");
+
+        // otra organización, una cuenta sin organización, un activo inexistente: el mismo 403, sin oráculo de existencia
+        HttpResponse<String> foreign = send("GET", path, otherAdmin, null);
+        HttpResponse<String> noOrganization = send("GET", path, loner, null);
+        HttpResponse<String> missing = send("GET", "/api/v1/physical-assets/" + UUID.randomUUID(), adminOnly, null);
+        assertThat(foreign.statusCode()).isEqualTo(403);
+        assertThat(noOrganization.statusCode()).isEqualTo(403);
+        assertThat(missing.statusCode()).isEqualTo(403);
+        assertThat(withoutInstance(noOrganization.body())).isEqualTo(withoutInstance(foreign.body()));
+        assertThat(withoutInstance(missing.body())).isEqualTo(withoutInstance(foreign.body()));
+        assertThat(send("GET", path, null, null).statusCode()).isEqualTo(401);
+        // el administrador de plataforma no entra por esta ruta
+        assertThat(send("GET", path, platformAdmin, null).statusCode()).isEqualTo(403);
+
+        // abrir la lectura NO abre ningún comando: el mismo 403 para cada uno, sin escribir
+        for (String who : new String[] {adminOnly, representative}) {
+            assertThat(send("POST", path + "/dispatch", who, "{\"carrierRef\":\"C\"}").statusCode()).as("dispatch " + who).isEqualTo(403);
+            assertThat(send("POST", path + "/split", who, "{\"quantity\":\"1\"}").statusCode()).as("split " + who).isEqualTo(403);
+        }
+        assertThat(ok(send("GET", path, employee, null), 200).get("lifecycleStatus").asText()).isEqualTo("REGISTERED");
+    }
+
+    /** El cuerpo de un problema sin su {@code instance}, que lleva la ruta pedida y por eso difiere. */
+    private String withoutInstance(String body) throws Exception {
+        com.fasterxml.jackson.databind.node.ObjectNode node = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(body);
+        node.remove("instance");
+        return node.toString();
     }
 
     // --- P2.7 activos y miembros ---
