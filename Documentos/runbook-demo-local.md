@@ -109,6 +109,44 @@ La semilla (`DemoScenarioSeeder`) corre al arrancar, **solo sobre una base vací
 
 Si la semilla corre a menos de un día del día de la demo, la activa dura 40 días desde ese momento y el fichero lo avisa.
 
+## 4c. Datos de muestra históricos (perfil `demo-historico`)
+
+*Añadido el 2026-11-16 (plan `plan-paso2-datos-historicos-2026-11-16.md`).* Sirve para ver cómo responde la predicción en cada caso y para que los gráficos tengan datos: convocatorias **sintéticas** con fechas pasadas, varios meses de fondos y lotes en todos los estados. Se suma al paso 4b; no lo sustituye.
+
+```bash
+docker compose -f scripts/demo/docker-compose.yml down -v && docker compose -f scripts/demo/docker-compose.yml up -d
+# repetir el paso 3 (contrato) con la Ganache nueva
+set -a; . scripts/demo/demo.env; set +a
+export SPRING_PROFILES_ACTIVE=dev,demo-seed,demo-historico TRACEABILITY_DEMO_SEED_ENABLED=false
+mvn -q -pl app spring-boot:run
+# en el log, después de "Semilla de la demo completa": "Semilla histórica completa: 10 convocatorias y 10 lotes sintéticos…"
+```
+
+- **Qué hace.** Primero corre la semilla de `demo-seed`, sin cambios. Después, `DemoHistoricSeeder` añade a «Fundación Demo PaxFide» diez convocatorias cuyo título empieza por **«[Demo]»**. Se entra con las mismas cuentas y la misma contraseña del paso 4b.
+- **Cómo lo hace.** Por los mismos servicios de aplicación que usa la API; **nunca con inserciones directas**. Lo único distinto es la fecha: `occurredAt`, `confirmedAt` y `createdAt` son del pasado; `recordedAt`, la cadena de hashes y el anclaje son los de siempre, con la hora real.
+- **Solo en local.** El perfil exige `dev`: sin él, la aplicación no arranca (`DemoHistoricProfileNotAllowedException`). Sin el perfil, fechar un hecho en el pasado es imposible (`SimulatedTimeNotEnabledException`).
+- **Si no puede correr**, se detiene sin crear nada: falta el escenario de `demo-seed` (arrancar con los tres perfiles sobre una base vacía) o las convocatorias «[Demo]» ya existen (vaciar la base).
+
+| Convocatoria | Al sembrar | `/prediction` | Cuánto dura el caso |
+|---|---|---|---|
+| [Demo] Antes del rango (120 d) | 7 % | `OUTSIDE_TRAINED_RANGE` | unos 9 días; después entra en el rango y da cifra |
+| [Demo] Inicio del rango (200 d) | 17 % | cifra | unos 66 días con cifra |
+| [Demo] Un cuarto (200 d) | 25 % | cifra | unos 50 días con cifra |
+| [Demo] Cuarenta por ciento (200 d) | 40 % | cifra; cortes del 15 % y el 25 % con cifra | unos 20 días con cifra |
+| [Demo] Cerca del límite (300 d) | 47 % | cifra | **unos 9 días**; después, `OUTSIDE_TRAINED_RANGE` |
+| [Demo] Después del rango (200 d) | 65 % | `OUTSIDE_TRAINED_RANGE`; los tres cortes con cifra | unos 70 días, hasta que termina |
+| [Demo] Meta alcanzada (120 d) | 30 % | `TARGET_ALREADY_REACHED` | unos 84 días, hasta que termina |
+| [Demo] Política estricta (120 d, STRICT) | 30 % | `STRICT_POLICY_EXCLUDED` | siempre |
+| [Demo] En dólares (120 d, USD) | 30 % | `UNSUPPORTED_CURRENCY` | siempre |
+| [Demo] Cerrada antes de tiempo (100 d) | 20 %, cerrada al 5 % | `CAMPAIGN_ENDED`; los tres cortes `CAMPAIGN_ENDED` | siempre |
+
+**El escenario envejece.** Los porcentajes son los del momento de sembrar y avanzan con el calendario: el caso más frágil («Cerca del límite») sale del rango a los nueve días. **Para refrescarlo hay que resembrar**: repetir el bloque de arriba desde `down -v`.
+
+Además deja:
+- donaciones confirmadas a lo largo de unos cinco meses (para `/funds/monthly`), pagos fallidos, una donación rechazada por exceder la meta en la STRICT y tres intenciones `PENDING` sin resolver;
+- lotes en especie en «Cuarenta por ciento» y «Después del rango»: registrado, despachado, recibido y entregado (con una imagen sintética de evidencia) en cada una, y uno dividido en la segunda. **El hijo de la división lleva fecha real**: lo crea una saga en otro hilo;
+- la actividad de la organización (`/activity`) ordenada por `recordedAt`: todo lo sembrado aparece como reciente, aunque su `occurredAt` sea antiguo.
+
 ## 5. Recorrido del golden path, guardando la evidencia
 
 ```bash

@@ -73,6 +73,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         MongoAuditLogAdapter.class,
         MongoOrganizationRepositoryAdapter.class,
         MongoPasswordResetTokenRepositoryAdapter.class,
+        identity.infrastructure.persistence.mongo.repositories.MongoDeviceCredentialRepositoryAdapter.class,
+        DeviceCredentialService.class,
         MongoPlatformAuthorityStateAdapter.class,
         BCryptPasswordHasherAdapter.class,
         MongoTransactionRetryHelper.class,

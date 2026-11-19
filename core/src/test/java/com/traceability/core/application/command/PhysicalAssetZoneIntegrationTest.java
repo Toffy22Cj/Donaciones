@@ -10,9 +10,9 @@ import com.traceability.core.domain.event.HumanActor;
 import com.traceability.core.domain.event.SystemActor;
 import com.traceability.core.domain.fund.OrganizationRef;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
-import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
-import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPort;
 import com.traceability.core.infrastructure.authorization.TestIdentityPrincipalPortConfig;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
@@ -184,13 +184,13 @@ class PhysicalAssetZoneIntegrationTest {
                 Instant.parse("2026-11-02T12:00:00Z"), SYSTEM);
 
         List<DomainEventPayload> p = payloads(assetId);
-        AssetRegisteredV4Payload registered = (AssetRegisteredV4Payload) p.get(0);
+        AssetRegisteredV5Payload registered = (AssetRegisteredV5Payload) p.get(0);
         assertThat(registered.zoneName()).isEqualTo("MEDELLÍN, ANTIOQUIA");
         assertThat(registered.catalogVersion()).isEqualTo(StubMunicipalityCatalogPort.VERSION);
-        AssetDispatchedV2Payload dispatched = (AssetDispatchedV2Payload) p.get(1);
+        AssetDispatchedV3Payload dispatched = (AssetDispatchedV3Payload) p.get(1);
         assertThat(dispatched.zoneName()).as("lo sellado, no el catálogo de hoy").isEqualTo("MEDELLÍN, ANTIOQUIA");
         assertThat(dispatched.catalogVersion()).isEqualTo(StubMunicipalityCatalogPort.VERSION);
-        AssetReceivedV2Payload received = (AssetReceivedV2Payload) p.get(2);
+        AssetReceivedV3Payload received = (AssetReceivedV3Payload) p.get(2);
         assertThat(received.municipalityCode()).isEqualTo("05002");
         assertThat(received.zoneName()).isEqualTo("ABEJORRAL, ANTIOQUIA");
         AssetDeliveredV2Payload delivered = (AssetDeliveredV2Payload) p.get(3);
@@ -205,7 +205,7 @@ class PhysicalAssetZoneIntegrationTest {
                 BigDecimal.TEN, "UNITS", "CUST-1", "Bodega", "08001", null, new HumanActor(EMPLOYEE));
         String assetId = mongoTemplate.findOne(new Query(Criteria.where("aggregateType").is("PhysicalAsset")),
                 TraceabilityEventDocument.class).getStreamId();
-        AssetRegisteredV4Payload genesis = (AssetRegisteredV4Payload) payloads(assetId).get(0);
+        AssetRegisteredV5Payload genesis = (AssetRegisteredV5Payload) payloads(assetId).get(0);
         assertThat(genesis.municipalityCode()).isEqualTo("08001");
         assertThat(genesis.zoneName()).isEqualTo("BARRANQUILLA, ATLÁNTICO");
     }

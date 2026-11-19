@@ -1,6 +1,9 @@
 package com.traceability.app.infrastructure.media;
 
 import com.traceability.app.application.media.DuplicateEvidenceException;
+import com.traceability.app.application.media.DuplicateRedactedCopyException;
+import com.traceability.app.application.media.Publication;
+import com.traceability.app.application.media.PublicationDecision;
 import com.traceability.app.application.media.MediaObject;
 import com.traceability.app.application.media.MediaObjectStore;
 import com.traceability.app.application.media.MediaPurpose;
@@ -12,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -38,8 +42,14 @@ public class MongoMediaObjectStore implements MediaObjectStore {
                     mediaObject.contentType(), mediaObject.sizeBytes(), mediaObject.width(), mediaObject.height(),
                     mediaObject.uploadedBy(), mediaObject.uploadedAt(), null, null, null, null));
         } catch (DuplicateKeyException e) {
-            if (String.valueOf(e.getMessage()).contains(MediaObjectDocument.EVIDENCE_SHA256_INDEX)) {
+            String message = String.valueOf(e.getMessage());
+            if (message.contains(MediaObjectDocument.EVIDENCE_SHA256_INDEX)
+                    || message.contains(MediaObjectDocument.STEP_EVIDENCE_SHA256_INDEX)) {
                 throw new DuplicateEvidenceException("A delivery evidence with the same bytes already exists");
+            }
+            // ADR-051 Enmienda 2, Tarea 3: la copia censurada de esa original ya existe («ya existe», nunca un error)
+            if (message.contains(MediaObjectDocument.REDACTED_OWNER_INDEX)) {
+                throw new DuplicateRedactedCopyException("The redacted copy of this original already exists");
             }
             throw e;
         }
@@ -59,10 +69,39 @@ public class MongoMediaObjectStore implements MediaObjectStore {
 
     @Override
     public void markDeleted(String objectKey, String deletedBy, Instant deletedAt, String reason) {
-        // sin metadato no hay nada que marcar (un archivo huérfano de F2 nunca tuvo metadato)
-        repository.findByObjectKey(objectKey).ifPresent(d -> repository.save(new MediaObjectDocument(d.id(),
-                d.objectKey(), d.sha256(), d.purpose(), d.organizationId(), d.ownerRef(), d.contentType(), d.sizeBytes(),
-                d.width(), d.height(), d.uploadedBy(), d.uploadedAt(), d.boundAssetId(), deletedAt, deletedBy, reason)));
+        // sin metadato no hay nada que marcar (un archivo huérfano de F2 nunca tuvo metadato). Un update, no un guardado del
+        // documento entero: así el historial de publicación (E2-5) nunca se pisa
+        mongoTemplate.updateFirst(Query.query(Criteria.where("objectKey").is(objectKey)),
+                new Update().set("deletedAt", deletedAt).set("deletedBy", deletedBy).set("reason", reason),
+                MediaObjectDocument.class);
+    }
+
+    @Override
+    public Optional<MediaObject> findByOrganizationIdAndPurposeAndOwnerRef(String organizationId, MediaPurpose purpose,
+                                                                           String ownerRef) {
+        return Optional.ofNullable(mongoTemplate.findOne(Query.query(Criteria.where("organizationId").is(organizationId)
+                        .and("purpose").is(purpose).and("ownerRef").is(ownerRef)), MediaObjectDocument.class))
+                .map(MongoMediaObjectStore::toMediaObject);
+    }
+
+    /**
+     * Una sola escritura condicional y atómica por decisión (E2-5): {@code $push} al final del historial y el estado
+     * derivado {@code published} en la MISMA operación. {@code PUBLISH} solo si no está borrada ni ya publicada;
+     * {@code UNPUBLISH}, solo si está publicada. Sin coincidencia no se añade nada.
+     */
+    @Override
+    public boolean appendPublicationDecision(String objectKey, PublicationDecision decision) {
+        boolean publish = decision.action() == PublicationDecision.Action.PUBLISH;
+        Criteria filter = Criteria.where("objectKey").is(objectKey).and("deletedAt").is(null);
+        filter = publish ? filter.and("published").ne(true) : filter.and("published").is(true);
+        Update update = new Update().push("publicationDecisions", decision).set("published", publish);
+        return mongoTemplate.updateFirst(Query.query(filter), update, MediaObjectDocument.class).getModifiedCount() == 1;
+    }
+
+    @Override
+    public Optional<Publication> findPublication(String objectKey) {
+        return repository.findByObjectKey(objectKey).map(d -> new Publication(Boolean.TRUE.equals(d.published()),
+                d.publicationDecisions() == null ? List.of() : List.copyOf(d.publicationDecisions())));
     }
 
     /**
@@ -72,8 +111,14 @@ public class MongoMediaObjectStore implements MediaObjectStore {
      */
     @Override
     public BindResult bindEvidence(String organizationId, String sha256, String assetId) {
+        return bindEvidence(organizationId, sha256, assetId, MediaPurpose.DELIVERY_EVIDENCE);
+    }
+
+    /** Lo mismo con el propósito del paso (ADR-051 Enmienda 2, E2-1); la entrega usa {@code DELIVERY_EVIDENCE}. */
+    @Override
+    public BindResult bindEvidence(String organizationId, String sha256, String assetId, MediaPurpose purpose) {
         Criteria evidence = Criteria.where("organizationId").is(organizationId)
-                .and("purpose").is(MediaPurpose.DELIVERY_EVIDENCE)
+                .and("purpose").is(purpose)
                 .and("sha256").is(sha256);
         Query conditional = new Query(new Criteria().andOperator(evidence, Criteria.where("deletedAt").is(null),
                 Criteria.where("boundAssetId").in(null, assetId)));

@@ -8,10 +8,13 @@ import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitV4Payload;
 import org.junit.jupiter.api.Test;
 
@@ -65,7 +68,7 @@ class PhysicalAssetZoneTest {
     @Test
     void registerReceiveAndDeliver_sealTheZone_andDispatchCopiesThePreviousOne() {
         PhysicalAsset asset = registered(MEDELLIN);
-        AssetRegisteredV4Payload genesis = (AssetRegisteredV4Payload) last(asset);
+        AssetRegisteredV5Payload genesis = (AssetRegisteredV5Payload) last(asset);
         assertThat(genesis.municipalityCode()).isEqualTo("05001");
         assertThat(genesis.zoneName()).isEqualTo("MEDELLÍN, ANTIOQUIA");
         assertThat(genesis.catalogVersion()).isEqualTo(V);
@@ -73,14 +76,14 @@ class PhysicalAssetZoneTest {
 
         // test 5 (P2): el despacho no recibe zona; sella la del paso anterior
         asset.dispatch("carrier-1");
-        AssetDispatchedV2Payload dispatched = (AssetDispatchedV2Payload) last(asset);
+        AssetDispatchedV3Payload dispatched = (AssetDispatchedV3Payload) last(asset);
         assertThat(dispatched.municipalityCode()).isEqualTo("05001");
         assertThat(dispatched.zoneName()).isEqualTo("MEDELLÍN, ANTIOQUIA");
         assertThat(dispatched.catalogVersion()).isEqualTo(V);
         assertThat(dispatched.previousLocation()).isEqualTo("Bodega norte");
 
         asset.receive("Centro de acopio", "receiver-1", ABEJORRAL);
-        AssetReceivedV2Payload received = (AssetReceivedV2Payload) last(asset);
+        AssetReceivedV3Payload received = (AssetReceivedV3Payload) last(asset);
         assertThat(received.municipalityCode()).isEqualTo("05002");
         assertThat(received.zoneName()).isEqualTo("ABEJORRAL, ANTIOQUIA");
         assertThat(asset.getZone()).isEqualTo(ABEJORRAL);
@@ -104,7 +107,7 @@ class PhysicalAssetZoneTest {
         assertThat(again.getZone()).isEqualTo(ABEJORRAL);
 
         again.dispatch("carrier-2");
-        assertThat(((AssetDispatchedV2Payload) last(again)).municipalityCode()).isEqualTo("05002");
+        assertThat(((AssetDispatchedV3Payload) last(again)).municipalityCode()).isEqualTo("05002");
         history.add(last(again));
         PhysicalAsset onTheRoad = PhysicalAsset.rehydrate("asset-1", history, history.size());
         assertThat(onTheRoad.getZone()).as("en camino conserva la zona del paso anterior").isEqualTo(ABEJORRAL);
@@ -122,7 +125,7 @@ class PhysicalAssetZoneTest {
         assertThat(split.catalogVersion()).isEqualTo(V);
 
         PhysicalAsset child = PhysicalAsset.registerSplitChild(rehydrate(parent), "child-1");
-        AssetRegisteredV4Payload genesis = (AssetRegisteredV4Payload) last(child);
+        AssetRegisteredV5Payload genesis = (AssetRegisteredV5Payload) last(child);
         assertThat(genesis.municipalityCode()).isEqualTo("05002");
         assertThat(genesis.zoneName()).isEqualTo("ABEJORRAL, ANTIOQUIA");
         assertThat(genesis.catalogVersion()).isEqualTo(V);
@@ -159,7 +162,7 @@ class PhysicalAssetZoneTest {
 
         PhysicalAsset again = PhysicalAsset.rehydrate("asset-old", history, 1);
         again.dispatch("carrier-1");
-        AssetDispatchedV2Payload dispatched = (AssetDispatchedV2Payload) last(again);
+        AssetDispatchedV3Payload dispatched = (AssetDispatchedV3Payload) last(again);
         assertThat(dispatched.municipalityCode()).isNull();
         assertThat(dispatched.zoneName()).isNull();
         assertThat(dispatched.catalogVersion()).isNull();

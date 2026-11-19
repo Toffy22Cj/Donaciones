@@ -1,7 +1,7 @@
 {
-  "modelVersion": "baseline-0.2.0",
+  "modelVersion": "baseline-0.3.0",
   "datasetVersion": "synthetic-v1",
-  "datasetSha256": "ccbfbf9dbfc06865639a11f673ec0ea25537b49c67cccde420b120feabe9fb8f",
+  "datasetSha256": "2d235ef5504720b4370567c33ee29a5ad326c2f3cb035a562a65e48abea0e67a",
   "synthetic": true,
   "sklearnVersion": "1.9.1",
   "split": {
@@ -63,125 +63,125 @@
       }
     },
     "logistic_regression": {
-      "cvBrierMean": 0.0789,
-      "cvBrierStd": 0.0076,
+      "cvBrierMean": 0.0787,
+      "cvBrierStd": 0.0064,
       "test": {
         "n": 513,
         "positiveRate": 0.6257,
-        "brier": 0.0978,
-        "logLoss": 0.3413,
-        "rocAuc": 0.9332,
-        "ece": 0.043,
+        "brier": 0.0979,
+        "logLoss": 0.3437,
+        "rocAuc": 0.933,
+        "ece": 0.0523,
         "accuracyAt0_5": 0.8752
       },
       "testByT": {
         "0.15": {
           "n": 204,
           "positiveRate": 0.6863,
-          "brier": 0.1077,
-          "logLoss": 0.3744,
-          "rocAuc": 0.9204,
-          "ece": 0.0718,
+          "brier": 0.1064,
+          "logLoss": 0.3751,
+          "rocAuc": 0.92,
+          "ece": 0.0645,
           "accuracyAt0_5": 0.8529
         },
         "0.25": {
           "n": 174,
           "positiveRate": 0.6322,
-          "brier": 0.092,
-          "logLoss": 0.3293,
-          "rocAuc": 0.9358,
-          "ece": 0.0541,
-          "accuracyAt0_5": 0.8793
+          "brier": 0.0932,
+          "logLoss": 0.3311,
+          "rocAuc": 0.9339,
+          "ece": 0.0618,
+          "accuracyAt0_5": 0.8851
         },
         "0.5": {
           "n": 135,
           "positiveRate": 0.5259,
-          "brier": 0.0904,
-          "logLoss": 0.3067,
-          "rocAuc": 0.9465,
-          "ece": 0.0822,
-          "accuracyAt0_5": 0.9037
+          "brier": 0.0909,
+          "logLoss": 0.3123,
+          "rocAuc": 0.9467,
+          "ece": 0.0643,
+          "accuracyAt0_5": 0.8963
         }
       }
     },
     "hist_gradient_boosting": {
-      "cvBrierMean": 0.0899,
-      "cvBrierStd": 0.0094,
+      "cvBrierMean": 0.0932,
+      "cvBrierStd": 0.013,
       "test": {
         "n": 513,
         "positiveRate": 0.6257,
-        "brier": 0.1133,
-        "logLoss": 0.3878,
-        "rocAuc": 0.9332,
-        "ece": 0.0878,
-        "accuracyAt0_5": 0.8402
+        "brier": 0.1116,
+        "logLoss": 0.3891,
+        "rocAuc": 0.9338,
+        "ece": 0.08,
+        "accuracyAt0_5": 0.8499
       },
       "testByT": {
         "0.15": {
           "n": 204,
           "positiveRate": 0.6863,
           "brier": 0.1221,
-          "logLoss": 0.4202,
-          "rocAuc": 0.9185,
-          "ece": 0.0955,
+          "logLoss": 0.4234,
+          "rocAuc": 0.9171,
+          "ece": 0.0958,
           "accuracyAt0_5": 0.8284
         },
         "0.25": {
           "n": 174,
           "positiveRate": 0.6322,
-          "brier": 0.1057,
-          "logLoss": 0.3548,
-          "rocAuc": 0.9405,
-          "ece": 0.0902,
-          "accuracyAt0_5": 0.8448
+          "brier": 0.1037,
+          "logLoss": 0.3695,
+          "rocAuc": 0.9402,
+          "ece": 0.0715,
+          "accuracyAt0_5": 0.8621
         },
         "0.5": {
           "n": 135,
           "positiveRate": 0.5259,
-          "brier": 0.1097,
-          "logLoss": 0.3812,
-          "rocAuc": 0.9399,
-          "ece": 0.0921,
-          "accuracyAt0_5": 0.8519
+          "brier": 0.106,
+          "logLoss": 0.3624,
+          "rocAuc": 0.9445,
+          "ece": 0.0988,
+          "accuracyAt0_5": 0.8667
         }
       }
     }
   },
   "improvementOverPaceBaseline": {
     "logistic_regression": {
-      "cvBrierGainMean": 0.0356,
-      "cvBrierGainStd": 0.0079,
-      "cvBrierGainPerFold": [
-        0.0408,
-        0.0413,
-        0.0267,
-        0.0253,
-        0.044
-      ],
-      "testBrierGain": 0.0305
-    },
-    "hist_gradient_boosting": {
-      "cvBrierGainMean": 0.0246,
+      "cvBrierGainMean": 0.0358,
       "cvBrierGainStd": 0.0067,
       "cvBrierGainPerFold": [
-        0.0329,
-        0.0307,
-        0.015,
-        0.0199,
-        0.0243
+        0.04,
+        0.0397,
+        0.0284,
+        0.0272,
+        0.0438
       ],
-      "testBrierGain": 0.015
+      "testBrierGain": 0.0304
+    },
+    "hist_gradient_boosting": {
+      "cvBrierGainMean": 0.0213,
+      "cvBrierGainStd": 0.0107,
+      "cvBrierGainPerFold": [
+        0.0358,
+        0.0274,
+        0.0032,
+        0.0204,
+        0.0198
+      ],
+      "testBrierGain": 0.0167
     }
   },
   "leakageControl": {
     "check": "logistic_regression entrenada 30 veces con etiquetas permutadas; AUC medio en test real",
-    "rocAucMean": 0.5089,
-    "rocAucStd": 0.1182,
+    "rocAucMean": 0.5104,
+    "rocAucStd": 0.1214,
     "passed": true
   },
   "regressionFinalPct": {
     "model": "HistGradientBoostingRegressor",
-    "testMAE_pctPoints": 19.24,
+    "testMAE_pctPoints": 19.64,
     "naiveMAE_linearExtrapolation_pctPoints": 97.48
   },
   "bestByBrier": "logistic_regression"

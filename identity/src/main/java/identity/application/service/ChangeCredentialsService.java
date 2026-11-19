@@ -42,6 +42,7 @@ public class ChangeCredentialsService {
     private final EmailVerificationService verifications;
     private final SecurityNoticeMailPort notices;
     private final Clock clock;
+    private final DeviceCredentialService deviceCredentials;
 
     public ChangeCredentialsService(AccountRepositoryPort accountRepository, 
                                   PasswordHasherPort passwordHasher, 
@@ -51,7 +52,8 @@ public class ChangeCredentialsService {
                                   PasswordResetTokenRepositoryPort resetTokens,
                                   EmailVerificationService verifications,
                                   SecurityNoticeMailPort notices,
-                                  ObjectProvider<Clock> clock) {
+                                  ObjectProvider<Clock> clock,
+                                  DeviceCredentialService deviceCredentials) {
         this.accountRepository = accountRepository;
         this.passwordHasher = passwordHasher;
         this.auditLogPort = auditLogPort;
@@ -61,6 +63,7 @@ public class ChangeCredentialsService {
         this.verifications = verifications;
         this.notices = notices;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
+        this.deviceCredentials = deviceCredentials;
     }
 
     /**
@@ -76,6 +79,8 @@ public class ChangeCredentialsService {
             Account account = accountRepository.findById(accountId);
             applyChange(actor, account, password, Collections.emptyMap());
         });
+        // Con la contraseña nueva, ningún teléfono sigue entrando con la huella: hay que volver a activarla
+        deviceCredentials.revokeAll(accountId);
     }
 
     /**

@@ -8,6 +8,10 @@ import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.domain.fund.payloads.FundsRefundedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitPayload;
@@ -313,5 +317,48 @@ public class DonationAuditFactsIntegrationTest {
         assertThat(doc3.getTransitions()).hasSize(2);
         assertThat(doc3.getTransitions().get(1).toStatus()).isEqualTo("DELIVERED");
         assertThat(doc3.getTransitions().get(1).fromStatus()).isEqualTo("DISPATCHED");
+    }
+
+    // ADR-051 Enmienda 2, plan de la Tarea 1, test 13: el mismo lote despachado y recibido con las versiones 2.0 y con las
+    // 3.0 (con y sin foto) da los mismos hechos de auditoría. Sin esto, un evento 3.0 se ignoraría en silencio.
+    private TraceabilityEventDocument versioned(String eventId, String streamId, long sequence, String type, String version,
+                                                Object payload, Instant occurredAt) {
+        TraceabilityEventDocument doc = createEvent(eventId, streamId, sequence, type, payload, occurredAt, "PhysicalAsset");
+        doc.setSchemaVersion(version);
+        return doc;
+    }
+
+    private List<Object> transitionsOfLot(String fundId, String assetId, boolean newVersions, String dispatchPhoto,
+                                          String receiptPhoto) {
+        assetIndexRepository.save(new AssetIndexDocument(assetId, fundId, assetId, 0));
+        Instant t1 = Instant.parse("2026-11-19T10:00:00Z");
+        Instant t2 = t1.plus(7201, ChronoUnit.SECONDS); // pasa el umbral: hay anomalía
+        if (newVersions) {
+            auditFactsHandler.handleEvent(versioned("d-" + assetId, assetId, 1, "ASSET_DISPATCHED", "3.0",
+                    new AssetDispatchedV3Payload("carrier", "loc", "05001", "MEDELLÍN, ANTIOQUIA", "DIVIPOLA-T", dispatchPhoto), t1));
+            auditFactsHandler.handleEvent(versioned("r-" + assetId, assetId, 2, "ASSET_RECEIVED", "3.0",
+                    new AssetReceivedV3Payload("loc2", "rec", "05001", "MEDELLÍN, ANTIOQUIA", "DIVIPOLA-T", receiptPhoto), t2));
+        } else {
+            auditFactsHandler.handleEvent(versioned("d-" + assetId, assetId, 1, "ASSET_DISPATCHED", "2.0",
+                    new AssetDispatchedV2Payload("carrier", "loc", "05001", "MEDELLÍN, ANTIOQUIA", "DIVIPOLA-T"), t1));
+            auditFactsHandler.handleEvent(versioned("r-" + assetId, assetId, 2, "ASSET_RECEIVED", "2.0",
+                    new AssetReceivedV2Payload("loc2", "rec", "05001", "MEDELLÍN, ANTIOQUIA", "DIVIPOLA-T"), t2));
+        }
+        return auditFactsRepository.findById(fundId).orElseThrow().getTransitions().stream()
+                .map(t -> (Object) List.of(t.assetRef().replace(assetId, "ASSET"), t.fromStatus(), String.valueOf(t.toStatus()),
+                        t.occurredAtFrom(), String.valueOf(t.occurredAtTo()), t.durationSeconds(),
+                        String.valueOf(t.expectedMaximumSeconds()), t.anomaly())).toList();
+    }
+
+    @Test
+    void test13_aLotWithTheNewVersions_givesTheSameAuditFacts_asWithTheOldOnes() {
+        List<Object> old = transitionsOfLot("fund-v2", "asset-v2", false, null, null);
+        List<Object> withoutPhoto = transitionsOfLot("fund-v3n", "asset-v3n", true, null, null);
+        List<Object> withPhoto = transitionsOfLot("fund-v3p", "asset-v3p", true, "sha256:" + "a".repeat(64),
+                "sha256:" + "b".repeat(64));
+
+        assertThat(old).hasSize(2); // DISPATCHED->RECEIVED cerrada y RECEIVED->? abierta
+        assertThat(withoutPhoto).isEqualTo(old);
+        assertThat(withPhoto).isEqualTo(old);
     }
 }

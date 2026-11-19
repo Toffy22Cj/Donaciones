@@ -73,6 +73,7 @@ public class PhysicalAssetController {
                 RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
                 RequestFields.required(b.allocationId(), "allocationId"),
                 RequestFields.optional(b.sourceAllocationId(), "sourceAllocationId"),
+                RequestFields.optional(b.evidenceRef(), "evidenceRef"),
                 new HumanActor(principal.accountId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(registered(registered));
     }
@@ -96,6 +97,7 @@ public class PhysicalAssetController {
                 RequestFields.required(b.currentLocation(), "currentLocation"),
                 RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
                 RequestFields.optional(b.campaignRef(), "campaignRef"),
+                RequestFields.optional(b.evidenceRef(), "evidenceRef"),
                 new HumanActor(principal.accountId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(registered(registered));
     }
@@ -125,8 +127,9 @@ public class PhysicalAssetController {
     public TransitionResponse dispatch(@CurrentActor HumanActor actor, @CommandId String commandId,
                                        @PathVariable("assetRef") String assetRef,
                                        @RequestBody DispatchRequest body) {
-        assets.dispatchAsset(commandId, assetRef, RequestFields.required(requireBody(body).carrierRef(), "carrierRef"),
-                actor);
+        DispatchRequest b = requireBody(body);
+        assets.dispatchAsset(commandId, assetRef, RequestFields.required(b.carrierRef(), "carrierRef"),
+                RequestFields.optional(b.evidenceRef(), "evidenceRef"), actor);
         return new TransitionResponse(assetRef, AssetLifecycleStatus.DISPATCHED.name());
     }
 
@@ -137,7 +140,8 @@ public class PhysicalAssetController {
         ReceiveRequest b = requireBody(body);
         assets.receiveAsset(commandId, assetRef, RequestFields.required(b.facilityLocation(), "facilityLocation"),
                 RequestFields.municipalityCode(b.municipalityCode(), "municipalityCode"),
-                RequestFields.required(b.receiverRef(), "receiverRef"), actor);
+                RequestFields.required(b.receiverRef(), "receiverRef"),
+                RequestFields.optional(b.evidenceRef(), "evidenceRef"), actor);
         return new TransitionResponse(assetRef, AssetLifecycleStatus.RECEIVED.name());
     }
 

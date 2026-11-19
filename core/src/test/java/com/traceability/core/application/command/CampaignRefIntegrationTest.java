@@ -1,6 +1,6 @@
 package com.traceability.core.application.command;
 
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.contracts.campaign.InKindEligibility;
@@ -117,10 +117,10 @@ class CampaignRefIntegrationTest {
     void caminoA_inheritsTheFundCampaignRef() {
         String assetId = registerCaminoA("CAMP-A");
 
-        AssetRegisteredV4Payload genesis = genesis(assetId);
+        AssetRegisteredV5Payload genesis = genesis(assetId);
         assertThat(genesis.campaignRef()).isEqualTo("CAMP-A");
-        // ADR-029 Enmienda 2: toda escritura nueva de ASSET_REGISTERED es la 4.0 (la 3.0 + la zona)
-        assertThat(storedSchemaVersion(assetId)).isEqualTo("4.0");
+        // ADR-051 Enmienda 2: toda escritura nueva de ASSET_REGISTERED es la 5.0 (la 4.0 + la foto opcional)
+        assertThat(storedSchemaVersion(assetId)).isEqualTo("5.0");
         assertThat(storedPayloadField(assetId, "campaignRef")).as("campaignRef dentro del payload con hash").isEqualTo("CAMP-A");
     }
 
@@ -150,7 +150,7 @@ class CampaignRefIntegrationTest {
 
         String assetId = registerCaminoB(UUID.randomUUID().toString(), "CAMP-B", new HumanActor(EMPLOYEE));
 
-        AssetRegisteredV4Payload genesis = genesis(assetId);
+        AssetRegisteredV5Payload genesis = genesis(assetId);
         assertThat(genesis.campaignRef()).isEqualTo("CAMP-B");
         assertThat(genesis.donationRef()).isNotNull();
         assertThat(campaigns.queries()).containsExactly("CAMP-B");
@@ -252,10 +252,10 @@ class CampaignRefIntegrationTest {
         throw new AssertionError("Se esperaba un rechazo para " + campaignRef);
     }
 
-    private AssetRegisteredV4Payload genesis(String assetId) {
+    private AssetRegisteredV5Payload genesis(String assetId) {
         List<DomainEventPayload> payloads = eventStore.loadStream(assetId).stream().map(e -> e.payload()).toList();
-        assertThat(payloads.get(0)).isInstanceOf(AssetRegisteredV4Payload.class);
-        return (AssetRegisteredV4Payload) payloads.get(0);
+        assertThat(payloads.get(0)).isInstanceOf(AssetRegisteredV5Payload.class);
+        return (AssetRegisteredV5Payload) payloads.get(0);
     }
 
     private String storedSchemaVersion(String assetId) {

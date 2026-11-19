@@ -4,13 +4,16 @@ import com.traceability.contracts.FinancialFlagDTO;
 import com.traceability.contracts.TransitionFactDTO;
 import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.domain.event.DomainEventPayload;
-import com.traceability.core.domain.fund.payloads.FundsRefundedPayload;
+import com.traceability.core.domain.fund.payloads.*;
+import com.traceability.core.domain.physicalasset.payloads.*;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
 import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
 import com.traceability.core.infrastructure.projection.mongo.documents.DonationAuditFactsDocument;
@@ -45,10 +48,36 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             FundsRefundedPayload.class,
             AssetDispatchedPayload.class, AssetReceivedPayload.class, AssetDeliveredPayload.class,
             // ADR-029 Enmienda 2: las versiones 2.0 son los mismos hechos, con la zona sellada
-            AssetDispatchedV2Payload.class, AssetReceivedV2Payload.class, AssetDeliveredV2Payload.class);
+            AssetDispatchedV2Payload.class, AssetReceivedV2Payload.class, AssetDeliveredV2Payload.class,
+            // ADR-051 Enmienda 2: las versiones 3.0 son los mismos hechos, con la foto opcional
+            AssetDispatchedV3Payload.class, AssetReceivedV3Payload.class);
 
-    /** El resto del registro: avanzan la secuencia sin hechos de auditoría. */
-    private static final Set<Class<? extends DomainEventPayload>> IGNORED = ignoredFromRegistry();
+    /**
+     * El resto del registro, <b>declarado a mano</b>: avanzan la secuencia sin hechos de auditoría. Ya no se calcula como
+     * «el registro menos lo tratado»: así un payload nuevo que nadie declara aquí rompe
+     * {@code ProjectionPayloadContractTest} en el CI y, si llegara a producción, queda en el aviso estructurado y el
+     * contador de {@link UndeclaredPayloadMonitor} en lugar de ignorarse en silencio (ADR-051 Enmienda 2, Tarea 2).
+     */
+    private static final Set<Class<? extends DomainEventPayload>> IGNORED = Set.of(
+            AssetRegisteredPayload.class,
+            AssetRegisteredV2Payload.class,
+            AssetRegisteredV3Payload.class,
+            AssetRegisteredV4Payload.class,
+            AssetRegisteredV5Payload.class,
+            AssetCustodyTransferredPayload.class,
+            AssetSplitPayload.class,
+            AssetSplitV2Payload.class,
+            AssetSplitV3Payload.class,
+            AssetSplitV4Payload.class,
+            AssetDepletedPayload.class,
+            AssetSplitCompensatedPayload.class,
+            FundRegisteredPayload.class,
+            FundRegisteredV2Payload.class,
+            FundsClearedPayload.class,
+            FundsClearedV2Payload.class,
+            AllocationRequestedPayload.class,
+            AllocationConfirmedPayload.class,
+            AllocationReversedPayload.class);
 
     private final MongoTemplate mongoTemplate;
     private final EventCanonicalMapper canonicalMapper;
@@ -69,13 +98,6 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
         this.thresholds = thresholds;
         this.routing = routing;
         this.undeclaredPayloads = undeclaredPayloads;
-    }
-
-    private static Set<Class<? extends DomainEventPayload>> ignoredFromRegistry() {
-        Set<Class<? extends DomainEventPayload>> ignored =
-                new HashSet<>(com.traceability.core.application.event.EventPayloadRegistry.registeredPayloads().values());
-        ignored.removeAll(HANDLED);
-        return Set.copyOf(ignored);
     }
 
     @Override
@@ -130,7 +152,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
         }
 
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
         Update update = new Update();
         update.set("auditMetadata.fundLastProcessedSequence", incomingSequence);
         update.set("generatedAt", Instant.now());
@@ -161,7 +183,7 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
         if (routing.isInKindAsset(assetId, payload)) {
             return; // Camino B: ignorado de forma explícita, antes de crear ningún documento (plan-b-proj.md §3.2)
         }
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
 
         String fundId = routing.resolveProjectionId(assetId, payload, false);
         if (fundId == null) {
@@ -191,7 +213,8 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
 
         Instant eventTime = Instant.parse(eventDoc.getOccurredAt());
 
-        if (payload instanceof AssetDispatchedPayload || payload instanceof AssetDispatchedV2Payload) {
+        if (payload instanceof AssetDispatchedPayload || payload instanceof AssetDispatchedV2Payload
+                || payload instanceof AssetDispatchedV3Payload) {
             // Re-despacho: remove orphaned RECEIVED->?
             Update pullUpdate = new Update();
             pullUpdate.pull("transitions", new Document("assetRef", assetId)
@@ -203,7 +226,8 @@ public class DonationAuditFactsHandler implements ProjectionEventHandler {
             TransitionFactDTO newTransition = new TransitionFactDTO(assetId, "DISPATCHED", null, eventTime, null, 0, null, false);
             update.push("transitions", newTransition);
 
-        } else if (payload instanceof AssetReceivedPayload || payload instanceof AssetReceivedV2Payload) {
+        } else if (payload instanceof AssetReceivedPayload || payload instanceof AssetReceivedV2Payload
+                || payload instanceof AssetReceivedV3Payload) {
             // Close DISPATCHED->RECEIVED if exists
             int targetIndex = findPendingTransitionIndex(doc, assetId, "DISPATCHED");
             if (targetIndex >= 0) {

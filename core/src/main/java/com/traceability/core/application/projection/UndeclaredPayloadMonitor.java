@@ -1,6 +1,7 @@
 package com.traceability.core.application.projection;
 
 import com.traceability.core.domain.event.DomainEventPayload;
+import com.traceability.core.infrastructure.persistence.mongo.TraceabilityEventDocument;
 import com.traceability.core.infrastructure.projection.ProjectionEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,16 +26,28 @@ public class UndeclaredPayloadMonitor {
 
     private final Map<String, AtomicLong> counts = new ConcurrentHashMap<>();
 
-    /** Registra el payload si el manejador no lo declara; devuelve si estaba declarado. */
-    public boolean checkDeclared(ProjectionEventHandler handler, DomainEventPayload payload) {
+    /**
+     * Registra el payload si el manejador no lo declara; devuelve si estaba declarado. El aviso lleva campos
+     * estructurados ({@code handler}, {@code payloadClass}, {@code eventType}, {@code schemaVersion}, {@code streamId},
+     * {@code eventId}) y **nunca el payload** (ADR-051 Enmienda 2, Tarea 2, Q-T2-4 (b)).
+     */
+    public boolean checkDeclared(ProjectionEventHandler handler, DomainEventPayload payload, TraceabilityEventDocument event) {
         Class<? extends DomainEventPayload> type = payload.getClass();
         if (handler.handledPayloads().contains(type) || handler.ignoredPayloads().contains(type)) {
             return true;
         }
         long total = counts.computeIfAbsent(handler.getHandlerName(), k -> new AtomicLong()).incrementAndGet();
-        log.error("Undeclared payload {} reached {}: sequence advanced without projecting it (undeclared so far: {})",
-                type.getName(), handler.getHandlerName(), total);
+        log.error("projection.undeclaredPayload handler={} payloadClass={} eventType={} schemaVersion={} streamId={} eventId={} "
+                        + "undeclaredSoFar={}: sequence advanced without projecting it",
+                handler.getHandlerName(), type.getName(), event == null ? null : event.getEventType(),
+                event == null ? null : event.getSchemaVersion(), event == null ? null : event.getStreamId(),
+                event == null ? null : event.getEventId(), total);
         return false;
+    }
+
+    /** Sin el evento (solo la clase): los campos del evento salen vacíos. Los manejadores usan la variante con el evento. */
+    public boolean checkDeclared(ProjectionEventHandler handler, DomainEventPayload payload) {
+        return checkDeclared(handler, payload, null);
     }
 
     public long total() {

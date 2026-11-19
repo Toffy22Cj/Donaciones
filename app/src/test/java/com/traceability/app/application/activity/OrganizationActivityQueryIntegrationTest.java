@@ -26,6 +26,9 @@ import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Paylo
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitV4Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedPayload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedPayload;
@@ -425,5 +428,44 @@ class OrganizationActivityQueryIntegrationTest {
                 "BOGOTÁ, D.C.", null, "ABEJORRAL, ANTIOQUIA", "MEDELLÍN, ANTIOQUIA", "MEDELLÍN, ANTIOQUIA");
         assertThat(items.get(3).quantity()).isEqualByComparingTo("2.5");
         assertThat(items.get(6).quantity()).isEqualByComparingTo("10");
+    }
+
+    // ADR-051 Enmienda 2, plan de la Tarea 1, test 13: el mismo lote con las versiones 4.0 / 2.0 / 2.0 y con las
+    // 5.0 / 3.0 / 3.0 (con y sin foto) da la misma actividad: sin que la consulta conozca las versiones nuevas, el
+    // paso aparecería sin zona (o no aparecería).
+    private List<String> activityOfLot(String asset, int version, String photo) {
+        String v = "DIVIPOLA-2026-09";
+        if (version == 4) {
+            insert(asset, 1, "ASSET_REGISTERED", new AssetRegisteredV4Payload(asset, "BLANKET", new BigDecimal("10"), "UNITS",
+                    "warehouse-1", "cust-1", null, asset, "alloc-1", null, ORG, "anon:x", "don-1", "camp-1", "05001",
+                    "MEDELLÍN, ANTIOQUIA", v), "2026-10-03T00:00:00Z", asset + "-1", null);
+            insert(asset, 2, "ASSET_DISPATCHED", new AssetDispatchedV2Payload("carrier", "warehouse-1", "05001",
+                    "MEDELLÍN, ANTIOQUIA", v), "2026-10-04T00:00:00Z", asset + "-2", null);
+            insert(asset, 3, "ASSET_RECEIVED", new AssetReceivedV2Payload("site-9", "r", "05002", "ABEJORRAL, ANTIOQUIA", v),
+                    "2026-10-05T00:00:00Z", asset + "-3", null);
+        } else {
+            insert(asset, 1, "ASSET_REGISTERED", new AssetRegisteredV5Payload(asset, "BLANKET", new BigDecimal("10"), "UNITS",
+                    "warehouse-1", "cust-1", null, asset, "alloc-1", null, ORG, "anon:x", "don-1", "camp-1", "05001",
+                    "MEDELLÍN, ANTIOQUIA", v, photo), "2026-10-03T00:00:00Z", asset + "-1", null);
+            insert(asset, 2, "ASSET_DISPATCHED", new AssetDispatchedV3Payload("carrier", "warehouse-1", "05001",
+                    "MEDELLÍN, ANTIOQUIA", v, photo), "2026-10-04T00:00:00Z", asset + "-2", null);
+            insert(asset, 3, "ASSET_RECEIVED", new AssetReceivedV3Payload("site-9", "r", "05002", "ABEJORRAL, ANTIOQUIA", v,
+                    photo), "2026-10-05T00:00:00Z", asset + "-3", null);
+        }
+        return query.page(employee(), ORG, null).items().stream()
+                .filter(i -> i.subject() != null && asset.equals(i.subject().ref()))
+                .map(i -> i.type() + "|" + i.occurredAt() + "|" + i.locationZone() + "|" + i.quantity() + "|" + i.unitOfMeasure())
+                .toList();
+    }
+
+    @Test
+    void test13_aLotWithTheNewVersions_givesTheSameActivity_asWithTheOldOnes() {
+        List<String> old = activityOfLot("asset-old", 4, null);
+        List<String> withoutPhoto = activityOfLot("asset-new0", 5, null);
+        List<String> withPhoto = activityOfLot("asset-new1", 5, "sha256:" + "a".repeat(64));
+
+        assertThat(old).hasSize(3).anyMatch(l -> l.contains("MEDELLÍN, ANTIOQUIA")).anyMatch(l -> l.contains("ABEJORRAL, ANTIOQUIA"));
+        assertThat(withoutPhoto).isEqualTo(old);
+        assertThat(withPhoto).isEqualTo(old);
     }
 }

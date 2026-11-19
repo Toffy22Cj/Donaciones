@@ -80,6 +80,9 @@ class PublicRoutesInventoryIntegrationTest {
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction",
             // encargo 6, P3 (S-10): estimaciones históricas; mismo acceso que la predicción
             "GET /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/prediction/history",
+            // entrar con biometría: alta y revocación de la credencial del dispositivo, con sesión
+            "POST /api/v1/auth/device-credentials",
+            "POST /api/v1/auth/device-credentials/{credentialId}/revoke",
             "POST /api/v1/funds/{fundId}/allocations",
             "POST /api/v1/funds/{fundId}/allocations/{allocationId}/confirm",
             // Tercera autorización, §3.1: crear organización y cola de verificación
@@ -135,6 +138,15 @@ class PublicRoutesInventoryIntegrationTest {
             // ADR-051, Tarea 3: subir y quitar la portada (F8), solo ADMINISTRATOR; la lectura pública está en PublicRoutes
             "PUT /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
             "DELETE /api/v1/organizations/{organizationId}/campaigns/{campaignRef}/cover",
+            // ADR-051 Enmienda 2, Tarea 2: subir, leer por paso y listar las fotos de registrar, despachar y recibir
+            "POST /api/v1/organizations/{organizationId}/asset-evidence",
+            "GET /api/v1/physical-assets/{assetRef}/evidence/{step}",
+            "GET /api/v1/physical-assets/{assetRef}/evidence/steps",
+            // ADR-051 Enmienda 2, Tarea 3: la copia censurada de la foto de entrega, su publicación y su historial (autenticadas)
+            "GET /api/v1/physical-assets/{assetRef}/evidence/redacted",
+            "PUT /api/v1/physical-assets/{assetRef}/evidence/redacted/publication",
+            "DELETE /api/v1/physical-assets/{assetRef}/evidence/redacted/publication",
+            "GET /api/v1/physical-assets/{assetRef}/evidence/redacted/publication",
             // ADR-051, Tarea 5: leer la evidencia (F6) y retirar fotos (F7), autenticadas
             "GET /api/v1/physical-assets/{assetRef}/evidence",
             "POST /api/v1/platform/organizations/{organizationId}/media/remove",

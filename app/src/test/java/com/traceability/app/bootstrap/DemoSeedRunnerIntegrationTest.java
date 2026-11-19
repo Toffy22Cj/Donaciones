@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.traceability.app.TraceabilityApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,6 +57,7 @@ class DemoSeedRunnerIntegrationTest {
 
     @LocalServerPort private int port;
     @Autowired private DemoSeedRunner seed;
+    @Autowired private MongoTemplate mongoTemplate;
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
 
@@ -79,5 +83,30 @@ class DemoSeedRunnerIntegrationTest {
         assertThat(me(DemoSeedRunner.REPRESENTATIVE).get("roles").toString()).contains("REPRESENTATIVE");
         assertThat(me(DemoSeedRunner.PLATFORM).get("platformAuthority").asText()).isEqualTo("ADMINISTRATOR");
         assertThat(me(DemoSeedRunner.DONOR).has("organizationId")).isFalse();
+    }
+
+    /** E2-1: en una base que ya existía (organización creada, cuentas sin verificar), todas quedan verificadas. */
+    @Test
+    void onAnExistingDatabase_theOrganizationAccountsAreVerifiedToo() throws Exception {
+        seed.run(null);
+        // una cuenta del escenario completo, registrada por la API (nace sin verificar)
+        registerUnverified(DemoScenarioSeeder.EMPLOYEE_1);
+        mongoTemplate.updateMulti(new Query(), new Update().unset("emailVerifiedAt"), "accounts");
+
+        seed.run(null);
+
+        assertThat(me(DemoSeedRunner.ADMINISTRATOR).get("roles").toString()).contains("ADMINISTRATOR");
+        assertThat(me(DemoSeedRunner.EMPLOYEE).get("roles").toString()).contains("EMPLOYEE");
+        assertThat(me(DemoSeedRunner.REPRESENTATIVE).get("roles").toString()).contains("REPRESENTATIVE");
+        assertThat(me(DemoSeedRunner.DONOR).has("organizationId")).isFalse();
+        assertThat(me(DemoScenarioSeeder.EMPLOYEE_1).has("accountId")).isTrue();
+    }
+
+    private void registerUnverified(String email) throws Exception {
+        HttpResponse<String> r = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/api/v1/auth/register"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"email\":\"" + email + "\",\"password\":\"test-only-seed-password\",\"acceptedTermsVersion\":\"v1-2026-10\",\"acceptedDataPolicyVersion\":\"v1-2026-10\"}"))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(r.statusCode()).as("registro " + email).isEqualTo(201);
     }
 }

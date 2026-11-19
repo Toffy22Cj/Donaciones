@@ -1,7 +1,7 @@
 package com.traceability.core.application.saga;
 
 import com.traceability.core.domain.physicalasset.payloads.AssetSplitV4Payload;
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationRole;
 import com.traceability.core.application.command.FundCommandService;
@@ -217,7 +217,7 @@ class SplitSagaIntegrationTest {
 
         assertThat(assets.createSplitChild(parent, child)).isEqualTo(SplitResolution.CHILD_CREATED);
 
-        AssetRegisteredV4Payload genesis = genesis(child);
+        AssetRegisteredV5Payload genesis = genesis(child);
         assertThat(genesis.quantity()).isEqualByComparingTo("4");
         assertThat(genesis.parentAssetRef()).isEqualTo(parent);
         assertThat(genesis.rootAssetRef()).isEqualTo(parent);
@@ -550,8 +550,8 @@ class SplitSagaIntegrationTest {
         return eventStore.loadStream(streamId).stream().map(DomainEvent::payload).toList();
     }
 
-    private AssetRegisteredV4Payload genesis(String assetId) {
-        return (AssetRegisteredV4Payload) payloads(assetId).get(0);
+    private AssetRegisteredV5Payload genesis(String assetId) {
+        return (AssetRegisteredV5Payload) payloads(assetId).get(0);
     }
 
     private boolean claimExists(String commandId) {

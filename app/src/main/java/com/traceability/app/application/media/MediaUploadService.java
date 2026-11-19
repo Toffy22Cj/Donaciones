@@ -63,7 +63,7 @@ public class MediaUploadService {
         }
         SanitizedImage image = sanitizer.sanitize(purpose, content);
 
-        if (purpose == MediaPurpose.DELIVERY_EVIDENCE) {
+        if (purpose.isEvidence()) {
             Optional<MediaObject> existing =
                     metadata.findByOrganizationIdAndPurposeAndSha256(organizationId, purpose, image.sha256());
             if (existing.isPresent()) {

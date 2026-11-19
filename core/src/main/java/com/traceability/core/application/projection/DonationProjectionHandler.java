@@ -45,7 +45,9 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             AssetDepletedPayload.class, AssetDeliveredPayload.class,
             // ADR-029 Enmienda 2: las versiones con la zona sellada
             AssetRegisteredV4Payload.class, AssetSplitV4Payload.class, AssetDispatchedV2Payload.class,
-            AssetReceivedV2Payload.class, AssetDeliveredV2Payload.class);
+            AssetReceivedV2Payload.class, AssetDeliveredV2Payload.class,
+            // ADR-051 Enmienda 2: las versiones con la foto opcional (mismos hechos)
+            AssetRegisteredV5Payload.class, AssetDispatchedV3Payload.class, AssetReceivedV3Payload.class);
 
     @Override
     public String getHandlerName() {
@@ -122,7 +124,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
         }
 
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
 
         // Update Snapshot and Allocations using MongoTemplate update for efficiency if exists, 
         // but for Fund it's easier to modify the object and save it since it's a single document
@@ -212,7 +214,7 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             }
             return;
         }
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
         Optional<AssetProjectionRouting.Registration> registration = AssetProjectionRouting.registration(payload);
 
         String projectionId = routing.resolveProjectionId(assetId, payload, true);
@@ -256,6 +258,10 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             // la ubicación y su zona no cambian en camino, como currentLocation (ADR-029 Enmienda 2, P2)
             update.set("logistics.$[elem].lifecycleStatus", "DISPATCHED");
             update.set("logistics.$[elem].currentCustodian", p.carrierRef());
+        } else if (payload instanceof AssetDispatchedV3Payload p) {
+            // 3.0 (ADR-051 Enmienda 2): lo mismo que la 2.0; la foto no se proyecta
+            update.set("logistics.$[elem].lifecycleStatus", "DISPATCHED");
+            update.set("logistics.$[elem].currentCustodian", p.carrierRef());
         } else if (payload instanceof AssetReceivedPayload p) {
             update.set("logistics.$[elem].lifecycleStatus", "RECEIVED");
             update.set("logistics.$[elem].currentLocation", p.facilityLocation());
@@ -264,6 +270,14 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
                 update.set("logistics.$[elem].currentCustodian", p.receiverRef());
             }
         } else if (payload instanceof AssetReceivedV2Payload p) {
+            update.set("logistics.$[elem].lifecycleStatus", "RECEIVED");
+            update.set("logistics.$[elem].currentLocation", p.facilityLocation());
+            update.set("logistics.$[elem].currentZoneName", p.zoneName());
+            if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
+                update.set("logistics.$[elem].currentCustodian", p.receiverRef());
+            }
+        } else if (payload instanceof AssetReceivedV3Payload p) {
+            // 3.0 (ADR-051 Enmienda 2): lo mismo que la 2.0; la foto no se proyecta
             update.set("logistics.$[elem].lifecycleStatus", "RECEIVED");
             update.set("logistics.$[elem].currentLocation", p.facilityLocation());
             update.set("logistics.$[elem].currentZoneName", p.zoneName());
@@ -347,7 +361,21 @@ public class DonationProjectionHandler implements ProjectionEventHandler {
             transition.setZoneName(p.zoneName());
             transition.setCustodian(p.carrierRef());
             transition.setStatus("DISPATCHED");
+        } else if (payload instanceof AssetDispatchedV3Payload p) {
+            // 3.0 (ADR-051 Enmienda 2): lo mismo que la 2.0; la foto no se publica en el historial
+            transition.setLocation(p.previousLocation());
+            transition.setZoneName(p.zoneName());
+            transition.setCustodian(p.carrierRef());
+            transition.setStatus("DISPATCHED");
         } else if (payload instanceof AssetReceivedV2Payload p) {
+            transition.setLocation(p.facilityLocation());
+            transition.setZoneName(p.zoneName());
+            transition.setStatus("RECEIVED");
+            if (p.receiverRef() != null && !p.receiverRef().isEmpty()) {
+                transition.setCustodian(p.receiverRef());
+            }
+        } else if (payload instanceof AssetReceivedV3Payload p) {
+            // 3.0 (ADR-051 Enmienda 2): lo mismo que la 2.0; la foto no se publica en el historial
             transition.setLocation(p.facilityLocation());
             transition.setZoneName(p.zoneName());
             transition.setStatus("RECEIVED");

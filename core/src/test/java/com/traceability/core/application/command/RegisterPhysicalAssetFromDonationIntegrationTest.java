@@ -1,6 +1,6 @@
 package com.traceability.core.application.command;
 
-import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
 import com.traceability.contracts.HashPort;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.contracts.authorization.AuthorizationRole;
@@ -142,7 +142,7 @@ class RegisterPhysicalAssetFromDonationIntegrationTest {
         DomainEvent event = stream.get(0);
         assertEquals("ASSET_REGISTERED", event.eventType().name());
 
-        AssetRegisteredV4Payload payload = (AssetRegisteredV4Payload) event.payload();
+        AssetRegisteredV5Payload payload = (AssetRegisteredV5Payload) event.payload();
         assertEquals("ORG-456", payload.organizationRef());
         assertEquals("DONOR-ABC", payload.donorRef());
         assertNotNull(payload.donationRef());

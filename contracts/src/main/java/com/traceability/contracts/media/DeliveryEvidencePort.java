@@ -18,4 +18,17 @@ public interface DeliveryEvidencePort {
      *                                       borrada; el mismo para todos esos casos (400)
      */
     void bindToAsset(String organizationId, String evidenceRef, String assetId);
+
+    /**
+     * ADR-051 Enmienda 2, E2-1 (Tarea 1 de fotos): lo mismo para la foto opcional de registrar, despachar o recibir. Se
+     * vincula la foto del propósito de ese paso: una foto subida para otro paso (u otro propósito) no existe para este.
+     * Misma escritura condicional que la entrega: vincula si la foto no está vinculada o ya lo está a ese mismo
+     * {@code assetId}.
+     *
+     * @param evidenceRef {@code sha256:<64 hex>}, ya validado por quien llama
+     * @throws EvidenceAlreadyBoundException la foto está vinculada a otro activo (409)
+     * @throws EvidenceNotFoundException     la foto no existe para ese paso, es de otra organización o está borrada; el
+     *                                       mismo para todos esos casos (400)
+     */
+    void bindToAsset(String organizationId, String evidenceRef, String assetId, EvidenceStep step);
 }

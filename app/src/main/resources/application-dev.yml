@@ -19,6 +19,10 @@ traceability:
     organization-terms-version: v1-2026-10
   mail:
     from: ${TRACEABILITY_MAIL_FROM:no-reply@demo.paxfide.local}
+  # ADR-050 D9: SOLO dev/demo local. ID de cliente de Google (web, Android y Android demo); no son secretos (el secreto
+  # del cliente no se usa). Fuera de dev siguen saliendo de GOOGLE_OAUTH_CLIENT_IDS.
+  google:
+    client-ids: ${GOOGLE_OAUTH_CLIENT_IDS:333718585935-533ra859o9kio4vc8huvbmi1rnk4b5gf.apps.googleusercontent.com,333718585935-1gjdlde3vaq0e91794obv03ii937qj6t.apps.googleusercontent.com,333718585935-lbq7rp4ddbuo324vubev9th4rkkc5uqk.apps.googleusercontent.com}
   web:
     base-url: ${TRACEABILITY_WEB_BASE_URL:http://localhost:5173}
   # ADR-051 F1: en dev, adaptador local en un directorio estable bajo el temporal del sistema (las imágenes sobreviven a

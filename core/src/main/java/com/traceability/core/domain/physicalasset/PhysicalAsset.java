@@ -86,16 +86,27 @@ public class PhysicalAsset extends AggregateRoot {
                 rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, campaignRef, null);
     }
 
-    /**
-     * Camino A. Escribe {@code ASSET_REGISTERED} 4.0 (ADR-029 Enmienda 2, D2). {@code campaignRef} es el del
-     * {@code Fund} (Enmienda 1, D2): lo resuelve el servicio de aplicación, nunca el llamador; puede ser {@code null}.
-     * {@code zone} la valida el servicio contra el catálogo (Enmienda 2, D3).
-     */
+    /** Camino A sin foto (equivale a {@code evidenceRef = null}). */
     public static PhysicalAsset register(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef, String campaignRef, SealedZone zone) {
+        return register(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, campaignRef, zone, null);
+    }
+
+    /**
+     * Camino A. Escribe {@code ASSET_REGISTERED} 5.0 (ADR-051 Enmienda 2, E2-2; antes la 4.0 de ADR-029 Enmienda 2, D2).
+     * {@code campaignRef} es el del {@code Fund} (Enmienda 1, D2): lo resuelve el servicio de aplicación, nunca el
+     * llamador; puede ser {@code null}. {@code zone} la valida el servicio contra el catálogo (Enmienda 2, D3).
+     * {@code evidenceRef} es la huella de la foto opcional del registro; el servicio ya validó su formato y la vinculó.
+     */
+    public static PhysicalAsset register(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String campaignRef, SealedZone zone, String evidenceRef) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -115,10 +126,10 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV4Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV5Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
                 parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, null,
-                campaignRef, codeOf(zone), nameOf(zone), versionOf(zone)));
+                campaignRef, codeOf(zone), nameOf(zone), versionOf(zone), evidenceRef));
         return asset;
     }
 
@@ -142,16 +153,29 @@ public class PhysicalAsset extends AggregateRoot {
                 rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef, campaignRef, null);
     }
 
-    /**
-     * Camino B. Escribe {@code ASSET_REGISTERED} 4.0 (ADR-029 Enmienda 2, D2). {@code campaignRef} lo recibe el comando
-     * y lo valida el servicio de aplicación contra {@code convocatoria} antes de llegar aquí (Enmienda 1, D3); puede ser
-     * {@code null}. {@code zone} la valida el servicio contra el catálogo (Enmienda 2, D3).
-     */
+    /** Camino B sin foto (equivale a {@code evidenceRef = null}). */
     public static PhysicalAsset create(
             String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
             String currentLocation, String custodianRef, String parentAssetRef,
             String rootAssetRef, String allocationId, String sourceAllocationId,
             String organizationRef, String donorRef, String donationRef, String campaignRef, SealedZone zone) {
+        return create(assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef, parentAssetRef,
+                rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef, campaignRef, zone,
+                null);
+    }
+
+    /**
+     * Camino B. Escribe {@code ASSET_REGISTERED} 5.0 (ADR-051 Enmienda 2, E2-2; antes la 4.0 de ADR-029 Enmienda 2, D2).
+     * {@code campaignRef} lo recibe el comando y lo valida el servicio de aplicación contra {@code convocatoria} antes
+     * de llegar aquí (Enmienda 1, D3); puede ser {@code null}. {@code zone} la valida el servicio contra el catálogo
+     * (Enmienda 2, D3). {@code evidenceRef} es la huella de la foto opcional del registro.
+     */
+    public static PhysicalAsset create(
+            String assetId, String assetType, BigDecimal quantity, String unitOfMeasure,
+            String currentLocation, String custodianRef, String parentAssetRef,
+            String rootAssetRef, String allocationId, String sourceAllocationId,
+            String organizationRef, String donorRef, String donationRef, String campaignRef, SealedZone zone,
+            String evidenceRef) {
 
         if (organizationRef == null || organizationRef.isBlank()) {
             throw new IllegalArgumentException("OrganizationRef is required");
@@ -177,10 +201,10 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         PhysicalAsset asset = new PhysicalAsset();
-        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV4Payload(
+        asset.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV5Payload(
                 assetId, assetType, quantity, unitOfMeasure, currentLocation, custodianRef,
                 parentAssetRef, rootAssetRef, allocationId, sourceAllocationId, organizationRef, donorRef, donationRef,
-                campaignRef, codeOf(zone), nameOf(zone), versionOf(zone)));
+                campaignRef, codeOf(zone), nameOf(zone), versionOf(zone), evidenceRef));
         return asset;
     }
 
@@ -203,11 +227,12 @@ public class PhysicalAsset extends AggregateRoot {
         String sourceAllocationId = parent.allocationId != null ? parent.allocationId : parent.sourceAllocationId;
 
         PhysicalAsset child = new PhysicalAsset();
-        child.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV4Payload(
+        // ADR-051 Enmienda 2, E2-2: el hijo nace con la 5.0 y sin foto (evidenceRef = null)
+        child.raiseEvent(PhysicalAssetEventType.ASSET_REGISTERED, new AssetRegisteredV5Payload(
                 childAssetId, parent.assetType, split.extractedQuantity(), split.unitOfMeasure(),
                 split.childLocation(), split.childCustodianRef(), parent.assetId, split.rootAssetRef(),
                 null, sourceAllocationId, split.organizationRef(), split.donorRef(), split.donationRef(),
-                split.campaignRef(), codeOf(split.zone()), nameOf(split.zone()), versionOf(split.zone())));
+                split.campaignRef(), codeOf(split.zone()), nameOf(split.zone()), versionOf(split.zone()), null));
         return child;
     }
 
@@ -223,7 +248,13 @@ public class PhysicalAsset extends AggregateRoot {
         }
     }
 
+    /** Despacho sin foto (equivale a {@code evidenceRef = null}). */
     public void dispatch(String carrierRef) {
+        dispatch(carrierRef, null);
+    }
+
+    /** Escribe {@code ASSET_DISPATCHED} 3.0 (ADR-051 Enmienda 2, E2-2), con la huella de la foto opcional. */
+    public void dispatch(String carrierRef, String evidenceRef) {
         checkOrganizationAssigned();
         if (lifecycleStatus != AssetLifecycleStatus.REGISTERED && lifecycleStatus != AssetLifecycleStatus.RECEIVED) {
             throw new InvalidAssetTransitionException("Cannot dispatch asset in status " + lifecycleStatus);
@@ -233,8 +264,8 @@ public class PhysicalAsset extends AggregateRoot {
         }
 
         // ADR-029 Enmienda 2, P2: la zona del paso anterior, copiada del estado; el comando no trae ninguna
-        raiseEvent(PhysicalAssetEventType.ASSET_DISPATCHED, new AssetDispatchedV2Payload(
-                carrierRef, this.currentLocation, codeOf(zone), nameOf(zone), versionOf(zone)));
+        raiseEvent(PhysicalAssetEventType.ASSET_DISPATCHED, new AssetDispatchedV3Payload(
+                carrierRef, this.currentLocation, codeOf(zone), nameOf(zone), versionOf(zone), evidenceRef));
     }
 
     /** Recepción sin zona sellada (equivale a {@code zone = null}). */
@@ -242,8 +273,16 @@ public class PhysicalAsset extends AggregateRoot {
         receive(facilityLocation, receiverRef, null);
     }
 
-    /** Escribe {@code ASSET_RECEIVED} 2.0 con la zona que validó el servicio (ADR-029 Enmienda 2, D2 y D3). */
+    /** Recepción sin foto (equivale a {@code evidenceRef = null}). */
     public void receive(String facilityLocation, String receiverRef, SealedZone zone) {
+        receive(facilityLocation, receiverRef, zone, null);
+    }
+
+    /**
+     * Escribe {@code ASSET_RECEIVED} 3.0 con la zona que validó el servicio (ADR-029 Enmienda 2, D2 y D3) y la huella de
+     * la foto opcional (ADR-051 Enmienda 2, E2-2).
+     */
+    public void receive(String facilityLocation, String receiverRef, SealedZone zone, String evidenceRef) {
         checkOrganizationAssigned();
         if (lifecycleStatus != AssetLifecycleStatus.DISPATCHED) {
             throw new InvalidAssetTransitionException("Cannot receive asset that is not dispatched");
@@ -252,8 +291,8 @@ public class PhysicalAsset extends AggregateRoot {
             throw new IllegalArgumentException("Facility location is required");
         }
 
-        raiseEvent(PhysicalAssetEventType.ASSET_RECEIVED, new AssetReceivedV2Payload(
-                facilityLocation, receiverRef, codeOf(zone), nameOf(zone), versionOf(zone)));
+        raiseEvent(PhysicalAssetEventType.ASSET_RECEIVED, new AssetReceivedV3Payload(
+                facilityLocation, receiverRef, codeOf(zone), nameOf(zone), versionOf(zone), evidenceRef));
     }
 
     public void transferCustody(String newCustodianRef) {
@@ -371,6 +410,26 @@ public class PhysicalAsset extends AggregateRoot {
     @Override
     protected void apply(DomainEventPayload payload) {
         switch (payload) {
+            // 5.0 (ADR-051 Enmienda 2): la 4.0 + la foto opcional; el estado es el mismo
+            case AssetRegisteredV5Payload p -> {
+                this.assetId = p.assetId();
+                this.assetType = p.assetType();
+                this.quantity = p.quantity().setScale(4, RoundingMode.HALF_UP);
+                this.unitOfMeasure = p.unitOfMeasure();
+                this.lifecycleStatus = AssetLifecycleStatus.REGISTERED;
+                this.currentLocation = p.currentLocation();
+                this.lastKnownLocation = p.currentLocation();
+                this.custodianRef = p.custodianRef();
+                this.parentAssetRef = p.parentAssetRef();
+                this.rootAssetRef = p.rootAssetRef();
+                this.allocationId = p.allocationId();
+                this.sourceAllocationId = p.sourceAllocationId();
+                this.organizationRef = p.organizationRef();
+                this.donorRef = p.donorRef();
+                this.donationRef = p.donationRef();
+                this.campaignRef = p.campaignRef();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
+            }
             // 4.0 (ADR-029 Enmienda 2): la 3.0 + la zona sellada
             case AssetRegisteredV4Payload p -> {
                 this.assetId = p.assetId();
@@ -447,6 +506,14 @@ public class PhysicalAsset extends AggregateRoot {
                 this.currentLocation = null;
                 this.custodianRef = p.carrierRef();
             }
+            // 3.0 (ADR-051 Enmienda 2): la 2.0 + la foto opcional; el estado es el mismo
+            case AssetDispatchedV3Payload p -> {
+                this.lifecycleStatus = AssetLifecycleStatus.DISPATCHED;
+                this.lastKnownLocation = p.previousLocation();
+                this.currentLocation = null;
+                this.custodianRef = p.carrierRef();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
+            }
             // En camino, la zona sigue siendo la del paso anterior (la que el despacho copió)
             case AssetDispatchedV2Payload p -> {
                 this.lifecycleStatus = AssetLifecycleStatus.DISPATCHED;
@@ -461,6 +528,14 @@ public class PhysicalAsset extends AggregateRoot {
                 this.lastKnownLocation = p.facilityLocation();
                 this.custodianRef = p.receiverRef();
                 this.zone = null; // la ubicación cambió sin zona sellada
+            }
+            // 3.0 (ADR-051 Enmienda 2): la 2.0 + la foto opcional; el estado es el mismo
+            case AssetReceivedV3Payload p -> {
+                this.lifecycleStatus = AssetLifecycleStatus.RECEIVED;
+                this.currentLocation = p.facilityLocation();
+                this.lastKnownLocation = p.facilityLocation();
+                this.custodianRef = p.receiverRef();
+                this.zone = SealedZone.fromFields(p.municipalityCode(), p.zoneName(), p.catalogVersion());
             }
             case AssetReceivedV2Payload p -> {
                 this.lifecycleStatus = AssetLifecycleStatus.RECEIVED;
