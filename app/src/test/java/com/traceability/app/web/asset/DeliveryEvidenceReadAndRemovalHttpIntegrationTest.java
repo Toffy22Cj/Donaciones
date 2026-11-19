@@ -188,6 +188,16 @@ class DeliveryEvidenceReadAndRemovalHttpIntegrationTest {
         return send("GET", ASSETS + "/" + assetRef + "/evidence", account, null, null);
     }
 
+    // ADR-051 Enmienda 2 (plan de la Tarea 1): la retirada F7 de las fotos de registrar, despachar y recibir llega con la
+    // tarea 3; hasta entonces esos propósitos se rechazan como inválidos (400) y no tocan nada
+    @Test
+    void theNewStepPurposes_areRejectedByTheRemoval_untilTask3() throws Exception {
+        for (String purpose : java.util.List.of("REGISTRATION_EVIDENCE", "DISPATCH_EVIDENCE", "RECEIPT_EVIDENCE")) {
+            assertThat(remove(PLATFORM, ORG, removal(purpose, "sha256:" + "0".repeat(64), REASON)).statusCode())
+                    .as(purpose).isEqualTo(400);
+        }
+    }
+
     private HttpResponse<byte[]> remove(String account, String org, String body) throws Exception {
         return send("POST", "/api/v1/platform/organizations/" + org + "/media/remove", account, null, body);
     }
