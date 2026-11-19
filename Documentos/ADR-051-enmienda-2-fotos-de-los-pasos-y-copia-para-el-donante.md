@@ -45,6 +45,7 @@ La firma es de **Carlos**: la enmienda cambia el contrato de eventos de `core` y
 - **Subida:** `POST /api/v1/organizations/{organizationId}/asset-evidence`, multipart con `file` y `step` (`REGISTERED` | `DISPATCHED` | `RECEIVED`) → `201 {evidenceRef}` (`sha256:`). Permiso: los roles que `RoleAuthorizationPolicy` autoriza para el comando de ese paso, de esa organización; el resto, el 403 uniforme (DD-01). La ruta de la entrega (`…/delivery-evidence`) no cambia.
 - **Comandos:** `register`, `from-donation`, `dispatch` y `receive` aceptan `evidenceRef?` opcional. Si llega, tiene que tener el formato `^sha256:[0-9a-f]{64}$` (400 si no) y se vincula como en F3: **una foto, un activo y un paso**; la misma foto en otro activo o en otro paso → 409 `EvidenceAlreadyBound`; inexistente, de otra organización, de otro propósito o borrada → 400 `EvidenceNotFound`. Sin `evidenceRef`, el paso se registra como hoy.
 - **Orden:** el mismo de F3 (cargar, autorizar, validar en el agregado, vincular, `append`), con el gancho que hoy solo usa la entrega. Un rechazo por permisos o por estado **no vincula** la foto.
+- **Nota (2026-11-19): «otro paso» es 400, no 409.** Corrige la frase de arriba sin reescribirla (Q-T1-2 (a), aprobada por Manuel el 2026-11-18). Cada paso tiene su propio propósito en `media_objects` (`REGISTRATION_EVIDENCE`, `DISPATCH_EVIDENCE`, `RECEIPT_EVIDENCE`), así que una foto subida para un paso **no existe** para otro: pasarla en otro paso es «de otro propósito» → `400 EvidenceNotFound`. El **`409 EvidenceAlreadyBound` es solo para la misma foto en otro activo**.
 
 ### E2-2. Versión de esquema (análisis pedido por Manuel)
 
@@ -232,5 +233,11 @@ Van en los PR de la web y del móvil con su plan; no necesitan más enmienda que
 | 4 | Seguimiento público con la copia (ADR-021-D Enmienda 2). **Depende de ADR-053 u otro límite de peticiones aprobado: no se fusiona antes** (decisión de Manuel, 2026-11-18; Carlos lo confirma al firmar) | `app`, `api` |
 | 5 | Web: fotos de paso, ficha del lote, publicación, portada en el alta y E2-8 | web |
 | 6 | Móvil: cámara opcional en despachar y recibir, y la copia en el seguimiento (con su enmienda de ADR-043) | móvil |
+
+**Nota (2026-11-19): alcance real de la Tarea 1.** Corrige la columna «Módulos» de la tarea 1: toca **`contracts`, `core`, `api` y una parte de `app`**, no solo `core` y `api` (plan `plan-fotos-tarea1-versiones-de-esquema.md`, §2.3 y Q-T1-1 (a), aprobado por Manuel el 2026-11-18). Motivo: el vínculo de la foto con el activo (F3) solo existe para la entrega; hay que pasarle al puerto el paso. Cambia un puerto de `contracts`:
+
+- **Qué se añade:** `DeliveryEvidencePort.bindToAsset(organizationId, evidenceRef, assetId, EvidenceStep step)` y el tipo `EvidenceStep` (`REGISTERED`, `DISPATCHED`, `RECEIVED`) en `contracts`; en `app`, su implementación en `DeliveryEvidenceBinding`, una variante de `MediaObjectStore.bindEvidence` con el propósito y los tres valores nuevos de `MediaPurpose` (`REGISTRATION_EVIDENCE`, `DISPATCH_EVIDENCE`, `RECEIPT_EVIDENCE`, 5 MB).
+- **Consumidores del puerto hoy** (verificado sobre `develop` `e555c30`): en código de producción, solo `PhysicalAssetCommandService.deliverAsset` (`core`) como llamador y `DeliveryEvidenceBinding` (`app`) como implementación única; en tests, `StubDeliveryEvidencePort` (`core`), `DeliveryEvidenceCommandTest` (doble) y `MediaObjectPersistenceIntegrationTest` (sobre `bindEvidence`).
+- **La entrega sigue igual:** el método de tres argumentos, su llamador, su propósito `DELIVERY_EVIDENCE` y sus tests no cambian.
 
 **Dependencia de la Tarea 4.** El `trackingCode` es un HMAC completo y no se puede adivinar, así que el riesgo no es la fuerza bruta sino el **coste**: quien tenga un código válido puede pedir la imagen sin parar y cada petición lee del almacenamiento. Las tareas 1 a 3 no dependen de esto.
