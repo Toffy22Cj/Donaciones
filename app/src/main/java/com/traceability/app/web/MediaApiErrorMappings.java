@@ -7,6 +7,7 @@ import com.traceability.app.application.media.ImageTooLargeException;
 import com.traceability.app.application.media.CampaignCoverNotFoundException;
 import com.traceability.app.application.media.DeliveryEvidenceUnavailableException;
 import com.traceability.app.application.media.EvidenceRemovedException;
+import com.traceability.app.application.media.RedactedCopyNotGeneratedException;
 import com.traceability.app.application.media.MediaRemovalTargetNotFoundException;
 import com.traceability.app.application.media.OrganizationLogoNotFoundException;
 import com.traceability.app.application.media.UnsupportedImageFormatException;
@@ -46,6 +47,8 @@ public class MediaApiErrorMappings implements ApiErrorMappings {
                 // ADR-051, Tarea 5 (F6, F7): leer y retirar la evidencia
                 new ApiErrorMapping(DeliveryEvidenceUnavailableException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 new ApiErrorMapping(EvidenceRemovedException.class, HttpStatus.GONE, null),
+                // ADR-051 Enmienda 2, Tarea 3: publicar una copia que aún no se generó
+                new ApiErrorMapping(RedactedCopyNotGeneratedException.class, HttpStatus.CONFLICT, null),
                 new ApiErrorMapping(MediaRemovalTargetNotFoundException.class, HttpStatus.NOT_FOUND, ApiExceptionHandler.NOT_FOUND),
                 // ADR-051 F3 (Tarea 4): una foto, un activo; y el mismo 400 para inexistente, ajena, no evidencia o borrada
                 new ApiErrorMapping(com.traceability.contracts.media.EvidenceAlreadyBoundException.class, HttpStatus.CONFLICT, null),

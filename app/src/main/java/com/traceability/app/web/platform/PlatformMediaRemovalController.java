@@ -5,6 +5,7 @@ import com.traceability.api.web.InvalidRequestFieldException;
 import com.traceability.app.application.media.MediaObject;
 import com.traceability.app.application.media.MediaObjectStore;
 import com.traceability.app.application.media.MediaPurpose;
+import com.traceability.app.application.media.RedactedEvidenceService;
 import com.traceability.app.application.media.MediaRemovalTargetNotFoundException;
 import com.traceability.contracts.authorization.AuthorizationPrincipal;
 import com.traceability.contracts.media.MediaStoragePort;
@@ -56,16 +57,19 @@ public class PlatformMediaRemovalController {
     private final MediaStoragePort storage;
     private final OrganizationLogoReferenceService logos;
     private final ConvocatoriaCoverReferenceService covers;
+    private final RedactedEvidenceService redacted;
     private final Clock clock;
 
     public PlatformMediaRemovalController(PlatformAuthorizationPolicy platform, MediaObjectStore metadata,
                                           MediaStoragePort storage, OrganizationLogoReferenceService logos,
-                                          ConvocatoriaCoverReferenceService covers, ObjectProvider<Clock> clock) {
+                                          ConvocatoriaCoverReferenceService covers, ObjectProvider<Clock> clock,
+                                          RedactedEvidenceService redacted) {
         this.platform = platform;
         this.metadata = metadata;
         this.storage = storage;
         this.logos = logos;
         this.covers = covers;
+        this.redacted = redacted;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
     }
 
@@ -85,8 +89,12 @@ public class PlatformMediaRemovalController {
         Optional<String> objectKey = switch (purpose) {
             // ADR-051 Enmienda 2, E2-7 (plan de la Tarea 2, §2.4): la entrega y las fotos de registrar, despachar y recibir se
             // retiran igual: primero los bytes, después el metadato; solo la plataforma
-            case DELIVERY_EVIDENCE, REGISTRATION_EVIDENCE, DISPATCH_EVIDENCE, RECEIPT_EVIDENCE ->
-                    evidenceKey(organizationId, purpose, request.ref());
+            case REGISTRATION_EVIDENCE, DISPATCH_EVIDENCE, RECEIPT_EVIDENCE ->
+                    evidenceKey(organizationId, purpose, request.ref(), principal.accountId(), reason);
+            // E2-7 (plan de la Tarea 3, §2.5): la entrega retira también su copia censurada en la misma operación
+            case DELIVERY_EVIDENCE -> evidenceKey(organizationId, purpose, request.ref(), principal.accountId(), reason);
+            // la copia no se retira sola: se retira con su original (la entrega)
+            case DELIVERY_EVIDENCE_REDACTED -> throw new InvalidRequestFieldException("purpose");
             case ORGANIZATION_LOGO -> logos.removeAsPlatform(principal, organizationId);
             case CAMPAIGN_COVER -> {
                 if (!StringUtils.hasText(request.ref())) {
@@ -109,14 +117,22 @@ public class PlatformMediaRemovalController {
     }
 
     /** La evidencia de esa organización con esa huella; ya retirada → vacío (P-T5-3). */
-    private Optional<String> evidenceKey(String organizationId, MediaPurpose purpose, String evidenceRef) {
+    private Optional<String> evidenceKey(String organizationId, MediaPurpose purpose, String evidenceRef, String removedBy,
+                                         String reason) {
         if (evidenceRef == null || !FOOTPRINT.matcher(evidenceRef).matches()) {
             throw new InvalidRequestFieldException("ref");
         }
         MediaObject object = metadata.findByOrganizationIdAndPurposeAndSha256(organizationId,
                         purpose, evidenceRef.substring("sha256:".length()))
                 .orElseThrow(MediaRemovalTargetNotFoundException::new);
-        return object.deletedAt() == null ? Optional.of(object.objectKey()) : Optional.empty();
+        if (object.deletedAt() != null) {
+            return Optional.empty();
+        }
+        if (purpose == MediaPurpose.DELIVERY_EVIDENCE) {
+            // primero se anula la publicación y se retira la copia; la original, al final (así un reintento es seguro)
+            redacted.retireCopyOf(object, removedBy, reason);
+        }
+        return Optional.of(object.objectKey());
     }
 
     /** F7: primero los bytes; si el proveedor falla, 503 y el metadato sin marcar, para poder reintentar. */

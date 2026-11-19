@@ -13,7 +13,9 @@ public enum MediaPurpose {
     // ADR-051 Enmienda 2, E2-1: la foto opcional de registrar, despachar y recibir; mismas reglas que la entrega (5 MB)
     REGISTRATION_EVIDENCE(5 * 1024 * 1024),
     DISPATCH_EVIDENCE(5 * 1024 * 1024),
-    RECEIPT_EVIDENCE(5 * 1024 * 1024);
+    RECEIPT_EVIDENCE(5 * 1024 * 1024),
+    // ADR-051 Enmienda 2, E2-4: la copia pixelada de la foto de entrega (un objeto aparte; su ownerRef es la objectKey de la original)
+    DELIVERY_EVIDENCE_REDACTED(5 * 1024 * 1024);
 
     private final int maxBytes;
 

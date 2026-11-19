@@ -46,4 +46,21 @@ public interface MediaObjectStore {
      * tres argumentos es el de la entrega ({@code DELIVERY_EVIDENCE}) y no cambia.
      */
     BindResult bindEvidence(String organizationId, String sha256, String assetId, MediaPurpose purpose);
+
+    /**
+     * ADR-051 Enmienda 2, E2-4b: la copia censurada de esa original (su {@code ownerRef} es la {@code objectKey} de la
+     * original). También las borradas: {@link MediaObject#deletedAt()} lo dice.
+     */
+    Optional<MediaObject> findByOrganizationIdAndPurposeAndOwnerRef(String organizationId, MediaPurpose purpose, String ownerRef);
+
+    /**
+     * E2-5: añade UNA decisión al final del historial de la copia, en una sola escritura condicional y atómica, y dice si se
+     * aplicó. {@code PUBLISH} solo si la copia no está borrada y no está ya publicada; {@code UNPUBLISH}, solo si está
+     * publicada. Si no coincide, <b>no añade nada</b> (las repetidas son idempotentes y no ensucian el historial). El almacén
+     * no ofrece ninguna operación que reemplace o borre entradas.
+     */
+    boolean appendPublicationDecision(String objectKey, PublicationDecision decision);
+
+    /** El historial de esa copia y su estado actual; vacío si no existe el metadato. */
+    Optional<Publication> findPublication(String objectKey);
 }
