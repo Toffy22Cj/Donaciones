@@ -444,3 +444,23 @@ Contexto: Carlos dijo el 2026-11-01 "todo lo del backend es de Manuel; Carlos or
 - **Lo que no cambia:** las dos preguntas abiertas de ADR-059 (entre ellas, si el event store comprueba `occurredAt ≤ recordedAt`) siguen abiertas; ADR-059 aprueba la descripción de lo que hay, no un cambio de código. La respuesta de Carlos llegará aparte.
 - **Dependencia que sigue en pie:** la Tarea 4 de fotos (la copia en el seguimiento) no se fusiona antes de ADR-053 o de otro límite de peticiones aprobado (ver ADR-051 Enm. 2 e ADR-021-D Enm. 2).
 - ADR-043 Enmiendas 6 y 7 y PaxFide_Mv#17 siguen esperando a Adonis.
+
+---
+
+## Firmas del 2026-11-19
+
+**Comunicadas por Manuel el 2026-11-19** (mensaje «Encargo al agente: firmas recibidas y siguiente tanda»). Cada fila es de quien firma; el agente solo la registra.
+
+| Qué | Quién | Decisión | Dónde queda escrito |
+|---|---|---|---|
+| Revisión de #187 (versiones de esquema de las fotos, Tarea 1) | Carlos | Revisado y **APROBADO** | nota en `plan-fotos-tarea1-versiones-de-esquema.md` |
+| Visto bueno sobre `core` del perfil `demo-historico` (#182) | Carlos | **APROBADO** | `plan-paso2-datos-historicos-2026-11-16.md`; nota en `ADR-044-enmienda-1-prediccion-en-backend.md` |
+| ADR-059, pregunta 1: ¿dio Carlos el visto bueno sobre `core`? | Carlos | **Sí** | nota fechada en `ADR-059-occurredat-y-recordedat.md` |
+| ADR-059, pregunta 2: ¿el event store comprueba `occurredAt ≤ recordedAt` al guardar? | Carlos | **Sí**, con excepción con nombre propio y test | nota fechada en ADR-059; tarea con plan propio (toca `core`, revisa Carlos) |
+| ADR-053 (límite de intentos) | Carlos | **APROBADO y firmado** | aquí; el documento está en la rama `claude/festive-newton-687sd0`, no fusionada: su línea de estado cambia cuando se traiga a `develop` |
+| ADR-043 Enmiendas 6 y 7 y la revisión de `PaxFide_Mv#17` | Adonis | **APROBADAS y firmadas** | línea de estado de cada enmienda, en la rama de `PaxFide_Mv#17` |
+| Reentrenar el predictor con otro generador | Manuel | Aprobado **como tarea**; necesita plan y enmienda de ADR-044 | plan en `plan-tanda-2026-11-19.md` |
+
+- **Lo que no cambia:** ADR-059 describe lo que había el 2026-11-18 y no se reescribe; la comprobación es código nuevo con su propio PR. ADR-052, ADR-054 y ADR-055 siguen sin firmar.
+- **Limpieza de «pendiente de ratificar por Carlos»**, cada una con su nota fechada y sin tocar nada más del texto: ADR-037 Enm. 1 (DD-05) y Enm. 4 (DD-73), ADR-038 (DD-04 y DD-17), ADR-044 Enm. 1 (DD-41 a DD-47) y ADR-049 (DD-60); todas figuran como **RATIFICADAS — Carlos** en este mismo registro. Quedan sin tocar, porque no son ADR, las mismas frases en planes y fichas (`plan-b6-*`, `api-contract-matrix.md`, `fichas-p2-endpoints.md`).
+

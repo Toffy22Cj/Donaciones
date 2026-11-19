@@ -2,7 +2,7 @@
 
 ## Status
 
-**APROBADO como decisión delegada — 2026-10-07T22:30Z** (autorización de trabajo autónomo (3) de Carlos, §2: "Redacta y aplica como decisión delegada un ADR nuevo"). `[DECISIÓN DELEGADA — pendiente de ratificar por Carlos]` **DD-60**.
+**APROBADO como decisión delegada — 2026-10-07T22:30Z** (autorización de trabajo autónomo (3) de Carlos, §2: "Redacta y aplica como decisión delegada un ADR nuevo"). `[DECISIÓN DELEGADA — RATIFICADA — Carlos, 2026-10-08]` *(Nota 2026-11-19: antes decía «pendiente de ratificar por Carlos»; la ratificación consta en `decisiones-delegadas-2026-10.md`, DD-60.)* **DD-60**.
 
 Las decisiones marcadas **[Carlos]** son suyas y no son delegadas: dependencia, Mailpit, Gmail solo por entorno, token de un solo uso de 7 días guardado como hash, fragmento, email coincidente, roles invitables y deuda de la confirmación manual. Las marcadas **[DD-n]** las tomó el agente con el criterio fijado: (1) ADR y documentos aprobados; (2) recomendaciones escritas; (3) la opción más segura, reversible y simple; en seguridad y privacidad, la más restrictiva.
 
