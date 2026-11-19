@@ -43,11 +43,9 @@ class ProjectionPayloadContractTest {
     @MethodSource("handlers")
     void everyRegisteredPayloadIsDeclaredHandledOrIgnored(ProjectionEventHandler handler) {
         Set<Class<? extends DomainEventPayload>> registered = new HashSet<>(EventPayloadRegistry.registeredPayloads().values());
-        Set<Class<? extends DomainEventPayload>> declared = new HashSet<>(handler.handledPayloads());
-        declared.addAll(handler.ignoredPayloads());
 
-        assertThat(declared).as(handler.getHandlerName() + ": payloads registrados sin declarar")
-                .containsAll(registered);
+        assertThat(PayloadDeclarations.undeclared(handler, registered))
+                .as(handler.getHandlerName() + ": payloads registrados sin declarar").isEmpty();
     }
 
     @ParameterizedTest(name = "{0}")

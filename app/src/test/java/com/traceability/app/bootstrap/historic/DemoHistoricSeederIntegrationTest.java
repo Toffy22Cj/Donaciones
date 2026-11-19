@@ -254,6 +254,34 @@ class DemoHistoricSeederIntegrationTest {
         assertThat(assets.stream().filter(SeededAsset::occurredAtIsReal)).hasSize(1);
     }
 
+    // ADR-051 Enmienda 2, Tarea 2, §2.5: los lotes recibidos y entregados llevan una foto de ejemplo en cada paso (para las
+    // capturas de la web); los demás, ninguna. Las fotos son imágenes sintéticas de la semilla, no de personas.
+    @Test
+    void theReceivedAndDeliveredLots_haveAStepPhotoInEveryStep_theOthersNone() throws Exception {
+        int withPhotos = 0;
+        for (SeededAsset a : seeded().assets()) {
+            boolean expected = a.state().startsWith("RECEIVED") || a.state().startsWith("DELIVERED");
+            JsonNode steps = get("/api/v1/physical-assets/" + a.assetRef() + "/evidence/steps");
+            for (String step : List.of("registered", "dispatched", "received")) {
+                for (JsonNode entry : steps) {
+                    if (entry.get("step").asText().equals(step)) {
+                        assertThat(entry.get("hasPhoto").asBoolean()).as(a.state() + " " + step).isEqualTo(expected);
+                    }
+                }
+                if (expected) {
+                    HttpResponse<byte[]> image = http.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port
+                                    + "/api/v1/physical-assets/" + a.assetRef() + "/evidence/" + step))
+                            .header("Authorization", "Bearer " + administratorToken).GET().build(),
+                            HttpResponse.BodyHandlers.ofByteArray());
+                    assertThat(image.statusCode()).as(a.state() + " " + step).isEqualTo(200);
+                    assertThat(image.headers().firstValue("Content-Type").orElse("")).startsWith("image/");
+                }
+            }
+            if (expected) withPhotos++;
+        }
+        assertThat(withPhotos).as("hay lotes con foto en los pasos").isGreaterThanOrEqualTo(2);
+    }
+
     @Test
     void theIntents_areNotAllConfirmed_pendingFailedAndRejectedExist() {
         Map<String, Integer> byStatus = new HashMap<>();

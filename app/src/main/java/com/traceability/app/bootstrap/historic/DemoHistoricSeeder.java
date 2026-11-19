@@ -307,19 +307,28 @@ public class DemoHistoricSeeder {
         String[] types = {"BLANKET", "FOOD_KIT", "HYGIENE_KIT", "SCHOOL_KIT"};
         for (int i = 0; i < states.length; i++) {
             int lot = i;
+            // ADR-051 Enmienda 2, Tarea 2 (§2.5): los lotes recibidos y entregados llevan una foto de ejemplo (imagen sintética,
+            // nunca de personas) en cada paso que ya pasaron, para las capturas de la web; los demás, ninguna
+            boolean withPhotos = lot >= 2;
+            int photoBase = 100 + SCENARIO.indexOf(spec) * 30 + lot * 3;
             Instant registeredAt = campaign.startDate().plus(fraction(elapsed, 0.20 + 0.12 * lot));
             String asset = at(registeredAt, () -> assets.registerPhysicalAssetFromDonation(commandId(), organization,
                     "anon:" + UUID.randomUUID(), types[lot], BigDecimal.valueOf(10L + 5L * lot), "UNITS",
-                    "bodega-central", "bodega-central", MUNICIPALITY, campaign.campaignRef(), actor)).assetId();
+                    "bodega-central", "bodega-central", MUNICIPALITY, campaign.campaignRef(),
+                    withPhotos ? stepPhoto(MediaPurpose.REGISTRATION_EVIDENCE, organization, administrator, photoBase) : null,
+                    actor)).assetId();
             if (lot >= 1) {
                 at(registeredAt.plus(fraction(elapsed, 0.03)), () -> {
-                    assets.dispatchAsset(commandId(), asset, "transportista-demo", actor);
+                    assets.dispatchAsset(commandId(), asset, "transportista-demo",
+                            withPhotos ? stepPhoto(MediaPurpose.DISPATCH_EVIDENCE, organization, administrator, photoBase + 1) : null,
+                            actor);
                     return null;
                 });
             }
             if (lot >= 2) {
                 at(registeredAt.plus(fraction(elapsed, 0.06)), () -> {
-                    assets.receiveAsset(commandId(), asset, "centro-comunitario", MUNICIPALITY, "coordinador-centro", actor);
+                    assets.receiveAsset(commandId(), asset, "centro-comunitario", MUNICIPALITY, "coordinador-centro",
+                            stepPhoto(MediaPurpose.RECEIPT_EVIDENCE, organization, administrator, photoBase + 2), actor);
                     return null;
                 });
             }
@@ -347,6 +356,11 @@ public class DemoHistoricSeeder {
             out.add(new SeededAsset(child, spec.key(), "REGISTERED (hijo de la división)", true));
         }
         return out;
+    }
+
+    /** La huella de una foto de ejemplo de un paso, subida con el mismo servicio que la subida real (ADR-051 F2, F4). */
+    private String stepPhoto(MediaPurpose purpose, String organization, String administrator, int seed) {
+        return "sha256:" + uploads.store(purpose, organization, null, administrator, photo(seed)).sha256();
     }
 
     private void awaitChild(String parent, String child, HumanActor actor) {

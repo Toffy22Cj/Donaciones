@@ -73,7 +73,7 @@ public class PendingAllocationProjectionHandler implements ProjectionEventHandle
         }
 
         DomainEventPayload payload = canonicalMapper.convertPayload(eventDoc.getPayload(), eventDoc.getEventType(), eventDoc.getSchemaVersion());
-        undeclaredPayloads.checkDeclared(this, payload);
+        undeclaredPayloads.checkDeclared(this, payload, eventDoc);
 
         if (payload instanceof AllocationRequestedPayload p) {
             if (repository.existsById(p.allocationId())) {
