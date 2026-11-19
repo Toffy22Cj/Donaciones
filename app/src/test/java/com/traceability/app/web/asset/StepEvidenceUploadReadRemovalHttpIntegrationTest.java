@@ -115,7 +115,8 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
 
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
-    private int seed = 100;
+    /** Compartida entre los tests (el contenedor de Mongo también): cada imagen es única en toda la clase. */
+    private static final java.util.concurrent.atomic.AtomicInteger SEEDS = new java.util.concurrent.atomic.AtomicInteger(100);
 
     @BeforeEach
     void principals() {
@@ -184,7 +185,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     }
 
     private String freshPhoto(String step) throws Exception {
-        return photo(step, seed++);
+        return photo(step, SEEDS.getAndIncrement());
     }
 
     record Lot(String assetRef, String registered, String dispatched, String received) {}
@@ -249,7 +250,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     @Test
     void a1_eachStep_is201_withTheSha256OfTheStoredBytes_andThePurposeOfTheStep() throws Exception {
         for (String step : STEPS) {
-            HttpResponse<byte[]> r = uploadStep(ORG, EMPLOYEE, step, image(seed++));
+            HttpResponse<byte[]> r = uploadStep(ORG, EMPLOYEE, step, image(SEEDS.getAndIncrement()));
             assertThat(r.statusCode()).as(step + " " + text(r)).isEqualTo(201);
             JsonNode body = json.readTree(r.body());
             List<String> fields = new ArrayList<>();
@@ -271,7 +272,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     void a2_aMissingUnknownOrDeliveredStep_is400_andNothingIsReadOrCreated() throws Exception {
         long before = mediaCount();
         for (String step : new String[] {null, "DELIVERED", "dispatched", "NOPE", ""}) {
-            HttpResponse<byte[]> r = uploadStep(ORG, EMPLOYEE, step, image(seed++));
+            HttpResponse<byte[]> r = uploadStep(ORG, EMPLOYEE, step, image(SEEDS.getAndIncrement()));
             assertThat(r.statusCode()).as(String.valueOf(step) + " " + text(r)).isEqualTo(400);
         }
         assertThat(mediaCount()).isEqualTo(before);
@@ -283,16 +284,15 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     void a3_theSame403_beforeReadingBytes_andNothingIsStored() throws Exception {
         long before = mediaCount();
         for (String step : STEPS) {
-            assertThat(uploadStep(OTHER_ORG, OTHER_EMPLOYEE, step, image(seed++)).statusCode()).as("otra org").isEqualTo(403);
-            assertThat(uploadStep(ORG, OTHER_EMPLOYEE, step, image(seed++)).statusCode()).as("otro miembro, ruta ajena").isEqualTo(403);
-            assertThat(uploadStep(ORG, REPRESENTATIVE, step, image(seed++)).statusCode()).as("rol").isEqualTo(403);
-            assertThat(uploadStep(ORG, ADMIN_ONLY, step, image(seed++)).statusCode()).as("solo administrador").isEqualTo(403);
-            assertThat(uploadStep(ORG, LONER, step, image(seed++)).statusCode()).as("sin organización").isEqualTo(403);
-            assertThat(uploadStep(ORG, null, step, image(seed++)).statusCode()).as("sin sesión").isEqualTo(401);
+            assertThat(uploadStep(ORG, OTHER_EMPLOYEE, step, image(SEEDS.getAndIncrement())).statusCode()).as("miembro de otra organización, en la ruta de esta").isEqualTo(403);
+            assertThat(uploadStep(ORG, REPRESENTATIVE, step, image(SEEDS.getAndIncrement())).statusCode()).as("rol").isEqualTo(403);
+            assertThat(uploadStep(ORG, ADMIN_ONLY, step, image(SEEDS.getAndIncrement())).statusCode()).as("solo administrador").isEqualTo(403);
+            assertThat(uploadStep(ORG, LONER, step, image(SEEDS.getAndIncrement())).statusCode()).as("sin organización").isEqualTo(403);
+            assertThat(uploadStep(ORG, null, step, image(SEEDS.getAndIncrement())).statusCode()).as("sin sesión").isEqualTo(401);
         }
         // el mismo cuerpo de error para todos los 403 (no revela por qué)
-        HttpResponse<byte[]> a = uploadStep(OTHER_ORG, OTHER_EMPLOYEE, "DISPATCHED", image(seed++));
-        HttpResponse<byte[]> b = uploadStep(ORG, REPRESENTATIVE, "DISPATCHED", image(seed++));
+        HttpResponse<byte[]> a = uploadStep(ORG, OTHER_EMPLOYEE, "DISPATCHED", image(SEEDS.getAndIncrement()));
+        HttpResponse<byte[]> b = uploadStep(ORG, REPRESENTATIVE, "DISPATCHED", image(SEEDS.getAndIncrement()));
         assertThat(text(a)).isEqualTo(text(b));
         assertThat(mediaCount()).isEqualTo(before);
         verify(storage, never()).put(anyString(), any(), anyString());
@@ -304,7 +304,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
         long before = mediaCount();
         for (String step : STEPS) {
             byte[] big = new byte[5 * 1024 * 1024 + 1024];
-            byte[] png = image(seed++);
+            byte[] png = image(SEEDS.getAndIncrement());
             System.arraycopy(png, 0, big, 0, png.length);
             HttpResponse<byte[]> tooBig = uploadStep(ORG, EMPLOYEE, step, big);
             assertThat(tooBig.statusCode()).as(step).isEqualTo(413);
@@ -314,7 +314,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
                     .as(step).isEqualTo(415);
 
             doThrow(new MediaStorageUnavailableException("provider down")).when(storage).put(anyString(), any(), anyString());
-            assertThat(uploadStep(ORG, EMPLOYEE, step, image(seed++)).statusCode()).as(step).isEqualTo(503);
+            assertThat(uploadStep(ORG, EMPLOYEE, step, image(SEEDS.getAndIncrement())).statusCode()).as(step).isEqualTo(503);
             Mockito.reset(storage);
         }
         assertThat(mediaCount()).isEqualTo(before);
@@ -326,7 +326,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     @Test
     void b6_theSameImageTwiceInTheSameStep_isOneObject_andTheSameRef() throws Exception {
         for (String step : STEPS) {
-            byte[] bytes = image(seed++);
+            byte[] bytes = image(SEEDS.getAndIncrement());
             String first = json.readTree(uploadStep(ORG, EMPLOYEE, step, bytes).body()).get("evidenceRef").asText();
             long rows = mediaCount();
             HttpResponse<byte[]> again = uploadStep(ORG, EMPLOYEE, step, bytes);
@@ -334,18 +334,18 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
             assertThat(json.readTree(again.body()).get("evidenceRef").asText()).isEqualTo(first);
             assertThat(mediaCount()).as(step).isEqualTo(rows);
             assertThat(mongoTemplate.getCollection("media_objects").countDocuments(
-                    new Document("sha256", first.substring(7)).append("purpose", PURPOSE.get(step)))).isEqualTo(1);
+                    new Document("sha256", first.substring(7)).append("purpose", PURPOSE.get(step)).append("organizationId", ORG))).isEqualTo(1);
         }
     }
 
     // test 7: la misma imagen en dos pasos → dos objetos independientes; vincular uno no vincula el otro
     @Test
     void b7_theSameImageInTwoSteps_isTwoSeparateObjects_eachBoundOnlyToItsStep() throws Exception {
-        byte[] bytes = image(seed++);
+        byte[] bytes = image(SEEDS.getAndIncrement());
         String dispatchRef = json.readTree(uploadStep(ORG, EMPLOYEE, "DISPATCHED", bytes).body()).get("evidenceRef").asText();
         String receiptRef = json.readTree(uploadStep(ORG, EMPLOYEE, "RECEIVED", bytes).body()).get("evidenceRef").asText();
         assertThat(receiptRef).isEqualTo(dispatchRef); // misma huella, objetos distintos
-        assertThat(mongoTemplate.getCollection("media_objects").countDocuments(new Document("sha256", dispatchRef.substring(7)))).isEqualTo(2);
+        assertThat(mongoTemplate.getCollection("media_objects").countDocuments(new Document("sha256", dispatchRef.substring(7)).append("organizationId", ORG))).isEqualTo(2);
         Document dispatchDoc = media(dispatchRef, "DISPATCH_EVIDENCE");
         Document receiptDoc = media(receiptRef, "RECEIPT_EVIDENCE");
         assertThat(dispatchDoc.getString("objectKey")).isNotEqualTo(receiptDoc.getString("objectKey"));
@@ -360,7 +360,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     // test 8: N subidas idénticas simultáneas → una sola fila, todas 201, sin 500 ni 409
     @Test
     void b8_simultaneousIdenticalUploads_leaveOneRow_andAllAre201() throws Exception {
-        byte[] bytes = image(seed++);
+        byte[] bytes = image(SEEDS.getAndIncrement());
         int n = 6;
         CyclicBarrier barrier = new CyclicBarrier(n);
         ExecutorService pool = Executors.newFixedThreadPool(n);
@@ -381,7 +381,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
                 assertThat(got).isEqualTo(ref);
             }
             assertThat(mongoTemplate.getCollection("media_objects").countDocuments(
-                    new Document("sha256", ref.substring(7)).append("purpose", "RECEIPT_EVIDENCE"))).isEqualTo(1);
+                    new Document("sha256", ref.substring(7)).append("purpose", "RECEIPT_EVIDENCE").append("organizationId", ORG))).isEqualTo(1);
         } finally {
             pool.shutdownNow();
         }
@@ -427,7 +427,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     @Test
     void c10_delivered_isTheAliasOfTheOldRoute() throws Exception {
         Lot lot = lot(null, null, null);
-        String evidence = json.readTree(upload("/delivery-evidence", image(seed++)).body()).get("evidenceRef").asText();
+        String evidence = json.readTree(upload("/delivery-evidence", image(SEEDS.getAndIncrement())).body()).get("evidenceRef").asText();
         assertThat(send("POST", ASSETS + "/" + lot.assetRef() + "/deliver", EMPLOYEE, newId(),
                 "{\"finalCustodianRef\":\"CUST-F\",\"beneficiaryRef\":\"BEN-1\",\"locationRef\":\"SITE-1\",\"municipalityCode\":\"05001\",\"evidenceRef\":\""
                         + evidence + "\"}").statusCode()).isEqualTo(200);
@@ -624,7 +624,7 @@ class StepEvidenceUploadReadRemovalHttpIntegrationTest {
     // la retirada del propósito de un paso no toca la foto de OTRO propósito con la misma huella
     @Test
     void d18_removingOnePurpose_doesNotTouchTheSameImageInAnotherPurpose() throws Exception {
-        byte[] bytes = image(seed++);
+        byte[] bytes = image(SEEDS.getAndIncrement());
         String dispatchRef = json.readTree(uploadStep(ORG, EMPLOYEE, "DISPATCHED", bytes).body()).get("evidenceRef").asText();
         uploadStep(ORG, EMPLOYEE, "RECEIVED", bytes);
 

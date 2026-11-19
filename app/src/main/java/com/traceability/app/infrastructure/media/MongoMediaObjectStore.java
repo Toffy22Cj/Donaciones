@@ -38,7 +38,9 @@ public class MongoMediaObjectStore implements MediaObjectStore {
                     mediaObject.contentType(), mediaObject.sizeBytes(), mediaObject.width(), mediaObject.height(),
                     mediaObject.uploadedBy(), mediaObject.uploadedAt(), null, null, null, null));
         } catch (DuplicateKeyException e) {
-            if (String.valueOf(e.getMessage()).contains(MediaObjectDocument.EVIDENCE_SHA256_INDEX)) {
+            String message = String.valueOf(e.getMessage());
+            if (message.contains(MediaObjectDocument.EVIDENCE_SHA256_INDEX)
+                    || message.contains(MediaObjectDocument.STEP_EVIDENCE_SHA256_INDEX)) {
                 throw new DuplicateEvidenceException("A delivery evidence with the same bytes already exists");
             }
             throw e;

@@ -24,4 +24,9 @@ public enum MediaPurpose {
     public int maxBytes() {
         return maxBytes;
     }
+
+    /** Las fotos de evidencia (la entrega y los tres pasos opcionales): se deduplican por huella dentro de la organización. */
+    public boolean isEvidence() {
+        return this == DELIVERY_EVIDENCE || this == REGISTRATION_EVIDENCE || this == DISPATCH_EVIDENCE || this == RECEIPT_EVIDENCE;
+    }
 }

@@ -83,7 +83,10 @@ public class PlatformMediaRemovalController {
             throw new InvalidRequestFieldException("reason");
         }
         Optional<String> objectKey = switch (purpose) {
-            case DELIVERY_EVIDENCE -> evidenceKey(organizationId, request.ref());
+            // ADR-051 Enmienda 2, E2-7 (plan de la Tarea 2, §2.4): la entrega y las fotos de registrar, despachar y recibir se
+            // retiran igual: primero los bytes, después el metadato; solo la plataforma
+            case DELIVERY_EVIDENCE, REGISTRATION_EVIDENCE, DISPATCH_EVIDENCE, RECEIPT_EVIDENCE ->
+                    evidenceKey(organizationId, purpose, request.ref());
             case ORGANIZATION_LOGO -> logos.removeAsPlatform(principal, organizationId);
             case CAMPAIGN_COVER -> {
                 if (!StringUtils.hasText(request.ref())) {
@@ -91,10 +94,7 @@ public class PlatformMediaRemovalController {
                 }
                 yield covers.removeAsPlatform(principal.accountId(), organizationId, request.ref());
             }
-            // ADR-051 Enmienda 2, E2-1 y E2-7: las fotos opcionales de registrar, despachar y recibir. Su retirada por F7
-            // llega con la tarea 3 (retirada ampliada), no antes: hasta entonces el propósito se rechaza como inválido
-            case REGISTRATION_EVIDENCE, DISPATCH_EVIDENCE, RECEIPT_EVIDENCE ->
-                    throw new InvalidRequestFieldException("purpose");
+
         };
         objectKey.ifPresent(key -> discard(key, principal.accountId(), reason));
         return ResponseEntity.noContent().build();
@@ -109,12 +109,12 @@ public class PlatformMediaRemovalController {
     }
 
     /** La evidencia de esa organización con esa huella; ya retirada → vacío (P-T5-3). */
-    private Optional<String> evidenceKey(String organizationId, String evidenceRef) {
+    private Optional<String> evidenceKey(String organizationId, MediaPurpose purpose, String evidenceRef) {
         if (evidenceRef == null || !FOOTPRINT.matcher(evidenceRef).matches()) {
             throw new InvalidRequestFieldException("ref");
         }
         MediaObject object = metadata.findByOrganizationIdAndPurposeAndSha256(organizationId,
-                        MediaPurpose.DELIVERY_EVIDENCE, evidenceRef.substring("sha256:".length()))
+                        purpose, evidenceRef.substring("sha256:".length()))
                 .orElseThrow(MediaRemovalTargetNotFoundException::new);
         return object.deletedAt() == null ? Optional.of(object.objectKey()) : Optional.empty();
     }

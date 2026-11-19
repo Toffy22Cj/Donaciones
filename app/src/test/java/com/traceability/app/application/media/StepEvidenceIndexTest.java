@@ -89,7 +89,7 @@ class StepEvidenceIndexTest {
     @Test
     void otherEvents_areNotSteps() {
         List<Entry> entries = StepEvidenceIndex.of(List.of(
-                event(PhysicalAssetEventType.ASSET_CUSTODY_TRANSFERRED, new AssetCustodyTransferredPayload("new"), 0)));
+                event(PhysicalAssetEventType.ASSET_CUSTODY_TRANSFERRED, new AssetCustodyTransferredPayload("old", "new"), 0)));
 
         assertThat(entries).isEmpty();
     }

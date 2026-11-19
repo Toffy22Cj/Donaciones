@@ -3,6 +3,7 @@ package com.traceability.app.infrastructure.media;
 import com.traceability.app.application.media.MediaPurpose;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -21,8 +22,15 @@ import java.time.Instant;
  * </ul>
  */
 @Document(MediaObjectDocument.COLLECTION)
-@CompoundIndex(name = MediaObjectDocument.EVIDENCE_SHA256_INDEX, def = "{'organizationId': 1, 'purpose': 1, 'sha256': 1}",
-        unique = true, partialFilter = "{'purpose': 'DELIVERY_EVIDENCE'}")
+@CompoundIndexes({
+        @CompoundIndex(name = MediaObjectDocument.EVIDENCE_SHA256_INDEX, def = "{'organizationId': 1, 'purpose': 1, 'sha256': 1}",
+                unique = true, partialFilter = "{'purpose': 'DELIVERY_EVIDENCE'}"),
+        // ADR-051 Enmienda 2, Tarea 2 (plan §2.2): lo mismo para las fotos de registrar, despachar y recibir, SIN tocar el de
+        // la entrega. La misma imagen en dos propósitos son dos objetos distintos (el propósito está en la clave).
+        @CompoundIndex(name = MediaObjectDocument.STEP_EVIDENCE_SHA256_INDEX, def = "{'organizationId': 1, 'purpose': 1, 'sha256': 1}",
+                unique = true,
+                partialFilter = "{'purpose': {'$in': ['REGISTRATION_EVIDENCE', 'DISPATCH_EVIDENCE', 'RECEIPT_EVIDENCE']}}")
+})
 public record MediaObjectDocument(
         @Id String id,
         @Indexed(name = MediaObjectDocument.OBJECT_KEY_INDEX, unique = true) String objectKey,
@@ -44,4 +52,5 @@ public record MediaObjectDocument(
     public static final String COLLECTION = "media_objects";
     public static final String OBJECT_KEY_INDEX = "uq_object_key";
     public static final String EVIDENCE_SHA256_INDEX = "uq_evidence_sha256";
+    public static final String STEP_EVIDENCE_SHA256_INDEX = "uq_step_evidence_sha256";
 }
