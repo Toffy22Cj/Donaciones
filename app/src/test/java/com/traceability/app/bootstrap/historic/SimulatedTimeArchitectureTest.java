@@ -93,6 +93,22 @@ class SimulatedTimeArchitectureTest {
     }
 
     @Test
+    void withoutDev_onlyTheExplicitTestServerPermissionLetsItStart() {
+        MockEnvironment notAllowed = new MockEnvironment();
+        notAllowed.setActiveProfiles("demo-historico");
+        notAllowed.setProperty(DemoHistoricConfig.ALLOW_OUTSIDE_DEV, "false");
+        assertThatThrownBy(() -> new DemoHistoricConfig(notAllowed))
+                .isInstanceOf(DemoHistoricProfileNotAllowedException.class)
+                .hasMessageContaining("TRACEABILITY_DEMO_HISTORIC_ALLOW_OUTSIDE_DEV");
+
+        MockEnvironment testServer = new MockEnvironment();
+        testServer.setActiveProfiles("demo-historico");
+        testServer.setProperty(DemoHistoricConfig.ALLOW_OUTSIDE_DEV, "true");
+        assertThatCode(() -> new DemoHistoricConfig(testServer)).doesNotThrowAnyException();
+        assertThat(EventTime.isArmed()).as("construir la configuración no arma nada").isFalse();
+    }
+
+    @Test
     void withDev_theProfileStarts_andItsArmingLastsOnlyUntilItIsClosed() {
         MockEnvironment dev = new MockEnvironment();
         dev.setActiveProfiles("dev", "demo-historico");

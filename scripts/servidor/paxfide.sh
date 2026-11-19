@@ -9,6 +9,8 @@
 #   paxfide.sh arrancar      publica las URLs, las escribe en backend.env y en la web, arranca todo en tmux y
 #                            recompila la web solo si su URL de la API cambió
 #   paxfide.sh semilla       BORRA la base y carga el escenario de la demo (cuentas, convocatorias, trackingCode)
+#   paxfide.sh semilla --historico   lo mismo y además las 10 convocatorias «[Demo]» con fechas pasadas (perfil
+#                            demo-historico, solo durante la semilla) para ver la predicción y los gráficos
 #   paxfide.sh actualizar    trae los cambios del equipo (git pull de los 3 repos) y recompila y reinicia solo lo
 #                            que cambió, sin tocar los túneles (las URLs siguen igual). --forzar recompila todo
 #   paxfide.sh compilar      git pull + compila backend y web
@@ -191,6 +193,8 @@ start_backend() {
   : > "$LOG_API"
   local cmd="cd '$BACK' && set -a && . '$ENVF' && set +a"
   [ -n "${1:-}" ] && cmd="$cmd && export SPRING_PROFILES_ACTIVE='$1' TRACEABILITY_BOOTSTRAP_PLATFORM_ADMIN_ENABLED=false"
+  # demo-historico exige dev salvo este permiso explícito, que solo vive en esta ejecución (nunca en backend.env)
+  case "${1:-}" in *demo-historico*) cmd="$cmd && export TRACEABILITY_DEMO_HISTORIC_ALLOW_OUTSIDE_DEV=true" ;; esac
   cmd="$cmd && java -jar '$RUN_JAR' 2>&1 | tee '$LOG_API'"
   if tmux has-session -t "$SESSION" 2>/dev/null; then
     tmux new-window -t "$SESSION" -n backend "bash -c \"$cmd; exec bash\""
@@ -349,11 +353,17 @@ cmd_arrancar() {
 cmd_semilla() {
   need docker; need tmux; need java
   check_env
+  local profiles=demo-seed done_marker='Semilla de la demo completa'
+  if [ "${1:-}" = --historico ]; then
+    profiles=demo-seed,demo-historico
+    done_marker='Semilla histórica completa'
+  fi
   local db
   db=$(envval SPRING_DATA_MONGODB_URI | sed -E 's|.*/([^/?]+)(\?.*)?$|\1|')
   [ -n "$db" ] || die "no pude leer el nombre de la base en SPRING_DATA_MONGODB_URI"
   [ -f "$DEP/urls.txt" ] && command grep -q '^API_URL=' "$DEP/urls.txt" || die "primero ejecuta: $0 arrancar (hacen falta los túneles)"
   echo "Esto BORRA la base '$db' entera (cuentas, organizaciones, convocatorias, donaciones) y carga la demo."
+  [ "$profiles" = demo-seed ] || echo "Con --historico añade las 10 convocatorias «[Demo]» con fechas pasadas (predicción y gráficos)."
   read -r -p "Escribe BORRAR para seguir: " ok
   [ "$ok" = BORRAR ] || die "cancelado"
 
@@ -369,19 +379,20 @@ cmd_semilla() {
   info "Vaciando la base '$db'"
   dc exec -T mongo mongosh --quiet --eval "db.getSiblingDB('$db').dropDatabase()"
 
-  start_backend demo-seed
-  info "Cargando la semilla (puede tardar un par de minutos)"
+  start_backend "$profiles"
+  info "Cargando la semilla ($profiles; puede tardar unos minutos)"
   local i
-  for ((i = 0; i < 300; i++)); do
-    command grep -q 'Semilla de la demo completa' "$LOG_API" 2>/dev/null && break
+  for ((i = 0; i < 600; i++)); do
+    command grep -q "$done_marker" "$LOG_API" 2>/dev/null && break
     if command grep -qE 'APPLICATION FAILED TO START|Application run failed|no está vacía' "$LOG_API" 2>/dev/null; then
       tail -40 "$LOG_API"; die "la semilla falló (arriba, el log)"
     fi
     sleep 1
   done
-  command grep -q 'Semilla de la demo completa' "$LOG_API" || die "la semilla no terminó en 5 minutos; mira $LOG_API"
+  command grep -q "$done_marker" "$LOG_API" || die "la semilla no terminó en 10 minutos; mira $LOG_API"
+  command grep -m1 "Semilla histórica completa" "$LOG_API" || true
 
-  info "Semilla cargada. Reinicio normal (sin el perfil demo-seed)"
+  info "Semilla cargada. Reinicio normal (sin perfiles de semilla)"
   stop_apps
   start_backend
   wait_backend
@@ -454,12 +465,12 @@ cmd_parar() {
 
 case "${1:-}" in
   arrancar) cmd_arrancar "${2:-}" ;;
-  semilla) cmd_semilla ;;
+  semilla) cmd_semilla "${2:-}" ;;
   actualizar) cmd_actualizar "${2:-}" ;;
   compilar) cmd_compilar ;;
   reparar-anclaje) cmd_reparar_anclaje ;;
   estado) cmd_estado ;;
   logs) cmd_logs "${2:-}" ;;
   parar) cmd_parar ;;
-  *) sed -n '2,26p' "$0"; exit 1 ;;
+  *) sed -n '2,28p' "$0"; exit 1 ;;
 esac

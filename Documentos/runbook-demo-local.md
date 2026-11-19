@@ -125,6 +125,7 @@ mvn -q -pl app spring-boot:run
 - **Qué hace.** Primero corre la semilla de `demo-seed`, sin cambios. Después, `DemoHistoricSeeder` añade a «Fundación Demo PaxFide» diez convocatorias cuyo título empieza por **«[Demo]»**. Se entra con las mismas cuentas y la misma contraseña del paso 4b.
 - **Cómo lo hace.** Por los mismos servicios de aplicación que usa la API; **nunca con inserciones directas**. Lo único distinto es la fecha: `occurredAt`, `confirmedAt` y `createdAt` son del pasado; `recordedAt`, la cadena de hashes y el anclaje son los de siempre, con la hora real.
 - **Solo en local.** El perfil exige `dev`: sin él, la aplicación no arranca (`DemoHistoricProfileNotAllowedException`). Sin el perfil, fechar un hecho en el pasado es imposible (`SimulatedTimeNotEnabledException`).
+  - *Nota (2026-11-19), servidor de pruebas:* decisión de Manuel para la fase de pruebas. Sin `dev`, el perfil arranca solo con el permiso explícito `TRACEABILITY_DEMO_HISTORIC_ALLOW_OUTSIDE_DEV=true`, y lo avisa en el log (`demo-historico.outside-dev`). `scripts/servidor/paxfide.sh semilla --historico` lo pone **solo durante la semilla**: nunca va en `backend.env` y el arranque normal posterior no lo lleva. Nunca en producción.
 - **Si no puede correr**, se detiene sin crear nada: falta el escenario de `demo-seed` (arrancar con los tres perfiles sobre una base vacía) o las convocatorias «[Demo]» ya existen (vaciar la base).
 
 | Convocatoria | Al sembrar | `/prediction` | Cuánto dura el caso |
