@@ -240,4 +240,16 @@ Van en los PR de la web y del móvil con su plan; no necesitan más enmienda que
 - **Consumidores del puerto hoy** (verificado sobre `develop` `e555c30`): en código de producción, solo `PhysicalAssetCommandService.deliverAsset` (`core`) como llamador y `DeliveryEvidenceBinding` (`app`) como implementación única; en tests, `StubDeliveryEvidencePort` (`core`), `DeliveryEvidenceCommandTest` (doble) y `MediaObjectPersistenceIntegrationTest` (sobre `bindEvidence`).
 - **La entrega sigue igual:** el método de tres argumentos, su llamador, su propósito `DELIVERY_EVIDENCE` y sus tests no cambian.
 
+**Nota (2026-11-19): reparto de las tareas 2 y 3 y orden de trabajo.** Por decisión de Manuel (encargo «cierre de fotos y documentación», 2026-11-19): **la retirada F7 de los tres propósitos de paso va en la Tarea 2**, no en la 3, porque la Tarea 2 habilita la subida y no puede existir una foto de paso que no se pueda retirar (esto sustituye el 400 provisional de la Tarea 1, #187). La tabla queda así, sin reescribirla:
+
+| Orden | Tarea (corregida) |
+|---|---|
+| 2 | Subida de fotos de paso (`POST …/asset-evidence` con `step`), lectura por paso (`GET …/evidence/{step}`, con `…/evidence/delivered` como alias) y **retirada F7 de los tres propósitos de paso**, con su índice único por propósito (planes: `plan-fotos-tarea2-subida-y-lectura-por-paso.md`) |
+| 3 | **Solo** la copia censurada, su publicación y la retirada de la copia cuando se retira la foto de entrega (`plan-fotos-tarea3-copia-censurada-y-publicacion.md`) |
+| 5 | Web (`plan-fotos-tarea5-web.md`) |
+
+Orden de ejecución: la Tarea 3 empieza cuando la Tarea 2 esté fusionada, y la 5 cuando lo esté la 3, sin apilar ramas. La Tarea 4 sigue bloqueada (abajo) y la 6 (móvil) espera la firma de Adonis de ADR-043 Enm. 6 y 7.
+
+**Hallazgo (2026-11-19), a decidir al aprobar el plan de la Tarea 3 (Q-T3-1):** E2-4b da por existente el índice único `(organizationId, purpose, sha256)` para la copia censurada. En el código ese índice (`uq_evidence_sha256`) es **parcial solo de `DELIVERY_EVIDENCE`**, así que no cubre `DELIVERY_EVIDENCE_REDACTED`. La unicidad de la copia la da el índice por `ownerRef`; no se propone un índice por huella para la copia, porque dos originales distintas pueden producir copias idénticas. No se reescribe E2-4b: queda pendiente de la decisión de Manuel.
+
 **Dependencia de la Tarea 4.** El `trackingCode` es un HMAC completo y no se puede adivinar, así que el riesgo no es la fuerza bruta sino el **coste**: quien tenga un código válido puede pedir la imagen sin parar y cada petición lee del almacenamiento. Las tareas 1 a 3 no dependen de esto.
