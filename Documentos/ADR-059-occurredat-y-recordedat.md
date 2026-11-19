@@ -2,7 +2,7 @@
 
 ## Status
 
-**PROPUESTO — firma: Pendiente: Carlos.** Número reservado por decisión de Manuel (2026-11-18); el catálogo del documento maestro lo recoge en la Tarea D.
+**APROBADA — Manuel, por delegación de Carlos, 2026-11-18** (acordado en conversación con Carlos; registro en `decisiones-delegadas-2026-10.md`, sección «Firmas por delegación (2026-11-18)»). Número reservado por decisión de Manuel (2026-11-18); el catálogo del documento maestro lo recoge en la Tarea D.
 
 **Es documentación posterior al código.** El mecanismo que fecha hechos en el pasado (`EventTime`, perfil `demo-historico`) entró por #182 (fusionado el 2026-11-16) con un plan aprobado por Manuel (`plan-paso2-datos-historicos-2026-11-16.md`) pero **sin ADR**. Este documento describe lo que el código hace hoy; no cambia código. El visto bueno de Carlos sobre `core` figuraba como pendiente en ese plan: **[Falta: confirmar si Carlos ya lo dio.]**
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-**PROPUESTA — firma: [Falta: quién firma.]** ADR-044 lo escribió Adonis y lo aprobó Carlos; esta enmienda **no cambia ninguna decisión**: documenta una limitación. Redactada el 2026-11-19 por Manuel, con asistencia de Claude, por su decisión del 2026-11-18: «enmienda corta de ADR-044, "limitación conocida", con tu tabla de cifras y la consecuencia. Sin cambiar modelo ni generador».
+**APROBADA — Manuel, por delegación de Carlos, 2026-11-18** (acordado en conversación con Carlos; registro en `decisiones-delegadas-2026-10.md`, sección «Firmas por delegación (2026-11-18)»). ADR-044 lo escribió Adonis y lo aprobó Carlos; esta enmienda **no cambia ninguna decisión**: documenta una limitación. Redactada el 2026-11-19 por Manuel, con asistencia de Claude, por su decisión del 2026-11-18: «enmienda corta de ADR-044, "limitación conocida", con tu tabla de cifras y la consecuencia. Sin cambiar modelo ni generador».
 
 **No autoriza código ni cambia `baseline-0.3.0`.** Todo lo que sigue se midió sobre el repositorio en el estado que dice §Procedencia, y se puede repetir con los comandos del final.
 

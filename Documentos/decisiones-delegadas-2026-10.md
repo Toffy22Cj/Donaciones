@@ -434,3 +434,13 @@ Contexto: Carlos dijo el 2026-11-01 "todo lo del backend es de Manuel; Carlos or
 
 - **E-1 = (a):** un activo anterior que se despacha o se divide escribe la versión nueva con `municipalityCode`, `zoneName` y `catalogVersion` vacíos, y la zona pública sale de `location_reference`.
 - **Qué autoriza:** el código en `feat/core-zona-en-cada-paso`, según el plan.
+
+---
+
+## Firmas por delegación (2026-11-18)
+
+**Manuel firmó por delegación de Carlos**, tras hablar con él (registro: respuesta de Manuel al agente, «firmas», 2026-11-18). Las cuatro quedan **APROBADA — Manuel, por delegación de Carlos, 2026-11-18**: ADR-051 Enmienda 2, ADR-021-D Enmienda 2, ADR-059 y ADR-044 Enmienda 3.
+
+- **Lo que no cambia:** las dos preguntas abiertas de ADR-059 (entre ellas, si el event store comprueba `occurredAt ≤ recordedAt`) siguen abiertas; ADR-059 aprueba la descripción de lo que hay, no un cambio de código. La respuesta de Carlos llegará aparte.
+- **Dependencia que sigue en pie:** la Tarea 4 de fotos (la copia en el seguimiento) no se fusiona antes de ADR-053 o de otro límite de peticiones aprobado (ver ADR-051 Enm. 2 e ADR-021-D Enm. 2).
+- ADR-043 Enmiendas 6 y 7 y PaxFide_Mv#17 siguen esperando a Adonis.
