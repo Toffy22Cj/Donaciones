@@ -2,7 +2,7 @@
 
 ## Status
 
-**PROPUESTA — firma: Pendiente: Carlos.** Redactada el 2026-11-16 por Manuel, con asistencia de Claude, a partir de sus decisiones del 2026-11-15 (encargo, Tarea C, punto 4) y del 2026-11-16 (punto 11: «pixelado fuerte de toda la imagen con la JDK + aprobación del `ADMINISTRATOR`; la detección de caras queda para un ADR posterior»).
+**APROBADA — Manuel, por delegación de Carlos, 2026-11-18** (acordado en conversación con Carlos; registro en `decisiones-delegadas-2026-10.md`, sección «Firmas por delegación (2026-11-18)»). Redactada el 2026-11-16 por Manuel, con asistencia de Claude, a partir de sus decisiones del 2026-11-15 (encargo, Tarea C, punto 4) y del 2026-11-16 (punto 11: «pixelado fuerte de toda la imagen con la JDK + aprobación del `ADMINISTRATOR`; la detección de caras queda para un ADR posterior»).
 
 La firma es de **Carlos**: la enmienda cambia el contrato de eventos de `core` y ADR-051 lo aprobó él. **Manuel dio su conformidad con las decisiones el 2026-11-18** (respuesta «paso 3 cerrado, enmiendas de fotos y pendientes») y cerró las preguntas Q-E2-1 a Q-E2-6 con la opción recomendada (a). Hasta que Carlos lo confirme, el campo de firma queda en «Pendiente: Carlos».
 
@@ -229,6 +229,8 @@ Van en los PR de la web y del móvil con su plan; no necesitan más enmienda que
 | 1 | Versiones de esquema nuevas y `evidenceRef?` opcional en los tres comandos, con el gancho de vínculo | `core`, `api` |
 | 2 | Subida de fotos de paso y lectura por paso | `app`, `api` |
 | 3 | Copia censurada, publicación y retirada ampliada | `app` |
-| 4 | Seguimiento público con la copia (ADR-021-D Enmienda 2) | `app`, `api` |
+| 4 | Seguimiento público con la copia (ADR-021-D Enmienda 2). **Depende de ADR-053 u otro límite de peticiones aprobado: no se fusiona antes** (decisión de Manuel, 2026-11-18; Carlos lo confirma al firmar) | `app`, `api` |
 | 5 | Web: fotos de paso, ficha del lote, publicación, portada en el alta y E2-8 | web |
 | 6 | Móvil: cámara opcional en despachar y recibir, y la copia en el seguimiento (con su enmienda de ADR-043) | móvil |
+
+**Dependencia de la Tarea 4.** El `trackingCode` es un HMAC completo y no se puede adivinar, así que el riesgo no es la fuerza bruta sino el **coste**: quien tenga un código válido puede pedir la imagen sin parar y cada petición lee del almacenamiento. Las tareas 1 a 3 no dependen de esto.

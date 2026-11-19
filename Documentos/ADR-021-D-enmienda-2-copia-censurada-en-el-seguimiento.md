@@ -2,7 +2,7 @@
 
 ## Status
 
-**PROPUESTA — firma: Pendiente: Carlos**, a la vez que la Enmienda 2 de ADR-051 (`ADR-051-enmienda-2-fotos-de-los-pasos-y-copia-para-el-donante.md`). Redactada el 2026-11-16 por Manuel, con asistencia de Claude, por su decisión del 2026-11-15: «el donante puede ver la foto de entrega, pero censurada y con aprobación».
+**APROBADA — Manuel, por delegación de Carlos, 2026-11-18** (acordado en conversación con Carlos; registro en `decisiones-delegadas-2026-10.md`, sección «Firmas por delegación (2026-11-18)»), a la vez que la Enmienda 2 de ADR-051 (`ADR-051-enmienda-2-fotos-de-los-pasos-y-copia-para-el-donante.md`). Redactada el 2026-11-16 por Manuel, con asistencia de Claude, por su decisión del 2026-11-15: «el donante puede ver la foto de entrega, pero censurada y con aprobación».
 
 Firma Carlos (cambia el perímetro público y el contrato de eventos de `core`). **Manuel dio su conformidad con las decisiones el 2026-11-18** y cerró la pregunta Q-21D2-1 con (a).
 
@@ -76,6 +76,8 @@ Se descartó (b), mostrar solo la entrega.
 **Lo que cambiaría con ADR-053**, que sigue **PROPUESTO y sin fusionar** en la rama `claude/festive-newton-687sd0`: su grupo `TRACKING` cubre `route("*", "/api/v1/donations/tracking/**")` (`api/.../web/ratelimit/RateLimitGroup.java:23`, en esa rama), con 120 peticiones por minuto y por IP. Esa ruta ya incluye la nueva, así que, si ADR-053 se fusiona, la cubre **sin cambios** de esta enmienda.
 
 **Consecuencia y riesgo residual:** hasta que ADR-053 entre, la ruta hereda la exposición de DH-56: quien pruebe `trackingCode` por fuerza bruta puede hacerlo también contra ella. No empeora el caso: sin un `trackingCode` válido que cubra el activo, la respuesta es el mismo `401` de las demás rutas del seguimiento, y la imagen que se sirve es una copia pixelada de unos 480 px.
+
+**Dependencia (decisión de Manuel, 2026-11-18; Carlos la confirma al firmar).** El `trackingCode` es un HMAC completo y no se puede adivinar, así que el riesgo no es la fuerza bruta sino el **coste**: quien tenga un código válido puede pedir la imagen sin parar y cada petición lee del almacenamiento. **La Tarea 4 de la Enmienda 2 de ADR-051 (esta ruta) no se fusiona antes de ADR-053 o de otro límite de peticiones aprobado.** Las tareas 1 a 3 de esa enmienda no dependen de esto.
 
 ## Alternatives
 
