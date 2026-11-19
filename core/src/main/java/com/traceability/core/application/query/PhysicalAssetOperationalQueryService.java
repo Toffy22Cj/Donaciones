@@ -19,10 +19,12 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * Lecturas de activos para un empleado (plan B6-c §2.1, DD-13). Rehidrata del event store, como
- * {@link SplitResolutionQueryService}: los activos del Camino B no están en ninguna proyección. Exige {@code EMPLOYEE}
+ * Lecturas de activos (plan B6-c §2.1, DD-13; ADR-032 Enmienda 1). Rehidrata del event store, como
+ * {@link SplitResolutionQueryService}: los activos del Camino B no están en ninguna proyección. Exige uno de los roles de
+ * lectura ({@code ADMINISTRATOR}, {@code REPRESENTATIVE} o {@code EMPLOYEE}; el estado de una división, solo {@code EMPLOYEE})
  * y la frontera de organización (matriz §4b), comprobadas después de cargar el activo porque la organización sale de
  * él; un activo inexistente es {@link PhysicalAssetNotFoundException}, que hacia fuera responde como uno ajeno (DD-12).
  */
@@ -48,7 +50,7 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
 
     @Override
     public PhysicalAssetOperationalView findOperationalView(String assetId, HumanActor actor) {
-        PhysicalAsset asset = loadAuthorized(assetId, actor);
+        PhysicalAsset asset = loadAuthorized(assetId, actor, READ_ROLES);
         return new PhysicalAssetOperationalView(assetId, asset.getLifecycleStatus().name(), asset.getCustodianRef(),
                 asset.getCurrentLocation(), asset.getQuantity(), asset.getUnitOfMeasure(), asset.getCampaignRef(),
                 asset.getAssetType(), null, zoneCode(asset), zoneName(asset));
@@ -89,11 +91,20 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
 
     @Override
     public Optional<SplitResolutionStatus> findSplitStatus(String parentAssetId, String childAssetId, HumanActor actor) {
-        loadAuthorized(parentAssetId, actor);
+        loadAuthorized(parentAssetId, actor, SPLIT_STATUS_ROLES);
         return splitResolutions.findStatus(parentAssetId, childAssetId);
     }
 
-    private PhysicalAsset loadAuthorized(String assetId, HumanActor actor) {
+    /**
+     * ADR-032 Enmienda 1: la lectura del lote la hacen {@code ADMINISTRATOR}, {@code REPRESENTATIVE} y {@code EMPLOYEE}
+     * de la misma organización del activo. Ningún comando cambia.
+     */
+    private static final Set<AuthorizationRole> READ_ROLES =
+            Set.of(AuthorizationRole.ADMINISTRATOR, AuthorizationRole.REPRESENTATIVE, AuthorizationRole.EMPLOYEE);
+    /** El estado de una división sigue siendo solo del {@code EMPLOYEE}, que es quien divide (Enmienda 1, E1-2). */
+    private static final Set<AuthorizationRole> SPLIT_STATUS_ROLES = Set.of(AuthorizationRole.EMPLOYEE);
+
+    private PhysicalAsset loadAuthorized(String assetId, HumanActor actor, Set<AuthorizationRole> allowedRoles) {
         List<DomainEvent> events = eventStore.loadStream(assetId);
         if (events.isEmpty()) {
             throw new PhysicalAssetNotFoundException(assetId);
@@ -102,8 +113,8 @@ public class PhysicalAssetOperationalQueryService implements PhysicalAssetOperat
                 events.size());
         AuthorizationPrincipal principal = identityPrincipalPort.resolvePrincipal(actor.accountId());
         organizationBoundaryPolicy.assertBelongs(principal.organizationId(), asset.getOrganizationRef());
-        if (principal.roles() == null || !principal.roles().contains(AuthorizationRole.EMPLOYEE)) {
-            throw new InsufficientRoleException("Reading a PhysicalAsset requires " + AuthorizationRole.EMPLOYEE);
+        if (principal.roles() == null || principal.roles().stream().noneMatch(allowedRoles::contains)) {
+            throw new InsufficientRoleException("Reading a PhysicalAsset requires one of " + allowedRoles);
         }
         return asset;
     }
