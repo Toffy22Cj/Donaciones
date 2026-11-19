@@ -21,6 +21,7 @@ import com.traceability.contracts.location.MunicipalityCatalogPort;
 import com.traceability.core.application.exception.UnknownMunicipalityCodeException;
 import com.traceability.core.domain.physicalasset.SealedZone;
 import com.traceability.contracts.media.DeliveryEvidencePort;
+import com.traceability.contracts.media.EvidenceStep;
 import com.traceability.core.application.exception.InvalidEvidenceRefException;
 import com.traceability.core.application.exception.InKindCampaignClosedException;
 import com.traceability.core.application.exception.InKindCampaignNotFoundException;
@@ -146,22 +147,67 @@ public class PhysicalAssetCommandService {
 
     /**
      * D-ASSET (plan B6-c §2.1): despacho, con el mismo patrón que {@link #deliverAsset}. No recibe municipio: el agregado
-     * sella la zona del paso anterior (ADR-029 Enmienda 2, P2).
+     * sella la zona del paso anterior (ADR-029 Enmienda 2, P2). Sin foto (equivale a {@code evidenceRef = null}).
      */
     public void dispatchAsset(String commandId, String assetId, String carrierRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
-        transition(commandId, assetId, CommandType.DISPATCH_PHYSICAL_ASSET, actorRef, asset -> asset.dispatch(carrierRef),
-                NO_HOOK);
+        dispatchAsset(commandId, assetId, carrierRef, null, actorRef);
     }
 
-    /** D-ASSET (plan B6-c §2.1): recepción en una instalación, con su municipio (ADR-029 Enmienda 2, D3). */
+    /**
+     * Despacho con foto opcional (ADR-051 Enmienda 2, E2-1). Si {@code evidenceRef} no es {@code null}, tiene que tener el
+     * formato {@code sha256:<64 hex>} (se comprueba antes del reclamo del comando) y se vincula en el gancho de
+     * {@code transition()}, después de autorizar y de validar el estado, y antes de {@code appendAndOutbox}.
+     */
+    public void dispatchAsset(String commandId, String assetId, String carrierRef, String evidenceRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        requireValidEvidenceRefOrNull(evidenceRef);
+        transition(commandId, assetId, CommandType.DISPATCH_PHYSICAL_ASSET, actorRef,
+                asset -> asset.dispatch(carrierRef, evidenceRef), stepBinding(assetId, evidenceRef, EvidenceStep.DISPATCHED));
+    }
+
+    /** D-ASSET (plan B6-c §2.1): recepción en una instalación, con su municipio (ADR-029 Enmienda 2, D3). Sin foto. */
     public void receiveAsset(String commandId, String assetId, String facilityLocation, String municipalityCode,
             String receiverRef, com.traceability.core.domain.event.ActorRef actorRef) {
-        transition(commandId, assetId, CommandType.RECEIVE_PHYSICAL_ASSET, actorRef,
-                asset -> asset.receive(facilityLocation, receiverRef, sealedZone(municipalityCode)), NO_HOOK);
+        receiveAsset(commandId, assetId, facilityLocation, municipalityCode, receiverRef, null, actorRef);
     }
 
-    /** Despachar y recibir no cambian (ADR-051 F3): su gancho no hace nada. */
+    /** Recepción con foto opcional (ADR-051 Enmienda 2, E2-1), con el mismo orden que {@link #dispatchAsset}. */
+    public void receiveAsset(String commandId, String assetId, String facilityLocation, String municipalityCode,
+            String receiverRef, String evidenceRef, com.traceability.core.domain.event.ActorRef actorRef) {
+        requireValidEvidenceRefOrNull(evidenceRef);
+        transition(commandId, assetId, CommandType.RECEIVE_PHYSICAL_ASSET, actorRef,
+                asset -> asset.receive(facilityLocation, receiverRef, sealedZone(municipalityCode), evidenceRef),
+                stepBinding(assetId, evidenceRef, EvidenceStep.RECEIVED));
+    }
+
+    /**
+     * ADR-051 Enmienda 2, E2-1: el formato de una foto opcional, comprobado antes del reclamo del comando (como
+     * {@link #deliverAsset}): inválido → {@link InvalidEvidenceRefException}, sin consumir el {@code Command-Id}. Ausente
+     * ({@code null}) es válido.
+     */
+    private static void requireValidEvidenceRefOrNull(String evidenceRef) {
+        if (evidenceRef != null && !EVIDENCE_REF.matcher(evidenceRef).matches()) {
+            throw new InvalidEvidenceRefException("evidenceRef must be sha256:<64 lowercase hex>");
+        }
+    }
+
+    /** El gancho de vínculo de un paso con foto opcional: sin foto no hace nada, y no se llama al puerto (E2-1). */
+    private java.util.function.Consumer<PhysicalAsset> stepBinding(String assetId, String evidenceRef, EvidenceStep step) {
+        if (evidenceRef == null) {
+            return NO_HOOK;
+        }
+        return asset -> deliveryEvidence.bindToAsset(asset.getOrganizationRef(), evidenceRef, assetId, step);
+    }
+
+    /** El vínculo de la foto del registro, solo si la hay; el activo ya pasó la autorización y las validaciones del agregado. */
+    private void bindRegistrationPhoto(String organizationRef, String evidenceRef, String assetId) {
+        if (evidenceRef != null) {
+            deliveryEvidence.bindToAsset(organizationRef, evidenceRef, assetId, EvidenceStep.REGISTERED);
+        }
+    }
+
+    /** Sin foto, el gancho no hace nada (ADR-051 F3 y Enmienda 2, E2-1). */
     private static final java.util.function.Consumer<PhysicalAsset> NO_HOOK = asset -> { };
 
     /**
@@ -242,6 +288,29 @@ public class PhysicalAssetCommandService {
             String allocationId,
             String sourceAllocationId,
             com.traceability.core.domain.event.ActorRef actorRef) {
+        return registerPhysicalAsset(commandId, fundId, organizationRef, assetType, quantity, unitOfMeasure, custodianRef,
+                currentLocation, municipalityCode, allocationId, sourceAllocationId, null, actorRef);
+    }
+
+    /**
+     * Camino A con foto opcional (ADR-051 Enmienda 2, E2-1). Mismo orden que {@link #deliverAsset}: el formato antes del
+     * reclamo; después autorizar, validar en el agregado, vincular la foto al {@code assetId} determinista (solo si hay
+     * foto) y {@code appendAndOutbox}. Un rechazo por permisos o por validación no vincula la foto.
+     */
+    public RegisteredAsset registerPhysicalAsset(String commandId,
+            String fundId,
+            String organizationRef,
+            String assetType,
+            BigDecimal quantity,
+            String unitOfMeasure,
+            String custodianRef,
+            String currentLocation,
+            String municipalityCode,
+            String allocationId,
+            String sourceAllocationId,
+            String evidenceRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        requireValidEvidenceRefOrNull(evidenceRef);
 
         String assetId = com.traceability.core.domain.physicalasset.AssetIds.of(organizationRef, commandId);
         String outcome = outcome(CommandType.REGISTER_PHYSICAL_ASSET, assetId);
@@ -277,8 +346,10 @@ public class PhysicalAssetCommandService {
                     organizationRef,
                     null, // donorRef: null en Camino A
                     campaignRef,
-                    zone
+                    zone,
+                    evidenceRef
             );
+            bindRegistrationPhoto(organizationRef, evidenceRef, assetId);
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
 
@@ -383,6 +454,27 @@ public class PhysicalAssetCommandService {
             String municipalityCode,
             String campaignRef,
             com.traceability.core.domain.event.ActorRef actorRef) {
+        return registerPhysicalAssetFromDonation(commandId, organizationRef, donorRef, assetType, quantity, unitOfMeasure,
+                custodianRef, currentLocation, municipalityCode, campaignRef, null, actorRef);
+    }
+
+    /**
+     * Camino B con foto opcional (ADR-051 Enmienda 2, E2-1): el formato antes del reclamo y la foto vinculada, solo si la
+     * hay, después de autorizar y validar y antes de {@code appendAndOutbox}.
+     */
+    public RegisteredAsset registerPhysicalAssetFromDonation(String commandId,
+            String organizationRef,
+            String donorRef,
+            String assetType,
+            BigDecimal quantity,
+            String unitOfMeasure,
+            String custodianRef,
+            String currentLocation,
+            String municipalityCode,
+            String campaignRef,
+            String evidenceRef,
+            com.traceability.core.domain.event.ActorRef actorRef) {
+        requireValidEvidenceRefOrNull(evidenceRef);
 
         String assetId = com.traceability.core.domain.physicalasset.AssetIds.of(organizationRef, commandId);
         String outcome = outcome(CommandType.REGISTER_PHYSICAL_ASSET_FROM_DONATION, assetId);
@@ -415,8 +507,10 @@ public class PhysicalAssetCommandService {
                     donorRef,
                     donationRef,
                     campaignRef,
-                    zone
+                    zone,
+                    evidenceRef
             );
+            bindRegistrationPhoto(organizationRef, evidenceRef, assetId);
 
             List<DomainEvent> newEvents = asset.getUncommittedEvents();
 

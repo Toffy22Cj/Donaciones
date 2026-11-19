@@ -31,10 +31,13 @@ public class EventPayloadRegistry {
         register("ASSET_REGISTERED", "2.0", AssetRegisteredV2Payload.class);
         register("ASSET_REGISTERED", "3.0", AssetRegisteredV3Payload.class); // ADR-029 Enmienda 1 (campaignRef)
         register("ASSET_REGISTERED", "4.0", AssetRegisteredV4Payload.class); // ADR-029 Enmienda 2 (zona DIVIPOLA)
+        register("ASSET_REGISTERED", "5.0", AssetRegisteredV5Payload.class); // ADR-051 Enmienda 2 (evidenceRef opcional)
         register("ASSET_DISPATCHED", "1.0", AssetDispatchedPayload.class);
         register("ASSET_DISPATCHED", "2.0", AssetDispatchedV2Payload.class); // ADR-029 Enmienda 2
+        register("ASSET_DISPATCHED", "3.0", AssetDispatchedV3Payload.class); // ADR-051 Enmienda 2 (evidenceRef opcional)
         register("ASSET_RECEIVED", "1.0", AssetReceivedPayload.class);
         register("ASSET_RECEIVED", "2.0", AssetReceivedV2Payload.class); // ADR-029 Enmienda 2
+        register("ASSET_RECEIVED", "3.0", AssetReceivedV3Payload.class); // ADR-051 Enmienda 2 (evidenceRef opcional)
         register("ASSET_CUSTODY_TRANSFERRED", "1.0", AssetCustodyTransferredPayload.class);
         register("ASSET_SPLIT", "1.0", AssetSplitPayload.class);
         register("ASSET_SPLIT", "2.0", AssetSplitV2Payload.class);

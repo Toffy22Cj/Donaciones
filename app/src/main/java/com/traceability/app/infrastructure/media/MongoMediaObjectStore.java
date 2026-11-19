@@ -72,8 +72,14 @@ public class MongoMediaObjectStore implements MediaObjectStore {
      */
     @Override
     public BindResult bindEvidence(String organizationId, String sha256, String assetId) {
+        return bindEvidence(organizationId, sha256, assetId, MediaPurpose.DELIVERY_EVIDENCE);
+    }
+
+    /** Lo mismo con el propósito del paso (ADR-051 Enmienda 2, E2-1); la entrega usa {@code DELIVERY_EVIDENCE}. */
+    @Override
+    public BindResult bindEvidence(String organizationId, String sha256, String assetId, MediaPurpose purpose) {
         Criteria evidence = Criteria.where("organizationId").is(organizationId)
-                .and("purpose").is(MediaPurpose.DELIVERY_EVIDENCE)
+                .and("purpose").is(purpose)
                 .and("sha256").is(sha256);
         Query conditional = new Query(new Criteria().andOperator(evidence, Criteria.where("deletedAt").is(null),
                 Criteria.where("boundAssetId").in(null, assetId)));

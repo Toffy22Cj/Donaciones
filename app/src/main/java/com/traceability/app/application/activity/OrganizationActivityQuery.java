@@ -21,6 +21,9 @@ import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredPayloa
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV4Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetRegisteredV5Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV3Payload;
+import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV3Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDispatchedV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetReceivedV2Payload;
 import com.traceability.core.domain.physicalasset.payloads.AssetDeliveredV2Payload;
@@ -216,7 +219,13 @@ public class OrganizationActivityQuery {
         String unit = null;
         String location = null;
         String sealed = null;
-        if (p instanceof AssetRegisteredV4Payload r) {
+        // ADR-051 Enmienda 2: las versiones con la foto opcional muestran lo mismo que las anteriores
+        if (p instanceof AssetRegisteredV5Payload r) {
+            quantity = r.quantity();
+            unit = r.unitOfMeasure();
+            location = r.currentLocation();
+            sealed = r.zoneName();
+        } else if (p instanceof AssetRegisteredV4Payload r) {
             quantity = r.quantity();
             unit = r.unitOfMeasure();
             location = r.currentLocation();
@@ -245,9 +254,15 @@ public class OrganizationActivityQuery {
         } else if (p instanceof AssetSplitPayload s) {
             quantity = s.extractedQuantity();
             unit = s.unitOfMeasure();
+        } else if (p instanceof AssetDispatchedV3Payload d) {
+            location = d.previousLocation();
+            sealed = d.zoneName();
         } else if (p instanceof AssetDispatchedV2Payload d) {
             location = d.previousLocation();
             sealed = d.zoneName();
+        } else if (p instanceof AssetReceivedV3Payload r) {
+            location = r.facilityLocation();
+            sealed = r.zoneName();
         } else if (p instanceof AssetReceivedV2Payload r) {
             location = r.facilityLocation();
             sealed = r.zoneName();

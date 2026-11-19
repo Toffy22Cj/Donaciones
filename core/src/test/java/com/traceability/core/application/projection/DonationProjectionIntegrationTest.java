@@ -843,10 +843,10 @@ class DonationProjectionIntegrationTest {
         String asset = "asset-c" + suffix;
         projectionHandler.handleEvent(buildEvent(fund, "Fund", 1, "FUND_REGISTERED", Map.of("pledgedAmount", 5000L)));
         projectionHandler.handleEvent(buildEvent(fund, "Fund", 2, "ALLOCATION_REQUESTED",
-                Map.of("allocationId", "alloc-1", "requestedAmount", 1000L)));
+                Map.of("allocationId", "alloc-" + suffix, "requestedAmount", 1000L)));
         Map<String, Object> registered = new java.util.HashMap<>(Map.of("assetId", asset, "assetType", "FOOD",
                 "quantity", 10L, "unitOfMeasure", "KG", "currentLocation", "Bodega norte", "custodianRef", "cust-1",
-                "rootAssetRef", asset, "allocationId", "alloc-1", "organizationRef", "org-1"));
+                "rootAssetRef", asset, "allocationId", "alloc-" + suffix, "organizationRef", "org-1"));
         registered.put("campaignRef", "campaign-1");
         registered.put("municipalityCode", "05001");
         registered.put("zoneName", "MEDELLÍN, ANTIOQUIA");
