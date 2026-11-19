@@ -2,7 +2,11 @@
 
 ## Status
 
-**PROPUESTA — espera aprobación.** Redactada el 2026-11-16 por Manuel, con asistencia de Claude, a partir de sus decisiones del 2026-11-15 (encargo, Tarea C, punto 4) y del 2026-11-16 (punto 11: «pixelado fuerte de toda la imagen con la JDK + aprobación del `ADMINISTRATOR`; la detección de caras queda para un ADR posterior»). ADR-051 es de dueño compartido y lo aprobó Carlos: **[Falta: quién aprueba esta enmienda (Carlos o Manuel por delegación), fecha y medio.]** Las preguntas Q-E2-1 a Q-E2-6 llevan la recomendación del agente; se cierran con la aprobación.
+**PROPUESTA — firma: Pendiente: Carlos.** Redactada el 2026-11-16 por Manuel, con asistencia de Claude, a partir de sus decisiones del 2026-11-15 (encargo, Tarea C, punto 4) y del 2026-11-16 (punto 11: «pixelado fuerte de toda la imagen con la JDK + aprobación del `ADMINISTRATOR`; la detección de caras queda para un ADR posterior»).
+
+La firma es de **Carlos**: la enmienda cambia el contrato de eventos de `core` y ADR-051 lo aprobó él. **Manuel dio su conformidad con las decisiones el 2026-11-18** (respuesta «paso 3 cerrado, enmiendas de fotos y pendientes») y cerró las preguntas Q-E2-1 a Q-E2-6 con la opción recomendada (a). Hasta que Carlos lo confirme, el campo de firma queda en «Pendiente: Carlos».
+
+*Historial del estado.* PROPUESTA el 2026-11-16 (#183). **Revisada el 2026-11-18** por cinco observaciones de Manuel, sin cambiar ninguna decisión: (1) generación bajo demanda con concurrencia (E2-4b); (2) historial de publicación que solo crece (E2-5); (3) el test 8 de redacción, que decía lo contrario de lo que quería (E2-4 y definición de hecho); (4) la forma de pintar la imagen sin pasar el `trackingCode` por la URL (en la Enmienda 2 de ADR-021-D); (5) el límite de peticiones de la ruta pública (en la Enmienda 2 de ADR-021-D).
 
 **No autoriza código.** Cada tarea de §Implementación necesita su plan aprobado (regla 3.4). Va con la **Enmienda 2 de ADR-021-D** (perímetro público), que se aprueba a la vez.
 
@@ -70,13 +74,24 @@
 - **Propósito nuevo:** `DELIVERY_EVIDENCE_REDACTED`. Es un objeto aparte en `media_objects`: su propia `objectKey`, su propia huella (`sha256`) y `ownerRef` = la `objectKey` de la original. El `evidenceRef` del evento (la huella de la original) **no cambia** y la copia **no** se ancla: es un derivado, no un hecho.
 - **Cómo se censura (JDK, sin dependencias):**
   1. se parte de los bytes limpios guardados (F4);
-  2. se reduce la imagen a **24 bloques en su lado más largo** (Q-E2-1), promediando cada bloque;
-  3. se vuelve a ampliar a un tamaño fijo de **480 px en el lado largo** con vecino más próximo (bloques visibles);
-  4. se guarda en PNG.
+  2. se reduce la imagen a una cuadrícula de **24 bloques en su lado más largo** (Q-E2-1) y `N = round(24 × lado corto / lado largo)` bloques en el corto (mínimo 1), promediando el color de cada bloque;
+  3. cada bloque se amplía a **20 × 20 px** con vecino más próximo: la copia mide **480 px en el lado largo y `20 × N` en el corto** (la relación de aspecto se redondea al bloque);
+  4. se guarda en PNG, con parámetros fijos y sin metadatos.
+
+  **Determinista:** los mismos bytes de entrada dan los mismos bytes de salida y, por tanto, la misma huella (misma versión de la JDK). La unicidad de la copia **no depende de eso** (E2-4b).
 
   El resultado conserva la composición y los colores, y no deja reconocer caras, texto ni matrículas. **Tampoco deja leer un acta.** Es deliberado: sirve para mostrar que hay una foto de la entrega, no su contenido.
 - **Cuándo se genera** (Q-E2-2): **bajo demanda**, la primera vez que un `ADMINISTRATOR` abre la vista previa para publicarla, y se guarda. Así no se generan copias que nadie va a publicar, y vale también para las fotos de entrega anteriores a esta enmienda. Si la generación falla, el `ADMINISTRATOR` ve el error y puede reintentar; la entrega no se ve afectada.
 - **Regla fija:** la censura no se configura desde la interfaz: el nivel de pixelado es del código y de esta enmienda.
+
+### E2-4b. Generación bajo demanda y concurrencia
+
+`GET …/evidence/redacted` busca la copia por `ownerRef` (la `objectKey` de la original) y, si no existe, la genera y la guarda con el orden de F2 (bytes en el proveedor, después el metadato). Dos `ADMINISTRATOR` pueden abrirla a la vez, así que el choque se trata como un caso normal:
+
+- **Garantía de una sola copia.** `media_objects` tiene el índice único `(organizationId, purpose, sha256)` (F9) y esta enmienda añade el índice único parcial **`(organizationId, purpose, ownerRef)` solo para `DELIVERY_EVIDENCE_REDACTED`**: una original, como mucho una copia, aunque la JDK diera bytes distintos. Se declara en el documento de `media_objects` como los demás, y lo crea `MongoIndexInitializer` (`app/.../config/MongoIndexInitializer.java:56-57`, que ejecuta `ensureIndex` sobre cada índice declarado).
+- **Un choque de clave duplicada en cualquiera de los dos índices significa «ya existe».** El que pierde la carrera relee la copia existente por `ownerRef` y **la devuelve** (`200`, los mismos bytes). **Nunca** es un `500` ni un `409`.
+- **El archivo del perdedor** ya está en el proveedor con su propia clave: queda huérfano (F2). Se intenta borrar y, si no se puede, se registra con su clave, como en F10.
+- Si al releer la copia ya no está porque la retiró F7 entre medias → `410 EvidenceRemoved`, como con la original.
 
 ### E2-5. Publicación para el donante: aprobación humana (M5)
 
@@ -89,7 +104,15 @@
   | `PUT /api/v1/physical-assets/{assetRef}/evidence/redacted/publication` | `{confirmNoIdentifiablePerson: true}` → `204`. Sin la confirmación, 400 |
   | `DELETE /api/v1/physical-assets/{assetRef}/evidence/redacted/publication` | `204`, también si no estaba publicada |
 
-- **La confirmación es explícita:** quien publica marca «Revisé la copia y no se reconoce a ninguna persona». Se guarda en el metadato de la copia: `publishedAt`, `publishedBy`, `unpublishedAt`, `unpublishedBy`. No hay publicación automática ni por lotes.
+- **La confirmación es explícita:** quien publica marca «Revisé la copia y no se reconoce a ninguna persona». No hay publicación automática ni por lotes.
+- **Historial de decisiones que solo crece.** El metadato de la copia lleva una lista `publicationDecisions`; cada entrada es `{action, at, by, confirmNoIdentifiablePerson}`:
+  - `action` es `PUBLISH` o `UNPUBLISH`;
+  - `at` es el instante y `by`, el `accountId` de quien decidió;
+  - `confirmNoIdentifiablePerson` es `true` en `PUBLISH` y `null` en `UNPUBLISH`.
+
+  La lista **solo se escribe añadiendo** (una operación de añadir al final; el adaptador no ofrece ninguna que reemplace o borre entradas). **La publicación vigente se deriva de la última entrada**: es vigente si es `PUBLISH` y ni la copia ni la original están borradas por F7. Así, publicar, despublicar y volver a publicar deja tres entradas y la primera no cambia: «queda registrado quién y cuándo» es verdad de cada decisión, no solo de la última.
+- `PUT` sobre una copia ya publicada y `DELETE` sobre una no publicada responden `204` **sin añadir** entrada (son idempotentes y no ensucian el historial).
+- La retirada por F7 de la foto de entrega, si la publicación estaba vigente, **añade** una entrada `UNPUBLISH` cuyo `by` es el administrador de plataforma (E2-7).
 - Una foto retirada por F7 no se puede publicar (410 `EvidenceRemoved`).
 
 ### E2-6. Quién ve cada foto (amplía F6)
@@ -107,7 +130,7 @@
 ### E2-7. Retirada (amplía F7; M6)
 
 - `POST /platform/organizations/{organizationId}/media/remove` con el `purpose` de cualquier foto de paso (los cuatro de evidencia) borra sus bytes como hoy.
-- **Si es la de entrega, borra también la copia censurada** (bytes y publicación) en la misma operación. El metadato de las dos se conserva con `deletedAt`, `deletedBy` y `reason`.
+- **Si es la de entrega, borra también la copia censurada** (bytes y publicación) en la misma operación: los bytes se borran y, si la publicación estaba vigente, se añade la entrada `UNPUBLISH` del historial (E2-5). El metadato de las dos se conserva con `deletedAt`, `deletedBy` y `reason`.
 - La huella sigue en el evento, que es inmutable. El seguimiento público deja de ofrecer la copia **sin decir por qué** (ADR-021-D Enmienda 1, E3).
 - La retirada de una foto de entrega publicada se hace en un solo paso; no hay un instante en que la copia siga publicada sin original.
 
@@ -123,14 +146,14 @@ Van en los PR de la web y del móvil con su plan; no necesitan más enmienda que
 - la **portada** como paso final opcional al crear la convocatoria (tras el `201`, la ruta de F8 ya existe) y desde el listado `/panel/campaigns`, solo para el `ADMINISTRATOR` (C1 (a)). En el móvil, no (decisión de Manuel del 2026-11-16);
 - la corrección del aviso de `/panel/assets` («Despachar y recibir se hacen escaneando el QR en la app móvil»), que contradice los botones de la ficha del lote.
 
-## Preguntas — con la recomendación del agente
+## Preguntas — cerradas por Manuel el 2026-11-18 (todas, con la opción recomendada)
 
-| # | Pregunta | Opciones | Recomendación |
+| # | Pregunta | Opciones | Decisión (Manuel, 2026-11-18) |
 |---|---|---|---|
 | **Q-E2-1** | Nivel de pixelado | (a) 24 bloques en el lado largo. (b) 16: más fuerte, apenas se ve la escena. (c) 32: más detalle; una cara de frente y cerca podría intuirse | **(a)**. La aprobación humana sigue siendo obligatoria en cualquier caso |
-| **Q-E2-2** | Cuándo se genera la copia | (a) Bajo demanda, al abrir la vista previa para publicar. (b) Al subir cada foto de entrega | **(a)**: cubre las fotos anteriores y no genera copias que nadie publica |
-| **Q-E2-3** | Quién publica | (a) Solo `ADMINISTRATOR` de la organización. (b) También el `REPRESENTATIVE` | **(a)**, como pidió Manuel |
-| **Q-E2-4** | ¿Copia para el donante de las fotos de registrar, despachar y recibir? | (a) No en este corte. (b) Sí, con el mismo mecanismo | **(a)**: Manuel pidió la de entrega; ampliarlo después no rompe nada |
+| **Q-E2-2** | Cuándo se genera la copia | (a) Bajo demanda, al abrir la vista previa para publicar. (b) Al subir cada foto de entrega | **(a)**: cubre las fotos anteriores y no genera copias que nadie publica. Con la concurrencia de E2-4b |
+| **Q-E2-3** | Quién publica | (a) Solo `ADMINISTRATOR` de la organización. (b) También el `REPRESENTATIVE` | **(a)** |
+| **Q-E2-4** | ¿Copia para el donante de las fotos de registrar, despachar y recibir? | (a) No en este corte. (b) Sí, con el mismo mecanismo | **(a)** |
 | **Q-E2-5** | ¿Se pide una foto al registrar desde el móvil? | (a) No: registrar sigue siendo de la web (Enmienda 2 de ADR-043). (b) Sí, con una enmienda de ADR-043 | **(a)** |
 | **Q-E2-6** | Fotos de paso subidas y nunca vinculadas | (a) Misma deuda que Q3 de ADR-051. (b) Limpieza programada | **(a)** |
 
@@ -161,6 +184,7 @@ Van en los PR de la web y del móvil con su plan; no necesitan más enmienda que
 1. Un `ADMINISTRATOR` puede publicar una copia sin revisarla bien. La confirmación explícita y su registro (quién y cuándo) lo hacen trazable, no imposible.
 2. Con 24 bloques, una persona muy cerca de la cámara puede quedar como una forma reconocible por su silueta o su ropa. Por eso la aprobación humana es obligatoria.
 3. Las fotos de paso nunca vinculadas se acumulan (Q-E2-6 (a)).
+4. Quien pierde la carrera de generación (E2-4b) deja un archivo huérfano en el proveedor; se intenta borrar y, si no, queda registrado (F2, F10).
 
 ## Documentos que cambian por esta enmienda
 
@@ -186,10 +210,13 @@ Van en los PR de la web y del móvil con su plan; no necesitan más enmienda que
 
 **Copia censurada**
 7. La copia es otro objeto con otra huella; el `evidenceRef` del evento no cambia.
-8. La copia no conserva ningún bloque de más de 1/24 del lado largo (se comprueba con una imagen de prueba con un patrón fino: en la copia no queda).
+7b. **La generación es determinista:** dos generaciones a partir de los mismos bytes dan los mismos bytes y la misma huella (misma JDK).
+7c. **Concurrencia:** dos `GET …/evidence/redacted` simultáneos de la misma foto, sin copia previa, responden los dos `200` con los mismos bytes, y en `media_objects` queda **una sola** copia para esa original (aserciones negativas: ningún `500` ni `409`, ninguna segunda fila). El mismo caso con bytes distintos forzados en cada generación sigue dejando una sola copia por el índice `(organizationId, purpose, ownerRef)`.
+8. **Redacción:** con `L` el lado largo de la copia (480 px), cada bloque de lado `L/24` (20 × 20 px) **es de un solo color**, y un patrón más fino que ese bloque **no aparece** en la copia. Se comprueba con una imagen de entrada de rayas de 1 px alternando blanco y negro: en la copia ningún bloque contiene más de un color y no queda ninguna transición dentro de un bloque.
 9. Sin publicar, el donante no la recibe por ninguna ruta (aserción negativa sobre todas las rutas públicas).
 10. Publicar exige `ADMINISTRATOR` de la organización y la confirmación; `EMPLOYEE`, `REPRESENTATIVE`, otra organización y administrador de plataforma → 403.
-11. Publicada y después retirada por F7: original y copia sin bytes, publicación anulada, el donante ya no la recibe y el paso público no menciona la moderación.
+10b. **Historial:** publicar, despublicar y volver a publicar deja tres entradas en `publicationDecisions`, en orden, y la primera conserva su `at`, su `by` y su confirmación (se compara con la copia leída antes). `PUT` sobre una ya publicada y `DELETE` sobre una no publicada no añaden entrada. El adaptador no expone ninguna operación que reemplace o borre entradas (se comprueba en su interfaz).
+11. Publicada y después retirada por F7: original y copia sin bytes, publicación anulada con una entrada `UNPUBLISH` del administrador de plataforma, el donante ya no la recibe y el paso público no menciona la moderación.
 12. Los originales de los pasos nunca aparecen en una respuesta pública.
 
 **Común**

@@ -189,3 +189,7 @@ Partición: se excluyen 571 snapshots con la meta ya alcanzada. Quedan 3060 snap
   - solo contiene datos **sintéticos** (`data/manifest.json` declara `synthetic: true`), el código de generación y entrenamiento y los artefactos exportados (`output/`);
   - **ningún archivo de datos personales**.
 - **D2 no cambia:** el componente sigue sin escribir en MongoDB, el Event Store ni nada que se ancle.
+
+### Enmienda 3 — limitación conocida: el modelo reproduce la curva de llegada del generador
+
+**Estado:** PROPUESTA — firma: [Falta: quién firma.] (2026-11-19). **No cambia ninguna decisión** ni el modelo (`baseline-0.3.0`) ni el generador: documenta que el modelo subestima las convocatorias que recaudan de forma lineal, porque el generador sintético reparte las donaciones en U. Cifras, procedencia (commit, semilla, huella) y script en `ADR-044-enmienda-3-limitacion-curva-de-llegada.md`.
