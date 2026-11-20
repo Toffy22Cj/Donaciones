@@ -27,9 +27,13 @@ import java.util.Map;
 @Service
 public class CampaignPredictionUseCase {
 
-    public static final String MODEL_RESOURCE = "/predictor/campaign-predictor-baseline-0.3.0.json";
+    /** ADR-044 Enmienda 4 (PROPUESTA): el modelo vigente es {@code baseline-0.4.0}. */
+    public static final String DEFAULT_MODEL_RESOURCE = "/predictor/campaign-predictor-baseline-0.4.0.json";
+    /** El artefacto de {@code baseline-0.3.0} se conserva y se puede elegir con {@code traceability.prediction.model-resource}. */
+    public static final String LEGACY_MODEL_RESOURCE = "/predictor/campaign-predictor-baseline-0.3.0.json";
+    public static final String MODEL_RESOURCE = DEFAULT_MODEL_RESOURCE;
     public static final String SYNTHETIC_WARNING = "modelo entrenado con datos sintéticos";
-    /** El dataset sintético de {@code baseline-0.3.0 (como el de 0.2.0)} está en COP (Carlos, 2026-10-07: motivo explícito para el resto). */
+    /** El dataset sintético de {@code baseline-0.4.0 (como los de 0.3.0 y 0.2.0)} está en COP (Carlos, 2026-10-07: motivo explícito para el resto). */
     static final String SUPPORTED_CURRENCY = "COP";
     static final double TRAINED_T_MIN = 0.15;
     static final double TRAINED_T_MAX = 0.50;
@@ -65,15 +69,26 @@ public class CampaignPredictionUseCase {
     private final Clock clock;
 
     public CampaignPredictionUseCase(CampaignPredictionDataQuery data, ObjectProvider<Clock> clock) {
+        this(data, clock, DEFAULT_MODEL_RESOURCE);
+    }
+
+    /** {@code modelResource}: de {@code traceability.prediction.model-resource}; un recurso que no existe impide arrancar. */
+    @org.springframework.beans.factory.annotation.Autowired
+    public CampaignPredictionUseCase(CampaignPredictionDataQuery data, ObjectProvider<Clock> clock,
+                                     @org.springframework.beans.factory.annotation.Value("${traceability.prediction.model-resource:" + DEFAULT_MODEL_RESOURCE + "}") String modelResource) {
         this.data = data;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
-        this.model = loadModel();
+        this.model = loadModel(modelResource);
     }
 
     static CampaignPredictorModel loadModel() {
-        try (InputStream json = CampaignPredictionUseCase.class.getResourceAsStream(MODEL_RESOURCE)) {
+        return loadModel(DEFAULT_MODEL_RESOURCE);
+    }
+
+    static CampaignPredictorModel loadModel(String resource) {
+        try (InputStream json = CampaignPredictionUseCase.class.getResourceAsStream(resource)) {
             if (json == null) {
-                throw new IllegalStateException("Falta el recurso del predictor " + MODEL_RESOURCE);
+                throw new IllegalStateException("Falta el recurso del predictor " + resource);
             }
             return CampaignPredictorModel.load(json);
         } catch (IOException e) {

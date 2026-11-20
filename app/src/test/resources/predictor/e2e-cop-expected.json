@@ -1,5 +1,5 @@
 {
-  "modelVersion": "baseline-0.3.0",
+  "modelVersion": "baseline-0.4.0",
   "features": {
     "logTargetAmount": 15.89495209964411,
     "durationDays": 40.0,
@@ -18,6 +18,6 @@
     "targetPolicy": "FLEXIBLE",
     "visibility": "PUBLIC"
   },
-  "probabilityReachTarget": 0.023683819479216335,
-  "finalPctOfTarget": 0.5812342719486532
+  "probabilityReachTarget": 0.30175762636313064,
+  "finalPctOfTarget": 0.7726866773259279
 }

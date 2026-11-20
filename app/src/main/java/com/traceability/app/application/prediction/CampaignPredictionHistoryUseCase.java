@@ -62,11 +62,19 @@ public class CampaignPredictionHistoryUseCase {
 
     public CampaignPredictionHistoryUseCase(CampaignPredictionDataQuery data, CampaignTimelineQuery timeline,
                                             CampaignClearedFundsPort clearedFunds, ObjectProvider<Clock> clock) {
+        this(data, timeline, clearedFunds, clock, CampaignPredictionUseCase.DEFAULT_MODEL_RESOURCE);
+    }
+
+    /** El mismo modelo que la estimación del momento ({@code traceability.prediction.model-resource}). */
+    @org.springframework.beans.factory.annotation.Autowired
+    public CampaignPredictionHistoryUseCase(CampaignPredictionDataQuery data, CampaignTimelineQuery timeline,
+                                            CampaignClearedFundsPort clearedFunds, ObjectProvider<Clock> clock,
+                                            @org.springframework.beans.factory.annotation.Value("${traceability.prediction.model-resource:" + CampaignPredictionUseCase.DEFAULT_MODEL_RESOURCE + "}") String modelResource) {
         this.data = data;
         this.timeline = timeline;
         this.clearedFunds = clearedFunds;
         this.clock = clock.getIfAvailable(Clock::systemUTC);
-        this.model = CampaignPredictionUseCase.loadModel();
+        this.model = CampaignPredictionUseCase.loadModel(modelResource);
     }
 
     public History history(AuthorizationPrincipal principal, String organizationId, String campaignRef) {
