@@ -80,7 +80,7 @@ class CampaignPredictionUseCaseTest {
         CampaignPredictorModel model = CampaignPredictorModel.load(
                 getClass().getResourceAsStream(CampaignPredictionUseCase.MODEL_RESOURCE));
         assertThat(p.unavailable()).isNull();
-        assertThat(p.modelVersion()).isEqualTo("baseline-0.3.0");
+        assertThat(p.modelVersion()).isEqualTo("baseline-0.4.0");
         assertThat(p.probabilityReachTarget()).isEqualTo(Math.round(model.probabilityReachTarget(model.clipToTrainedRange(f.byName())) * 10_000.0) / 10_000.0)
                 .isBetween(0.0, 1.0);
         assertThat(p.estimatedFinalPctOfTarget()).isEqualTo(Math.round(model.finalPctOfTarget(model.clipToTrainedRange(f.byName())) * 10_000.0) / 10_000.0);
@@ -88,6 +88,29 @@ class CampaignPredictionUseCaseTest {
         assertThat(p.warnings()).containsExactly("modelo entrenado con datos sintéticos");
         assertThat(f.nDonations()).isEqualTo(5);
         assertThat(f.failedRate()).as("el intento en curso no cuenta").isEqualTo(1.0 / 6);
+    }
+
+    @Test
+    void theModelResourceIsConfigurable_theLegacy030StaysLoadable_andAnUnknownOneFailsFast() {
+        CampaignPredictionData data = campaign("FLEXIBLE", 8_000_000L, "OPEN",
+                donations(400_000, 300_000, 500_000, 250_000, 600_000));
+        when(query.dataOf("CAMP-1")).thenReturn(Optional.of(data));
+        @SuppressWarnings("unchecked")
+        ObjectProvider<Clock> clock = mock(ObjectProvider.class);
+        when(clock.getIfAvailable(any())).thenReturn(Clock.fixed(NOW, ZoneOffset.UTC));
+
+        Prediction current = useCase(NOW).predict(principal("ORG-1", AuthorizationRole.ADMINISTRATOR), "ORG-1", "CAMP-1");
+        Prediction legacy = new CampaignPredictionUseCase(query, clock, CampaignPredictionUseCase.LEGACY_MODEL_RESOURCE)
+                .predict(principal("ORG-1", AuthorizationRole.ADMINISTRATOR), "ORG-1", "CAMP-1");
+
+        assertThat(current.modelVersion()).isEqualTo("baseline-0.4.0");
+        assertThat(legacy.modelVersion()).isEqualTo("baseline-0.3.0");
+        // mismos datos, otro modelo: la cifra cambia (si no, el reentreno no habría cambiado nada)
+        assertThat(legacy.probabilityReachTarget()).isNotEqualTo(current.probabilityReachTarget());
+        // un recurso que no existe impide arrancar, no se queda con el predeterminado en silencio
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> new CampaignPredictionUseCase(query, clock, "/predictor/no-existe.json"))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("no-existe");
     }
 
     @Test

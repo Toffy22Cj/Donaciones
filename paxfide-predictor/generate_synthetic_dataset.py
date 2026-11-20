@@ -38,7 +38,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DATASET_VERSION = "synthetic-v1"
+DATASET_VERSION_LEGACY = "synthetic-v1"   # una sola curva, en U (ADR-044 Enm. 3: huella 2d235ef5…)
+DATASET_VERSION = "synthetic-v2"          # mezcla de curvas de llegada (ADR-044 Enm. 4, PROPUESTA)
+CURVE_KINDS = ("u", "linear", "front")
+DEFAULT_CURVE_MIX = {"u": 0.4, "linear": 0.4, "front": 0.2}
+LEGACY_CURVE_MIX = {"u": 1.0}
 SNAPSHOT_TS = (0.15, 0.25, 0.50)          # decisión del equipo (6 oct 2026)
 POLICIES = ("FLEXIBLE", "STRICT", "CLOSE_ON_TARGET")
 POLICY_WEIGHTS = (0.6, 0.25, 0.15)
@@ -47,14 +51,47 @@ RECENT_WINDOW_FRACTION = 0.10             # "velocidad reciente" = último 10 % 
 
 
 # --------------------------------------------------------------------------- simulación
-def _arrival_curve(n_days: int) -> np.ndarray:
-    """Curva en U normalizada a media 1: más donaciones al inicio y al final."""
+def _arrival_curve(n_days: int, kind: str = "u") -> np.ndarray:
+    """Curva de llegada de donaciones, normalizada a media 1.
+
+    - ``u``: más donaciones al inicio y al final (la del generador original, sin cambios);
+    - ``linear``: constante, las donaciones llegan a ritmo uniforme;
+    - ``front``: concentrada al inicio, solo baja.
+    """
     x = np.linspace(0.0, 1.0, n_days)
-    curve = 1.6 * np.exp(-x / 0.12) + 0.35 + 1.1 * np.exp(-(1.0 - x) / 0.08)
+    if kind == "u":
+        curve = 1.6 * np.exp(-x / 0.12) + 0.35 + 1.1 * np.exp(-(1.0 - x) / 0.08)
+    elif kind == "linear":
+        curve = np.ones(n_days)
+    elif kind == "front":
+        curve = np.exp(-x / 0.25) + 0.05
+    else:
+        raise ValueError(f"curva desconocida: {kind}")
     return curve / curve.mean()
 
 
-def simulate_campaign(rng: np.random.Generator, idx: int) -> tuple[dict, list[dict]]:
+def parse_curve_mix(text: str) -> dict[str, float]:
+    """``u=0.4,linear=0.4,front=0.2`` → dict. Los pesos suman 1 y solo se admiten las curvas conocidas."""
+    mix: dict[str, float] = {}
+    try:
+        for part in text.split(","):
+            name, _, raw = part.strip().partition("=")
+            if name not in CURVE_KINDS:
+                raise ValueError(f"curva desconocida «{name}»")
+            if name in mix:
+                raise ValueError(f"curva repetida «{name}»")
+            weight = float(raw)
+            if weight < 0:
+                raise ValueError("pesos negativos")
+            mix[name] = weight
+    except ValueError as e:
+        raise ValueError(f"mezcla de curvas inválida ({e}): {text!r}") from e
+    if abs(sum(mix.values()) - 1.0) > 1e-9:
+        raise ValueError(f"mezcla de curvas inválida (los pesos deben sumar 1): {text!r}")
+    return {k: v for k, v in mix.items() if v > 0}
+
+
+def simulate_campaign(rng: np.random.Generator, idx: int, curve_mix: dict[str, float] | None = None) -> tuple[dict, list[dict]]:
     campaign_ref = f"cmp-{idx:05d}"
     duration_days = int(rng.integers(15, 91))
     target_amount = float(np.round(np.exp(rng.normal(np.log(8_000_000), 0.8)), -3))  # COP
@@ -76,7 +113,13 @@ def simulate_campaign(rng: np.random.Generator, idx: int) -> tuple[dict, list[di
     expected_total_donations = target_amount / mean_amount
     base_rate = expected_total_donations / duration_days * appeal * rng.uniform(0.55, 1.15)
 
-    curve = _arrival_curve(duration_days)
+    # Con una sola curva no se consume ningún número aleatorio: la mezcla desactivada reproduce el generador original.
+    mix = curve_mix or LEGACY_CURVE_MIX
+    if len(mix) == 1:
+        curve_kind = next(iter(mix))
+    else:
+        curve_kind = str(rng.choice(list(mix), p=list(mix.values())))
+    curve = _arrival_curve(duration_days, curve_kind)
     intents: list[dict] = []
     cleared = 0.0
     closed_on_day: int | None = None
@@ -124,6 +167,8 @@ def simulate_campaign(rng: np.random.Generator, idx: int) -> tuple[dict, list[di
         "reachedTarget": int(cleared >= target_amount),
         "closedEarlyOnDay": closed_on_day,
     }
+    if len(mix) > 1:
+        campaign["arrivalCurve"] = curve_kind
     return campaign, intents
 
 
@@ -199,12 +244,21 @@ def main() -> None:
     ap.add_argument("--n-campaigns", type=int, default=1500)
     ap.add_argument("--seed", type=int, default=20261006)
     ap.add_argument("--out", type=Path, default=Path("data"))
+    ap.add_argument(
+        "--curve-mix", default=",".join(f"{k}={v}" for k, v in DEFAULT_CURVE_MIX.items()),
+        help="mezcla de curvas de llegada, p. ej. u=0.4,linear=0.4,front=0.2; u=1 reproduce el generador original (synthetic-v1)",
+    )
     args = ap.parse_args()
+    try:
+        curve_mix = parse_curve_mix(args.curve_mix)
+    except ValueError as e:
+        ap.error(str(e))
+    dataset_version = DATASET_VERSION if len(curve_mix) > 1 else DATASET_VERSION_LEGACY
 
     rng = np.random.default_rng(args.seed)
     campaigns, all_intents = [], []
     for i in range(args.n_campaigns):
-        c, its = simulate_campaign(rng, i)
+        c, its = simulate_campaign(rng, i, curve_mix)
         campaigns.append(c)
         all_intents.extend(its)
 
@@ -239,12 +293,14 @@ def main() -> None:
         pass
 
     manifest = {
-        "datasetVersion": DATASET_VERSION,
+        "datasetVersion": dataset_version,
         "synthetic": True,
         "warning": "Datos inventados. No representan convocatorias reales. "
                    "No cargar en MongoDB ni en el Event Store (ADR-044 §2).",
         "seed": args.seed,
         "nCampaigns": args.n_campaigns,
+        "curveMix": curve_mix,
+        **({"curveMixCounts": campaigns_df["arrivalCurve"].value_counts().to_dict()} if len(curve_mix) > 1 else {}),
         "snapshotTs": list(SNAPSHOT_TS),
         "recentWindowFraction": RECENT_WINDOW_FRACTION,
         "counts": {
