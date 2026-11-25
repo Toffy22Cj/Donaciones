@@ -106,7 +106,7 @@ class SlidingWindowRateLimiterTest {
         int limit = 5;
         ExecutorService pool = Executors.newFixedThreadPool(threads);
         try {
-            for (int round = 0; round < 300; round++) {
+            for (int round = 0; round < 3000; round++) {
                 String key = "round-" + round;
                 CyclicBarrier start = new CyclicBarrier(threads);
                 List<Future<Boolean>> results = new ArrayList<>();
