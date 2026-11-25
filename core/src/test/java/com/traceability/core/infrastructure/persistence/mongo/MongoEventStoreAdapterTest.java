@@ -181,6 +181,100 @@ class MongoEventStoreAdapterTest {
         }
     }
 
+    // --- ADR-059 (respuesta de Carlos, 2026-11-19): occurredAt ≤ recordedAt al guardar, con excepción con nombre propio ---
+
+    private static DomainEvent registered(String asset, Instant occurredAt) {
+        return new DomainEvent(() -> "ASSET_REGISTERED",
+                new AssetRegisteredPayload(asset, "VACCINE", new BigDecimal("1.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null),
+                occurredAt);
+    }
+
+    private static DomainEvent dispatched(Instant occurredAt) {
+        return new DomainEvent(() -> "ASSET_DISPATCHED", new AssetDispatchedPayload("trans-A", "loc-A"), occurredAt);
+    }
+
+    private static final com.traceability.core.domain.event.SystemActor ACTOR = new com.traceability.core.domain.event.SystemActor("test-harness");
+
+    private long storedEvents() {
+        return mongoTemplate.count(new org.springframework.data.mongodb.core.query.Query(), TraceabilityEventDocument.class);
+    }
+
+    @Test
+    void occurredAtAfterRecordedAt_isRejectedWithItsOwnException_andNothingIsStored() {
+        DomainEvent future = registered("asset-future", Instant.now().plusSeconds(3600));
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.traceability.core.application.exception.EventOccurredAfterRecordedException.class,
+                () -> eventStoreAdapter.append("stream-future", "PhysicalAsset", 0, List.of(future), ACTOR));
+
+        assertEquals(0, storedEvents());
+    }
+
+    @Test
+    void aBatchWhereOnlyTheLastEventBreaksTheRule_storesNoneOfThem() {
+        Instant now = Instant.now();
+        eventStoreAdapter.append("stream-batch", "PhysicalAsset", 0, List.of(registered("asset-batch", now.minusSeconds(5))), ACTOR);
+        long before = storedEvents();
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.traceability.core.application.exception.EventOccurredAfterRecordedException.class,
+                () -> eventStoreAdapter.append("stream-batch", "PhysicalAsset", 1,
+                        List.of(dispatched(now.minusSeconds(4)), dispatched(now.minusSeconds(3)), dispatched(Instant.now().plusSeconds(600))), ACTOR));
+
+        assertEquals(before, storedEvents());
+    }
+
+    @Test
+    void occurredAtEqualToRecordedAt_isStored() {
+        Instant exactSecond = Instant.parse("2026-10-20T10:00:05Z");
+        try (org.mockito.MockedStatic<Instant> clock = org.mockito.Mockito.mockStatic(Instant.class,
+                org.mockito.Mockito.CALLS_REAL_METHODS)) {
+            clock.when(Instant::now).thenReturn(exactSecond);
+            eventStoreAdapter.append("stream-equal", "PhysicalAsset", 0, List.of(registered("asset-equal", exactSecond)), ACTOR);
+        }
+
+        assertEquals(1, storedEvents());
+    }
+
+    @Test
+    void occurredAtInThePast_isStored_withTheRealRecordedAt() {
+        Instant lastYear = Instant.now().minus(java.time.Duration.ofDays(365));
+        Instant before = Instant.now();
+
+        eventStoreAdapter.append("stream-past", "PhysicalAsset", 0, List.of(registered("asset-past", lastYear)), ACTOR);
+
+        TraceabilityEventDocument doc = mongoTemplate.findAll(TraceabilityEventDocument.class).get(0);
+        assertEquals(lastYear.toString(), doc.getOccurredAt());
+        org.junit.jupiter.api.Assertions.assertFalse(Instant.parse(doc.getRecordedAt()).isBefore(before));
+    }
+
+    @Test
+    void simulatedPastTime_viaEventTime_isStored_andTheChainStillStartsFromGenesis() {
+        Instant past = Instant.now().minus(java.time.Duration.ofDays(30));
+        try (com.traceability.core.domain.shared.EventTime.Armed ignored = com.traceability.core.domain.shared.EventTime.arm()) {
+            Instant occurredAt = com.traceability.core.domain.shared.EventTime.callAt(past, com.traceability.core.domain.shared.EventTime::now);
+            eventStoreAdapter.append("stream-sim", "PhysicalAsset", 0, List.of(registered("asset-sim", occurredAt)), ACTOR);
+        }
+
+        TraceabilityEventDocument doc = mongoTemplate.findAll(TraceabilityEventDocument.class).get(0);
+        assertEquals(DomainEvent.GENESIS_HASH, doc.getPreviousHash());
+        assertEquals(past.toString(), doc.getOccurredAt());
+    }
+
+    @Test
+    void aMissingOccurredAt_isRejectedWithTheSameException_andNothingIsStored() {
+        org.junit.jupiter.api.Assertions.assertThrows(com.traceability.core.application.exception.EventOccurredAfterRecordedException.class,
+                () -> eventStoreAdapter.append("stream-null", "PhysicalAsset", 0, List.of(registered("asset-null", null)), ACTOR));
+
+        assertEquals(0, storedEvents());
+    }
+
+    @Test
+    void aVersionConflict_isStillAConcurrencyConflict_notTheNewException() {
+        eventStoreAdapter.append("stream-conflict", "PhysicalAsset", 0, List.of(registered("asset-conflict", Instant.now())), ACTOR);
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.traceability.core.application.exception.ConcurrencyConflictException.class,
+                () -> eventStoreAdapter.append("stream-conflict", "PhysicalAsset", 0, List.of(registered("asset-conflict", Instant.now())), ACTOR));
+    }
+
     @Test
     void testAppend_GenesisEvent_UsesGenesisHash() {
         AssetRegisteredPayload payload = new AssetRegisteredPayload("asset-1", "VACCINE", new BigDecimal("100.0000"), "DOSES", "loc-A", "cust-A", null, null, null, null);
