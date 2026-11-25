@@ -61,6 +61,13 @@ public interface MediaObjectStore {
      */
     boolean appendPublicationDecision(String objectKey, PublicationDecision decision);
 
+    /**
+     * ADR-021-D Enmienda 2 (Tarea 4): la foto original de ENTREGA vinculada a ese activo ({@code boundAssetId}), viva o
+     * retirada. Una sola lectura por índice, sin tocar el event store: el seguimiento público la hace en cada historial.
+     * Vacío si el activo no tiene foto de entrega vinculada.
+     */
+    Optional<MediaObject> findDeliveryEvidenceBoundTo(String assetId);
+
     /** El historial de esa copia y su estado actual; vacío si no existe el metadato. */
     Optional<Publication> findPublication(String objectKey);
 }

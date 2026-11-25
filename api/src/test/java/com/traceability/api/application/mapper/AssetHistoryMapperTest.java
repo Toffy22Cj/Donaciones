@@ -189,9 +189,10 @@ class AssetHistoryMapperTest {
         com.fasterxml.jackson.databind.JsonNode delivered = dto.get("history").get(1);
         assertTrue(delivered.get("evidenceRegistered").asBoolean());
         assertEquals(HUELLA, delivered.get("evidenceRef").asText());
-        // E1: los demás pasos no llevan ninguno de los dos campos
+        // Enmienda 2 de ADR-021-D, E8 (Q-21D2-1 (a)), que reemplaza a E1: los demás pasos con foto llevan los mismos dos
+        // campos; sin foto, evidenceRegistered: false y sin evidenceRef
         com.fasterxml.jackson.databind.JsonNode registered = dto.get("history").get(0);
-        assertFalse(registered.has("evidenceRegistered"));
+        assertFalse(registered.get("evidenceRegistered").asBoolean());
         assertFalse(registered.has("evidenceRef"));
     }
 
@@ -243,5 +244,109 @@ class AssetHistoryMapperTest {
         assertEquals("ABEJORRAL, ANTIOQUIA", dto.history().get(2).locationZone());
         Mockito.verify(locationReferenceService, Mockito.never()).resolveZone("Bodega norte");
         Mockito.verify(locationReferenceService, Mockito.never()).resolveZone("Centro");
+    }
+
+    // ── Enmienda 2 de ADR-021-D, E8 (Q-21D2-1 (a)): la huella de cada paso con foto ──
+
+    private static final String REF_ACTIVO = "ref-opaca-1";
+    private static final String H_REG = "sha256:" + "1".repeat(64);
+    private static final String H_DIS = "sha256:" + "2".repeat(64);
+    private static final String H_REC = "sha256:" + "3".repeat(64);
+    private static final String H_ENT = "sha256:" + "4".repeat(64);
+
+    private AssetHistoryReadModel fourSteps(String asset, String reg, String dis, String rec, String ent) {
+        when(publicDonationMapper.mapCustodian(Mockito.anyString())).thenReturn(PublicCustodianCategory.UNCATEGORIZED);
+        com.traceability.contracts.TrackingAnchorStatus pending = com.traceability.contracts.TrackingAnchorStatus.PENDING;
+        when(anchors.anchorBySequence(asset)).thenReturn(Map.of(
+                1L, new AssetAnchorStatusPort.StepAnchor(pending, "h1", null, reg),
+                2L, new AssetAnchorStatusPort.StepAnchor(pending, "h2", null, dis),
+                3L, new AssetAnchorStatusPort.StepAnchor(pending, "h3", null, rec),
+                4L, new AssetAnchorStatusPort.StepAnchor(pending, "h4", null, ent)));
+        return new AssetHistoryReadModel(asset, List.of(
+                new AssetTransitionReadModel("ASSET_REGISTERED", "REGISTERED", "c", "L", Instant.parse("2026-10-01T10:00:00Z"), 1L, "MEDELLÍN, ANTIOQUIA"),
+                new AssetTransitionReadModel("ASSET_DISPATCHED", "DISPATCHED", "c", "L", Instant.parse("2026-10-02T10:00:00Z"), 2L, "MEDELLÍN, ANTIOQUIA"),
+                new AssetTransitionReadModel("ASSET_RECEIVED", "RECEIVED", "c", "L", Instant.parse("2026-10-03T10:00:00Z"), 3L, "ABEJORRAL, ANTIOQUIA"),
+                new AssetTransitionReadModel("ASSET_DELIVERED", "DELIVERED", "c", "L", Instant.parse("2026-10-04T10:00:00Z"), 4L, "BOGOTÁ, D.C.")));
+    }
+
+    private com.fasterxml.jackson.databind.JsonNode json(AssetHistoryPublicDTO dto) {
+        return new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(dto);
+    }
+
+    @Test
+    void e8_everyStepWithAPhoto_carriesItsFootprint() {
+        com.fasterxml.jackson.databind.JsonNode h = json(assetHistoryMapper.toDto(fourSteps("a-1", H_REG, H_DIS, H_REC, H_ENT)))
+                .get("history");
+        assertEquals(List.of(H_REG, H_DIS, H_REC, H_ENT), List.of(h.get(0).get("evidenceRef").asText(),
+                h.get(1).get("evidenceRef").asText(), h.get(2).get("evidenceRef").asText(), h.get(3).get("evidenceRef").asText()));
+        for (int i = 0; i < 4; i++) {
+            assertTrue(h.get(i).get("evidenceRegistered").asBoolean(), "paso " + i);
+        }
+    }
+
+    @Test
+    void e8_aStepWithoutAPhoto_isNotRegistered_andHasNoRef() {
+        com.fasterxml.jackson.databind.JsonNode h = json(assetHistoryMapper.toDto(fourSteps("a-2", null, H_DIS, null, H_ENT)))
+                .get("history");
+        for (int i : new int[] {0, 2}) {
+            assertFalse(h.get(i).get("evidenceRegistered").asBoolean(), "paso " + i);
+            assertFalse(h.get(i).has("evidenceRef"), "paso " + i);
+        }
+        assertTrue(h.get(1).get("evidenceRegistered").asBoolean());
+    }
+
+    @Test
+    void e8_aTextThatIsNotAFootprint_neverAppears_inAnyStep() {
+        String secret = "nota privada de Juan Pérez";
+        AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(fourSteps("a-3", secret, secret, secret, H_ENT));
+        com.fasterxml.jackson.databind.JsonNode h = json(dto).get("history");
+        for (int i = 0; i < 3; i++) {
+            assertFalse(h.get(i).has("evidenceRef"), "paso " + i);
+        }
+        assertFalse(json(dto).toString().contains("Juan"));
+        assertFalse(json(dto).toString().contains("privada"));
+    }
+
+    // ── E5: evidencePreviewUrl solo en el paso de la entrega y solo con la copia publicada ──
+
+    @Test
+    void e5_aPublishedCopy_putsTheUrlInTheDeliveryStepOnly_andItNeverCarriesAnyCode() {
+        com.fasterxml.jackson.databind.JsonNode h = json(assetHistoryMapper.toDto(
+                fourSteps("a-4", H_REG, H_DIS, H_REC, H_ENT), REF_ACTIVO, true)).get("history");
+        assertEquals("/api/v1/donations/tracking/assets/" + REF_ACTIVO + "/evidence-preview",
+                h.get(3).get("evidencePreviewUrl").asText());
+        for (int i = 0; i < 3; i++) {
+            assertFalse(h.get(i).has("evidencePreviewUrl"), "paso " + i);
+        }
+        String url = h.get(3).get("evidencePreviewUrl").asText();
+        assertFalse(url.contains("?") || url.contains("#") || url.contains("code") || url.contains("Bearer"), url);
+        assertEquals(H_ENT, h.get(3).get("evidenceRef").asText()); // la huella sigue siendo la de la ORIGINAL
+    }
+
+    @Test
+    void e5_withoutAPublishedCopy_noFieldAtAll_andNothingSaysThereIsAnUnpublishedCopy() {
+        AssetHistoryPublicDTO dto = assetHistoryMapper.toDto(fourSteps("a-5", H_REG, H_DIS, H_REC, H_ENT), REF_ACTIVO, false);
+        String all = json(dto).toString();
+        assertFalse(all.contains("evidencePreview"), all);
+        assertFalse(all.toLowerCase().contains("preview"), all);
+        assertFalse(all.toLowerCase().contains("publish"), all);
+        assertFalse(all.toLowerCase().contains("redact"), all);
+        // y la sobrecarga sin referencia (la de antes de la Tarea 4) tampoco la lleva
+        assertFalse(json(assetHistoryMapper.toDto(fourSteps("a-5", H_REG, H_DIS, H_REC, H_ENT))).toString().contains("evidencePreview"));
+    }
+
+    @Test
+    void e5_aPublishedCopyWithoutAReferenceToBuildTheUrl_neverBuildsABrokenUrl() {
+        assertFalse(json(assetHistoryMapper.toDto(fourSteps("a-6", H_REG, H_DIS, H_REC, H_ENT), null, true))
+                .toString().contains("evidencePreview"));
+        assertFalse(json(assetHistoryMapper.toDto(fourSteps("a-6", H_REG, H_DIS, H_REC, H_ENT), "  ", true))
+                .toString().contains("evidencePreview"));
+    }
+
+    @Test
+    void e5_theDeliveryStepWithoutEvidence_neverGetsAUrl_evenIfThePortSaidPublished() {
+        com.fasterxml.jackson.databind.JsonNode h = json(assetHistoryMapper.toDto(
+                fourSteps("a-7", H_REG, H_DIS, H_REC, null), REF_ACTIVO, true)).get("history");
+        assertFalse(h.get(3).has("evidencePreviewUrl"));
     }
 }

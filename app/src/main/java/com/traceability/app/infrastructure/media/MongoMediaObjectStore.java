@@ -63,6 +63,16 @@ public class MongoMediaObjectStore implements MediaObjectStore {
     }
 
     @Override
+    public Optional<MediaObject> findDeliveryEvidenceBoundTo(String assetId) {
+        if (assetId == null || assetId.isBlank()) {
+            return Optional.empty();
+        }
+        MediaObjectDocument found = mongoTemplate.findOne(Query.query(Criteria.where("boundAssetId").is(assetId)
+                .and("purpose").is(MediaPurpose.DELIVERY_EVIDENCE)), MediaObjectDocument.class);
+        return Optional.ofNullable(found).map(MongoMediaObjectStore::toMediaObject);
+    }
+
+    @Override
     public Optional<MediaObject> findByObjectKey(String objectKey) {
         return repository.findByObjectKey(objectKey).map(MongoMediaObjectStore::toMediaObject);
     }

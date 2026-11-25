@@ -377,6 +377,12 @@ Header `Authorization: Bearer <trackingCode>`. Si el código falta, no vale o ca
 
 *Nota (2026-10-25, enmienda 1 de ADR-021-D; ADR-051 F6, C2 (a), Tarea 5):* en `GET /donations/tracking/assets/{assetRef}/history`, el paso de la entrega (`status: "DELIVERED"`) gana **`evidenceRegistered`**: `true` si el evento lleva un `evidenceRef` no vacío y `false` si no lo lleva. También gana **`evidenceRef?`**, solo si es una huella `sha256:<64 hexadecimales en minúscula>`. Un `evidenceRef` antiguo de texto libre **nunca** sale, porque puede llevar datos personales. Los demás pasos no llevan ninguno de los dos campos, y `logistics` no cambia. Tras una retirada (F7), el paso sigue igual: la huella está en el evento, que es inmutable. Nunca sale la imagen, una URL de la evidencia ni la `objectKey`.
 
+*Nota (2026-11-25, ADR-021-D Enmienda 2, E5 a E8; ADR-051 Enmienda 2, Tarea 4):*
+- `GET /donations/tracking/assets/{assetRef}/history`: el paso de la entrega gana **`evidencePreviewUrl?`** (`/api/v1/donations/tracking/assets/{assetRef}/evidence-preview`, relativa y **sin** el `trackingCode`), solo si la copia censurada existe, está publicada y la original no está retirada por F7. En cualquier otro caso el campo no aparece y nada dice que haya una copia sin publicar.
+- Q-21D2-1 (a), **supera lo de «los demás pasos no llevan ninguno de los dos campos»** de la nota anterior: los pasos de registrar, despachar y recibir llevan también `evidenceRegistered` (`false` sin foto) y `evidenceRef?` (solo si es `sha256:`). Un texto que no sea una huella nunca sale.
+- **Ruta nueva** `GET /donations/tracking/assets/{assetRef}/evidence-preview`: `trackingCode` en `Authorization: Bearer`, nunca en la ruta ni en la consulta (si llega en la consulta, se ignora y no sustituye a la cabecera). `200` con el PNG de la copia y `Cache-Control: private, no-store`. Sin código o inválido → `401`; código que no cubre el activo → el **mismo `401`** del historial; cubre el activo pero sin copia publicada, con la original retirada o sin foto → `404` con el mismo cuerpo en los tres casos. Dentro del grupo de límite `tracking` de ADR-053.
+- Nunca sale la original, su URL, la `objectKey`, la huella de la copia ni quién publicó.
+
 ## 9. Sin HTTP
 
 `MerkleBatch`, `BlockchainAnchorScheduler`, `AnchorConfirmationPoller` e `IntegrityVerificationPort.verifyBatch` son procesos internos (matriz §6). El anclaje en testnet y su evidencia: `runbook-anclaje-testnet.md`.

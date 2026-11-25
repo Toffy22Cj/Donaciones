@@ -95,13 +95,15 @@ class MongoStreamEventAnchorDataAdapterTest {
                 new StreamEventAnchorData(3, hash('a', 3), null));
     }
 
-    // ADR-051, Tarea 5 (plan de cierre §T5, P-T5-1): el evidenceRef del payload, solo de ASSET_DELIVERED y tal cual
-    // (huella o texto libre heredado); quién lo expone y cómo lo decide api (enmienda de ADR-021-D)
+    // ADR-051, Tarea 5 (P-T5-1) ampliada por la Tarea 4 (ADR-021-D Enmienda 2, E8, Q-21D2-1 (a)): el evidenceRef del payload
+    // de los cuatro eventos que pueden llevar foto (registrar, despachar, recibir y entregar), tal cual (huella o texto
+    // libre heredado); de cualquier otro evento, nulo. Quién lo expone y cómo lo decide api
     @Test
-    void t5_findByStream_carriesTheEvidenceRef_onlyOfAssetDelivered_asStored() {
+    void t5_findByStream_carriesTheEvidenceRef_ofThePhotoEventsOnly_asStored() {
         String huella = "sha256:" + "a".repeat(64);
         mongoTemplate.insert(event("asset-A", 1, hash('a', 1), null));
         TraceabilityEventDocument withEvidenceLikeField = event("asset-A", 2, hash('a', 2), null);
+        withEvidenceLikeField.setEventType("ASSET_SPLIT"); // un evento sin foto posible, aunque su payload traiga el campo
         withEvidenceLikeField.setPayload(new java.util.HashMap<>(java.util.Map.of("evidenceRef", "no-es-entrega")));
         mongoTemplate.insert(withEvidenceLikeField);
         mongoTemplate.insert(delivered("asset-A", 3, hash('a', 3), huella));
@@ -114,6 +116,32 @@ class MongoStreamEventAnchorDataAdapterTest {
                 new StreamEventAnchorData(3, hash('a', 3), null, huella));
         assertThat(adapter.findByStream("asset-B")).extracting(StreamEventAnchorData::evidenceRef).containsExactly("acta-1");
         assertThat(adapter.findByStream("asset-C")).extracting(StreamEventAnchorData::evidenceRef).containsOnlyNulls();
+    }
+
+    @Test
+    void e8_findByStream_carriesTheFootprint_ofRegisterDispatchAndReceive_butNotOfAnyOtherEvent() {
+        String r = "sha256:" + "1".repeat(64);
+        String d = "sha256:" + "2".repeat(64);
+        String c = "sha256:" + "3".repeat(64);
+        mongoTemplate.insert(withType("asset-E", 1, "ASSET_REGISTERED", r));
+        mongoTemplate.insert(withType("asset-E", 2, "ASSET_DISPATCHED", d));
+        mongoTemplate.insert(withType("asset-E", 3, "ASSET_RECEIVED", c));
+        mongoTemplate.insert(withType("asset-E", 4, "ASSET_SPLIT", "sha256:" + "9".repeat(64)));
+        mongoTemplate.insert(withType("asset-E", 5, "ASSET_REGISTERED", null));
+
+        assertThat(adapter.findByStream("asset-E")).extracting(StreamEventAnchorData::evidenceRef)
+                .containsExactly(r, d, c, null, null);
+    }
+
+    private static TraceabilityEventDocument withType(String streamId, long sequence, String type, String evidenceRef) {
+        TraceabilityEventDocument e = event(streamId, sequence, hash('e', (int) sequence), null);
+        e.setEventType(type);
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        if (evidenceRef != null) {
+            payload.put("evidenceRef", evidenceRef);
+        }
+        e.setPayload(payload);
+        return e;
     }
 
     private static TraceabilityEventDocument delivered(String streamId, long sequence, String eventHash, String evidenceRef) {

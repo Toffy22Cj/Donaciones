@@ -73,6 +73,10 @@ class PublicDonationControllerIntegrationTest {
         registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
     }
 
+    // Tarea 4 (ADR-021-D Enm. 2): lo implementa app; el controlador de la copia lo necesita
+    @MockitoBean
+    private com.traceability.core.application.port.out.PublishedEvidencePreviewPort previews;
+
     @Autowired
     private MockMvc mockMvc;
 
