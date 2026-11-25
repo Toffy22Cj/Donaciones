@@ -1,14 +1,9 @@
 package com.traceability.app.application.media;
 
-import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.PublishedEvidencePreviewPort;
-import com.traceability.core.domain.event.DomainEvent;
-import com.traceability.core.domain.physicalasset.PhysicalAsset;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 /**
  * La copia censurada de la foto de entrega para el seguimiento público (ADR-021-D Enmienda 2, E5 a E7; plan de la Tarea 4).
@@ -19,14 +14,10 @@ import java.util.regex.Pattern;
 @Component
 public class PublishedEvidencePreviewAdapter implements PublishedEvidencePreviewPort {
 
-    private static final Pattern FOOTPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
-
-    private final EventStorePort eventStore;
     private final MediaObjectStore metadata;
     private final RedactedEvidenceService redacted;
 
-    public PublishedEvidencePreviewAdapter(EventStorePort eventStore, MediaObjectStore metadata, RedactedEvidenceService redacted) {
-        this.eventStore = eventStore;
+    public PublishedEvidencePreviewAdapter(MediaObjectStore metadata, RedactedEvidenceService redacted) {
         this.metadata = metadata;
         this.redacted = redacted;
     }
@@ -50,18 +41,8 @@ public class PublishedEvidencePreviewAdapter implements PublishedEvidencePreview
         }
     }
 
-    /** La foto original de la entrega del activo (la huella del evento), viva o retirada; vacío si no hay foto. */
+    /** La foto original de la entrega del activo (la vinculada a él), viva o retirada; vacío si no hay foto. */
     private Optional<MediaObject> original(String assetId) {
-        List<DomainEvent> events = eventStore.loadStream(assetId);
-        if (events.isEmpty()) {
-            return Optional.empty();
-        }
-        PhysicalAsset asset = PhysicalAsset.rehydrate(assetId, events.stream().map(DomainEvent::payload).toList(), events.size());
-        String evidenceRef = asset.getFinalEvidenceRef();
-        if (evidenceRef == null || !FOOTPRINT.matcher(evidenceRef).matches()) {
-            return Optional.empty();
-        }
-        return metadata.findByOrganizationIdAndPurposeAndSha256(asset.getOrganizationRef(), MediaPurpose.DELIVERY_EVIDENCE,
-                evidenceRef.substring("sha256:".length()));
+        return metadata.findDeliveryEvidenceBoundTo(assetId);
     }
 }

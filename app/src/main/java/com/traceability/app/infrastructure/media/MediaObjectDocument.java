@@ -35,7 +35,11 @@ import java.util.List;
         // ADR-051 Enmienda 2, Tarea 3 (plan §2.2, Q-T3-1): UNA copia por original, aunque la JDK diera bytes distintos. No hay
         // índice por huella para la copia: dos originales distintas pueden dar copias idénticas
         @CompoundIndex(name = MediaObjectDocument.REDACTED_OWNER_INDEX, def = "{'organizationId': 1, 'purpose': 1, 'ownerRef': 1}",
-                unique = true, partialFilter = "{'purpose': 'DELIVERY_EVIDENCE_REDACTED'}")
+                unique = true, partialFilter = "{'purpose': 'DELIVERY_EVIDENCE_REDACTED'}"),
+        // ADR-021-D Enmienda 2 (Tarea 4): la foto de entrega de un activo, por su vínculo; el seguimiento la busca en cada
+        // historial, así que va por índice y no por barrido
+        @CompoundIndex(name = MediaObjectDocument.BOUND_ASSET_INDEX, def = "{'boundAssetId': 1, 'purpose': 1}",
+                partialFilter = "{'boundAssetId': {'$type': 'string'}}")
 })
 public record MediaObjectDocument(
         @Id String id,
@@ -67,6 +71,7 @@ public record MediaObjectDocument(
 
     public static final String COLLECTION = "media_objects";
     public static final String OBJECT_KEY_INDEX = "uq_object_key";
+    public static final String BOUND_ASSET_INDEX = "idx_media_bound_asset";
     public static final String EVIDENCE_SHA256_INDEX = "uq_evidence_sha256";
     public static final String STEP_EVIDENCE_SHA256_INDEX = "uq_step_evidence_sha256";
     public static final String REDACTED_OWNER_INDEX = "uq_redacted_owner";

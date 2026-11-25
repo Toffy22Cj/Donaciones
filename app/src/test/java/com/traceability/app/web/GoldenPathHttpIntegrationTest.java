@@ -535,7 +535,12 @@ class GoldenPathHttpIntegrationTest {
                     assertThat(step.get("evidenceRegistered").asBoolean()).isTrue();
                     assertThat(step.get("evidenceRef").asText()).isEqualTo(storedEvidence);
                 } else {
-                    assertThat(step.has("evidenceRegistered")).as(step.toString()).isFalse();
+                    // ADR-021-D Enmienda 2, E8 (Q-21D2-1 (a)): los pasos de foto opcional dicen que no la tienen
+                    if (List.of("REGISTERED", "DISPATCHED", "RECEIVED").contains(step.get("status").asText())) {
+                        assertThat(step.get("evidenceRegistered").asBoolean()).as(step.toString()).isFalse();
+                    } else {
+                        assertThat(step.has("evidenceRegistered")).as(step.toString()).isFalse();
+                    }
                     assertThat(step.has("evidenceRef")).as(step.toString()).isFalse();
                 }
             }
