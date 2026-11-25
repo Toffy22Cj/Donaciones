@@ -1,0 +1,5 @@
+{"module": "api,app", "tests": "RateLimitHttpIntegrationTest", "args": ["-Dsurefire.failIfNoSpecifiedTests=false"],
+ "mutations": [
+  {"name": "M12 filtro registrado en otra ruta (no cubre /api/v1)", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitConfig.java", "old": "registration.addUrlPatterns(\"/api/v1/*\");", "new": "registration.addUrlPatterns(\"/api/v2/*\");"}]},
+  {"name": "M13 filtro desactivado en el contenedor", "edits": [{"file": "api/src/main/java/com/traceability/api/web/ratelimit/RateLimitConfig.java", "old": "        registration.setOrder(FILTER_ORDER);", "new": "        registration.setOrder(FILTER_ORDER);\n        registration.setEnabled(false);"}]}
+ ]}
