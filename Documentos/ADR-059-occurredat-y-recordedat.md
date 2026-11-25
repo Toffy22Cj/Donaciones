@@ -8,6 +8,8 @@
 
 > **Nota (2026-11-19): respuestas de Carlos a las dos preguntas abiertas** (comunicadas por Manuel el 2026-11-19; `decisiones-delegadas-2026-10.md`, «Firmas del 2026-11-19»). **Pregunta 1** (¿dio Carlos el visto bueno sobre `core` del perfil `demo-historico`, #182?): **Sí.** **Pregunta 2** (¿el event store comprueba `occurredAt ≤ recordedAt` al guardar?): **Sí, con una excepción con nombre propio y su test.** El texto de este documento describe lo que había el 2026-11-18 y **no se reescribe**; la comprobación es código nuevo y va en su propia tarea, con su plan (`plan-adr059-comprobacion-occurredat.md`), que toca `core` y lo revisa Carlos. Hasta que ese PR se fusione, lo que dice D2 («hoy tampoco la hace el event store») sigue siendo cierto.
 
+> **Nota (2026-11-25): la comprobación de D2 está implementada** en `MongoEventStoreAdapter.append` (rama `feat/core-occurredat-no-posterior`; plan 2 de `plan-tanda-2026-11-19.md`). Un evento con `occurredAt` posterior a `recordedAt`, o sin `occurredAt`, lanza `EventOccurredAfterRecordedException` **antes** de armar el hash y de insertar nada: el lote entero se rechaza, sin reintento. Igualdad estricta (`≤`), sin tolerancia (Q-O-1); solo escrituras nuevas (los eventos ya guardados no se revisan). En la base de demostración con `demo-historico` (167 eventos) **ninguno** incumplía la regla (consulta de solo lectura, 2026-11-25). El texto de arriba describe lo que había el 2026-11-18 y no se reescribe.
+
 ## Context
 
 Cada `DomainEvent` lleva dos instantes y los dos entran en el mapa canónico y en el hash (`EventCanonicalMapper.toCanonicalMap`, `core/.../application/event/EventCanonicalMapper.java:33`). Hasta #182 no estaba escrito qué significa cada uno.
