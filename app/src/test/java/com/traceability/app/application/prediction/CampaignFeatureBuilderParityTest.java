@@ -34,8 +34,19 @@ class CampaignFeatureBuilderParityTest {
 
     @Test
     void featuresMatchTheTrainingDefinition() throws Exception {
+        featuresMatch("baseline-0.4.0");
+    }
+
+    /** ADR-044 Enmienda 4: el constructor de variables no cambió, así que el artefacto de 0.3.0 sigue valiendo. */
+    @Test
+    void featuresStillMatchTheLegacy030Definition() throws Exception {
+        featuresMatch("baseline-0.3.0");
+    }
+
+    private void featuresMatch(String version) throws Exception {
         JsonNode parity;
-        try (InputStream in = getClass().getResourceAsStream("/predictor/campaign-predictor-baseline-0.3.0-feature-parity.json")) {
+        try (InputStream in = getClass().getResourceAsStream("/predictor/campaign-predictor-" + version + "-feature-parity.json")) {
+            assertThat(in).as("falta el artefacto de paridad de variables de " + version).isNotNull();
             parity = new ObjectMapper().readTree(in);
         }
         assertThat(parity.get("cases").size()).isGreaterThan(50);

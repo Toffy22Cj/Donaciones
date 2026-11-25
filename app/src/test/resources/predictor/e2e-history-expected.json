@@ -1,5 +1,5 @@
 {
-  "modelVersion": "baseline-0.3.0",
+  "modelVersion": "baseline-0.4.0",
   "cuts": {
     "0.15": {
       "features": {
@@ -21,8 +21,8 @@
         "visibility": "PUBLIC"
       },
       "pctRaised": 0.0,
-      "probabilityReachTarget": 0.00192009449138089,
-      "finalPctOfTarget": 0.42382160440017197
+      "probabilityReachTarget": 0.044967330808002796,
+      "finalPctOfTarget": 0.34377268563485924
     },
     "0.25": {
       "features": {
@@ -44,8 +44,8 @@
         "visibility": "PUBLIC"
       },
       "pctRaised": 0.2625,
-      "probabilityReachTarget": 0.027776224370465945,
-      "finalPctOfTarget": 0.6498538315210265
+      "probabilityReachTarget": 0.4842538281388678,
+      "finalPctOfTarget": 0.6064899913876404
     }
   }
 }

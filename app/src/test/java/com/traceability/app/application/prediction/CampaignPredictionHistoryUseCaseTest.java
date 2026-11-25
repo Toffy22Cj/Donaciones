@@ -124,7 +124,7 @@ class CampaignPredictionHistoryUseCaseTest {
         History h = useCase(NOW).history(principal("ORG-1", AuthorizationRole.ADMINISTRATOR), "ORG-1", "CAMP-1");
 
         assertThat(h.unavailable()).isNull();
-        assertThat(h.modelVersion()).isEqualTo("baseline-0.3.0");
+        assertThat(h.modelVersion()).isEqualTo("baseline-0.4.0");
         assertThat(h.asOf()).isEqualTo(NOW);
         assertThat(h.warnings()).containsExactly(CampaignPredictionUseCase.SYNTHETIC_WARNING,
                 CampaignPredictionHistoryUseCase.FAILED_RATE_WARNING);
