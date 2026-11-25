@@ -111,19 +111,11 @@ class RateLimitHttpIntegrationTest {
 
     @Test
     void protectedUploadsAreLimitedBeforeTheJwtCheck() throws Exception {
+        // Plan 3 (ADR-053): la subida de fotos por paso comparte la cuota de `media-upload` con la de la entrega (el contador
+        // es de la IP y del grupo, y este contexto es uno solo: una prueba aparte del mismo grupo heredaría la cuota gastada)
         String path = "/api/v1/organizations/org-x/delivery-evidence";
         assertThat(post(path, "{}").statusCode()).isEqualTo(401);
-        assertThat(post(path, "{}").statusCode()).isEqualTo(401);
-        HttpResponse<String> third = post(path, "{}");
-        assertThat(third.statusCode()).isEqualTo(429);
-        assertThat(third.headers().firstValue("Retry-After")).isPresent();
-    }
-
-    @Test
-    void theStepPhotoUploadIsLimitedBeforeTheJwtCheck() throws Exception {
-        String path = "/api/v1/organizations/org-y/asset-evidence";
-        assertThat(post(path, "{}").statusCode()).isEqualTo(401);
-        assertThat(post(path, "{}").statusCode()).isEqualTo(401);
+        assertThat(post("/api/v1/organizations/org-x/asset-evidence", "{}").statusCode()).isEqualTo(401);
         HttpResponse<String> third = post(path, "{}");
         assertThat(third.statusCode()).isEqualTo(429);
         assertThat(third.headers().firstValue("Retry-After")).isPresent();
