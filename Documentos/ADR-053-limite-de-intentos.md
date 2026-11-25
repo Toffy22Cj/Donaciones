@@ -2,7 +2,7 @@
 
 ## Status
 
-**PROPUESTO — redactado según el plan aprobado; falta la firma del texto.** El usuario aprobó el 2026-11-14 el plan `plan-evolucion-producto.md`, cuya §2.3 fija el diseño de este ADR: filtro en `api` antes del JWT, ventana deslizante en memoria, `429` con `Retry-After` y `ProblemDetail` fijo, cuotas por configuración, la IP de `CF-Connecting-IP` solo detrás del túnel e implementación propia en lugar de Bucket4j. Este texto concreta ese diseño. Lo que añade sin estar escrito en el plan está marcado como **[detalle]**.
+**APROBADO — Carlos, 2026-11-19** (comunicado por Manuel; `decisiones-delegadas-2026-10.md`, «Firmas del 2026-11-19»). *Texto original del estado, que se conserva:* **PROPUESTO — redactado según el plan aprobado; falta la firma del texto.** El usuario aprobó el 2026-11-14 el plan `plan-evolucion-producto.md`, cuya §2.3 fija el diseño de este ADR: filtro en `api` antes del JWT, ventana deslizante en memoria, `429` con `Retry-After` y `ProblemDetail` fijo, cuotas por configuración, la IP de `CF-Connecting-IP` solo detrás del túnel e implementación propia en lugar de Bucket4j. Este texto concreta ese diseño. Lo que añade sin estar escrito en el plan está marcado como **[detalle]**.
 
 Cubre, por la regla 3.5, un mecanismo nuevo de protección frente a reintentos abusivos y el cierre del riesgo aceptado DH-56 (B3). No añade dependencias.
 
@@ -60,3 +60,5 @@ Valores iniciales en `application.yml`, que el aprobador puede cambiar sin tocar
 - Detrás del túnel hay que configurar `TRACEABILITY_RATE_LIMIT_TRUSTED_PROXIES=127.0.0.1`. Sin ella, todo el tráfico del túnel comparte una sola IP y las cuotas se agotan entre todos. Queda escrito en `despliegue-backend-2026-10.md`.
 - El `application.yml` de los tests de `app` lleva cuotas que ningún test ajeno al límite alcanza. Los tests del límite fijan las suyas.
 - Pruebas: `SlidingWindowRateLimiterTest`, `ClientIpResolverTest`, `RateLimitFilterTest`, `RateLimitPropertiesTest` (api) y `RateLimitHttpIntegrationTest` (app, Tomcat real). Las mutaciones están en `Documentos/evidencia-ci/mutaciones-t03-*.txt`.
+
+> **Nota (2026-11-25): traído a `develop` solo ADR-053** (rama `feat/api-limite-de-intentos`; plan 3 de `plan-tanda-2026-11-19.md`), con sus tres commits de `claude/festive-newton-687sd0` aplicados con `git cherry-pick` y **sin** los demás de esa rama (ADR-052, ADR-054, ADR-055 siguen sin fusionar ni firmar). ADR-053 no depende de ninguno de ellos. **D1 se aplica a una ruta que no existía al escribirlo:** la subida de fotos por paso (`POST /api/v1/organizations/{org}/asset-evidence`, ADR-051 Enmienda 2, Tarea 2) entra en el grupo `media-upload` («evidencia» en D1), con la misma cuota; y la copia censurada del seguimiento (ADR-021-D Enmienda 2, `GET /donations/tracking/assets/{assetRef}/evidence-preview`) ya queda dentro de `tracking`. Las lecturas autenticadas de los miembros y la publicación no tienen límite.

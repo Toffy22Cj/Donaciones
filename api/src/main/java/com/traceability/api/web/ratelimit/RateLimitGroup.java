@@ -26,10 +26,11 @@ public enum RateLimitGroup {
     DONATION_INTENT_CREATE("donation-intent-create",
             List.of(route("POST", "/api/v1/public/campaigns/*/donation-intents"))),
     PAYMENT_WEBHOOK("payment-webhook", List.of(route("POST", "/api/v1/webhooks/payments"))),
-    /** Subidas de fotos (ADR-051): logo, portada y evidencia de entrega. */
+    /** Subidas de fotos (ADR-051): logo, portada, evidencia de entrega y fotos de paso (Enmienda 2, Tarea 2). */
     MEDIA_UPLOAD("media-upload", List.of(route("PUT", "/api/v1/organizations/*/logo"),
             route("PUT", "/api/v1/organizations/*/campaigns/*/cover"),
-            route("POST", "/api/v1/organizations/*/delivery-evidence")));
+            route("POST", "/api/v1/organizations/*/delivery-evidence"),
+            route("POST", "/api/v1/organizations/*/asset-evidence")));
 
     record Route(String method, String pattern) {}
 
