@@ -34,9 +34,16 @@ public class MongoStreamEventAnchorDataAdapter implements StreamEventAnchorDataP
                 .toList();
     }
 
-    /** ADR-051, Tarea 5 (P-T5-1): solo la entrega lleva huella; en cualquier otro evento, nulo aunque el payload la tenga. */
+    /** Los eventos que pueden llevar foto: registrar, despachar, recibir y entregar (ADR-051 Enmienda 2; ADR-021-D Enm. 2, E8). */
+    private static final java.util.Set<String> PHOTO_EVENTS = java.util.Set.of(
+            "ASSET_REGISTERED", "ASSET_DISPATCHED", "ASSET_RECEIVED", "ASSET_DELIVERED");
+
+    /**
+     * ADR-051, Tarea 5 (P-T5-1), ampliada por ADR-021-D Enmienda 2, E8 (Q-21D2-1 (a)): solo los eventos con foto posible
+     * llevan huella; en cualquier otro evento, nulo aunque el payload la tenga.
+     */
     private static String evidenceRefOf(TraceabilityEventDocument e) {
-        if (!"ASSET_DELIVERED".equals(e.getEventType()) || e.getPayload() == null) {
+        if (!PHOTO_EVENTS.contains(e.getEventType()) || e.getPayload() == null) {
             return null;
         }
         Object evidenceRef = e.getPayload().get("evidenceRef");

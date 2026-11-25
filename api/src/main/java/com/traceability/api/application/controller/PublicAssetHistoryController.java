@@ -6,6 +6,7 @@ import com.traceability.api.infrastructure.security.TrackingCodeAuthFilter;
 import com.traceability.core.application.port.out.AssetAuthorizationPort;
 import com.traceability.core.application.port.out.AssetHistoryReadPort;
 import com.traceability.core.application.port.out.DonationReadPort;
+import com.traceability.core.application.port.out.PublishedEvidencePreviewPort;
 import com.traceability.core.application.security.AssetRefService;
 import com.traceability.core.application.port.out.DonationReadModel;
 import com.traceability.core.application.port.out.LogisticsReadItem;
@@ -32,18 +33,21 @@ public class PublicAssetHistoryController {
     private final AssetAuthorizationPort assetAuthorizationPort;
     private final AssetHistoryReadPort assetHistoryReadPort;
     private final AssetHistoryMapper assetHistoryMapper;
+    private final PublishedEvidencePreviewPort previews;
 
     public PublicAssetHistoryController(
             DonationReadPort donationReadPort,
             AssetRefService assetRefService,
             AssetAuthorizationPort assetAuthorizationPort,
             AssetHistoryReadPort assetHistoryReadPort,
-            AssetHistoryMapper assetHistoryMapper) {
+            AssetHistoryMapper assetHistoryMapper,
+            PublishedEvidencePreviewPort previews) {
         this.donationReadPort = donationReadPort;
         this.assetRefService = assetRefService;
         this.assetAuthorizationPort = assetAuthorizationPort;
         this.assetHistoryReadPort = assetHistoryReadPort;
         this.assetHistoryMapper = assetHistoryMapper;
+        this.previews = previews;
     }
 
     @GetMapping("/{assetRef}/history")
@@ -80,7 +84,8 @@ public class PublicAssetHistoryController {
         }
 
         return assetHistoryReadPort.getHistory(assetId)
-                .map(assetHistoryMapper::toDto)
+                // E5: la URL de la copia solo si existe, está publicada y la original no está retirada; la ruta es la opaca
+                .map(history -> assetHistoryMapper.toDto(history, assetRef, previews.hasPublishedPreview(assetId)))
                 .map(ResponseEntity::ok)
                 .orElseThrow(TrackedResourceNotFoundException::new); // In case history projection is missing, this is just a normal 404.
     }

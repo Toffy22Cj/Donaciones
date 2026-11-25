@@ -24,6 +24,9 @@ public class AssetHistoryMapper {
     /** ADR-051 F3: el único formato que se expone (enmienda de ADR-021-D, E1). */
     private static final Pattern FOOTPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
 
+    /** La ruta relativa de la copia (E5); el {@code trackingCode} viaja solo en la cabecera, nunca aquí (E6). */
+    private static final String PREVIEW_PATH = "/api/v1/donations/tracking/assets/%s/evidence-preview";
+
     private final PublicZoneResolver zones;
     private final PublicDonationMapper publicDonationMapper;
     private final AssetAnchorStatusPort anchors;
@@ -35,7 +38,17 @@ public class AssetHistoryMapper {
         this.anchors = anchors;
     }
 
+    /** Sin copia que mostrar: el historial como era antes de la Tarea 4. */
     public AssetHistoryPublicDTO toDto(AssetHistoryReadModel document) {
+        return toDto(document, null, false);
+    }
+
+    /**
+     * @param assetRef         la referencia opaca del activo tal como llegó en la ruta (la que el cliente ya conoce); con ella se
+     *                         arma {@code evidencePreviewUrl}. Nunca el {@code assetId} interno ni el {@code trackingCode}.
+     * @param previewPublished lo que dijo {@code PublishedEvidencePreviewPort}: copia existente, publicada y original viva
+     */
+    public AssetHistoryPublicDTO toDto(AssetHistoryReadModel document, String assetRef, boolean previewPublished) {
         if (document == null || document.transitions() == null) {
             return new AssetHistoryPublicDTO(List.of());
         }
@@ -47,7 +60,7 @@ public class AssetHistoryMapper {
         List<PublicTransitionDTO> transitions = document.transitions().stream()
                 .map(t -> {
                     StepAnchor anchor = anchorBySequence.get(t.sequence());
-                    return toTransitionDto(t, anchor, anchor != null ? anchor.evidenceRef() : null);
+                    return toTransitionDto(t, anchor, anchor != null ? anchor.evidenceRef() : null, assetRef, previewPublished);
                 })
                 .toList();
 
@@ -55,9 +68,12 @@ public class AssetHistoryMapper {
     }
 
     private PublicTransitionDTO toTransitionDto(AssetTransitionReadModel transition, StepAnchor anchor,
-                                                String evidenceRef) {
-        // E1: solo el paso de la entrega lleva los campos de la evidencia
+                                                String evidenceRef, String assetRef, boolean previewPublished) {
         boolean delivery = "DELIVERED".equals(transition.status());
+        // Enmienda 2 de ADR-021-D, E8 (Q-21D2-1 (a)): los cuatro pasos con foto posible llevan los campos de la huella
+        boolean photoStep = delivery || "REGISTERED".equals(transition.status())
+                || "DISPATCHED".equals(transition.status()) || "RECEIVED".equals(transition.status());
+        boolean footprint = evidenceRef != null && FOOTPRINT.matcher(evidenceRef).matches();
         // ADR-029 Enmienda 2, D5: la zona sellada del paso; sin ella, el respaldo de location_reference
         String zone = zones.resolve(transition.zoneName(), transition.location()).orElse(null);
 
@@ -71,9 +87,13 @@ public class AssetHistoryMapper {
                 (anchor != null ? anchor.status() : TrackingAnchorStatus.PENDING).name(),
                 anchor != null ? anchor.eventHash() : null,
                 anchor != null ? toProofDto(anchor.proof()) : null,
-                delivery ? Boolean.valueOf(evidenceRef != null && !evidenceRef.isBlank()) : null,
+                photoStep ? Boolean.valueOf(evidenceRef != null && !evidenceRef.isBlank()) : null,
                 // E2: el texto libre heredado puede llevar datos personales y nunca sale
-                delivery && evidenceRef != null && FOOTPRINT.matcher(evidenceRef).matches() ? evidenceRef : null
+                photoStep && footprint ? evidenceRef : null,
+                // E5: solo en la entrega, con la copia publicada y con una original que exista (huella válida); sin referencia
+                // para armar la ruta, ningún campo antes que una URL rota
+                delivery && footprint && previewPublished && assetRef != null && !assetRef.isBlank()
+                        ? PREVIEW_PATH.formatted(assetRef) : null
         );
     }
 

@@ -122,6 +122,17 @@ public class RedactedEvidenceService {
                 copy.objectKey(), new PublicationDecision(PublicationDecision.Action.UNPUBLISH, clock.instant(), by, null)));
     }
 
+    /**
+     * La copia que se puede mostrar en el seguimiento público (ADR-021-D Enmienda 2, E5): publicada y con copia y original
+     * vivas; en cualquier otro caso, vacío. No genera nada ni dice por qué falta (E7).
+     */
+    public Optional<Copy> publishedCopy(MediaObject original) {
+        if (!publication(original).published()) {
+            return Optional.empty();
+        }
+        return find(original).filter(copy -> copy.deletedAt() == null).map(this::read);
+    }
+
     /** El historial de esa copia; {@code published} es la publicación VIGENTE (publicada y con copia y original vivas). */
     public Publication publication(MediaObject original) {
         Optional<MediaObject> copy = find(original);

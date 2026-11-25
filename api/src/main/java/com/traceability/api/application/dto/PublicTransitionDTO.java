@@ -20,6 +20,11 @@ public record PublicTransitionDTO(
          */
         @JsonInclude(JsonInclude.Include.NON_NULL) Boolean evidenceRegistered,
         /** E1 y E2: solo si el {@code evidenceRef} es una huella {@code sha256:}; el texto libre heredado nunca sale. */
-        @JsonInclude(JsonInclude.Include.NON_NULL) String evidenceRef
+        @JsonInclude(JsonInclude.Include.NON_NULL) String evidenceRef,
+        /**
+         * Enmienda 2 de ADR-021-D, E5: solo en el paso de la entrega y solo si la copia censurada existe, está publicada y la
+         * original no está retirada por F7. Nunca un campo que diga «hay copia pero no está publicada».
+         */
+        @JsonInclude(JsonInclude.Include.NON_NULL) String evidencePreviewUrl
 ) {
 }

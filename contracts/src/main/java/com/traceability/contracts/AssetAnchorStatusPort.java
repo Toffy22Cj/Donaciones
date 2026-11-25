@@ -16,8 +16,8 @@ public interface AssetAnchorStatusPort {
 
     /**
      * {@code proof} es nulo si no hay prueba (cualquier estado que no sea {@code ANCHORED} con hojas guardadas).
-     * {@code evidenceRef}: el del evento {@code ASSET_DELIVERED}, tal cual (huella o texto libre heredado); nulo en los
-     * demás. Sale de la misma consulta que el anclaje (ADR-051, Tarea 5; decisión (a) de Manuel a H-T5-1, autorización
+     * {@code evidenceRef}: el del evento de registrar, despachar, recibir o entregar, tal cual (huella o texto libre
+     * heredado); nulo en los demás (ADR-021-D Enmienda 2, E8). Sale de la misma consulta que el anclaje (ADR-051, Tarea 5; decisión (a) de Manuel a H-T5-1, autorización
      * 3.5 en #147). Qué se expone de él lo decide {@code api} (enmienda 1 de ADR-021-D).
      */
     record StepAnchor(TrackingAnchorStatus status, String eventHash, AnchorProof proof, String evidenceRef) {

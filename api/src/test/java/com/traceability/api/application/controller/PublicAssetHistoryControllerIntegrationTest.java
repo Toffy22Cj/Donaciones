@@ -122,6 +122,10 @@ class PublicAssetHistoryControllerIntegrationTest {
     @MockBean
     private com.traceability.contracts.AssetAnchorStatusPort assetAnchors;
 
+    // Tarea 4 (ADR-021-D Enm. 2): lo implementa app
+    @MockBean
+    private com.traceability.core.application.port.out.PublishedEvidencePreviewPort previews;
+
     @BeforeEach
     void setUp() {
         donationReadRepository.deleteAll();

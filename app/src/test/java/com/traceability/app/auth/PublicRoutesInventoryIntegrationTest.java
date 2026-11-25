@@ -205,7 +205,9 @@ class PublicRoutesInventoryIntegrationTest {
                 // ADR-050 Enmienda 2, E2-2: las dos rutas de la verificación del correo existen y son públicas
                 .contains("/api/v1/auth/email-verification", "/api/v1/auth/email-verification/confirm")
                 .contains("/api/v1/auth/login", "/api/v1/donations/tracking",
-                        "/api/v1/donations/tracking/narrative", "/api/v1/donations/tracking/assets/{assetRef}/history");
+                        "/api/v1/donations/tracking/narrative", "/api/v1/donations/tracking/assets/{assetRef}/history",
+                        // ADR-021-D Enmienda 2, E5 (Tarea 4): la copia censurada, bajo el mismo perímetro del seguimiento
+                        "/api/v1/donations/tracking/assets/{assetRef}/evidence-preview");
 
         List<String> unclassified = endpoints.stream()
                 .filter(e -> PublicRoutes.accessFor(e.method(), e.concretePath()).isEmpty())
