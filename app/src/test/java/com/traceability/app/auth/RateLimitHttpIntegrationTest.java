@@ -120,6 +120,16 @@ class RateLimitHttpIntegrationTest {
     }
 
     @Test
+    void theStepPhotoUploadIsLimitedBeforeTheJwtCheck() throws Exception {
+        String path = "/api/v1/organizations/org-y/asset-evidence";
+        assertThat(post(path, "{}").statusCode()).isEqualTo(401);
+        assertThat(post(path, "{}").statusCode()).isEqualTo(401);
+        HttpResponse<String> third = post(path, "{}");
+        assertThat(third.statusCode()).isEqualTo(429);
+        assertThat(third.headers().firstValue("Retry-After")).isPresent();
+    }
+
+    @Test
     void aFakeXForwardedForDoesNotEvadeTheLimit() throws Exception {
         String body = "{}";
         post("/api/v1/auth/register", body, "X-Forwarded-For", "10.1.1.1");

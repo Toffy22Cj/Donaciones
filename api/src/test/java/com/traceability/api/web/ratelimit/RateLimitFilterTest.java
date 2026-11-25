@@ -201,6 +201,28 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void theStepPhotoUploadIsLimitedBeforeTheFileIsRead_andSharesTheMediaQuota() throws Exception {
+        RateLimitFilter f = filter(properties(1, 100));
+        Downstream d = new Downstream();
+        run(f, request("POST", "/api/v1/organizations/org-1/delivery-evidence", "203.0.113.1"), d);
+        MockHttpServletRequest second = request("POST", "/api/v1/organizations/org-1/asset-evidence", "203.0.113.1");
+        second.setContentType("multipart/form-data; boundary=x");
+        second.setContent("--x\r\nContent-Disposition: form-data; name=\"step\"\r\n\r\nDISPATCHED\r\n--x--".getBytes(StandardCharsets.UTF_8));
+        MockHttpServletResponse limited = run(f, second, d);
+        assertThat(limited.getStatus()).isEqualTo(429);
+        assertThat(d.calls).as("la subida limitada nunca llega al controlador, que es quien lee el archivo").isEqualTo(1);
+    }
+
+    @Test
+    void theTrackingCopyRouteSharesTheTrackingQuota() throws Exception {
+        RateLimitFilter f = filter(properties(1, 100));
+        Downstream d = new Downstream();
+        run(f, request("GET", "/api/v1/donations/tracking", "203.0.113.1"), d);
+        assertThat(run(f, request("GET", "/api/v1/donations/tracking/assets/a1/evidence-preview", "203.0.113.1"), d).getStatus())
+                .isEqualTo(429);
+    }
+
+    @Test
     void disabledLetsEverythingThrough() throws Exception {
         RateLimitProperties p = properties(1, 1);
         p.setEnabled(false);
