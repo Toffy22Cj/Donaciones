@@ -4,6 +4,7 @@ import com.traceability.contracts.HashPort;
 import com.traceability.core.application.event.EventCanonicalMapper;
 import com.traceability.core.application.event.RecordedAtText;
 import com.traceability.core.application.exception.ConcurrencyConflictException;
+import com.traceability.core.application.exception.EventOccurredAfterRecordedException;
 import com.traceability.core.application.exception.SequenceGapException;
 import com.traceability.core.application.port.out.EventStorePort;
 import com.traceability.core.application.port.out.EventStreamGenesisReadPort;
@@ -64,6 +65,15 @@ public class MongoEventStoreAdapter implements EventStorePort, EventStreamGenesi
             long newSequence = currentSequence + 1;
             String eventId = UUID.randomUUID().toString();
             Instant recordedAt = Instant.now();
+
+            // ADR-059 (Carlos, 2026-11-19): un hecho no puede ocurrir después de registrarse. Va ANTES de armar el hash y de
+            // insertar nada: el lote entero se guarda con un solo insertAll, así que un solo evento que incumpla impide que se
+            // guarde ninguno. Solo escrituras nuevas: lo ya guardado no se revisa (loadStream no la repite).
+            if (event.occurredAt() == null || event.occurredAt().isAfter(recordedAt)) {
+                throw new EventOccurredAfterRecordedException("Event "
+                        + event.eventType().name() + " of stream " + streamId + " at sequence " + newSequence
+                        + (event.occurredAt() == null ? " has no occurredAt" : " has occurredAt after recordedAt"));
+            }
 
             // Assemble generic map
             Map<String, Object> eventData = canonicalMapper.toCanonicalMap(
